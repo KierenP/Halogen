@@ -33,27 +33,28 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	GameBoard.Print();
+	//std::cout << EvaluatePosition(GameBoard);
 	//PerftSuite();
 	//Benchmark();
 
 	//std::cout << GameBoard.Evaluate();
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R", "w", "KQkq", "-", "0", "1");
-	//GameBoard.InitialiseFromFen("5r2/p4kpp/2p2n2/5p2/8/3N4/P1r2PPP/R4R1K", "w", "-", "-", "0", "1");
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//std::cout << EvaluatePosition(GameBoard);
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R2K3R b kq - 1 1");
+	//SYSTEMTIME before;
+	//SYSTEMTIME after;
+
 	//GameBoard.Print();
-	SYSTEMTIME before;
-	SYSTEMTIME after;
+	//GetSystemTime(&before);
+	//unsigned int nodes = PerftDivide(7);
+	//GetSystemTime(&after);
 
-	GetSystemTime(&before);
-	double nodes = PerftDivide(1);
-	GetSystemTime(&after);
+	//double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
-	double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
-
-	//std::cout.precision(17);
-	std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time  << "ms at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
-	GameBoard.Print();
-	std::cin >> Line;
+	////std::cout.precision(17);
+	//std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time  << "ms at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
+	//GameBoard.Print();
+	//std::cin >> Line;
 
 	//GameBoard.Evaluate();
 	//Search(1500000000);
@@ -286,7 +287,7 @@ void Benchmark()
 
 void PerftSuite()
 {
-	/*std::ifstream infile("perftsuite.txt");
+	std::ifstream infile("perftsuite.txt");
 	HANDLE  hConsole;
 	SYSTEMTIME before;
 	SYSTEMTIME after;
@@ -301,6 +302,7 @@ void PerftSuite()
 	GetSystemTime(&before);
 	while (std::getline(infile, line))
 	{
+		PerftTable.Reformat();
 		vector<string> arrayTokens;
 		std::istringstream iss(line);
 		arrayTokens.clear();
@@ -312,21 +314,20 @@ void PerftSuite()
 			arrayTokens.push_back(stub);
 		} while (iss);
 
-		GameBoard.InitialiseFromFen(arrayTokens[0], arrayTokens[1], arrayTokens[2], arrayTokens[3], arrayTokens[4], arrayTokens[5]);
-		//GameBoard.Print();
+		GameBoard.InitialiseFromFen(line);
 		
-		unsigned int nodes = GameBoard.Perft((arrayTokens.size() - 7) / 2);
+		unsigned int nodes = Perft((arrayTokens.size() - 7) / 2);
 		if (nodes == stoi(arrayTokens[arrayTokens.size() - 2]))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
-			std::cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 6) / 2 << " = " << nodes << " leaf nodes";
+			std::cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 			Correct++;
 		}
 		else
 		{
 			SetConsoleTextAttribute(hConsole, 4);	//red text
-			std::cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 6) / 2 << " = " << nodes << " leaf nodes";
+			std::cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 		}
 
@@ -339,7 +340,7 @@ void PerftSuite()
 
 	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
 	std::cout << "\nTotal nodes: " << (Totalnodes / 1000) << " in " << (Time / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);*/
+	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);
 }
 
 void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
@@ -381,17 +382,15 @@ void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 unsigned int PerftDivide(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
-	GameBoard.Print();
+	PerftTable.Reformat();
+
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
-	GameBoard.Print();
 
 	for (int i = 0; i < moves.size(); i++)
 	{
 		GameBoard.ApplyMove(moves[i]);
-		GameBoard.Print();
 		unsigned int ChildNodeCount = Perft(depth - 1);
 		GameBoard.RevertMove(moves[i]);
-		GameBoard.Print();
 
 		moves[i].Print();
 		std::cout << ": " << ChildNodeCount << std::endl;
@@ -403,10 +402,15 @@ unsigned int PerftDivide(unsigned int depth)
 
 unsigned int Perft(unsigned int depth)
 {
-	if (depth <= 0) return 1;
+	uint64_t key = GenerateZobristKey(GameBoard);
+	if ((PerftTable.CheckEntry(key)) && (PerftTable.GetEntry(key).GetDepth() == depth))
+		return PerftTable.GetEntry(key).GetNodes();
 
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+
+	if (depth == 1)
+		return moves.size();
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -415,53 +419,8 @@ unsigned int Perft(unsigned int depth)
 		GameBoard.RevertMove(moves[i]);
 	}
 
+	PerftTable.AddEntry(key, nodeCount, depth);
 	return nodeCount;
-
-	/*PerftTable.Reformat();
-
-	unsigned int nodeCount = 0;
-
-	GeneratePsudoLegalMoves();
-
-	if (depth == 1)
-	{
-		GenerateAttackTables();
-		RemoveIllegal(LegalMoves);
-		return LegalMoves.size();
-	}
-
-	std::vector<Move> moves = LegalMoves;
-
-	for (int i = 0; i < moves.size(); i++)
-	{
-		ApplyMove(moves[i]);
-
-		if (IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn))
-		{
-			RevertMove(moves[i]);
-			continue;					//Illegal move
-		}
-
-		unsigned int ChildNodeCount = 0;
-		uint64_t key = GenerateZobristKey();
-		if ((perftTable.CheckEntry(key)) && (perftTable.GetEntry(key).GetDepth() == depth - 1))
-		{
-			ChildNodeCount = perftTable.GetEntry(key).GetNodes();
-		}
-		else
-		{
-			ChildNodeCount = PerftLeaf(depth - 1);
-			perftTable.AddEntry(key, ChildNodeCount, depth - 1);
-		}
-		//unsigned int ChildNodeCount = PerftLeaf(depth - 1);
-		RevertMove(moves[i]);
-
-		moves[i].Print();
-		std::cout << ": " << ChildNodeCount << std::endl;
-		nodeCount += ChildNodeCount;
-	}
-
-	return nodeCount;*/
 }
 
 double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl)

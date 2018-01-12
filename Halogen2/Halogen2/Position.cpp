@@ -27,16 +27,17 @@ Position::~Position()
 
 void Position::ApplyMove(Move move)
 {
-	SaveParamiters();
+	/*SaveParamiters();
 
 	SetEnPassant(-1);
 	SetCaptureSquare(-1);
+	SetCapturePiece(-1);
 
 	if (move.IsPromotion())
 		SetPromotionPiece(GetSquare(move.GetFrom()));
 
 	if (move.IsCastle())
-		GetTurn() == WHITE ? HasCastledWhite() : HasCastledBlack();
+		GetTurn() == WHITE ? WhiteCastled() : BlackCastled();
 
 	if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
 	{
@@ -104,8 +105,96 @@ void Position::ApplyMove(Move move)
 
 	NextTurn();
 	UpdateCastleRights(move);
+	//GenerateAttackTables();*/
 
-	GenerateAttackTables();
+	//PositionParam* oldparam = new PositionParam(BoardParamiter);		//make a copy of the old
+	//BoardParamiter.Prev = oldparam;										//set current's previous to that copy
+	SaveParamiters();
+	SetEnPassant(-1);
+	SetCaptureSquare(-1);
+
+	switch (move.GetFlag())
+	{
+	case QUIET:
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		break;
+	case PAWN_DOUBLE_MOVE:
+		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white 
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		break;
+	case KING_CASTLE:
+		if (GetTurn() == WHITE)
+			WhiteCastled();
+		else
+			BlackCastled();
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
+		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
+		break;
+	case QUEEN_CASTLE:
+		if (GetTurn() == WHITE)
+			WhiteCastled();
+		else
+			BlackCastled();
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		SetSquare(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
+		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
+		break;
+	case CAPTURE:
+		SetCapturePiece(GetSquare(move.GetTo()));
+		SetCaptureSquare(move.GetTo());
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		break;
+	case EN_PASSANT:
+		SetCapturePiece(GetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))));
+		SetCaptureSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		break;
+	case KNIGHT_PROMOTION:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
+		break;
+	case BISHOP_PROMOTION:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
+		break;
+	case ROOK_PROMOTION:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
+		break;
+	case QUEEN_PROMOTION:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
+		break;
+	case KNIGHT_PROMOTION_CAPTURE:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetCapturePiece(GetSquare(move.GetTo()));
+		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
+		break;
+	case BISHOP_PROMOTION_CAPTURE:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetCapturePiece(GetSquare(move.GetTo()));
+		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
+		break;
+	case ROOK_PROMOTION_CAPTURE:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetCapturePiece(GetSquare(move.GetTo()));
+		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
+		break;
+	case QUEEN_PROMOTION_CAPTURE:
+		SetPromotionPiece(GetSquare(move.GetFrom()));
+		SetCapturePiece(GetSquare(move.GetTo()));
+		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
+		break;
+	default:
+		break;
+	}
+
+	ClearSquare(move.GetFrom());
+	NextTurn();
+	UpdateCastleRights(move);
+	//GenerateAttackTables();
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -162,13 +251,8 @@ void Position::ApplyMove(std::string strmove)
 
 void Position::RevertMove(Move move)
 {
-	RestorePreviousParamiters();
-
-	if (move.GetFlag() != NULL_MOVE)
-	{
-		SetSquare(move.GetFrom(), GetSquare(move.GetTo()));
-		ClearSquare(move.GetTo());
-	}
+	SetSquare(move.GetFrom(), GetSquare(move.GetTo()));
+	ClearSquare(move.GetTo());
 
 	switch (move.GetFlag())
 	{
@@ -189,8 +273,6 @@ void Position::RevertMove(Move move)
 		break;
 	case EN_PASSANT:
 		SetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), GetCapturePiece());
-		break;
-	case NULL_MOVE:
 		break;
 	case KNIGHT_PROMOTION:
 		SetSquare(move.GetFrom(), GetPromotionPiece());
@@ -224,7 +306,8 @@ void Position::RevertMove(Move move)
 		break;
 	}
 
-	GenerateAttackTables();
+	RestorePreviousParamiters();
+	//GenerateAttackTables();
 }
 
 void Position::Print()

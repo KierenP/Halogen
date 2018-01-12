@@ -28,7 +28,7 @@ public:
 	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
 	void SetCaptureSquare(unsigned int var) { m_CaptureSquare = var; }
 	void SetCapturePiece(unsigned int var) { m_CapturePiece = var; }
-	void SetPromotionPiece(unsigned int var) { m_CapturePiece = var; }
+	void SetPromotionPiece(unsigned int var) { m_PromotionPiece = var; }
 	void WhiteCastled();
 	void BlackCastled();
 	void NextTurn();

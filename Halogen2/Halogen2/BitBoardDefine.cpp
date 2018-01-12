@@ -135,25 +135,25 @@ void BBInit()
 				}
 			}
 
-			if ((AbsFileDiff(i, j) == 1) && RankDiff(i, j) == 1)		//either side one ahead
+			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1)		//either side one ahead
 			{
 				WhitePawnAttacks[i] ^= SquareBB[j];
 			}
-			if ((AbsFileDiff(i, j) == 1) && RankDiff(i, j) == -1)		//either side one behind
+			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1)		//either side one behind
 			{
 				BlackPawnAttacks[i] ^= SquareBB[j];
 			}
 
-			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(i, j) > 1) && (RankDiff(i, j) <= 4))		//left, same file, or right
+			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(j, i) > 1) && (RankDiff(j, i) <= 4))		//left, same file, or right
 			{
 				WhiteKingAttackSquares[i] ^= SquareBB[j];
 			}
-			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(i, j) < -1) && (RankDiff(i, j) >= -4))		//left, same file, or right
+			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(j, i) < -1) && (RankDiff(j, i) >= -4))		//left, same file, or right
 			{
 				BlackKingAttackSquares[i] ^= SquareBB[j];
 			}
 
-			if ((RankDiff(i, j) == 1 && FileDiff(i, j) == 2) || (RankDiff(i, j) == 2 && FileDiff(i, j) == 1))
+			if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
 				KnightAttacks[i] |= SquareBB[j];
 		}
 

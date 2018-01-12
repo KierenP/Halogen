@@ -91,6 +91,8 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 		FenLetter++;
 	}
 
+	GenerateAttackTables();
+
 	return true;
 }
 
