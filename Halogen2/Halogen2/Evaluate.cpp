@@ -35,12 +35,13 @@ const unsigned int Threat[N_PIECES] = { 1, 2, 2, 3, 5, 0, 1, 2, 2, 3, 5, 0 };
 
 unsigned int CalculateGameStage(const Position& position);
 int PieceDevelopment(const Position& position);
-int CastleBonus(const Position& position);
+int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
-int EvaluateKnightCenterControl(const Position& position);
-int EvaluateKnightPawnModifier(const Position& position);
+//int EvaluateKnightCenterControl(const Position& position);
+//int EvaluateKnightPawnModifier(const Position& position);
+int EvaluateMaterial(const Position& position);
 
 /*int PositionTempName::KingSaftey()
 {
@@ -92,10 +93,15 @@ int EvaluatePosition(const Position & position)
 
 	//Score += PieceDevelopment(position);
 	//Score += CastleBonus(position);
-	Score += EvaluatePieceSquareTables(position, GameStage);
+	//Score += EvaluatePieceSquareTables(position, GameStage);
 	//Score += EvaluatePawnStructure(position);
 	//Score += EvaluateKnightCenterControl(position, GameStage);
 
+	int Material = EvaluateMaterial(position);
+	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
+	int PawnStructure = EvaluatePawnStructure(position);
+	int Castle = EvaluateCastleBonus(position);
+	//int Bishops = Evaluate
 	
 	//KnightPawnValueMod
 	//Rook open file 
@@ -186,7 +192,7 @@ int PieceDevelopment(const Position & position)
 	return score;
 }
 
-int CastleBonus(const Position & position)
+int EvaluateCastleBonus(const Position & position)
 {
 	int score = 0;
 
@@ -274,14 +280,14 @@ int EvaluatePieceSquareTables(const Position & position, unsigned int gameStage)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceSquareTables[gameStage][i][bitScanFowardErase(piece)] + PieceValues[i]);														//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceSquareTables[gameStage][i + N_PIECE_TYPES][bitScanFowardErase(piece)] + PieceValues[i + N_PIECE_TYPES]);		//white piece
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceSquareTables[gameStage][i][bitScanFowardErase(piece)]);														//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceSquareTables[gameStage][i + N_PIECE_TYPES][bitScanFowardErase(piece)]);						//white piece
 	}
 
 	return Score;
 }
 
-int EvaluateKnightCenterControl(const Position & position)
+/*int EvaluateKnightCenterControl(const Position & position)
 {
 	int Score = 0;
 
@@ -297,6 +303,19 @@ int EvaluateKnightPawnModifier(const Position & position)
 
 	Score += GetBitCount(position.GetPieceBB(WHITE_KNIGHT)) * KnightPawnValue[GetBitCount(position.GetPieceBB(BLACK_PAWN))];
 	Score -= GetBitCount(position.GetPieceBB(BLACK_KNIGHT)) * KnightPawnValue[GetBitCount(position.GetPieceBB(WHITE_PAWN))];
+
+	return Score;
+}*/
+
+int EvaluateMaterial(const Position & position)
+{
+	int Score = 0;
+
+	for (int i = 0; i < N_PIECE_TYPES; i++)
+	{
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]);										//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]);		//white piece
+	}
 
 	return Score;
 }
