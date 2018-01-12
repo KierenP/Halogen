@@ -1,23 +1,23 @@
 #include "ABnode.h"
 
-//static int totalnodecount = 0;
 int TotalNodeCount = 0;
 
 ABnode::ABnode()
 {
-	m_Type = NONE;
-	m_Cutoff = EXACT;
+	m_Cutoff = UNINITIALIZED_NODE;
 	m_Depth = -1;
 	m_Score = -1;
+	m_Child = nullptr;
+	m_BestMove = Move();
 }
 
-ABnode::ABnode(unsigned int cutoff, Move bestmove, int depth, int score)
+ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child)
 {
-	m_Type = NONE;
 	m_Cutoff = cutoff;
 	m_Depth = depth;
-	m_BestMove = bestmove;
 	m_Score = score;
+	m_Child = child;
+	m_BestMove = bestmove;
 }
 
 ABnode::~ABnode()
@@ -28,51 +28,34 @@ ABnode::~ABnode()
 		delete m_Child;
 }
 
-int ABnode::GetScore()
+int ABnode::GetScore() const
 {
 	return m_Score;
 }
 
-unsigned int ABnode::GetType()
-{
-	return m_Type;
-}
-
-Move ABnode::GetMove()
+Move ABnode::GetMove() const
 {
 	return m_BestMove;
 }
 
-ABnode * ABnode::GetChild()
+ABnode * ABnode::GetChild() const
 {
 	return m_Child;
 }
 
-ABnode * ABnode::GetParent()
-{
-	return m_Parent;
-}
-
-unsigned int ABnode::GetCutoff()
+unsigned int ABnode::GetCutoff() const
 {
 	return m_Cutoff;
 }
 
-int ABnode::GetDepth()
+int ABnode::GetDepth() const
 {
 	return m_Depth;
 }
 
-
-
 void ABnode::SetScore(int score)
 {
 	m_Score = score;
-}
-
-void ABnode::SetType(unsigned int type)
-{
-	m_Type = type;
 }
 
 void ABnode::SetMove(Move & move)
@@ -83,21 +66,6 @@ void ABnode::SetMove(Move & move)
 void ABnode::SetChild(ABnode * child)
 {
 	m_Child = child;
-
-	if (m_Type == NONE)
-		m_Type = ROOT;
-	if (m_Type == LEAF)
-		m_Type = BRANCH;
-}
-
-void ABnode::SetParent(ABnode * parent)
-{
-	m_Parent = parent;
-
-	if (m_Type == NONE)
-		m_Type = LEAF;
-	if (m_Type == ROOT)
-		m_Type = BRANCH;
 }
 
 void ABnode::SetDepth(int depth)
@@ -110,26 +78,19 @@ void ABnode::SetCutoff(unsigned int cutoff)
 	m_Cutoff = cutoff;
 }
 
-bool ABnode::HasChild()
+bool ABnode::HasChild() const
 {
-	/*if (m_Child != nullptr)
-		return true;
-	return false;*/
-
-	if (m_Type == ROOT || m_Type == BRANCH)
+	if (m_Child != nullptr)
 		return true;
 	return false;
 }
 
-bool ABnode::HasParent()
+unsigned ABnode::TraverseNodeChildren()
 {
-	/*if (m_Parent != nullptr)
-		return true;
-	return false;*/
-
-	if (m_Type == LEAF || m_Type == BRANCH)
-		return true;
-	return false;
+	unsigned int depth = 1;
+	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
+		depth++;
+	return depth;
 }
 
 

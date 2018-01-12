@@ -1,6 +1,6 @@
-#include "Position.h"
+//#include "Position.h"
 
-void Position::PawnPushes(std::vector<Move>& moves)
+/*void PositionTempName::PawnPushes(std::vector<Move>& moves)
 {
 	int foward = 0;
 	uint64_t targets = 0;
@@ -32,7 +32,7 @@ void Position::PawnPushes(std::vector<Move>& moves)
 	}
 }
 
-void Position::PawnDoublePushes(std::vector<Move>& moves)
+void PositionTempName::PawnDoublePushes(std::vector<Move>& moves)
 {
 	int foward = 0;
 	uint64_t targets = 0;
@@ -60,7 +60,7 @@ void Position::PawnDoublePushes(std::vector<Move>& moves)
 	}
 }
 
-void Position::PawnAttacks(std::vector<Move>& moves)
+void PositionTempName::PawnAttacks(std::vector<Move>& moves)
 {
 	int fowardleft = 0;
 	int fowardright = 0;
@@ -133,44 +133,9 @@ void Position::PawnAttacks(std::vector<Move>& moves)
 			}
 		}
 	}
-
-	/*uint64_t pawnSquares = GetPieces(Piece(PAWN, BoardParamiter.CurrentTurn));
-
-	if (BoardParamiter.CurrentTurn == WHITE)
-	{
-		while (pawnSquares != 0)
-		{
-			unsigned int start = bitScanFowardErase(pawnSquares);
-
-			if (Occupied(start + 7, BLACK) && GetFile(start) != FILE_A)
-				AddMoves(start, start + 7, CAPTURE, moves);
-			if (Occupied(start + 9, BLACK) && GetFile(start) != FILE_H)
-				AddMoves(start, start + 9, CAPTURE, moves);
-			if (start + 7 == BoardParamiter.EnPassant && GetFile(start) != FILE_A)
-				AddMoves(start, start + 7, EN_PASSANT, moves);
-			if (start + 9 == BoardParamiter.EnPassant && GetFile(start) != FILE_H)
-				AddMoves(start, start + 9, EN_PASSANT, moves);
-		}
-	}
-	if (BoardParamiter.CurrentTurn == BLACK)
-	{
-		while (pawnSquares != 0)
-		{
-			unsigned int start = bitScanFowardErase(pawnSquares);
-
-			if (Occupied(start - 7, WHITE) && GetFile(start) != FILE_H)
-				AddMoves(start, start - 7, CAPTURE, moves);
-			if (Occupied(start - 9, WHITE) && GetFile(start) != FILE_A)
-				AddMoves(start, start - 9, CAPTURE, moves);
-			if (start - 7 == BoardParamiter.EnPassant && GetFile(start) != FILE_H)
-				AddMoves(start, start - 7, EN_PASSANT, moves);
-			if (start - 9 == BoardParamiter.EnPassant && GetFile(start) != FILE_A)
-				AddMoves(start, start - 9, EN_PASSANT, moves);
-		}
-	}*/
 }
 
-void Position::KnightMoves(std::vector<Move>& moves)
+void PositionTempName::KnightMoves(std::vector<Move>& moves)
 {
 	uint64_t KnightSquares = GetPieces(Piece(KNIGHT, BoardParamiter.CurrentTurn));
 
@@ -194,10 +159,8 @@ void Position::KnightMoves(std::vector<Move>& moves)
 	}
 }
 
-void Position::SlidingMovesBB(std::vector<Move>& moves, uint64_t movePiece, uint64_t attackMask[N_SQUARES])
+void PositionTempName::SlidingMovesBB(std::vector<Move>& moves, uint64_t movePiece, uint64_t attackMask[N_SQUARES])
 {
-	//This is called by every rook bishop and queen move and hence any speedup here is very benifitial
-
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
@@ -221,22 +184,22 @@ void Position::SlidingMovesBB(std::vector<Move>& moves, uint64_t movePiece, uint
 	}
 }
 
-void Position::RookMoves(std::vector<Move>& moves)
+void PositionTempName::RookMoves(std::vector<Move>& moves)
 {
 	SlidingMovesBB(moves, GetPieces(Piece(ROOK, BoardParamiter.CurrentTurn)), RookAttacks);
 }
 
-void Position::BishopMoves(std::vector<Move>& moves)
+void PositionTempName::BishopMoves(std::vector<Move>& moves)
 {
 	SlidingMovesBB(moves, GetPieces(Piece(BISHOP, BoardParamiter.CurrentTurn)), BishopAttacks);
 }
 
-void Position::QueenMoves(std::vector<Move>& moves)
+void PositionTempName::QueenMoves(std::vector<Move>& moves)
 {
 	SlidingMovesBB(moves, GetPieces(Piece(QUEEN, BoardParamiter.CurrentTurn)), QueenAttacks);
 }
 
-void Position::KingMoves(std::vector<Move>& moves)
+void PositionTempName::KingMoves(std::vector<Move>& moves)
 {
 	uint64_t KingSquares = GetPieces(Piece(KING, BoardParamiter.CurrentTurn));
 
@@ -258,18 +221,9 @@ void Position::KingMoves(std::vector<Move>& moves)
 			AddMoves(start, end, CAPTURE, moves);
 		}
 	}
-
-	/*int offset[8] = { -9, -8, -7, -1, 1, 7, 8, 9 };
-	uint64_t Squares = GetPieces(Piece(KING, BoardParamiter.CurrentTurn));
-
-	while (Squares != 0)
-	{
-		unsigned int start = bitScanFowardErase(Squares);
-		SlidingMoves(start, offset, false, BoardParamiter.CurrentTurn, moves);
-	}*/
 }
 
-void Position::CastleMoves(std::vector<Move>& moves)
+void PositionTempName::CastleMoves(std::vector<Move>& moves)
 {
 	uint64_t Pieces = AllPieces();
 
@@ -318,38 +272,11 @@ void Position::CastleMoves(std::vector<Move>& moves)
 	}
 }
 
-void Position::PromotionMoves(std::vector<Move>& moves)
-{
-	for (int i = 0; i < moves.size(); i++)
-	{
-		if (((GetSquare(moves[i].GetFrom()) == WHITE_PAWN && GetRank(moves[i].GetTo()) == RANK_8) ||
-			(GetSquare(moves[i].GetFrom()) == BLACK_PAWN && GetRank(moves[i].GetTo()) == RANK_1)) && !moves[i].IsPromotion())
-		{
-			if (moves[i].GetFlag() == QUIET)		
-			{
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), KNIGHT_PROMOTION, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), ROOK_PROMOTION, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), BISHOP_PROMOTION, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), QUEEN_PROMOTION, moves);
-			}
-			else
-			{
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), KNIGHT_PROMOTION_CAPTURE, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), ROOK_PROMOTION_CAPTURE, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), BISHOP_PROMOTION_CAPTURE, moves);
-				AddMoves(moves[i].GetFrom(), moves[i].GetTo(), QUEEN_PROMOTION_CAPTURE, moves);
-			}
-			moves.erase(moves.begin() + i);												//erase the pawn push
-			i--;
-		}
-	}
-}
-
-void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
+void PositionTempName::GenerateAttackTables()
 {
 	for (int i = 0; i < N_PIECES; i++)
 	{
-		table[i] = EMPTY;
+		AttackTable[i] = EMPTY;
 	}
 
 	uint64_t mask = AllPieces();
@@ -359,12 +286,7 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
 		uint64_t moves = KnightAttacks[start] & (~WhitePieces());
-
-		while (moves != 0)
-		{
-			unsigned int sq = bitScanFowardErase(moves);
-			table[WHITE_KNIGHT] |= SquareBB[sq];
-		}
+		AttackTable[WHITE_KNIGHT] |= moves;
 	}
 
 	movePiece = GetPieces(BLACK_KNIGHT);
@@ -372,12 +294,7 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
 		uint64_t moves = KnightAttacks[start] & (~BlackPieces());
-
-		while (moves != 0)
-		{
-			unsigned int sq = bitScanFowardErase(moves);
-			table[BLACK_KNIGHT] |= SquareBB[sq];
-		}
+		AttackTable[BLACK_KNIGHT] |= moves;
 	}
 
 	movePiece = GetPieces(WHITE_PAWN);
@@ -385,12 +302,7 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
 		uint64_t moves = WhitePawnAttacks[start] & (~WhitePieces());
-
-		while (moves != 0)
-		{
-			unsigned int sq = bitScanFowardErase(moves);
-			table[WHITE_PAWN] |= SquareBB[sq];
-		}
+		AttackTable[WHITE_PAWN] |= moves;
 	}
 
 	movePiece = GetPieces(BLACK_PAWN);
@@ -398,12 +310,23 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
 		uint64_t moves = BlackPawnAttacks[start] & (~BlackPieces());
+		AttackTable[BLACK_PAWN] |= moves;
+	}
 
-		while (moves != 0)
-		{
-			unsigned int sq = bitScanFowardErase(moves);
-			table[BLACK_PAWN] |= SquareBB[sq];
-		}
+	movePiece = GetPieces(WHITE_KING);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanFowardErase(movePiece);
+		uint64_t moves = KingAttacks[start] & (~WhitePieces());
+		AttackTable[WHITE_KING] |= moves;
+	}
+
+	movePiece = GetPieces(BLACK_KING);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanFowardErase(movePiece);
+		uint64_t moves = KingAttacks[start] & (~BlackPieces());
+		AttackTable[BLACK_KING] |= moves;
 	}
 
 	movePiece = GetPieces(WHITE_BISHOP);
@@ -414,9 +337,9 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[WHITE_BISHOP] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_BISHOP] |= SquareBB[end];
 		}
 	}
 
@@ -428,9 +351,9 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[BLACK_BISHOP] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_BISHOP] |= SquareBB[end];
 		}
 	}
 
@@ -442,9 +365,9 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[WHITE_ROOK] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_ROOK] |= SquareBB[end];
 		}
 	}
 
@@ -456,9 +379,9 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[BLACK_ROOK] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_ROOK] |= SquareBB[end];
 		}
 	}
 
@@ -470,9 +393,9 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[WHITE_QUEEN] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_QUEEN] |= SquareBB[end];
 		}
 	}
 
@@ -484,9 +407,12 @@ void Position::GenerateAttackTables(uint64_t(&table)[N_PIECES])
 
 		while (moves != 0)
 		{
-			unsigned int sq = bitScanFowardErase(moves);
-			if (mayMove(start, sq, mask))
-				table[BLACK_QUEEN] |= SquareBB[sq];
+			unsigned int end = bitScanFowardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_QUEEN] |= SquareBB[end];
 		}
 	}
-}
+
+	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
+	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
+}*/

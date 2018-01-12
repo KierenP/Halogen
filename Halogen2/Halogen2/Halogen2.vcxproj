@@ -22,28 +22,37 @@
     <ClInclude Include="ABnode.h" />
     <ClInclude Include="BitBoard.h" />
     <ClInclude Include="BitBoardDefine.h" />
+    <ClInclude Include="BoardParamiters.h" />
     <ClInclude Include="Evaluate.h" />
     <ClInclude Include="Move.h" />
+    <ClInclude Include="MoveGeneration.h" />
     <ClInclude Include="PerftTT.h" />
+    <ClInclude Include="PieceSquareTables.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Random.h" />
+    <ClInclude Include="Search.h" />
     <ClInclude Include="TranspositionTable.h" />
     <ClInclude Include="TTEntry.h" />
+    <ClInclude Include="Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ABnode.cpp" />
     <ClCompile Include="BitBoard.cpp" />
     <ClCompile Include="BitBoardDefine.cpp" />
+    <ClCompile Include="BoardParamiters.cpp" />
     <ClCompile Include="Evaluate.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="MoveGen.cpp" />
+    <ClCompile Include="MoveGeneration.cpp" />
     <ClCompile Include="PerftTT.cpp" />
+    <ClCompile Include="PieceSquareTables.cpp" />
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="TranspositionTable.cpp" />
     <ClCompile Include="TTEntry.cpp" />
+    <ClCompile Include="Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="bkt.txt" />

@@ -1,8 +1,5 @@
 #include "PerftTT.h"
 
-const unsigned int ZobristTableSize = 12 * 64 + 1 + 4 + 8;
-uint64_t ZobristTable[ZobristTableSize];
-
 PerftTTEntry::PerftTTEntry(uint64_t ZobristKey, unsigned int ChildNodes, unsigned int Depth)
 {
 	key = ZobristKey;
@@ -53,12 +50,4 @@ PerftTT::PerftTT()
 
 PerftTT::~PerftTT()
 {
-}
-
-void ZobristInit()
-{
-	for (int i = 0; i < ZobristTableSize; i++)
-	{
-		ZobristTable[i] = genrand64_int64();
-	}
 }

@@ -8,51 +8,40 @@ enum AlphaBetaCutoff
 	ALPHA_CUTOFF,
 	BETA_CUTOFF,
 	EXACT,
-};
-
-enum AlphaBetaType
-{
-	ROOT,				//the top node, has no parent
-	BRANCH,				//A middle node, has both parent and child
-	LEAF,				//the bottom node, had no children
-	NONE,
+	NULL_MOVE_PRUNE,
+	FUTILITY_PRUNE,
+	UNINITIALIZED_NODE,
+	FORCED_MOVE
 };
 
 class ABnode
 {
 public:
 	ABnode();
-	//explicit ABnode(ABnode* parent, unsigned int type, Move bestmove, int score = 0);
-	//explicit ABnode(unsigned int type, Move& move);
-	explicit ABnode(unsigned int cutoff, Move bestmove, int depth, int score = 0);
+	ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child);
 	~ABnode();
 
-	int GetScore();
-	unsigned int GetType();
-	Move GetMove();
-	ABnode* GetChild();
-	ABnode* GetParent();
-	unsigned int GetCutoff();
-	int GetDepth();
+	int GetScore() const;
+	int GetDepth() const;
+	unsigned int GetCutoff() const;
+	Move GetMove() const;
+	ABnode* GetChild() const;
 
 	void SetScore(int score);
-	void SetType(unsigned int type);
-	void SetMove(Move& move);
-	void SetChild(ABnode* child);
-	void SetParent(ABnode* parent);
 	void SetDepth(int depth);
 	void SetCutoff(unsigned int cutoff);
+	void SetMove(Move& move);
+	void SetChild(ABnode* child);
 
-	bool HasChild();
-	bool HasParent();
+	bool HasChild() const;
+
+	unsigned TraverseNodeChildren();														//interativly accesses sucsessive children and returns the true depth of the node
 
 private:
 	int m_Score;				
 	int m_Depth;
-	unsigned int m_Type;
 	unsigned int m_Cutoff;
 	Move m_BestMove;			
 	ABnode* m_Child;
-	ABnode* m_Parent;
 };
 

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <intrin.h>
 #include <math.h>
+#include <string>
 
 enum Squares
 {
@@ -128,9 +129,10 @@ enum AnitDiagonal
 
 enum GameStages
 {
-	OPENING,		//move count < 10
-	MIDGAME,		//move count > 10
-	ENDGAME			//Both queens missing
+	OPENING,		
+	MIDGAME,		
+	ENDGAME,
+	N_STAGES
 };
 
 void BBInit();
@@ -140,10 +142,15 @@ unsigned int Piece(unsigned int piecetype, unsigned int colour);
 unsigned int GetFile(unsigned int square);
 unsigned int GetRank(unsigned int square);
 unsigned int GetPosition(unsigned int file, unsigned int rank);
-unsigned int RankDiff(unsigned int sq1, unsigned int sq2);
-unsigned int FileDiff(unsigned int sq1, unsigned int sq2);
+unsigned int AbsRankDiff(unsigned int sq1, unsigned int sq2);
+unsigned int AbsFileDiff(unsigned int sq1, unsigned int sq2);
+int RankDiff(unsigned int sq1, unsigned int sq2);
+int FileDiff(unsigned int sq1, unsigned int sq2);
 unsigned int GetDiagonal(unsigned int square);
 unsigned int GetAntiDiagonal(unsigned int square);
+unsigned int GetBitCount(uint64_t bb);
+unsigned int AlgebraicToPos(std::string str);
+unsigned int ColourOfPiece(unsigned int piece);
 
 extern uint64_t EMPTY;
 extern uint64_t UNIVERCE;

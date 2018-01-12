@@ -3,8 +3,6 @@
 uint64_t EMPTY;
 uint64_t UNIVERCE;
 
-//Lots of cashed lookups to speed up things. This list will grow
-
 uint64_t RankBB[N_RANKS];
 uint64_t FileBB[N_FILES];
 uint64_t SquareBB[N_SQUARES];
@@ -121,7 +119,7 @@ void BBInit()
 
 		for (int j = 0; j < 64; j++)
 		{
-			if (abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i)) <= 1))	//adjacent files or same file
+			if (AbsFileDiff(i, j) <= 1)													//adjacent files or same file
 			{
 				if (GetRank(j) > GetRank(i))											//Ahead of i
 					PassedPawnMaskWhite[i] ^= SquareBB[j];
@@ -129,7 +127,7 @@ void BBInit()
 					PassedPawnMaskBlack[i] ^= SquareBB[j];
 			}
 
-			if ((abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i))) <= 1) && (abs(static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i))) <= 1))
+			if (AbsFileDiff(i, j) <= 1 && AbsRankDiff(i, j) <= 1)
 			{
 				if (i != j)
 				{
@@ -137,34 +135,33 @@ void BBInit()
 				}
 			}
 
-			if ((abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i))) == 1) && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i))) == 1)		//either side one ahead
+			if ((AbsFileDiff(i, j) == 1) && RankDiff(i, j) == 1)		//either side one ahead
 			{
 				WhitePawnAttacks[i] ^= SquareBB[j];
 			}
-			if ((abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i))) == 1) && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i))) == -1)		//either side one behind
+			if ((AbsFileDiff(i, j) == 1) && RankDiff(i, j) == -1)		//either side one behind
 			{
 				BlackPawnAttacks[i] ^= SquareBB[j];
 			}
 
-			if ((abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i))) <= 1) && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i))) > 1 && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i)) <= 4))		//left, same file, or right
+			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(i, j) > 1) && (RankDiff(i, j) <= 4))		//left, same file, or right
 			{
 				WhiteKingAttackSquares[i] ^= SquareBB[j];
 			}
-			if ((abs(static_cast<int>(GetFile(j)) - static_cast<int>(GetFile(i))) <= 1) && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i))) < -1 && (static_cast<int>(GetRank(j)) - static_cast<int>(GetRank(i)) >= -4))		//left, same file, or right
+			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(i, j) < -1) && (RankDiff(i, j) >= -4))		//left, same file, or right
 			{
 				BlackKingAttackSquares[i] ^= SquareBB[j];
 			}
+
+			if ((RankDiff(i, j) == 1 && FileDiff(i, j) == 2) || (RankDiff(i, j) == 2 && FileDiff(i, j) == 1))
+				KnightAttacks[i] |= SquareBB[j];
 		}
 
 		WhiteKingAttackSquares[i] |= KingAttacks[i];
 		BlackKingAttackSquares[i] |= KingAttacks[i];
 
 		RookAttacks[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];		//All the spaces in the same rank and file but not the starting square
-		
-		unsigned int Antidiagonal = 14 - GetRank(i) - GetFile(i);
-		unsigned int diagonal = RANK_8 - GetRank(i) + GetFile(i);
-
-		BishopAttacks[i] = (DiagonalBB[diagonal] | AntiDiagonalBB[Antidiagonal]) ^ SquareBB[i];
+		BishopAttacks[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];
 		QueenAttacks[i] = RookAttacks[i] | BishopAttacks[i];
  	}
 }
@@ -179,15 +176,6 @@ unsigned int Piece(unsigned int piecetype, unsigned int colour)
 {
 	return piecetype + N_PIECE_TYPES * colour;
 }
-
-/*unsigned int LSBI(uint64_t bitboard)
-{
-	unsigned long index;
-
-	_BitScanForward(&index, bitboard);
-
-	return static_cast<unsigned int>(index);
-}*/
 
 unsigned int GetFile(unsigned int square)
 {
@@ -204,46 +192,70 @@ unsigned int GetPosition(unsigned int file, unsigned int rank)
 	return rank * 8 + file;
 }
 
-unsigned int RankDiff(unsigned int sq1, unsigned int sq2)
+unsigned int AbsRankDiff(unsigned int sq1, unsigned int sq2)
 {
 	return abs(static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2)));
 }
 
-unsigned int FileDiff(unsigned int sq1, unsigned int sq2)
+unsigned int AbsFileDiff(unsigned int sq1, unsigned int sq2)
 {
 	return abs(static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2)));
 }
 
+int RankDiff(unsigned int sq1, unsigned int sq2)
+{
+	return static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2));
+}
+
+int FileDiff(unsigned int sq1, unsigned int sq2)
+{
+	return static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2));
+}
+
 unsigned int GetDiagonal(unsigned int square)
 {
-	return (7 - GetRank(square)) + GetFile(square);
+	return (RANK_8 - GetRank(square)) + GetFile(square);
 }
 
 unsigned int GetAntiDiagonal(unsigned int square)
 {
-	return 14 - GetRank(square) - GetFile(square);
+	return RANK_8 + FILE_H - GetRank(square) - GetFile(square);
+}
+
+unsigned int GetBitCount(uint64_t bb)
+{
+	unsigned int num = 0;
+
+	while (bb != 0)
+	{
+		bitScanFowardErase(bb);
+		num++;
+	}
+
+	return num;
+}
+
+unsigned int AlgebraicToPos(std::string str)
+{
+	if (str == "-")
+		return -1;
+	return (str[0] - 97) + (str[1] - 49) * 8;		//TODO: I don't think the cast here is nessesary 
+}
+
+unsigned int ColourOfPiece(unsigned int piece)
+{
+	if (piece <= BLACK_KING)
+		return BLACK;
+	return WHITE;
 }
 
 int bitScanForward(uint64_t bb)
 {
-	/*for (int i = 0; i < 64; i++)
-	{
-		if ((bb & 1) != 0)
-			return i;
-
-		bb >>= 1;
-	}
-
-	return 0;*/
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
 int bitScanFowardErase(uint64_t &bb)
 {
-	/*int index = index64[((bb ^ (1 - 1)) * debruijn64) >> 58];
-	bb &= bb - 1;
-	return index;*/
-
 	int index = bitScanForward(bb);
 	bb ^= SquareBB[index];
 	return index;

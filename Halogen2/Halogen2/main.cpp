@@ -1,19 +1,23 @@
-#include "Position.h"
-#include "Random.h"
+#include "Search.h"
 #include "PerftTT.h"
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <ctime>
+#include <Windows.h>
 
 using namespace::std;
 Position GameBoard;
-
-//const bool DEBUG = true;
+PerftTT PerftTable;
 
 Move Search(float time);		//time remaining in milliseconds
 void Benchmark();
 void PerftSuite();
-string EncodeMove(Move move);
+void PrintSearchInfo(ABnode root, unsigned int depth, double Time);
+unsigned int PerftDivide(unsigned int depth);
+unsigned int Perft(unsigned int depth);
+
+double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl);
 
 int main()
 {
@@ -28,26 +32,28 @@ int main()
 
 	GameBoard.StartingPosition();
 	ZobristInit();
+	InitializeEvaluation();
+	GameBoard.Print();
 	//PerftSuite();
 	//Benchmark();
 
 	//std::cout << GameBoard.Evaluate();
-
 	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R", "w", "KQkq", "-", "0", "1");
-	//GameBoard.InitialiseFromFen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1", "w", "-", "-", "0", "1");
+	//GameBoard.InitialiseFromFen("5r2/p4kpp/2p2n2/5p2/8/3N4/P1r2PPP/R4R1K", "w", "-", "-", "0", "1");
 	//GameBoard.Print();
-	//SYSTEMTIME before;
-	//SYSTEMTIME after;
+	SYSTEMTIME before;
+	SYSTEMTIME after;
 
-	//GetSystemTime(&before);
-	//double nodes = GameBoard.Perft(8);
-	//GetSystemTime(&after);
+	GetSystemTime(&before);
+	double nodes = PerftDivide(1);
+	GetSystemTime(&after);
 
-	//double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
+	double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
 	//std::cout.precision(17);
-	//std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time  << "ms at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
-	//std::cin >> Line;
+	std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time  << "ms at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
+	GameBoard.Print();
+	std::cin >> Line;
 
 	//GameBoard.Evaluate();
 	//Search(1500000000);
@@ -64,14 +70,27 @@ int main()
 
 	while (getline(cin, Line)) 
 	{
+		vector<string> arrayTokens;			//Split the line into an array of strings seperated by each space
+		std::istringstream iss(Line);
+		arrayTokens.clear();
+
+		do
+		{
+			std::string stub;
+			iss >> stub;
+			arrayTokens.push_back(stub);
+		} while (iss);
+
+		if (arrayTokens.size() == 1)
+		{
+			std::cout << "Bad input: Empty input" << std::endl;
+			continue;
+		}
+
 		if (Line == "uci") {
 			cout << "id name Halogen 2" << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "uciok" << endl;
-		}
-		else if (Line == "quit") {
-			cout << "Bye Bye" << endl;
-			break;
 		}
 		else if (Line == "isready") {
 			cout << "readyok" << endl;
@@ -82,59 +101,54 @@ int main()
 		else if (Line == "quit") {
 			return 0;
 		}
-
-		if (Line.substr(0, 24) == "position startpos moves ") {
-
-			GameBoard.StartingPosition();
-			vector<string> arrayTokens;
-			std::istringstream iss(Line);
-			arrayTokens.clear();
-
-			do
+		else if (arrayTokens[0] == "position")
+		{
+			if (arrayTokens[1] == "startpos")
 			{
-				std::string stub;
-				iss >> stub;
-				arrayTokens.push_back(stub);
-			} while (iss);
-
-			for (int i = 3; i < arrayTokens.size() - 1; i++)
+				GameBoard.StartingPosition();
+				if (arrayTokens[2] == "moves")
+				{
+					GameBoard.InitialiseFromMoves(std::vector<std::string>(arrayTokens.begin() + 3, arrayTokens.end() - 1));
+				}
+			}
+			else if (arrayTokens[1] == "fen")
 			{
-				GameBoard.ApplyMove(arrayTokens[i]);
+				if (arrayTokens.size() != 9)
+				{
+					std::cout << "Bad fen" << std::endl;
+					continue;
+				}
+
+				GameBoard.InitialiseFromFen(arrayTokens[2], arrayTokens[3], arrayTokens[4], arrayTokens[5], arrayTokens[6], arrayTokens[7]);
+			}
+			else
+			{
+				std::cout << "Position input format not recognised" << std::endl;
+				continue;
+			}
+		}
+
+		else if (arrayTokens[0] == "go")
+		{
+			// Received a command like: "go wtime 300000 btime 300000 winc 0 binc 0"
+			if (arrayTokens.size() != 10)
+			{
+				std::cout << "Bad go command" << std::endl;
+				continue;
 			}
 
-			//GameBoard.Print();
-		}
-		/*else if (Line.substr(0, 6) == "perft")
-		{
-			unsigned long int nodes = GameBoard.Divide(1);
-
-			std::cout << "\n\n Perft with depth " << 1 << " = " << nodes << " leaf nodes";
-
-			GameBoard.Print();
-		}*/
-		else if (Line.substr(0, 3) == "go ") {
-			// Received a command like: "go wtime 300000 btime 300000 winc 0 binc 0"
-
-			Move BestMove(0, 0, 0);
-			vector<string> arrayTokens;
-			std::istringstream iss(Line);
-			arrayTokens.clear();
-
-			do
-			{
-				std::string stub;
-				iss >> stub;
-				arrayTokens.push_back(stub);
-			} while (iss);
-
-			if (GameBoard.GetCurrentTurn() == WHITE)
-				BestMove = Search(stoi(arrayTokens[2]));
-			if (GameBoard.GetCurrentTurn() == BLACK)
-				BestMove = Search(stoi(arrayTokens[4]));
+			Move BestMove;
+			unsigned int timeMs = stoi(GameBoard.GetTurn() == WHITE ? arrayTokens[2] : arrayTokens[4]);
+			BestMove = Search(timeMs);
 			std::cout << "\nbestmove ";
 			BestMove.Print();
 			std::cout << std::endl;
 			GameBoard.ApplyMove(BestMove);
+		}
+		else
+		{
+			std::cout << "Unknown command" << std::endl;
+			continue;
 		}
 	}
 
@@ -143,110 +157,71 @@ int main()
 
 Move Search(float time)
 {
-	GameBoard.ResetTT();
+	tTable.Reformat();
 	TotalNodeCount = 0;
 
 	SYSTEMTIME before;
 	SYSTEMTIME after;
-	
 	double prevTime = 1;
 	double TotalTime = 1;
-
 	unsigned int DepthMultiRatio = 1;
 	unsigned int DesiredTime = time / 20;	//try to aim to use up a 20th of the available time each turn	
-
-	ABnode* ROOT = new ABnode(0, Move(0, 0, 0), 0, 0);
-	Move bestmove(0, 0, 0);
-
 	bool checkmate = false;
-	int prevScore = 0;
+	ABnode Root;
 
-	for (int depth = 1; (DesiredTime > prevTime * DepthMultiRatio || depth < 3) && (!checkmate && depth < 15); depth++)
+	for (int depth = 1; (DesiredTime > prevTime * DepthMultiRatio || depth < 4) && (!checkmate); depth++)
 	{
-		//GameBoard.Print();
-
-		delete ROOT;
-		ROOT = new ABnode(0, Move(0, 0, 0), 0, 0);
-
 		GetSystemTime(&before);
 
-		int alpha = prevScore - 50;
-		int beta = prevScore + 50;
+		//int alpha = -99999;
+		//int beta = prevScore + 25;
 
-		do
+		/*do
 		{
-			if (GameBoard.BestMove(depth, alpha, beta, ROOT, bestmove, DesiredTime - TotalTime) == -2)
+			if (GameBoard.BestMove(depth, alpha, beta, ROOT, bestmove, DesiredTime - TotalTime) == -1234567)
+			{
+				std::cout << std::endl;
 				return bestmove;
+			}
 
 			if (ROOT->GetCutoff() == NONE)
 				std::cout << "NONE";
 
-			if (ROOT->GetCutoff() == ALPHA_CUTOFF)
+			if (ROOT->GetChild()->GetScore() <= alpha)
 			{
-				std::cout << " Fail low ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
+				//std::cout << " Fail low ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
 				alpha -= prevScore;
 				alpha *= 4;				//4x distance from prevscore
 				alpha += prevScore;
 			}
-			if (ROOT->GetCutoff() == BETA_CUTOFF)
+
+			if (ROOT->GetChild()->GetScore() >= beta)
 			{
-				std::cout << " Fail High ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
+				//std::cout << " Fail High ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
 				beta -= prevScore;
 				beta *= 4;				//4x distance from prevscore
 				beta += prevScore;
 			}
-		} while (ROOT->GetCutoff() == BETA_CUTOFF);
+		} while (ROOT->GetChild()->GetScore() <= alpha || ROOT->GetChild()->GetScore() >= beta);*/
 
+		SearchBestMove(GameBoard, depth, Root.GetMove());
 		GetSystemTime(&after);
 
-		double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
+		double Time = after - before;
 
 		DepthMultiRatio = Time / TotalTime;
 		prevTime = Time;
 		TotalTime += Time;
 
-		ABnode* ptr = ROOT->GetChild();
-		int actualdepth = 1;
-
-		while (ptr->HasChild())
-		{
-			ptr = ptr->GetChild();
-			actualdepth++;
-		}
-
-		if (ROOT->GetChild()->GetScore() > -9000 && ROOT->GetChild()->GetScore() < 9000)
-		{
-			std::cout << "\ninfo depth " << depth << " seldepth " << actualdepth << " score cp " << (GameBoard.GetCurrentTurn() * 2 - 1)* ROOT->GetChild()->GetScore() << " time " << Time << " nodes " << GameBoard.NodeCount << " nps " << GameBoard.NodeCount / (Time / 1000) << " tbhits " << GameBoard.tTable.TTHits << " pv ";
-		}
-		else
-		{
-			std::cout << "\ninfo depth " << depth << " seldepth " << actualdepth << " score mate " << (actualdepth + 1) / 2 << " time " << Time << " nodes " << GameBoard.NodeCount << " nps " << GameBoard.NodeCount / (Time / 1000) << " TBhits " << GameBoard.tTable.TTHits << " pv ";
-			checkmate = true;
-		}
-		ROOT->GetChild()->GetMove().Print();
-		std::cout << " ";
-
-		ptr = ROOT->GetChild();
-
-		while (ptr->HasChild())
-		{
-			ptr = ptr->GetChild();
-			ptr->GetMove().Print();
-			std::cout << " ";
-		}
-
-		bestmove = ROOT->GetChild()->GetMove();
-		prevScore = ROOT->GetChild()->GetScore();
+		PrintSearchInfo(Root, depth, Time);
 	}
 
-	std::cout << "\n";
-	delete ROOT;
-	return bestmove;
+	return Root.GetMove();
 }
 
 void Benchmark()
 {
-	std::cout << "\nSTART\n";
+	/*std::cout << "\nSTART\n";
 	std::ifstream infile("bkt.txt");
 	HANDLE  hConsole;
 	SYSTEMTIME before;
@@ -306,12 +281,12 @@ void Benchmark()
 		}
 	}
 
-	std::cout << "\n\nCompleted all positions with score: " << Score << "/24";
+	std::cout << "\n\nCompleted all positions with score: " << Score << "/24";*/
 }
 
 void PerftSuite()
 {
-	std::ifstream infile("perftsuite.txt");
+	/*std::ifstream infile("perftsuite.txt");
 	HANDLE  hConsole;
 	SYSTEMTIME before;
 	SYSTEMTIME after;
@@ -364,21 +339,145 @@ void PerftSuite()
 
 	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
 	std::cout << "\nTotal nodes: " << (Totalnodes / 1000) << " in " << (Time / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);
+	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);*/
 }
 
-string EncodeMove(Move move)
+void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 {
-	/*unsigned int prev = move.GetFrom();
-	unsigned int current = move.GetTo();
-
-	//std::cout << (char)(prev % 8 + 97) << prev / 8 + 1 << (char)(current % 8 + 97) << current / 8 + 1;	//+1 to make it from 1-8 and not 0-7, 97 is ascii for 'a'
-
-	if (GameBoard.GetSquare(move.GetFrom()) == WHITE_PAWN || GameBoard.GetSquare(move.GetFrom()) == BLACK_PAWN)		//pawn move
+	if (root.GetScore() > -5000 && root.GetScore() < 5000)
 	{
-		if (move.GetFlag() == QUIET || move.GetFlag() == PAWN_DOUBLE_MOVE)											//not a capture
-			return string((char)(current % 8 + 97), current / 8 + 1);
-	}*/
+		std::cout
+			<< "info depth " << depth
+			<< " seldepth " << root.TraverseNodeChildren()
+			<< " score cp " << (GameBoard.GetTurn() * 2 - 1) * root.GetScore()
+			<< " time " << Time
+			<< " nodes " << TotalNodeCount
+			<< " nps " << TotalNodeCount / (Time / 1000)
+			<< " tbhits " << tTable.GetCount()
+			<< " pv ";
+	}
+	else
+	{
+		std::cout
+			<< "info depth " << depth
+			<< " seldepth " << root.TraverseNodeChildren()
+			<< " score mate " << (root.TraverseNodeChildren() + 1) / 2
+			<< " time " << Time
+			<< " nodes " << TotalNodeCount
+			<< " nps " << TotalNodeCount / (Time / 1000)
+			<< " tbhits " << tTable.GetCount()
+			<< " pv ";
+	}
 
-	return "0";
+	for (ABnode* ptr = &root; ptr->HasChild(); ptr = ptr->GetChild())
+	{
+		ptr->GetMove().Print();
+		std::cout << " ";
+	}
+
+	std::cout << std::endl;
+}
+
+unsigned int PerftDivide(unsigned int depth)
+{
+	unsigned int nodeCount = 0;
+	GameBoard.Print();
+	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+	GameBoard.Print();
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		GameBoard.ApplyMove(moves[i]);
+		GameBoard.Print();
+		unsigned int ChildNodeCount = Perft(depth - 1);
+		GameBoard.RevertMove(moves[i]);
+		GameBoard.Print();
+
+		moves[i].Print();
+		std::cout << ": " << ChildNodeCount << std::endl;
+		nodeCount += ChildNodeCount;
+	}
+
+	return nodeCount;
+}
+
+unsigned int Perft(unsigned int depth)
+{
+	if (depth <= 0) return 1;
+
+	unsigned int nodeCount = 0;
+	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		GameBoard.ApplyMove(moves[i]);
+		nodeCount += Perft(depth - 1);
+		GameBoard.RevertMove(moves[i]);
+	}
+
+	return nodeCount;
+
+	/*PerftTable.Reformat();
+
+	unsigned int nodeCount = 0;
+
+	GeneratePsudoLegalMoves();
+
+	if (depth == 1)
+	{
+		GenerateAttackTables();
+		RemoveIllegal(LegalMoves);
+		return LegalMoves.size();
+	}
+
+	std::vector<Move> moves = LegalMoves;
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		ApplyMove(moves[i]);
+
+		if (IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn))
+		{
+			RevertMove(moves[i]);
+			continue;					//Illegal move
+		}
+
+		unsigned int ChildNodeCount = 0;
+		uint64_t key = GenerateZobristKey();
+		if ((perftTable.CheckEntry(key)) && (perftTable.GetEntry(key).GetDepth() == depth - 1))
+		{
+			ChildNodeCount = perftTable.GetEntry(key).GetNodes();
+		}
+		else
+		{
+			ChildNodeCount = PerftLeaf(depth - 1);
+			perftTable.AddEntry(key, ChildNodeCount, depth - 1);
+		}
+		//unsigned int ChildNodeCount = PerftLeaf(depth - 1);
+		RevertMove(moves[i]);
+
+		moves[i].Print();
+		std::cout << ": " << ChildNodeCount << std::endl;
+		nodeCount += ChildNodeCount;
+	}
+
+	return nodeCount;*/
+}
+
+double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl)
+{
+	FILETIME v_ftime;
+	ULARGE_INTEGER v_ui;
+	__int64 v_right, v_left;
+	SystemTimeToFileTime(&pSr, &v_ftime);
+	v_ui.LowPart = v_ftime.dwLowDateTime;
+	v_ui.HighPart = v_ftime.dwHighDateTime;
+	v_right = v_ui.QuadPart;
+
+	SystemTimeToFileTime(&pSl, &v_ftime);
+	v_ui.LowPart = v_ftime.dwLowDateTime;
+	v_ui.HighPart = v_ftime.dwHighDateTime;
+	v_left = v_ui.QuadPart;
+
+	return v_right - v_left;
 }
