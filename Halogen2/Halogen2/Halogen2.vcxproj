@@ -18,6 +18,37 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ABnode.h" />
+    <ClInclude Include="BitBoard.h" />
+    <ClInclude Include="BitBoardDefine.h" />
+    <ClInclude Include="Evaluate.h" />
+    <ClInclude Include="Move.h" />
+    <ClInclude Include="PerftTT.h" />
+    <ClInclude Include="Position.h" />
+    <ClInclude Include="Random.h" />
+    <ClInclude Include="TranspositionTable.h" />
+    <ClInclude Include="TTEntry.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ABnode.cpp" />
+    <ClCompile Include="BitBoard.cpp" />
+    <ClCompile Include="BitBoardDefine.cpp" />
+    <ClCompile Include="Evaluate.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Move.cpp" />
+    <ClCompile Include="MoveGen.cpp" />
+    <ClCompile Include="PerftTT.cpp" />
+    <ClCompile Include="Position.cpp" />
+    <ClCompile Include="Random.cpp" />
+    <ClCompile Include="Search.cpp" />
+    <ClCompile Include="TranspositionTable.cpp" />
+    <ClCompile Include="TTEntry.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="bkt.txt" />
+    <Text Include="perftsuite.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{2EC8D1D6-57D9-403E-B590-0F883A3FF3F8}</ProjectGuid>
@@ -84,7 +115,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
@@ -112,7 +143,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
