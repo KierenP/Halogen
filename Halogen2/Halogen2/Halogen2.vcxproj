@@ -43,7 +43,6 @@
     <ClCompile Include="Evaluate.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Move.cpp" />
-    <ClCompile Include="MoveGen.cpp" />
     <ClCompile Include="MoveGeneration.cpp" />
     <ClCompile Include="PerftTT.cpp" />
     <ClCompile Include="PieceSquareTables.cpp" />

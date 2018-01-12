@@ -80,9 +80,6 @@
     <ClCompile Include="Move.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MoveGen.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PerftTT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
