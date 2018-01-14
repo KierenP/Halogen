@@ -33,18 +33,25 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	//std::cout << EvaluatePosition(GameBoard);
-	//PerftSuite();
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//EvaluatePosition(GameBoard);
+	//GameBoard.InitialiseFromFen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
+	//EvaluatePosition(GameBoard);
+	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
+	//EvaluatePosition(GameBoard);
+	//GameBoard.InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	//EvaluatePosition(GameBoard);
+	PerftSuite();
 	//Benchmark();
 
 	//std::cout << GameBoard.Evaluate();
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//
 	//std::cout << EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R2K3R b kq - 1 1");
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
 	//SYSTEMTIME before;
 	//SYSTEMTIME after;
 
-	//GameBoard.Print();
+	////GameBoard.Print();
 	//GetSystemTime(&before);
 	//unsigned int nodes = PerftDivide(7);
 	//GetSystemTime(&after);
@@ -208,7 +215,7 @@ Move Search(float time)
 		SearchBestMove(GameBoard, depth, Root.GetMove());
 		GetSystemTime(&after);
 
-		double Time = after - before;
+		double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
 		DepthMultiRatio = Time / TotalTime;
 		prevTime = Time;
@@ -339,7 +346,7 @@ void PerftSuite()
 	double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
 	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
-	std::cout << "\nTotal nodes: " << (Totalnodes / 1000) << " in " << (Time / 1000) << "s";
+	std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << (Time / 1000) << "s";
 	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);
 }
 
@@ -383,11 +390,11 @@ unsigned int PerftDivide(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
 	PerftTable.Reformat();
-
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
+		//PerftTable.Reformat();
 		GameBoard.ApplyMove(moves[i]);
 		unsigned int ChildNodeCount = Perft(depth - 1);
 		GameBoard.RevertMove(moves[i]);

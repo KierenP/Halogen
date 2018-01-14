@@ -101,6 +101,16 @@ int EvaluatePosition(const Position & position)
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
+
+	std::cout << "Material: " << Material << "\n";
+	std::cout << "Piece Squares: " << PieceSquares << "\n";
+	std::cout << "Pawn Structure: " << PawnStructure << "\n";
+	std::cout << "Castle Bonus: " << Castle << "\n";
+	
+	Score += Material + PieceSquares + PawnStructure + Castle;
+
+	std::cout << "Total: " << Score << "\n";
+
 	//int Bishops = Evaluate
 	
 	//KnightPawnValueMod
@@ -224,10 +234,10 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 		IsPassed = true;
 
 	if ((((position.GetPieceBB(PAWN, colour)) & FileBB[GetFile(square)]) ^ SquareBB[square]) != 0)
-	IsDoubled = true;
+		IsDoubled = true;
 
 	if (((position.GetPieceBB(PAWN, !colour)) & FileBB[GetFile(square)]) != 0)
-	IsOpposed = true;
+		IsOpposed = true;
 
 	uint64_t friendlypawns = position.GetPieceBB(PAWN, colour);
 	uint64_t mask = 0;
@@ -256,12 +266,7 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 	if (IsDoubled)
 		result -= DoubledPawnPenalty;
 
-	if (colour == WHITE)
-		return result;
-	if (colour == BLACK)
-		return -result;
-
-	return 0;
+	return result;
 }
 
 int EvaluatePawnStructure(const Position & position)
@@ -313,8 +318,8 @@ int EvaluateMaterial(const Position & position)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]);										//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]);		//white piece
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanFowardErase(piece);										//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanFowardErase(piece);		//white piece
 	}
 
 	return Score;

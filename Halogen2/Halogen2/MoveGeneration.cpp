@@ -22,6 +22,7 @@ std::vector<Move> GenerateLegalMoves(Position & position)
 std::vector<Move> GeneratePsudoLegalMoves(const Position & position)
 {
 	std::vector<Move> moves;
+	moves.reserve(30);
 
 	PawnPushes(position, moves);
 	PawnDoublePushes(position, moves);
@@ -55,18 +56,22 @@ void PawnPushes(const Position & position, std::vector<Move>& moves)
 		targets = (pawnSquares >> 8) & position.GetEmptySquares();
 	}
 
-	while (targets != 0)
+	uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
+	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
+
+	while (pawnPushes != 0)
 	{
-		unsigned int end = bitScanFowardErase(targets);
-		if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
-		{
-			moves.push_back(Move(end - foward, end, KNIGHT_PROMOTION));
-			moves.push_back(Move(end - foward, end, ROOK_PROMOTION));
-			moves.push_back(Move(end - foward, end, BISHOP_PROMOTION));
-			moves.push_back(Move(end - foward, end, QUEEN_PROMOTION));
-		}
-		else
-			moves.push_back(Move(end - foward, end, QUIET));
+		unsigned int end = bitScanFowardErase(pawnPushes);
+		moves.push_back(Move(end - foward, end, QUIET));
+	}
+
+	while (pawnPromotions != 0)
+	{
+		unsigned int end = bitScanFowardErase(pawnPromotions);
+		moves.push_back(Move(end - foward, end, KNIGHT_PROMOTION));
+		moves.push_back(Move(end - foward, end, ROOK_PROMOTION));
+		moves.push_back(Move(end - foward, end, BISHOP_PROMOTION));
+		moves.push_back(Move(end - foward, end, QUEEN_PROMOTION));
 	}
 }
 
@@ -276,21 +281,18 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 		if (!mayMove(king, moves[i].GetFrom(), mask))
 			continue;
 
-		if (true)//if ((SquareBB[moves[i].GetFrom()] & position.GetAttackTable(Piece(BISHOP, !turn))) != 0)
-		{
-			if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) || (GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())))
-				Pinned[moves[i].GetFrom()] = true;
-		}
-		if (true)//((SquareBB[moves[i].GetFrom()] & position.GetAttackTable(Piece(ROOK, !turn))) != 0)
-		{
-			if ((GetFile(king) == GetFile(moves[i].GetFrom())) || (GetRank(king) == GetRank(moves[i].GetFrom())))
-				Pinned[moves[i].GetFrom()] = true;
-		}
-		if (true)//((SquareBB[moves[i].GetFrom()] & position.GetAttackTable(Piece(QUEEN, !turn))) != 0)
-		{
-			if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) || (GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) || (GetFile(king) == GetFile(moves[i].GetFrom())) || (GetRank(king) == GetRank(moves[i].GetFrom())))
-				Pinned[moves[i].GetFrom()] = true;
-		}
+		//If a piece is moving from the same diagonal as the king, and that diagonal contains an enemy bishop or queen
+		if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) && (DiagonalBB[GetDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+			Pinned[moves[i].GetFrom()] = true;
+		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy bishop or queen
+		if ((GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+			Pinned[moves[i].GetFrom()] = true;
+		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
+		if ((GetFile(king) == GetFile(moves[i].GetFrom())) && (FileBB[GetFile(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+			Pinned[moves[i].GetFrom()] = true;
+		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
+		if ((GetRank(king) == GetRank(moves[i].GetFrom())) && (RankBB[GetRank(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+			Pinned[moves[i].GetFrom()] = true;
 	}
 
 	for (int i = 0; i < moves.size(); i++)
@@ -310,7 +312,7 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 				position.ClearSquare(GetPosition(GetFile(moves[i].GetTo()), GetRank(moves[i].GetFrom())));
 			}
 
-			bool InCheck = IsInCheck(position, position.GetKing(turn), turn);							//CANNOT use 'king' in place of GetKing because the king may have moved. I 
+			bool InCheck = IsInCheck(position, position.GetKing(turn), turn);							//CANNOT use 'king' in place of GetKing because the king may have moved.
 
 			if (moves[i].GetFlag() == EN_PASSANT)
 			{
@@ -352,6 +354,14 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 
 	uint64_t Pieces = position.GetAllPieces();
 
+	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
+	while (queen != 0)
+	{
+		unsigned int start = bitScanFowardErase(queen);
+		if (mayMove(start, square, Pieces))
+			return true;
+	}
+
 	uint64_t bishops = position.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
 	while (bishops != 0)
 	{
@@ -364,14 +374,6 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 	while (rook != 0)
 	{
 		unsigned int start = bitScanFowardErase(rook);
-		if (mayMove(start, square, Pieces))
-			return true;
-	}
-
-	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
-	while (queen != 0)
-	{
-		unsigned int start = bitScanFowardErase(queen);
 		if (mayMove(start, square, Pieces))
 			return true;
 	}

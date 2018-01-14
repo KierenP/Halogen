@@ -281,8 +281,6 @@ uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 
 uint64_t inBetweenCache(unsigned int from, unsigned int to)
 {
-	if (from < 0 || from >= N_SQUARES || to < 0 || to >= N_SQUARES)
-		return EMPTY;
 	return betweenArray[from][to];
 }
 

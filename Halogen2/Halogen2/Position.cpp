@@ -393,7 +393,8 @@ bool Position::InitialiseFromFen(std::string fen)
 	{
 		std::string stub;
 		iss >> stub;
-		splitFen[i] = (stub);
+		if (stub != "")
+			splitFen[i] = (stub);
 	}
 
 	return InitialiseFromFen(splitFen[0], splitFen[1], splitFen[2], splitFen[3], splitFen[4], splitFen[5]);
