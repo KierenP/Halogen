@@ -52,6 +52,7 @@ int main()
 	//SYSTEMTIME after;
 
 	////GameBoard.Print();
+	//PerftTable.Reformat();
 	//GetSystemTime(&before);
 	//unsigned int nodes = PerftDivide(7);
 	//GetSystemTime(&after);
@@ -59,7 +60,7 @@ int main()
 	//double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
 	////std::cout.precision(17);
-	//std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time  << "ms at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
+	//std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time / 1000  << "s at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
 	//GameBoard.Print();
 	//std::cin >> Line;
 
@@ -389,7 +390,7 @@ void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 unsigned int PerftDivide(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
-	PerftTable.Reformat();
+	//PerftTable.Reformat();
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
 
 	for (int i = 0; i < moves.size(); i++)

@@ -21,7 +21,7 @@ bool PerftTT::CheckEntry(uint64_t key)
 
 void PerftTT::AddEntry(uint64_t key, unsigned childNodes, unsigned int depth)
 {
-	if (HashTable[key % HashTableSize].GetDepth() <= depth || HashTable[key % HashTableSize].GetKey() == EMPTY || HashTable[key % HashTableSize].IsAncient())
+	if (HashTable[key % HashTableSize].GetKey() == EMPTY || HashTable[key % HashTableSize].IsAncient() || HashTable[key % HashTableSize].GetDepth() <= depth)
 		HashTable[key % HashTableSize] = PerftTTEntry(key, childNodes, depth);
 }
 

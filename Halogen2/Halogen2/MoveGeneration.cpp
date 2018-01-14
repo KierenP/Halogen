@@ -263,15 +263,13 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 	uint64_t mask = position.GetAllPieces();
 
 	for (int i = 0; i < 64; i++)
-	{
-		if (InCheck)
-			Pinned[i] = true;
-		else
-			Pinned[i] = false;
-	}
+		Pinned[i] = InCheck;
 
 	for (int i = 0; !InCheck && i < moves.size(); i++)
 	{
+		if (Pinned[moves[i].GetFrom()])
+			continue;
+
 		if (moves[i].GetFlag() == EN_PASSANT || moves[i].GetFrom() == king)	//En passant and any king moves must always be checked for legality
 		{
 			Pinned[moves[i].GetFrom()] = true;
@@ -282,16 +280,16 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 			continue;
 
 		//If a piece is moving from the same diagonal as the king, and that diagonal contains an enemy bishop or queen
-		if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) && (DiagonalBB[GetDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) && (GetDiagonal(king) != GetDiagonal(moves[i].GetTo())) && (DiagonalBB[GetDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
 		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy bishop or queen
-		if ((GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		if ((GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) && (GetAntiDiagonal(king) != GetAntiDiagonal(moves[i].GetTo())) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
 		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
-		if ((GetFile(king) == GetFile(moves[i].GetFrom())) && (FileBB[GetFile(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		if ((GetFile(king) == GetFile(moves[i].GetFrom())) && (GetFile(king) != GetFile(moves[i].GetTo())) && (FileBB[GetFile(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
 		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
-		if ((GetRank(king) == GetRank(moves[i].GetFrom())) && (RankBB[GetRank(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		if ((GetRank(king) == GetRank(moves[i].GetFrom())) && (GetRank(king) != GetRank(moves[i].GetTo())) && (RankBB[GetRank(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
 	}
 
