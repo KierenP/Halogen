@@ -1,8 +1,5 @@
 #include "PerftTT.h"
 
-const unsigned int ZobristTableSize = 12 * 64 + 1 + 4 + 8;
-uint64_t ZobristTable[ZobristTableSize];
-
 PerftTTEntry::PerftTTEntry(uint64_t ZobristKey, unsigned int ChildNodes, unsigned int Depth)
 {
 	key = ZobristKey;
@@ -24,7 +21,7 @@ bool PerftTT::CheckEntry(uint64_t key)
 
 void PerftTT::AddEntry(uint64_t key, unsigned childNodes, unsigned int depth)
 {
-	if (HashTable[key % HashTableSize].GetDepth() < depth || HashTable[key % HashTableSize].GetKey() == EMPTY || HashTable[key % HashTableSize].IsAncient())
+	if (HashTable[key % HashTableSize].GetKey() == EMPTY || HashTable[key % HashTableSize].IsAncient() || HashTable[key % HashTableSize].GetDepth() <= depth)
 		HashTable[key % HashTableSize] = PerftTTEntry(key, childNodes, depth);
 }
 
@@ -53,12 +50,4 @@ PerftTT::PerftTT()
 
 PerftTT::~PerftTT()
 {
-}
-
-void ZobristInit()
-{
-	for (int i = 0; i < ZobristTableSize; i++)
-	{
-		ZobristTable[i] = genrand64_int64();
-	}
 }

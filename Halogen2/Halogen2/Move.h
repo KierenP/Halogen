@@ -4,7 +4,7 @@
 enum MoveFlag
 {
 	/*
-	3rd bit always signifies a capture
+	3rd bit always signifies a capture  (NOT TRUE ATM, NULL MOVE IS AN EXCEPTION)
 	4th bit always signifies a promotion
 	*/
 
@@ -14,6 +14,7 @@ enum MoveFlag
 	QUEEN_CASTLE,					//3		0 0 1 1
 	CAPTURE,						//4		0 1 0 0
 	EN_PASSANT,						//5		0 1 0 1
+	NULL_MOVE,						//6		0 1 1 0					//todo remove this and replace with function
 	KNIGHT_PROMOTION = 8,			//8		1 0 0 0
 	BISHOP_PROMOTION,				//9		1 0 0 1
 	ROOK_PROMOTION,					//10	1 0 1 0
@@ -27,25 +28,24 @@ enum MoveFlag
 class Move
 {
 public:
-	explicit Move();
-	explicit Move(unsigned int from, unsigned int to, unsigned int flag);
+	Move();
+	Move(unsigned int from, unsigned int to, unsigned int flag);
 	~Move();
 
-	void SetFrom(unsigned int from);
-	void SetTo(unsigned int to);
-	void SetFlag(unsigned int flag);
+	unsigned int GetFrom() const;
+	unsigned int GetTo() const;
+	unsigned int GetFlag() const;
 
-	unsigned int GetFrom();
-	unsigned int GetTo();
-	unsigned int GetFlag();
+	bool IsPromotion() const;
+	bool IsCapture() const;
+	bool IsCastle() const;
 
-	bool IsPromotion();
-	bool IsCapture();
+	void Print() const;
 
-	void Print();
+	bool operator==(const Move& rhs) const;
 
 private:
-
+	//TODO use bit manipulation to fit this into a single bite rather than 3
 	char m_From;
 	char m_To;
 	char m_Flag;

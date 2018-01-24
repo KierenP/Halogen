@@ -22,28 +22,36 @@
     <ClInclude Include="ABnode.h" />
     <ClInclude Include="BitBoard.h" />
     <ClInclude Include="BitBoardDefine.h" />
+    <ClInclude Include="BoardParamiters.h" />
     <ClInclude Include="Evaluate.h" />
     <ClInclude Include="Move.h" />
+    <ClInclude Include="MoveGeneration.h" />
     <ClInclude Include="PerftTT.h" />
+    <ClInclude Include="PieceSquareTables.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Random.h" />
+    <ClInclude Include="Search.h" />
     <ClInclude Include="TranspositionTable.h" />
     <ClInclude Include="TTEntry.h" />
+    <ClInclude Include="Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ABnode.cpp" />
     <ClCompile Include="BitBoard.cpp" />
     <ClCompile Include="BitBoardDefine.cpp" />
+    <ClCompile Include="BoardParamiters.cpp" />
     <ClCompile Include="Evaluate.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Move.cpp" />
-    <ClCompile Include="MoveGen.cpp" />
+    <ClCompile Include="MoveGeneration.cpp" />
     <ClCompile Include="PerftTT.cpp" />
+    <ClCompile Include="PieceSquareTables.cpp" />
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Search.cpp" />
     <ClCompile Include="TranspositionTable.cpp" />
     <ClCompile Include="TTEntry.cpp" />
+    <ClCompile Include="Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="bkt.txt" />
@@ -112,6 +120,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>..\..</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -129,7 +138,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
@@ -161,14 +170,15 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -1,403 +1,342 @@
-#include "Position.h"
+#include "Search.h"
 
+int NodeCount = 0;
 
-int Position::NegaAlphaBetaMax(ABnode* parent, int depth, int alpha, int beta, int colour, bool AllowNull)
+TranspositionTable tTable;
+ABnode* SearchToDepth(Position & position, int depth, Move prevBest = Move());
+void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta);
+void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta);
+void PrintSearchInfo(Position & position, ABnode& node, unsigned int depth, unsigned int Time, bool isCheckmate);
+
+//Yes. that is a reference to a pointer
+void NodeReplaceBest(ABnode*& best, ABnode*& node, bool colour);		
+void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
+bool ExtendSearch(Position & position, int depth, Move& move);
+
+void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 {
-	int alphaOrig = alpha;
-	NodeCount++;
-
-	//1. Lookup Transposition table
-	if (tTable.CheckEntry(GenerateZobristKey(), depth))
+	unsigned int swapIndex = 0;
+	Move temp(0, 0, 0);
+	int PieceValues[N_PIECES] = { 1, 3, 3, 5, 9, 10, 1, 3, 3, 5, 9, 10 };			//relative values
+													
+	//move previously cached position to front
+	if (tTable.CheckEntry(GenerateZobristKey(position), searchDepth - 1))
 	{
-		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey());
-		if (ttEntry.GetCutoff() == EXACT || ttEntry.GetCutoff() == ALPHA_CUTOFF)
+		Move bestprev = tTable.GetEntry(GenerateZobristKey(position)).GetMove();
+		for (int i = 0; i < moves.size(); i++)
 		{
-			parent->SetCutoff(ttEntry.GetCutoff());
-			return ttEntry.GetScore();
-		}
-	}
-
-	//2. Null move heuristic
-	if (AllowNull)
-	{
-		bool MeInCheck = IsInCheck(GetKing(BoardParamiter.CurrentTurn), BoardParamiter.CurrentTurn);
-		bool OtherInCheck = IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn);
-
-		if (!MeInCheck)
-		{
-			bool turn = BoardParamiter.CurrentTurn;
-			BoardParamiter.CurrentTurn = !turn;		//make null move
-			ABnode* node = new ABnode(NONE, Move(), depth, -99999);
-			int NullEval = -NegaAlphaBetaMax(node, depth - 3, -beta, -beta + 1, -colour, !AllowNull);
-			delete node;
-			BoardParamiter.CurrentTurn = turn;		//Unmake null move
-			if (NullEval > beta)
+			if (bestprev == moves[i])
 			{
-				parent->SetCutoff(BETA_CUTOFF);
-				return beta;
+				SwapMoves(moves, i, swapIndex);
+				swapIndex++;
+				break;
 			}
 		}
 	}
 
-	//Futility pruning heuristic
-	int PieceValues[N_PIECES + 1] = { 100, 300, 300, 500, 900, 20000, 100, 300, 300, 500, 900, 20000, 0 };	
+	//The move promotions to front
+	for (int i = swapIndex; i < moves.size(); i++)
+	{
+		if (moves[i].IsPromotion())
+		{
+			SwapMoves(moves, i, swapIndex);
+			swapIndex++;
+		}
+	}
+
+	//order in terms of least valuable attacker, most valuable piece
+	for (int j = PieceValues[KING] - PieceValues[PAWN]; j >= PieceValues[PAWN] - PieceValues[KING]; j--)
+	{
+		for (int i = swapIndex; i < moves.size(); i++)
+		{
+			if (!moves[i].IsCapture())
+				continue;
+
+			if (PieceValues[position.GetSquare(moves[i].GetTo())] - PieceValues[position.GetSquare(moves[i].GetFrom())] == j)
+			{
+				SwapMoves(moves, i, swapIndex);
+				swapIndex++;
+			}
+		}
+	}
+}
+
+Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
+{
+	tTable.Reformat();
+
+	Move Best;
+	ABnode previous;					//stores the root node of the previous search to this one, eg to depth 4 and we are now up to 5.
+	SYSTEMTIME before;
+	SYSTEMTIME after;
+	double prevDepthTime = 1;
+	double passedTime = 1;
+	unsigned int DepthMultiRatio = 1;
+	bool checkmate = false;
+
+	for (int depth = 1; (allowedTimeMs - passedTime > passedTime * DepthMultiRatio * 1.5 || passedTime < allowedTimeMs / 40) && (true); depth++)
+	{
+		GetSystemTime(&before);
+		ABnode* ROOT = SearchToDepth(position, depth, Best);
+		GetSystemTime(&after);
+
+		unsigned int Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
+
+		DepthMultiRatio = Time / passedTime;
+		prevDepthTime = Time;
+		passedTime += Time;
+
+		PrintSearchInfo(position, *ROOT, depth, Time, false);
+
+		if (ROOT->GetCutoff() == CHECK_MATE)
+			checkmate = true;
 	
-	//Quiesence search terminator
-	bool AllQuiet = true;
-
-	//3. Search child nodes to find score
-	ABnode* best = new ABnode(NONE, Move(), depth, -99999);
-	std::vector<Move> moves = MoveOrder(GenerateLegalMoves(), depth);
-
-	if (moves.size() == 0)
-	{
-		delete best;
-		parent->SetCutoff(EXACT);
-		if (IsInCheck())
-			return colour * -9500;					//Got checkmated
-		else
-			return 0;								//stalemate
+		std::cout << std::endl;
+		Best = ROOT->GetMove();
+		delete ROOT;			//This deletes all the children of best but not the top level 'best' which is all we want
 	}
 
-	int staticEval = Evaluate();
+	return Best;
+}
 
-	for (int i = 0; i < moves.size(); i++)
-	{
-		bool IsReCapture = (moves[i].GetTo() == PreviousParam[BoardParamiter.TurnCount - 1].CaptureSquare);
-		bool IsCapture = moves[i].IsCapture();
-		bool IsPromotion = moves[i].IsPromotion();
-		bool MeInCheck = IsInCheck(GetKing(BoardParamiter.CurrentTurn), BoardParamiter.CurrentTurn);
-		bool OtherInCheck = IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn);
-		bool IsFutile = staticEval + PieceValues[GetSquare(moves[i].GetTo())] * 1.2 < alpha;				//20% buffer
+void PrintSearchInfo(Position & position, ABnode& node, unsigned int depth, unsigned int Time, bool isCheckmate)
+{
+	std::cout
+		<< "info depth " << depth
+		<< " seldepth " << node.CountNodeChildren();															//if ABnode tracking is implemented back this will be adjusted
 
-		if (depth <= 0 && !IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)						//Quiesence search
-			continue;
-		if ((depth == 2 || depth == 1) && IsFutile && !(IsPromotion || MeInCheck || OtherInCheck))			//Futility pruning
-			continue;
-
-		AllQuiet = false;
-		
-		ApplyMove(moves[i]);
-		ABnode* node = new ABnode(NONE, moves[i], depth);
-		node->SetScore(-NegaAlphaBetaMax(node, depth - 1, -beta, -alpha, -colour, !AllowNull));
-		RevertMove(moves[i]);
-		
-		if (node->GetScore() > best->GetScore())
-		{
-			delete best;
-			best = node;
-		}
-		else
-			delete node;
-
-		alpha = fmax(alpha, best->GetScore());							//best score is either what it was last time, or it is now higher as the current node just replaced best.
-		if (alpha >= beta)
-			break;														//outside alpha / beta range hence cutoff
-	}
-
-	if (AllQuiet)
-	{
-		delete best;
-		parent->SetCutoff(EXACT);
-		return colour * Evaluate();
-	}
-
-	//4. Add calculation to Transposition Table
-	if (best->GetScore() < alphaOrig)
-		best->SetCutoff(ALPHA_CUTOFF);
-	else if (best->GetScore() >= beta)
-		best->SetCutoff(BETA_CUTOFF);
+	if (isCheckmate)
+		std::cout << " score mate " << (depth + 1) / 2;
 	else
-		best->SetCutoff(EXACT);
-	tTable.AddEntry(best->GetMove(), GenerateZobristKey(), best->GetScore(), depth, best->GetCutoff());
+		std::cout << " score cp " << (position.GetTurn() * 2 - 1) * node.GetScore();
 
-	//5. Return result
-	best->SetParent(parent);
-	parent->SetChild(best);
-	parent->SetCutoff(best->GetCutoff());
-	return best->GetScore();
+	std::cout
+		<< " time " << Time
+		<< " nodes " << NodeCount
+		<< " nps " << NodeCount / (Time + 1) * 1000														//+1 to avoid division by zero
+		<< " tbhits " << tTable.GetCount()
+		<< " pv ";
+
+	node.PrintNodeChildren();
 }
 
-/*
-int Position::alphabetaMax(int alpha, int beta, int depth, ABnode* parent)
+void NodeReplaceBest(ABnode*& best, ABnode*& node, bool colour)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(), depth))	//Check the TT for if we have already analysed this position
+	if (colour)
 	{
-		TTEntry entry = tTable.GetEntry(GenerateZobristKey());
-		parent->SetCutoff(entry.GetCutoff());
-		return entry.GetScore();
-	}
-
-	GeneratePsudoLegalMoves();
-
-	MoveOrder(LegalMoves, depth);
-	ABnode* best = new ABnode(ALPHA_CUTOFF, Move(0, 0, 0), depth, alpha);
-	std::vector<Move> moves = LegalMoves;			//Make a copy of the legal moves for this position
-
-	bool AllIllegal = true;
-	for (int i = 0; i < moves.size(); i++)
-	{
-		ABnode* node = new ABnode(NONE, moves[i], depth);
-
-		ApplyMove(moves[i]);
-		if (IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn))
-		{
-			RevertMove(moves[i]);
-			continue;					//Illegal move
-		}
-		AllIllegal = false;
-
-		if (!CheckThreeFold())
-		{
-			if (depth > 0 && !(depth < 2 && !IsInCheck() && !moves[i].IsCapture()))
-				node->SetScore(alphabetaMin(best->GetScore(), beta, depth - 1, node));
-			else
-				node->SetScore(QuialphabetaMin(best->GetScore(), beta, depth - 1, node));
-		}
-		else
-			node->SetScore(0);
-		RevertMove(moves[i]);
-
-		if (node->GetScore() >= beta)
-		{
-			parent->SetChild(node);
-			parent->SetCutoff(BETA_CUTOFF);
-			delete best;
-			return beta;
-		}
-
 		if (node->GetScore() > best->GetScore())
 		{
 			delete best;
 			best = node;
 		}
 		else
+		{
 			delete node;
-	}
-
-	if (AllIllegal)
-	{
-		parent->SetCutoff(EXACT);
-		if (IsInCheck())
-			return CheckMateScore();
-		else
-			return 0;									//stalemate
-	}
-
-	parent->SetChild(best);
-	parent->SetCutoff(best->GetCutoff());
-	best->SetParent(parent);
-	tTable.AddEntry(best->GetMove(), GenerateZobristKey(), best->GetScore(), depth, best->GetCutoff());
-	return best->GetScore();
-}
-
-int Position::alphabetaMin(int alpha, int beta, int depth, ABnode* parent)
-{
-	if (tTable.CheckEntry(GenerateZobristKey(), depth))	//Check the TT for if we have already analysed this position
-	{
-		TTEntry entry = tTable.GetEntry(GenerateZobristKey());
-		parent->SetCutoff(entry.GetCutoff());
-		return entry.GetScore();
-	}
-
-	GeneratePsudoLegalMoves();
-
-	MoveOrder(LegalMoves, depth);
-	ABnode* best = new ABnode(BETA_CUTOFF, Move(0, 0, 0), depth, beta);
-	std::vector<Move> moves = LegalMoves;
-
-	bool AllIllegal = true;
-	for (int i = 0; i < moves.size(); i++)
-	{
-		ABnode* node = new ABnode(NONE, moves[i], depth);
-
-		ApplyMove(moves[i]);
-		if (IsInCheck(GetKing(!BoardParamiter.CurrentTurn), !BoardParamiter.CurrentTurn))
-		{
-			RevertMove(moves[i]);
-			continue;					//Illegal move
 		}
-		AllIllegal = false;
-
-		if (!CheckThreeFold())
-		{
-			if (depth > 0 && !(depth < 2 && !IsInCheck() && !moves[i].IsCapture()))
-				node->SetScore(alphabetaMax(alpha, best->GetScore(), depth - 1, node));
-			else
-				node->SetScore(QuialphabetaMax(alpha, best->GetScore(), depth - 1, node));
-		}
-		else
-			node->SetScore(0);
-		RevertMove(moves[i]);
-
-		if (node->GetScore() <= alpha)
-		{
-			parent->SetChild(node);
-			parent->SetCutoff(ALPHA_CUTOFF);
-			delete best;
-			return alpha;
-		}
+	}
+	else
+	{
 		if (node->GetScore() < best->GetScore())
 		{
 			delete best;
 			best = node;
 		}
 		else
+		{
 			delete node;
+		}
 	}
-
-	if (AllIllegal)
-	{
-		parent->SetCutoff(EXACT);
-		if (IsInCheck())
-			return CheckMateScore();
-		else
-			return 0;									//stalemate
-	}
-
-	parent->SetChild(best);
-	parent->SetCutoff(best->GetCutoff());
-	best->SetParent(parent);
-	tTable.AddEntry(best->GetMove(), GenerateZobristKey(), best->GetScore(), depth, best->GetCutoff());
-	return best->GetScore();
 }
 
-int Position::QuialphabetaMax(int alpha, int beta, int depth, ABnode* parent)
+void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(), depth))	//Check the TT for if we have already analysed this position
+	Move temp = moves[b];
+	moves[b] = moves[a];
+	moves[a] = temp;
+}
+
+bool ExtendSearch(Position & position, int depth, Move& move)
+{
+	if (depth > 0)
+		return true;
+
+	bool IsReCapture = (move.GetTo() == position.GetCaptureSquare());
+	bool IsPromotion = move.IsPromotion();
+	bool MeInCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+	bool OtherInCheck = IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn());
+
+	if (!IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)							
+		return false;												
+	return true;
+}
+
+ABnode* SearchToDepth(Position & position, int depth, Move prevBest)
+{
+	NodeCount = 0;
+
+	tTable.ResetCount();
+	std::vector<Move> moves = GenerateLegalMoves(position);
+
+	//with only one move, we can very quickly just return this move as there is zero benifet to searching the tree below this node
+	if (moves.size() == 1)
+		return CreateForcedNode(moves[0]);
+
+	OrderMoves(moves, position, depth);
+	ABnode* best = CreatePlaceHolderNode(position.GetTurn());
+
+	//Move the previous best move to the front
+	for (int i = 0; i < moves.size(); i++)						
 	{
-		TTEntry entry = tTable.GetEntry(GenerateZobristKey());
-		parent->SetCutoff(entry.GetCutoff());
-		return entry.GetScore();
+		if (moves[i] == prevBest)
+		{
+			Move temp = moves[i];
+			moves[i] = moves[0];
+			moves[0] = temp;									
+			break;
+		}
 	}
 
-	GenerateLegalMoves();
-
-	if (LegalMoves.size() == 0)
-	{
-		parent->SetCutoff(EXACT);
-		if (IsInCheck())
-			return CheckMateScore();
-		else
-			return 0;									//stalemate
-	}
-
-	MoveOrder(LegalMoves, depth);
-	ABnode* best = new ABnode(ALPHA_CUTOFF, Move(0, 0, 0), depth, alpha);
-	std::vector<Move> moves = LegalMoves;
-
-	bool AllQuiet = true;
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if ((moves[i].GetTo() == BoardParamiter.CaptureSquare) || (IsInCheck(GetKing(BoardParamiter.CurrentTurn), BoardParamiter.CurrentTurn)) || (moves[i].IsPromotion()))
+		ABnode* node = CreateBranchNode(moves[i], depth);
+
+		position.ApplyMove(moves[i]);
+		if (position.GetTurn() == BLACK)
+			Minimize(position, depth - 1, node, LowINF, HighINF);				//Negitive to make 'good' moves for black score larger integer values
+		if (position.GetTurn() == WHITE)
+			Maximize(position, depth - 1, node, LowINF, HighINF);
+		position.RevertMove(moves[i]);
+
+		//note the move reverting has changed the current turn from before ^
+		NodeReplaceBest(best, node, position.GetTurn());
+	}
+
+	return best;
+}
+
+void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta)
+{
+	NodeCount++;
+
+	//1. Lookup Transposition table
+	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
+	{
+		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey(position));
+		if (ttEntry.GetCutoff() == EXACT || ttEntry.GetCutoff() == CHECK_MATE)
 		{
-			AllQuiet = false;
-			ABnode* node = new ABnode(NONE, moves[i], depth);
+			parent->SetChild(new ABnode(Move(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+			return;
+		}
+		if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
+			alpha = max(alpha, ttEntry.GetScore());
+		if (ttEntry.GetCutoff() == BETA_CUTOFF)
+			beta = min(beta, ttEntry.GetScore());
+	}
 
-			ApplyMove(moves[i]);
-			if (!CheckThreeFold())
-				node->SetScore(QuialphabetaMin(best->GetScore(), beta, depth - 1, node));
-			else
-				node->SetScore(0);
-			RevertMove(moves[i]);
+	std::vector<Move> moves = GenerateLegalMoves(position);
 
-			if (node->GetScore() >= beta)
-			{
-				parent->SetChild(node);
-				parent->SetCutoff(BETA_CUTOFF);
-				delete best;
-				return beta;
-			}
-			if (node->GetScore() > best->GetScore())
-			{
-				delete best;
-				best = node;
-			}
-			else
-				delete node;
+	if (moves.size() == 0)
+	{
+		parent->SetChild(CreateCheckmateNode(WHITE, depth));
+		return;
+	}
+
+	OrderMoves(moves, position, depth);
+	ABnode* best = CreatePlaceHolderNode(WHITE);
+	bool AllQuiet = true;
+
+	for (int i = 0; i < moves.size(); i++)
+	{	
+		if (!ExtendSearch(position, depth, moves[i]))
+			continue;
+		AllQuiet = false;
+
+		ABnode* node = CreateBranchNode(moves[i], depth);
+
+		position.ApplyMove(moves[i]);
+		Minimize(position, depth - 1, node, alpha, beta);
+		position.RevertMove(moves[i]);
+
+		NodeReplaceBest(best, node, WHITE);
+
+		alpha = max(alpha, best->GetScore());
+		if (alpha >= beta)
+		{
+			best->SetCutoff(BETA_CUTOFF);
+			tTable.AddEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff());
+			break;
 		}
 	}
 
 	if (AllQuiet)
 	{
-		delete best;
-		parent->SetCutoff(EXACT);
-		return Evaluate();
+		parent->SetChild(CreateLeafNode(position, depth));
+		return;
 	}
 
 	parent->SetChild(best);
-	parent->SetCutoff(best->GetCutoff());
-	best->SetParent(parent);
-	tTable.AddEntry(best->GetMove(), GenerateZobristKey(), best->GetScore(), depth, best->GetCutoff());
-	return best->GetScore();
+	tTable.AddEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff());
 }
 
-int Position::QuialphabetaMin(int alpha, int beta, int depth, ABnode* parent)
+void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(), depth))	//Check the TT for if we have already analysed this position
+	NodeCount++;
+
+	//1. Lookup Transposition table
+	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
 	{
-		TTEntry entry = tTable.GetEntry(GenerateZobristKey());
-		parent->SetCutoff(entry.GetCutoff());
-		return entry.GetScore();
+		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey(position));
+		if (ttEntry.GetCutoff() == EXACT || ttEntry.GetCutoff() == CHECK_MATE)
+		{
+			parent->SetChild(new ABnode(Move(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+			return;
+		}
+		if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
+			alpha = max(alpha, ttEntry.GetScore());
+		if (ttEntry.GetCutoff() == BETA_CUTOFF)
+			beta = min(beta, ttEntry.GetScore());
 	}
 
-	GenerateLegalMoves();
+	std::vector<Move> moves = GenerateLegalMoves(position);
 
-	if (LegalMoves.size() == 0)
-	{
-		parent->SetCutoff(EXACT);
-		if (IsInCheck())
-			return CheckMateScore();
-		else
-			return 0;									//stalemate
+	if (moves.size() == 0) {
+		parent->SetChild(CreateCheckmateNode(BLACK, depth));
+		return;
 	}
 
-	MoveOrder(LegalMoves, depth);
-	ABnode* best = new ABnode(BETA_CUTOFF, Move(0, 0, 0), depth, beta);
-	std::vector<Move> moves = LegalMoves;
-
+	OrderMoves(moves, position, depth);
+	ABnode* best = CreatePlaceHolderNode(BLACK);
 	bool AllQuiet = true;
+
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if ((moves[i].GetTo() == BoardParamiter.CaptureSquare) || (IsInCheck(GetKing(BoardParamiter.CurrentTurn), BoardParamiter.CurrentTurn)) || (moves[i].IsPromotion()))
+		if (!ExtendSearch(position, depth, moves[i]))
+			continue;
+		AllQuiet = false;
+
+		ABnode* node = CreateBranchNode(moves[i], depth);
+
+		position.ApplyMove(moves[i]);
+		Maximize(position, depth - 1, node, alpha, beta);
+		position.RevertMove(moves[i]);
+
+		NodeReplaceBest(best, node, BLACK);
+		
+		beta = min(beta, best->GetScore());
+		if (beta <= alpha)
 		{
-			AllQuiet = false;
-			ABnode* node = new ABnode(NONE, moves[i], depth);
-
-			ApplyMove(moves[i]);
-			if (!CheckThreeFold())
-				node->SetScore(QuialphabetaMax(alpha, best->GetScore(), depth - 1, node));
-			else
-				node->SetScore(0);
-			RevertMove(moves[i]);
-
-			if (node->GetScore() <= alpha)
-			{
-				parent->SetChild(node);
-				parent->SetCutoff(ALPHA_CUTOFF);
-				delete best;
-				return alpha;
-			}
-			if (node->GetScore() < best->GetScore())
-			{
-				delete best;
-				best = node;
-			}
-			else
-				delete node;
+			best->SetCutoff(ALPHA_CUTOFF);
+			tTable.AddEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff());
+			break;
 		}
 	}
 
 	if (AllQuiet)
 	{
-		delete best;
-		parent->SetCutoff(EXACT);
-		return Evaluate();
+		parent->SetChild(CreateLeafNode(position, depth));
+		return;
 	}
 
 	parent->SetChild(best);
-	parent->SetCutoff(best->GetCutoff());
-	best->SetParent(parent);
-	tTable.AddEntry(best->GetMove(), GenerateZobristKey(), best->GetScore(), depth, best->GetCutoff());
-	return best->GetScore();
-}*/
+	tTable.AddEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff());
+}
