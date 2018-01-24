@@ -102,14 +102,14 @@ int EvaluatePosition(const Position & position)
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
 
-	std::cout << "Material: " << Material << "\n";
+	/*std::cout << "Material: " << Material << "\n";
 	std::cout << "Piece Squares: " << PieceSquares << "\n";
 	std::cout << "Pawn Structure: " << PawnStructure << "\n";
 	std::cout << "Castle Bonus: " << Castle << "\n";
 	
 	Score += Material + PieceSquares + PawnStructure + Castle;
 
-	std::cout << "Total: " << Score << "\n";
+	std::cout << "Total: " << Score << "\n";*/
 
 	//int Bishops = Evaluate
 	
@@ -120,6 +120,7 @@ int EvaluatePosition(const Position & position)
 	//bishoppairbonus
 	//king saftey
 
+	Score += Material + PieceSquares + PawnStructure + Castle;
 	return Score;
 }
 

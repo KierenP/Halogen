@@ -66,6 +66,8 @@ void ABnode::SetMove(Move & move)
 void ABnode::SetChild(ABnode * child)
 {
 	m_Child = child;
+	m_Score = child->GetScore();
+	m_Cutoff = child->GetCutoff();
 }
 
 void ABnode::SetDepth(int depth)
@@ -85,14 +87,52 @@ bool ABnode::HasChild() const
 	return false;
 }
 
-unsigned ABnode::TraverseNodeChildren()
+unsigned ABnode::CountNodeChildren()
 {
 	unsigned int depth = 1;
 	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
 		depth++;
-	return depth;
+	return depth - 1;	//Currently at the end of the line is a leaf node with no move, so we -1 so account for that
 }
 
+void ABnode::PrintNodeChildren()
+{
+	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
+	{
+		std::cout << " ";
+		ptr->GetMove().Print();
+	}
+}
 
+ABnode* CreateLeafNode(Position& position, int depth)
+{
+	return new ABnode(Move(), depth, EXACT, EvaluatePosition(position));
+}
 
+ABnode * CreateBranchNode(Move & move, int depth)
+{
+	return new ABnode(move, depth, UNINITIALIZED_NODE, 0);
+}
 
+ABnode * CreatePlaceHolderNode(bool colour)
+{
+	if (colour == WHITE)
+		return new ABnode(Move(), 0, UNINITIALIZED_NODE, LowINF);
+	else
+		return new ABnode(Move(), 0, UNINITIALIZED_NODE, HighINF);
+}
+
+ABnode * CreateForcedNode(Move & move)
+{
+	return new ABnode(move, 0, EXACT, 0);
+}
+
+ABnode * CreateCheckmateNode(bool colour, int depth)
+{
+	//more depths still to search produce more desirable results for the winning side.
+
+	if (colour == WHITE)
+		return new ABnode(Move(), depth, CHECK_MATE, WhiteLoses - depth);
+	if (colour == BLACK)
+		return new ABnode(Move(), depth, CHECK_MATE, BlackLoses + depth);
+}

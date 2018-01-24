@@ -304,6 +304,6 @@ unsigned int BitBoard::GetKing(bool colour) const
 	uint64_t squares = GetPieceBB(KING, colour);
 
 	if (squares == 0)
-		return 0;
+		return N_SQUARES;
 	return bitScanForward(squares);
 }

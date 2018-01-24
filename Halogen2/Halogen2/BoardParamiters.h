@@ -23,6 +23,7 @@ public:
 	bool CanCastleBlackQueenside() const { return m_BlackQueenCastle; }
 	unsigned int GetEnPassant() const { return m_EnPassant; }
 	unsigned int GetCapturePiece() const { return m_CapturePiece; }
+	unsigned int GetCaptureSquare() const { return m_CaptureSquare; }
 	unsigned int GetPromotionPiece() const { return m_PromotionPiece; }
 
 	void SetEnPassant(unsigned int var) { m_EnPassant = var; }

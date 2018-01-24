@@ -10,7 +10,7 @@ using namespace::std;
 Position GameBoard;
 PerftTT PerftTable;
 
-Move Search(float time);		//time remaining in milliseconds
+//Move Search(float time);		//time remaining in milliseconds
 void Benchmark();
 void PerftSuite();
 void PrintSearchInfo(ABnode root, unsigned int depth, double Time);
@@ -33,7 +33,7 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//EvaluatePosition(GameBoard);
 	//GameBoard.InitialiseFromFen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
 	//EvaluatePosition(GameBoard);
@@ -41,20 +41,22 @@ int main()
 	//EvaluatePosition(GameBoard);
 	//GameBoard.InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	//EvaluatePosition(GameBoard);
-	PerftSuite();
+	//PerftSuite();
 	//Benchmark();
 
 	//std::cout << GameBoard.Evaluate();
 	//
 	//std::cout << EvaluatePosition(GameBoard);
 	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
+	//Move best = SearchBestMove(GameBoard);
+
 	//SYSTEMTIME before;
 	//SYSTEMTIME after;
 
 	////GameBoard.Print();
 	//PerftTable.Reformat();
 	//GetSystemTime(&before);
-	//unsigned int nodes = PerftDivide(7);
+	//unsigned int nodes = PerftDivide(5);
 	//GetSystemTime(&after);
 
 	//double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
@@ -65,7 +67,7 @@ int main()
 	//std::cin >> Line;
 
 	//GameBoard.Evaluate();
-	//Search(1500000000);
+	//SearchPosition(1500000000);
 	//std::cout << "DONE";
 	//std::cout << GameBoard.Perft(4);
 	/*GameBoard.BestMove(1).GetMove().Print(); std::cout << "\n";
@@ -148,7 +150,8 @@ int main()
 
 			Move BestMove;
 			unsigned int timeMs = stoi(GameBoard.GetTurn() == WHITE ? arrayTokens[2] : arrayTokens[4]);
-			BestMove = Search(timeMs);
+			BestMove = SearchPosition(GameBoard, timeMs / 20, true);
+			std::cout << std::endl;
 			std::cout << "\nbestmove ";
 			BestMove.Print();
 			std::cout << std::endl;
@@ -164,73 +167,9 @@ int main()
 	return 0;
 }
 
-Move Search(float time)
-{
-	tTable.Reformat();
-	TotalNodeCount = 0;
-
-	SYSTEMTIME before;
-	SYSTEMTIME after;
-	double prevTime = 1;
-	double TotalTime = 1;
-	unsigned int DepthMultiRatio = 1;
-	unsigned int DesiredTime = time / 20;	//try to aim to use up a 20th of the available time each turn	
-	bool checkmate = false;
-	ABnode Root;
-
-	for (int depth = 1; (DesiredTime > prevTime * DepthMultiRatio || depth < 4) && (!checkmate); depth++)
-	{
-		GetSystemTime(&before);
-
-		//int alpha = -99999;
-		//int beta = prevScore + 25;
-
-		/*do
-		{
-			if (GameBoard.BestMove(depth, alpha, beta, ROOT, bestmove, DesiredTime - TotalTime) == -1234567)
-			{
-				std::cout << std::endl;
-				return bestmove;
-			}
-
-			if (ROOT->GetCutoff() == NONE)
-				std::cout << "NONE";
-
-			if (ROOT->GetChild()->GetScore() <= alpha)
-			{
-				//std::cout << " Fail low ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
-				alpha -= prevScore;
-				alpha *= 4;				//4x distance from prevscore
-				alpha += prevScore;
-			}
-
-			if (ROOT->GetChild()->GetScore() >= beta)
-			{
-				//std::cout << " Fail High ";// << alpha << " beta: " << beta << " prevScore: " << prevScore;
-				beta -= prevScore;
-				beta *= 4;				//4x distance from prevscore
-				beta += prevScore;
-			}
-		} while (ROOT->GetChild()->GetScore() <= alpha || ROOT->GetChild()->GetScore() >= beta);*/
-
-		SearchBestMove(GameBoard, depth, Root.GetMove());
-		GetSystemTime(&after);
-
-		double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
-
-		DepthMultiRatio = Time / TotalTime;
-		prevTime = Time;
-		TotalTime += Time;
-
-		PrintSearchInfo(Root, depth, Time);
-	}
-
-	return Root.GetMove();
-}
-
 void Benchmark()
 {
-	/*std::cout << "\nSTART\n";
+	std::cout << "\nSTART\n";
 	std::ifstream infile("bkt.txt");
 	HANDLE  hConsole;
 	SYSTEMTIME before;
@@ -254,11 +193,11 @@ void Benchmark()
 			arrayTokens.push_back(stub);
 		} while (iss);
 
-		GameBoard.InitialiseFromFen(arrayTokens[0], arrayTokens[1], arrayTokens[2], arrayTokens[3]);
+		GameBoard.InitialiseFromFen(arrayTokens[0], arrayTokens[1], arrayTokens[2], arrayTokens[3], "0", "1");
 		GameBoard.Print();
 
 		GetSystemTime(&before);
-		Move BestMove = Search(60 * 1000 * 2 * 20);																		//Give it 40 mins so it aims to solve in 2 mins
+		Move BestMove = SearchPosition(GameBoard, 1000 * 120, true);																		
 		GetSystemTime(&after);
 		double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
 
@@ -290,7 +229,7 @@ void Benchmark()
 		}
 	}
 
-	std::cout << "\n\nCompleted all positions with score: " << Score << "/24";*/
+	std::cout << "\n\nCompleted all positions with score: " << Score << "/24";
 }
 
 void PerftSuite()
@@ -357,7 +296,7 @@ void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 	{
 		std::cout
 			<< "info depth " << depth
-			<< " seldepth " << root.TraverseNodeChildren()
+			<< " seldepth " << root.CountNodeChildren()
 			<< " score cp " << (GameBoard.GetTurn() * 2 - 1) * root.GetScore()
 			<< " time " << Time
 			<< " nodes " << TotalNodeCount
@@ -369,8 +308,8 @@ void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 	{
 		std::cout
 			<< "info depth " << depth
-			<< " seldepth " << root.TraverseNodeChildren()
-			<< " score mate " << (root.TraverseNodeChildren() + 1) / 2
+			<< " seldepth " << root.CountNodeChildren()
+			<< " score mate " << (root.CountNodeChildren() + 1) / 2
 			<< " time " << Time
 			<< " nodes " << TotalNodeCount
 			<< " nps " << TotalNodeCount / (Time / 1000)
@@ -416,6 +355,7 @@ unsigned int Perft(unsigned int depth)
 
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+	//OrderMoves(moves, GameBoard, 5);
 
 	if (depth == 1)
 		return moves.size();

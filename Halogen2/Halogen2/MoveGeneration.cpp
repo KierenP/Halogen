@@ -9,7 +9,8 @@ void CastleMoves(const Position & position, std::vector<Move>& moves);
 void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 
 void RemoveIllegal(Position & position, std::vector<Move>& moves);																			//remove all the moves that put the current player's king in check
-bool IsInCheck(const Position & position, unsigned int square, bool colour);
+
+bool MovePutsSelfInCheck(Position & position, Move & move);
 
 std::vector<Move> GenerateLegalMoves(Position & position)
 {
@@ -184,9 +185,7 @@ void PawnCaptures(const Position & position, std::vector<Move>& moves)
 void CastleMoves(const Position & position, std::vector<Move>& moves)
 {
 	uint64_t Pieces = position.GetAllPieces();
-
-	//TODO: use attack tables to speed this up and simplify function
-
+	
 	if (position.CanCastleWhiteKingside() && position.GetTurn() == WHITE)
 	{
 		if (mayMove(SQ_E1, SQ_H1, Pieces))
@@ -285,10 +284,10 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy bishop or queen
 		if ((GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) && (GetAntiDiagonal(king) != GetAntiDiagonal(moves[i].GetTo())) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
-		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
+		//If a piece is moving from the same file as the king, and that file contains an enemy rook or queen
 		if ((GetFile(king) == GetFile(moves[i].GetFrom())) && (GetFile(king) != GetFile(moves[i].GetTo())) && (FileBB[GetFile(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
-		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy rook or queen
+		//If a piece is moving from the same rank as the king, and that rank contains an enemy rook or queen
 		if ((GetRank(king) == GetRank(moves[i].GetFrom())) && (GetRank(king) != GetRank(moves[i].GetTo())) && (RankBB[GetRank(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
 			Pinned[moves[i].GetFrom()] = true;
 	}
@@ -297,31 +296,10 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 	{
 		if (Pinned[moves[i].GetFrom()])
 		{
-			unsigned int fromPiece = position.GetSquare(moves[i].GetFrom());
-			unsigned int toPiece = position.GetSquare(moves[i].GetTo());
-			unsigned int epPiece = -1;
+			if (moves[i].GetFlag() == KING_CASTLE || moves[i].GetFlag() == QUEEN_CASTLE)				//Castling moves are checked for legality at creation
+				continue;
 
-			position.SetSquare(moves[i].GetTo(), fromPiece);
-			position.ClearSquare(moves[i].GetFrom());
-
-			if (moves[i].GetFlag() == EN_PASSANT)
-			{
-				epPiece = position.GetSquare(GetPosition(GetFile(moves[i].GetTo()), GetRank(moves[i].GetFrom())));
-				position.ClearSquare(GetPosition(GetFile(moves[i].GetTo()), GetRank(moves[i].GetFrom())));
-			}
-
-			bool InCheck = IsInCheck(position, position.GetKing(turn), turn);							//CANNOT use 'king' in place of GetKing because the king may have moved.
-
-			if (moves[i].GetFlag() == EN_PASSANT)
-			{
-				position.ClearSquare(GetPosition(GetFile(moves[i].GetTo()), GetRank(moves[i].GetFrom())));
-				position.SetSquare(GetPosition(GetFile(moves[i].GetTo()), GetRank(moves[i].GetFrom())), epPiece);
-			}
-
-			position.SetSquare(moves[i].GetFrom(), fromPiece);
-			position.SetSquare(moves[i].GetTo(), toPiece);
-
-			if (InCheck)
+			if (MovePutsSelfInCheck(position, moves[i]))
 			{
 				moves.erase(moves.begin() + i);															//TODO possible speedup flag moves as illegal without actually having to delete them. 				
 				i--;
@@ -377,4 +355,33 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 	}
 
 	return false;
+}
+
+bool MovePutsSelfInCheck(Position & position, Move & move)
+{
+	unsigned int fromPiece = position.GetSquare(move.GetFrom());
+	unsigned int toPiece = position.GetSquare(move.GetTo());
+	unsigned int epPiece = -1;
+
+	position.SetSquare(move.GetTo(), fromPiece);
+	position.ClearSquare(move.GetFrom());
+
+	if (move.GetFlag() == EN_PASSANT)
+	{
+		epPiece = position.GetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		position.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+	}
+
+	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());							//CANNOT use 'king' in place of GetKing because the king may have moved.
+
+	if (move.GetFlag() == EN_PASSANT)
+	{
+		position.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		position.SetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), epPiece);
+	}
+
+	position.SetSquare(move.GetFrom(), fromPiece);
+	position.SetSquare(move.GetTo(), toPiece);
+
+	return InCheck;
 }

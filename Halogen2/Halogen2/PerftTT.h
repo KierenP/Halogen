@@ -1,7 +1,7 @@
 #pragma once
 #include "Zobrist.h"
 
-const unsigned int HashTableSize = 1000000;//67108864;		//2^26 * 16 bytes = 2^30 bytes = 1GB
+const unsigned int HashTableSize = 1000000;//67108864;			//2^26 * 16 bytes = 2^30 bytes = 1GB
 extern uint64_t ZobristTable[12 * 64 + 1 + 4 + 8];				//12*64 possible pieces at each equare + side to move + castling rights + ep file
 
 void ZobristInit();
