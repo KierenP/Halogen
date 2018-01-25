@@ -21,11 +21,7 @@ double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl);
 
 int main()
 {
-<<<<<<< HEAD
 	std::cout << "Version 2.2" << std::endl;
-=======
-	std::cout << "Version 2.1" << std::endl;
->>>>>>> refs/remotes/origin/master
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
