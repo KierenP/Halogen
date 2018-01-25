@@ -14,9 +14,6 @@ extern std::vector<uint64_t> PreviousKeys;
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.
 */
 
-//extern uint64_t PreviousPositions[1000];
-//
-
 class Position : public BoardParamiters, public BitBoard
 {
 public:

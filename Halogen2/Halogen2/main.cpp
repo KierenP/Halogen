@@ -37,49 +37,9 @@ int main()
 	InitializeEvaluation();
 	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("3r1k2/4npp1/1ppr3p/p6P/P2PPPP1/1NR5/5K2/2R5 w - -");
-	//EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
-	//EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-	//EvaluatePosition(GameBoard);
 	//PerftSuite();
 	//Benchmark();
-
-	//std::cout << GameBoard.Evaluate();
-	//
-	//std::cout << EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
-	//Move best = SearchBestMove(GameBoard);
-
-	//SYSTEMTIME before;
-	//SYSTEMTIME after;
-
-	////GameBoard.Print();
-	//PerftTable.Reformat();
-	//GetSystemTime(&before);
-	//unsigned int nodes = PerftDivide(5);
-	//GetSystemTime(&after);
-
-	//double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
-
-	////std::cout.precision(17);
-	//std::cout << "\n\n Perft with depth " << 4 << " = " << nodes << " leaf nodes in: " << Time / 1000  << "s at: " << static_cast<unsigned int>(nodes / Time * 1000) << " nps";
-	//GameBoard.Print();
-	//std::cin >> Line;
-
-	//GameBoard.Evaluate();
 	//SearchPosition(GameBoard, 1500000000, true);
-	//std::cout << "DONE";
-	//std::cout << GameBoard.Perft(4);
-	/*GameBoard.BestMove(1).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(2).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(3).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(4).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(5).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(6).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(7).GetMove().Print(); std::cout << "\n";
-	GameBoard.BestMove(8).GetMove().Print(); std::cout << "\n";*/
 
 	while (getline(cin, Line)) 
 	{
