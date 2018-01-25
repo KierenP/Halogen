@@ -290,6 +290,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 		}
 	}
 
+	delete node;
 	return false;
 }
 
