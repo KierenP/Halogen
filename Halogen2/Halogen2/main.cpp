@@ -22,6 +22,8 @@ double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl);
 int main()
 {
 	std::cout << "Version 2.2" << std::endl;
+	//TTEntry test;
+	//std::cout << sizeof(test);
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);

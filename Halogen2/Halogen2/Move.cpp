@@ -1,20 +1,23 @@
 #include "Move.h"
 
-const unsigned int CAPTURE_FLAG = 0x4;		//0 1 0 0
-const unsigned int PROMOTION_FLAG = 0x8;	//1 0 0 0
+const unsigned int CAPTURE_MASK = 1 << 14;		// 0 1 0 0 ...
+const unsigned int PROMOTION_MASK = 1 << 15;	// 1 0 0 0 ...
+const unsigned int FROM_MASK = 0b111111;		// 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
+const unsigned int TO_MASK = 0b111111 << 6;		// 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0
+const unsigned int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 
 
 Move::Move()
 {
-	m_From = 0;
-	m_To = 0;
-	m_Flag = 0;
+	SetFrom(0);
+	SetTo(0);
+	SetFlag(0);
 }
 
 Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 {
-	m_From = from;
-	m_To = to;
-	m_Flag = flag;
+	SetFrom(from);
+	SetTo(to);
+	SetFlag(flag);
 }
 
 Move::~Move()
@@ -23,36 +26,29 @@ Move::~Move()
 
 unsigned int Move::GetFrom() const
 {
-	return m_From;
+	return data & FROM_MASK;
 }
 
 unsigned int Move::GetTo() const
 {
-	return m_To;
+	return (data & TO_MASK) >> 6;
 }
 
 unsigned int Move::GetFlag() const
 {
-	return m_Flag;
+	return (data & FLAG_MASK) >> 12;
 }
 
 bool Move::IsPromotion() const
 {
-	if (m_Flag >= 8)
+	if ((data & PROMOTION_MASK) != 0)
 		return true;
 	return false;
 }
 
 bool Move::IsCapture() const
 {
-	if (m_Flag == CAPTURE || m_Flag == EN_PASSANT || m_Flag >= 12)
-		return true;
-	return false;
-}
-
-bool Move::IsCastle() const
-{
-	if (GetFlag() == KING_CASTLE || GetFlag() == QUEEN_CASTLE)
+	if ((data & CAPTURE_MASK) != 0)
 		return true;
 	return false;
 }
@@ -79,7 +75,30 @@ void Move::Print() const
 
 bool Move::operator==(const Move & rhs) const
 {
-	if (m_Flag == rhs.GetFlag() && m_From == rhs.GetFrom() && m_To == rhs.GetTo())
+	if (data == rhs.GetData())
 		return true;
 	return false;
+}
+
+unsigned int Move::GetData() const
+{
+	return data;
+}
+
+void Move::SetFrom(unsigned int from)
+{
+	data &= ~FROM_MASK;
+	data |= from & FROM_MASK;
+}
+
+void Move::SetTo(unsigned int to)
+{
+	data &= ~TO_MASK;
+	data |= (to << 6) & TO_MASK;
+}
+
+void Move::SetFlag(unsigned int flag)
+{
+	data &= ~FLAG_MASK;
+	data |= (flag << 12) & FLAG_MASK;
 }

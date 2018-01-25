@@ -23,7 +23,6 @@ ABnode* iterativeDeepening(Position & position, int depth, Move & best, int alph
 void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 {
 	unsigned int swapIndex = 0;
-	Move temp(0, 0, 0);
 	int PieceValues[N_PIECES] = { 1, 3, 3, 5, 9, 10, 1, 3, 3, 5, 9, 10 };			//relative values
 													
 	//move previously cached position to front
@@ -52,7 +51,7 @@ void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 	}
 
 	//order in terms of least valuable attacker, most valuable piece
-	for (int j = PieceValues[KING] - PieceValues[PAWN]; j >= PieceValues[PAWN] - PieceValues[KING]; j--)
+	/*for (int j = PieceValues[KING] - PieceValues[PAWN]; j >= PieceValues[PAWN] - PieceValues[KING]; j--)
 	{
 		for (int i = swapIndex; i < moves.size(); i++)
 		{
@@ -62,6 +61,40 @@ void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 			if (PieceValues[position.GetSquare(moves[i].GetTo())] - PieceValues[position.GetSquare(moves[i].GetFrom())] == j)
 			{
 				SwapMoves(moves, i, swapIndex);
+				swapIndex++;
+			}
+		}
+	}*/
+
+	//This is terrible, dangerous code. But it works, and it's fast.
+
+	std::vector<int> CaptureDifference;
+	std::vector<unsigned int> CaptureIndexes;
+
+	for (int i = swapIndex; i < moves.size(); i++)
+	{
+		if (!moves[i].IsCapture())
+			continue;
+
+		CaptureDifference.push_back(PieceValues[position.GetSquare(moves[i].GetTo())] - PieceValues[position.GetSquare(moves[i].GetFrom())]);
+		CaptureIndexes.push_back(i);
+	}
+
+	for (int j = PieceValues[KING] - PieceValues[PAWN]; j >= PieceValues[PAWN] - PieceValues[KING]; j--)
+	{
+		for (int i = 0; i < CaptureDifference.size(); i++)
+		{
+			if (CaptureDifference[i] == j)
+			{
+				SwapMoves(moves, CaptureIndexes[i], swapIndex);
+
+				for (int k = 0; k < CaptureIndexes.size(); k++)
+				{
+					if (CaptureIndexes[k] == swapIndex)
+						CaptureIndexes[k] = i;
+				}
+				CaptureIndexes[i] = swapIndex;
+
 				swapIndex++;
 			}
 		}
@@ -84,11 +117,9 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 	for (int depth = 1; (allowedTimeMs - passedTime > passedTime * DepthMultiRatio * 1.5 || passedTime < allowedTimeMs / 40) && (!endSearch); depth++)
 	{
 		NodeCount = 0;
-		//int alpha = PrevScore - 99999;
-		//int beta = PrevScore + 99999;
 
 		GetSystemTime(&before);
-		ABnode* ROOT = SearchToDepth(position, depth, -99999, 99999, Best);
+		ABnode* ROOT = SearchToDepth(position, depth, LowINF, HighINF, Best);
 		GetSystemTime(&after);
 
 		unsigned int Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
@@ -169,16 +200,6 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 
 bool ExtendSearch(Position & position, int depth, Move& move, bool futileBranch)
 {
-	//staticEval + PieceValues[GetSquare(moves[i].GetTo())] * 1.2 < alpha;				//20% buffer
-
-	//if (depth <= 0 && !IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)						//Quiesence search
-		//continue;
-	//if ((depth == 2 || depth == 1) && IsFutile && !(IsPromotion || MeInCheck || OtherInCheck))			//Futility pruning
-		//continue;
-
-	//if (depth > 2)
-		//return true;
-
 	if (futileBranch)
 	{
 		if (move.IsCapture()) return true;																		//any capture
@@ -202,7 +223,7 @@ bool ExtendSearch(Position & position, int depth, Move& move, bool futileBranch)
 
 bool CheckTransposition(Position & position, int depth, int & alpha, int & beta, ABnode * parent)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
+	if (tTable.CheckEntry(PreviousKeys[PreviousKeys.size() - 1], depth))
 	{
 		tTable.AddHit();
 		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey(position));
@@ -259,7 +280,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 
 	int staticEval = EvaluatePosition(position);
 
-	if (alpha < staticEval && staticEval <  beta)
+	if (!(alpha > staticEval && colour == BLACK) && !(staticEval > beta && colour == WHITE))
 		return false;
 
 	position.ApplyNullMove();

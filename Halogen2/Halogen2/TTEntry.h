@@ -19,11 +19,11 @@ public:
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 
 private:
-	//21 bytes 
+	//fits within 16 bytes with one spare.
 	uint64_t key;			//8 bytes
-	int score;				//4 bytes
-	int depth;				//4 bytes
-	Move bestMove;			//3 bytes  
+	short int score;		//2 bytes
+	signed char depth;		//1 bytes
+	Move bestMove;			//2 bytes  
 	bool ancient;			//1 byte 
 	char cutoff;			//1 byte   
 };

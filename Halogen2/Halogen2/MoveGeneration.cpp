@@ -14,16 +14,16 @@ bool MovePutsSelfInCheck(Position & position, Move & move);
 
 std::vector<Move> GenerateLegalMoves(Position & position)
 {
-	std::vector<Move> moves = GeneratePsudoLegalMoves(position);
+	std::vector<Move> moves;
+	GeneratePsudoLegalMoves(position, moves);
 	RemoveIllegal(position, moves);
 
 	return moves;
 }
 
-std::vector<Move> GeneratePsudoLegalMoves(const Position & position)
+void GeneratePsudoLegalMoves(const Position & position, std::vector<Move>& moves)
 {
-	std::vector<Move> moves;
-	moves.reserve(30);
+	moves.reserve(50);
 
 	PawnPushes(position, moves);
 	PawnDoublePushes(position, moves);
@@ -36,8 +36,6 @@ std::vector<Move> GeneratePsudoLegalMoves(const Position & position)
 	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanFowardErase(pieces), BishopAttacks, true));
 	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanFowardErase(pieces), QueenAttacks, true));
 	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanFowardErase(pieces), RookAttacks, true));
-
-	return moves;
 }
 
 void PawnPushes(const Position & position, std::vector<Move>& moves)

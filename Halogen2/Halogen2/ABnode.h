@@ -22,8 +22,8 @@ enum AlphaBetaCutoff
 
 enum Scores
 {
-	HighINF = 99999,
-	LowINF = -99999,
+	HighINF = 30000,
+	LowINF = -30000,
 
 	WhiteLoses = -9999,
 	BlackLoses = 9999,

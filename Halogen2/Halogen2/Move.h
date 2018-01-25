@@ -3,18 +3,12 @@
 
 enum MoveFlag
 {
-	/*
-	3rd bit always signifies a capture  (NOT TRUE ATM, NULL MOVE IS AN EXCEPTION)
-	4th bit always signifies a promotion
-	*/
-
 	QUIET,							//0		0 0 0 0
 	PAWN_DOUBLE_MOVE,				//1		0 0 0 1
 	KING_CASTLE,					//2		0 0 1 0
 	QUEEN_CASTLE,					//3		0 0 1 1
 	CAPTURE,						//4		0 1 0 0
 	EN_PASSANT,						//5		0 1 0 1
-	NULL_MOVE,						//6		0 1 1 0					//todo remove this and replace with function
 	KNIGHT_PROMOTION = 8,			//8		1 0 0 0
 	BISHOP_PROMOTION,				//9		1 0 0 1
 	ROOK_PROMOTION,					//10	1 0 1 0
@@ -38,17 +32,20 @@ public:
 
 	bool IsPromotion() const;
 	bool IsCapture() const;
-	bool IsCastle() const;
 
 	void Print() const;
 
 	bool operator==(const Move& rhs) const;
+	unsigned int GetData() const;
 
 private:
-	//TODO use bit manipulation to fit this into a single bite rather than 3
-	char m_From;
-	char m_To;
-	char m_Flag;
+
+	void SetFrom(unsigned int from);
+	void SetTo(unsigned int to);
+	void SetFlag(unsigned int flag);
+
+	//16 bits, from right to left (lowest value to highest value) we have 6 bits for the from position (0-63), 6 bits for the to position (0-63), 4 bits for the flag totalling 16.
+	unsigned short int data;
 };
 
 
