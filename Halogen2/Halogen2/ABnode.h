@@ -16,7 +16,8 @@ enum AlphaBetaCutoff
 	FUTILITY_PRUNE,
 	UNINITIALIZED_NODE,
 	FORCED_MOVE,
-	CHECK_MATE				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff and made a blind assumption
+	CHECK_MATE,				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff and made a blind assumption
+	THREE_FOLD_REP
 };
 
 enum Scores
@@ -34,7 +35,8 @@ ABnode* CreateLeafNode(Position& position, int depth);			//returns the pointer t
 ABnode* CreateBranchNode(Move& move, int depth);				//returns the pointer to a branch node who's score and cutoff are still to be set by its children
 ABnode* CreatePlaceHolderNode(bool colour);						//Pass either HighINF or LowINF to set the 'best' node to this in initialization
 ABnode* CreateForcedNode(Move& move);							//In the event of searching a position AT THE ROOT LEVEL and only one legal move being available, we can create a node with a cutoff of EXACT and a given move
-ABnode* CreateCheckmateNode(bool colour, int depth);			
+ABnode* CreateCheckmateNode(bool colour, int depth);	
+ABnode* CreateDrawNode(Move& move, int depth);
 
 class ABnode
 {

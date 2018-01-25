@@ -2,6 +2,8 @@
 #include "Position.h"
 #include "Random.h"
 
+class Position;
+
 const unsigned int ZobristTableSize = 12 * 64 + 1 + 4 + 8;
 extern uint64_t ZobristTable[ZobristTableSize];
 

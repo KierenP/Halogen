@@ -67,7 +67,7 @@ int main()
 	//std::cin >> Line;
 
 	//GameBoard.Evaluate();
-	//SearchPosition(1500000000);
+	//SearchPosition(GameBoard, 1500000000, true);
 	//std::cout << "DONE";
 	//std::cout << GameBoard.Perft(4);
 	/*GameBoard.BestMove(1).GetMove().Print(); std::cout << "\n";
@@ -329,12 +329,10 @@ void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
 unsigned int PerftDivide(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
-	//PerftTable.Reformat();
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		//PerftTable.Reformat();
 		GameBoard.ApplyMove(moves[i]);
 		unsigned int ChildNodeCount = Perft(depth - 1);
 		GameBoard.RevertMove(moves[i]);

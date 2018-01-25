@@ -13,6 +13,7 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
 bool ExtendSearch(Position & position, int depth, Move& move);
 bool CheckTransposition(Position & position, int depth, int& alpha, int& beta, ABnode* parent);
 bool CheckMateNode(unsigned int size, int depth, bool colour, ABnode* parent);
+bool CheckThreeFold(Position & position, ABnode*& node, Move& move, int depth);
 
 bool CheckCutoff(int & alpha, int & beta, ABnode* best, unsigned int cutoff);
 ABnode* iterativeDeepening(Position & position, int depth, Move & best, int alpha, int beta, int prevScore);
@@ -81,11 +82,11 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 	for (int depth = 1; (allowedTimeMs - passedTime > passedTime * DepthMultiRatio * 1.5 || passedTime < allowedTimeMs / 40) && (!checkmate); depth++)
 	{
 		NodeCount = 0;
-		int alpha = PrevScore - 25;
-		int beta = PrevScore + 25;
+		//int alpha = PrevScore - 99999;
+		//int beta = PrevScore + 99999;
 
 		GetSystemTime(&before);
-		ABnode* ROOT = iterativeDeepening(position, depth, Best, alpha, beta, PrevScore);
+		ABnode* ROOT = SearchToDepth(position, depth, -99999, 99999, Best);
 		GetSystemTime(&after);
 
 		unsigned int Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
@@ -190,10 +191,10 @@ bool CheckTransposition(Position & position, int depth, int & alpha, int & beta,
 			parent->SetChild(new ABnode(Move(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
 			return true;
 		}
-		//if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
-		//	alpha = max(alpha, ttEntry.GetScore());
-		//if (ttEntry.GetCutoff() == BETA_CUTOFF)
-		//	beta = min(beta, ttEntry.GetScore());
+		if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
+			alpha = max(alpha, ttEntry.GetScore());
+		if (ttEntry.GetCutoff() == BETA_CUTOFF)
+			beta = min(beta, ttEntry.GetScore());
 	}
 
 	return false;
@@ -206,6 +207,26 @@ bool CheckMateNode(unsigned int size, int depth, bool colour, ABnode * parent)
 
 	parent->SetChild(CreateCheckmateNode(colour, depth));
 	return true;
+}
+
+bool CheckThreeFold(Position & position, ABnode*& node, Move& move, int depth)
+{
+	int rep = 0;
+	uint64_t current = PreviousKeys[PreviousKeys.size() - 1];
+
+	for (int i = 0; i < PreviousKeys.size(); i++)
+	{
+		if (PreviousKeys[i] == current)
+			rep++;
+	}
+
+	if (rep >= 3)
+	{
+		delete node;
+		node = CreateDrawNode(move, depth);
+		return true;
+	}
+	return false;
 }
 
 bool CheckCutoff(int & alpha, int & beta, ABnode* best, unsigned int cutoff)
@@ -285,7 +306,7 @@ ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta, Move 
 
 		position.ApplyMove(moves[i]);
 		if (position.GetTurn() == BLACK)
-			Minimize(position, depth - 1, node, alpha, beta);				//Negitive to make 'good' moves for black score larger integer values
+			Minimize(position, depth - 1, node, alpha, beta);				
 		if (position.GetTurn() == WHITE)
 			Maximize(position, depth - 1, node, alpha, beta);
 		position.RevertMove(moves[i]);
@@ -317,7 +338,10 @@ void Maximize(Position & position, int depth, ABnode* parent, int alpha, int bet
 		ABnode* node = CreateBranchNode(moves[i], depth);
 
 		position.ApplyMove(moves[i]);
-		Minimize(position, depth - 1, node, alpha, beta);
+
+		if (!CheckThreeFold(position, node, moves[i], depth))
+			Minimize(position, depth - 1, node, alpha, beta);
+
 		position.RevertMove(moves[i]);
 
 		NodeReplaceBest(best, node, WHITE);
@@ -354,7 +378,10 @@ void Minimize(Position & position, int depth, ABnode* parent, int alpha, int bet
 
 		ABnode* node = CreateBranchNode(moves[i], depth);
 		position.ApplyMove(moves[i]);
-		Maximize(position, depth - 1, node, alpha, beta);
+
+		if (!CheckThreeFold(position, node, moves[i], depth))
+			Maximize(position, depth - 1, node, alpha, beta);
+
 		position.RevertMove(moves[i]);
 		NodeReplaceBest(best, node, BLACK);
 		

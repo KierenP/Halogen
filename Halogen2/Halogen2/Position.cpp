@@ -1,5 +1,7 @@
 #include "Position.h"
 
+std::vector<uint64_t> PreviousKeys;
+
 Position::Position()
 {
 	
@@ -194,6 +196,7 @@ void Position::ApplyMove(Move move)
 	ClearSquare(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
+	PreviousKeys.push_back(GenerateZobristKey(*this));
 	//GenerateAttackTables();
 }
 
@@ -307,6 +310,7 @@ void Position::RevertMove(Move move)
 	}
 
 	RestorePreviousParamiters();
+	PreviousKeys.pop_back();
 	//GenerateAttackTables();
 }
 

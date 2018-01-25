@@ -136,3 +136,8 @@ ABnode * CreateCheckmateNode(bool colour, int depth)
 	if (colour == BLACK)
 		return new ABnode(Move(), depth, CHECK_MATE, BlackLoses + depth);
 }
+
+ABnode * CreateDrawNode(Move& move, int depth)
+{
+	return new ABnode(move, depth, THREE_FOLD_REP, 0);
+}
