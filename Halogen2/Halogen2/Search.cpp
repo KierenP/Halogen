@@ -268,7 +268,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 
 	if (colour == WHITE)
 	{
-		Minimize(position, depth - 3, node, beta - 1, beta, false, false);
+		Minimize(position, depth - 4, node, beta - 1, beta, false, false);
 		position.RevertNullMove();
 
 		if (node->GetScore() >= beta)
@@ -280,7 +280,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 
 	if (colour == BLACK)
 	{
-		Maximize(position, depth - 3, node, alpha, alpha + 1, false, false);
+		Maximize(position, depth - 4, node, alpha, alpha + 1, false, false);
 		position.RevertNullMove();
 
 		if (node->GetScore() <= alpha)
@@ -300,7 +300,7 @@ bool CheckFutilityPrune(Position & position, Move & move, int alpha, int beta, i
 
 	int PieceValues[N_PIECES + 1] = { 100, 300, 300, 500, 900, 20000, 100, 300, 300, 500, 900, 20000, 0 };
 
-	if (depth > 2 || (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())))
+	if (depth > 3 || (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())))
 		return false;			//Futility pruning only apples to the final two plys, in positions without anyone in check
 
 	if (colour == WHITE)		//we are trying to raise alpha (find a better move than any searched yet)
