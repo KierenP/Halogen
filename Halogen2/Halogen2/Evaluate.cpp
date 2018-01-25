@@ -173,11 +173,13 @@ int PositionTempName::EvalRook(unsigned int sq, unsigned int colour)
 
 unsigned int CalculateGameStage(const Position & position)
 {
+	//End game is defined as having only at most 3 pieces besides the king and pawns on both sides
+	if ((GetBitCount(position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(WHITE_QUEEN)) <= 3) && 
+		(GetBitCount(position.GetPieceBB(BLACK_ROOK) | position.GetPieceBB(BLACK_BISHOP) | position.GetPieceBB(BLACK_KNIGHT) | position.GetPieceBB(BLACK_QUEEN)) <= 3))
+		return ENDGAME;
+
 	if (position.GetTurnCount() < 10)
 		return OPENING;
-
-	if (position.GetTurnCount() > 25)
-		return ENDGAME;
 
 	return MIDGAME;
 }
