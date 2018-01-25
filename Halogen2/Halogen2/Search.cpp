@@ -100,7 +100,11 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 		PrintSearchInfo(position, *ROOT, depth, Time, false);
 
 		if (ROOT->GetCutoff() == CHECK_MATE || ROOT->GetCutoff() == FORCED_MOVE)
+<<<<<<< HEAD
 			endSearch = true;
+=======
+			checkmate = true;
+>>>>>>> refs/remotes/origin/master
 	
 		std::cout << std::endl;
 		Best = ROOT->GetMove();
