@@ -169,16 +169,6 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 
 bool ExtendSearch(Position & position, int depth, Move& move, bool futileBranch)
 {
-	//staticEval + PieceValues[GetSquare(moves[i].GetTo())] * 1.2 < alpha;				//20% buffer
-
-	//if (depth <= 0 && !IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)						//Quiesence search
-		//continue;
-	//if ((depth == 2 || depth == 1) && IsFutile && !(IsPromotion || MeInCheck || OtherInCheck))			//Futility pruning
-		//continue;
-
-	//if (depth > 2)
-		//return true;
-
 	if (futileBranch)
 	{
 		if (move.IsCapture()) return true;																		//any capture
@@ -268,7 +258,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 
 	if (colour == WHITE)
 	{
-		Minimize(position, depth - 3, node, beta - 1, beta, false, false);
+		Minimize(position, depth - 4, node, beta - 1, beta, false, false);
 		position.RevertNullMove();
 
 		if (node->GetScore() >= beta)
@@ -280,7 +270,7 @@ bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int al
 
 	if (colour == BLACK)
 	{
-		Maximize(position, depth - 3, node, alpha, alpha + 1, false, false);
+		Maximize(position, depth - 4, node, alpha, alpha + 1, false, false);
 		position.RevertNullMove();
 
 		if (node->GetScore() <= alpha)
@@ -300,7 +290,7 @@ bool CheckFutilityPrune(Position & position, Move & move, int alpha, int beta, i
 
 	int PieceValues[N_PIECES + 1] = { 100, 300, 300, 500, 900, 20000, 100, 300, 300, 500, 900, 20000, 0 };
 
-	if (depth > 2 || (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())))
+	if (depth > 3 || (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())))
 		return false;			//Futility pruning only apples to the final two plys, in positions without anyone in check
 
 	if (colour == WHITE)		//we are trying to raise alpha (find a better move than any searched yet)
