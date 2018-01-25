@@ -15,6 +15,7 @@ public:
 	TTEntry GetEntry(uint64_t key);
 
 	void Reformat();
+	void AddHit() { TTHits++; }
 
 	void ResetCount() { TTHits = 0; }
 	unsigned int GetCount() const { return TTHits; } 

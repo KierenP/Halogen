@@ -24,7 +24,6 @@ void TranspositionTable::AddEntry(Move best, uint64_t ZobristKey, int Score, int
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
 {
-	TTHits++;
 	table[key % TTSize].SetAncient(false);
 	return table[key % TTSize];
 }
