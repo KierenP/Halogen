@@ -4,16 +4,18 @@ int NodeCount = 0;
 
 TranspositionTable tTable;
 ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta, Move prevBest = Move());
-void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta);
-void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta);
+void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, bool futileBranch);
+void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, bool futileBranch);
 void PrintSearchInfo(Position & position, ABnode& node, unsigned int depth, unsigned int Time, bool isCheckmate);
 
 void NodeReplaceBest(ABnode*& best, ABnode*& node, bool colour);		
 void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
-bool ExtendSearch(Position & position, int depth, Move& move);
+bool ExtendSearch(Position & position, int depth, Move& move, bool futileBranch);
 bool CheckTransposition(Position & position, int depth, int& alpha, int& beta, ABnode* parent);
 bool CheckMateNode(unsigned int size, int depth, bool colour, ABnode* parent);
 bool CheckThreeFold(Position & position, ABnode*& node, Move& move, int depth);
+bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int alpha, int beta, int depth);
+bool CheckFutilityPrune(Position & position, Move & move, int alpha, int beta, int depth, bool colour, int staticEval);
 
 bool CheckCutoff(int & alpha, int & beta, ABnode* best, unsigned int cutoff);
 ABnode* iterativeDeepening(Position & position, int depth, Move & best, int alpha, int beta, int prevScore);
@@ -77,9 +79,9 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 	double prevDepthTime = 1;
 	double passedTime = 1;
 	unsigned int DepthMultiRatio = 1;
-	bool checkmate = false;
+	bool endSearch = false;
 
-	for (int depth = 1; (allowedTimeMs - passedTime > passedTime * DepthMultiRatio * 1.5 || passedTime < allowedTimeMs / 40) && (!checkmate); depth++)
+	for (int depth = 1; (allowedTimeMs - passedTime > passedTime * DepthMultiRatio * 1.5 || passedTime < allowedTimeMs / 40) && (!endSearch); depth++)
 	{
 		NodeCount = 0;
 		//int alpha = PrevScore - 99999;
@@ -97,8 +99,8 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 
 		PrintSearchInfo(position, *ROOT, depth, Time, false);
 
-		if (ROOT->GetCutoff() == CHECK_MATE)
-			checkmate = true;
+		if (ROOT->GetCutoff() == CHECK_MATE || ROOT->GetCutoff() == FORCED_MOVE)
+			endSearch = true;
 	
 		std::cout << std::endl;
 		Best = ROOT->GetMove();
@@ -165,19 +167,37 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 	moves[a] = temp;
 }
 
-bool ExtendSearch(Position & position, int depth, Move& move)
+bool ExtendSearch(Position & position, int depth, Move& move, bool futileBranch)
 {
+	//staticEval + PieceValues[GetSquare(moves[i].GetTo())] * 1.2 < alpha;				//20% buffer
+
+	//if (depth <= 0 && !IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)						//Quiesence search
+		//continue;
+	//if ((depth == 2 || depth == 1) && IsFutile && !(IsPromotion || MeInCheck || OtherInCheck))			//Futility pruning
+		//continue;
+
+	//if (depth > 2)
+		//return true;
+
+	if (futileBranch)
+	{
+		if (move.IsCapture()) return true;																		//any capture
+		if (move.IsPromotion()) return true;																	//promotion
+		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return true;			//me in check
+		if (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())) return true;		//other in check
+
+		return false;
+	}
+
 	if (depth > 0)
 		return true;
 
-	bool IsReCapture = (move.GetTo() == position.GetCaptureSquare());
-	bool IsPromotion = move.IsPromotion();
-	bool MeInCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
-	bool OtherInCheck = IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn());
-
-	if (!IsReCapture && !MeInCheck && !OtherInCheck && !IsPromotion)							
-		return false;												
-	return true;
+	if (move.GetTo() == position.GetCaptureSquare()) return true;											//recapture
+	if (move.IsPromotion()) return true;																	//promotion
+	if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return true;			//me in check
+	if (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())) return true;		//other in check
+											
+	return false;
 }
 
 bool CheckTransposition(Position & position, int depth, int & alpha, int & beta, ABnode * parent)
@@ -226,6 +246,74 @@ bool CheckThreeFold(Position & position, ABnode*& node, Move& move, int depth)
 		node = CreateDrawNode(move, depth);
 		return true;
 	}
+	return false;
+}
+
+bool CheckNullMovePrune(Position & position, ABnode* parent, bool colour, int alpha, int beta, int depth)
+{
+	//alpha += 100;
+	//beta -= 100;
+
+	if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return false;			
+	if (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())) return false;		
+
+	int staticEval = EvaluatePosition(position);
+
+	if (alpha < staticEval && staticEval <  beta)
+		return false;
+
+	position.ApplyNullMove();
+	ABnode* node = CreatePlaceHolderNode(colour, depth);
+	node->SetCutoff(NULL_MOVE_PRUNE);
+
+	if (colour == WHITE)
+	{
+		Minimize(position, depth - 3, node, beta - 1, beta, false, false);
+		position.RevertNullMove();
+
+		if (node->GetScore() >= beta)
+		{
+			parent->SetChild(node);
+			return true;
+		}
+	}
+
+	if (colour == BLACK)
+	{
+		Maximize(position, depth - 3, node, alpha, alpha + 1, false, false);
+		position.RevertNullMove();
+
+		if (node->GetScore() <= alpha)
+		{
+			parent->SetChild(node);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CheckFutilityPrune(Position & position, Move & move, int alpha, int beta, int depth, bool colour, int staticEval)
+{
+	return false;
+
+	int PieceValues[N_PIECES + 1] = { 100, 300, 300, 500, 900, 20000, 100, 300, 300, 500, 900, 20000, 0 };
+
+	if (depth > 2 || (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || (IsInCheck(position, position.GetKing(!position.GetTurn()), !position.GetTurn())))
+		return false;			//Futility pruning only apples to the final two plys, in positions without anyone in check
+
+	if (colour == WHITE)		//we are trying to raise alpha (find a better move than any searched yet)
+	{
+		if (staticEval + PieceValues[position.GetSquare(move.GetTo())] + 300 <= alpha)		//if this is true, it would be futile to analyze this move as it is unlikely to raise alpha
+			return true;
+	}
+
+	if (colour == BLACK)		
+	{
+		if (staticEval - PieceValues[position.GetSquare(move.GetTo())] - 300 >= beta)		
+			return true;
+	}
+
 	return false;
 }
 
@@ -286,7 +374,7 @@ ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta, Move 
 		return CreateForcedNode(moves[0]);
 
 	OrderMoves(moves, position, depth);
-	ABnode* best = CreatePlaceHolderNode(position.GetTurn());
+	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
 
 	//Move the previous best move to the front
 	for (int i = 0; i < moves.size(); i++)						
@@ -306,9 +394,9 @@ ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta, Move 
 
 		position.ApplyMove(moves[i]);
 		if (position.GetTurn() == BLACK)
-			Minimize(position, depth - 1, node, alpha, beta);				
+			Minimize(position, depth - 1, node, alpha, beta, true, false);				
 		if (position.GetTurn() == WHITE)
-			Maximize(position, depth - 1, node, alpha, beta);
+			Maximize(position, depth - 1, node, alpha, beta, true, false);
 		position.RevertMove(moves[i]);
 
 		//note the move reverting has changed the current turn from before ^
@@ -318,20 +406,22 @@ ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta, Move 
 	return best;
 }
 
-void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta)
+void Maximize(Position & position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, bool futileBranch)
 {
 	NodeCount++;
 	if (CheckTransposition(position, depth, alpha, beta, parent)) return;
 	std::vector<Move> moves = GenerateLegalMoves(position);
 	if (CheckMateNode(moves.size(), depth, WHITE, parent)) return;
+	if (allowNull && CheckNullMovePrune(position, parent, WHITE, alpha, beta, depth)) return;
 
 	OrderMoves(moves, position, depth);
-	ABnode* best = CreatePlaceHolderNode(WHITE);
+	ABnode* best = CreatePlaceHolderNode(WHITE, depth);
 	bool AllQuiet = true;
+	int staticEval = EvaluatePosition(position);
 
 	for (int i = 0; i < moves.size(); i++)
 	{	
-		if (!ExtendSearch(position, depth, moves[i]))
+		if (!ExtendSearch(position, depth, moves[i], futileBranch))
 			continue;
 		AllQuiet = false;
 
@@ -340,7 +430,7 @@ void Maximize(Position & position, int depth, ABnode* parent, int alpha, int bet
 		position.ApplyMove(moves[i]);
 
 		if (!CheckThreeFold(position, node, moves[i], depth))
-			Minimize(position, depth - 1, node, alpha, beta);
+			Minimize(position, depth - 1, node, alpha, beta, true, CheckFutilityPrune(position, moves[i], alpha, beta, depth, WHITE, staticEval));
 
 		position.RevertMove(moves[i]);
 
@@ -359,20 +449,22 @@ void Maximize(Position & position, int depth, ABnode* parent, int alpha, int bet
 	tTable.AddEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff());
 }
 
-void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta)
+void Minimize(Position & position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, bool futileBranch)
 {
 	NodeCount++;
 	if (CheckTransposition(position, depth, alpha, beta, parent)) return;
 	std::vector<Move> moves = GenerateLegalMoves(position);
 	if (CheckMateNode(moves.size(), depth, BLACK, parent)) return;
+	if (allowNull && CheckNullMovePrune(position, parent, BLACK, alpha, beta, depth)) return;
 
 	OrderMoves(moves, position, depth);
-	ABnode* best = CreatePlaceHolderNode(BLACK);
+	ABnode* best = CreatePlaceHolderNode(BLACK, depth);
 	bool AllQuiet = true;
+	int staticEval = EvaluatePosition(position);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if (!ExtendSearch(position, depth, moves[i]))
+		if (!ExtendSearch(position, depth, moves[i], futileBranch))
 			continue;
 		AllQuiet = false;
 
@@ -380,7 +472,7 @@ void Minimize(Position & position, int depth, ABnode* parent, int alpha, int bet
 		position.ApplyMove(moves[i]);
 
 		if (!CheckThreeFold(position, node, moves[i], depth))
-			Maximize(position, depth - 1, node, alpha, beta);
+			Maximize(position, depth - 1, node, alpha, beta, true, CheckFutilityPrune(position, moves[i], alpha, beta, depth, BLACK, staticEval));
 
 		position.RevertMove(moves[i]);
 		NodeReplaceBest(best, node, BLACK);

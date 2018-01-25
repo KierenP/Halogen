@@ -33,9 +33,9 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//EvaluatePosition(GameBoard);
-	//GameBoard.InitialiseFromFen("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10");
+	//GameBoard.InitialiseFromFen("3r1k2/4npp1/1ppr3p/p6P/P2PPPP1/1NR5/5K2/2R5 w - -");
 	//EvaluatePosition(GameBoard);
 	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -");
 	//EvaluatePosition(GameBoard);
@@ -354,6 +354,9 @@ unsigned int Perft(unsigned int depth)
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
 	//OrderMoves(moves, GameBoard, 5);
+
+	//GameBoard.ApplyNullMove();
+	//GameBoard.RevertNullMove();
 
 	if (depth == 1)
 		return moves.size();

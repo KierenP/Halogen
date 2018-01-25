@@ -314,6 +314,22 @@ void Position::RevertMove(Move move)
 	//GenerateAttackTables();
 }
 
+void Position::ApplyNullMove()
+{
+	SaveParamiters();
+	SetEnPassant(-1);
+	SetCaptureSquare(-1);
+
+	NextTurn();
+	PreviousKeys.push_back(GenerateZobristKey(*this));
+}
+
+void Position::RevertNullMove()
+{
+	RestorePreviousParamiters();
+	PreviousKeys.pop_back();
+}
+
 void Position::Print()
 {
 	HANDLE  hConsole;

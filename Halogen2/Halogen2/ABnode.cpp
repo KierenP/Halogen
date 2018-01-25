@@ -114,12 +114,12 @@ ABnode * CreateBranchNode(Move & move, int depth)
 	return new ABnode(move, depth, UNINITIALIZED_NODE, 0);
 }
 
-ABnode * CreatePlaceHolderNode(bool colour)
+ABnode * CreatePlaceHolderNode(bool colour, int depth)
 {
 	if (colour == WHITE)
-		return new ABnode(Move(), 0, UNINITIALIZED_NODE, LowINF);
+		return new ABnode(Move(), depth, UNINITIALIZED_NODE, LowINF);
 	else
-		return new ABnode(Move(), 0, UNINITIALIZED_NODE, HighINF);
+		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
 }
 
 ABnode * CreateForcedNode(Move & move)

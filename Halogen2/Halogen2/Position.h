@@ -30,6 +30,9 @@ public:
 	void ApplyMove(std::string move);
 	void RevertMove(Move move);
 
+	void ApplyNullMove();
+	void RevertNullMove();
+
 	void Print();
 
 	void StartingPosition();
