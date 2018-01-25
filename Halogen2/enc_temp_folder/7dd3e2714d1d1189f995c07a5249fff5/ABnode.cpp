@@ -124,7 +124,7 @@ ABnode * CreatePlaceHolderNode(bool colour)
 
 ABnode * CreateForcedNode(Move & move)
 {
-	return new ABnode(move, 0, FORCED_MOVE, 0);
+	return new ABnode(move, 0, EXACT, 0);
 }
 
 ABnode * CreateCheckmateNode(bool colour, int depth)
