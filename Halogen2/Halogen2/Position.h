@@ -30,7 +30,7 @@ public:
 	void ApplyNullMove();
 	void RevertNullMove();
 
-	void Print();
+	void Print() const;
 
 	void StartingPosition();
 	bool InitialiseFromFen(std::vector<std::string> fen);

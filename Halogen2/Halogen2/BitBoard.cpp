@@ -98,6 +98,9 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 
 void BitBoard::GenerateAttackTables()
 {
+	WhiteThreats = EMPTY;
+	BlackThreats = EMPTY;
+
 	for (int i = 0; i < N_PIECES; i++)
 	{
 		AttackTable[i] = EMPTY;
@@ -237,8 +240,8 @@ void BitBoard::GenerateAttackTables()
 		}
 	}
 
-	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
-	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
+	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_QUEEN] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
+	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_QUEEN] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
 }
 
 bool BitBoard::IsEmpty(unsigned int BitBoard) const

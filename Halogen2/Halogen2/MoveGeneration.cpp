@@ -188,7 +188,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_H1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_F1, position.GetTurn()) && !IsInCheck(position, SQ_G1, position.GetTurn()))
+			if ((position.GetBlackThreats() & (SquareBB[SQ_E1] | SquareBB[SQ_F1] | SquareBB[SQ_G1])) == 0)
 			{
 				moves.push_back(Move(SQ_E1, SQ_G1, KING_CASTLE));
 			}
@@ -199,7 +199,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_A1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_D1, position.GetTurn()) && !IsInCheck(position, SQ_C1, position.GetTurn()))
+			if ((position.GetBlackThreats() & (SquareBB[SQ_E1] | SquareBB[SQ_D1] | SquareBB[SQ_C1])) == 0)
 			{
 				moves.push_back(Move(SQ_E1, SQ_C1, QUEEN_CASTLE));
 			}
@@ -210,7 +210,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_H8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_F8, position.GetTurn()) && !IsInCheck(position, SQ_G8, position.GetTurn()))
+			if ((position.GetWhiteThreats() & (SquareBB[SQ_E8] | SquareBB[SQ_F8] | SquareBB[SQ_G8])) == 0)
 			{
 				moves.push_back(Move(SQ_E8, SQ_G8, KING_CASTLE));
 			}
@@ -221,7 +221,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_A8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_D8, position.GetTurn()) && !IsInCheck(position, SQ_C8, position.GetTurn()))
+			if ((position.GetWhiteThreats() & (SquareBB[SQ_E8] | SquareBB[SQ_D8] | SquareBB[SQ_C8])) == 0)
 			{
 				moves.push_back(Move(SQ_E8, SQ_C8, QUEEN_CASTLE));
 			}
@@ -255,7 +255,7 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 	bool turn = position.GetTurn();
 	bool Pinned[64];
 	unsigned int king = position.GetKing(turn);
-	//uint64_t ThreatTable = (turn == BLACK) ? position.GetWhiteThreats() : position.GetBlackThreats();
+	uint64_t ThreatTable = (turn == BLACK) ? position.GetWhiteThreats() : position.GetBlackThreats();
 	bool InCheck = IsInCheck(position, king, turn);
 	uint64_t mask = position.GetAllPieces();
 
@@ -264,7 +264,7 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 
 	for (int i = 0; !InCheck && i < moves.size(); i++)
 	{
-		if (Pinned[moves[i].GetFrom()])
+		if (Pinned[moves[i].GetFrom()])										//if already pinned, skip
 			continue;
 
 		if (moves[i].GetFlag() == EN_PASSANT || moves[i].GetFrom() == king)	//En passant and any king moves must always be checked for legality
@@ -273,21 +273,39 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 			continue;
 		}
 
-		if (!mayMove(king, moves[i].GetFrom(), mask))
+		if ((SquareBB[moves[i].GetFrom()] & ThreatTable) == 0)				//if the piece isn't threatened, it can't be pinned
+			continue;
+
+		if (!mayMove(king, moves[i].GetFrom(), mask))						//if you can't move from the piece to the king, it can't be pinned
 			continue;
 
 		//If a piece is moving from the same diagonal as the king, and that diagonal contains an enemy bishop or queen
 		if ((GetDiagonal(king) == GetDiagonal(moves[i].GetFrom())) && (GetDiagonal(king) != GetDiagonal(moves[i].GetTo())) && (DiagonalBB[GetDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		{
 			Pinned[moves[i].GetFrom()] = true;
+			continue;
+		}
+
 		//If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy bishop or queen
 		if ((GetAntiDiagonal(king) == GetAntiDiagonal(moves[i].GetFrom())) && (GetAntiDiagonal(king) != GetAntiDiagonal(moves[i].GetTo())) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (position.GetPieceBB(BISHOP, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		{
 			Pinned[moves[i].GetFrom()] = true;
+			continue;
+		}
+
 		//If a piece is moving from the same file as the king, and that file contains an enemy rook or queen
 		if ((GetFile(king) == GetFile(moves[i].GetFrom())) && (GetFile(king) != GetFile(moves[i].GetTo())) && (FileBB[GetFile(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		{
 			Pinned[moves[i].GetFrom()] = true;
+			continue;
+		}
+
 		//If a piece is moving from the same rank as the king, and that rank contains an enemy rook or queen
 		if ((GetRank(king) == GetRank(moves[i].GetFrom())) && (GetRank(king) != GetRank(moves[i].GetTo())) && (RankBB[GetRank(king)] & (position.GetPieceBB(ROOK, !turn) | position.GetPieceBB(QUEEN, !turn))))
+		{
 			Pinned[moves[i].GetFrom()] = true;
+			continue;
+		}
 	}
 
 	for (int i = 0; i < moves.size(); i++)

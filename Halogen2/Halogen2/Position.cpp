@@ -197,7 +197,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	PreviousKeys.push_back(GenerateZobristKey(*this));
-	//GenerateAttackTables();
+	GenerateAttackTables();
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -311,7 +311,7 @@ void Position::RevertMove(Move move)
 
 	RestorePreviousParamiters();
 	PreviousKeys.pop_back();
-	//GenerateAttackTables();
+	GenerateAttackTables();
 }
 
 void Position::ApplyNullMove()
@@ -330,7 +330,7 @@ void Position::RevertNullMove()
 	PreviousKeys.pop_back();
 }
 
-void Position::Print()
+void Position::Print() const
 {
 	HANDLE  hConsole;
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
