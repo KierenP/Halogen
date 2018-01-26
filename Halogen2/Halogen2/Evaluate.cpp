@@ -16,6 +16,11 @@ int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
+int EvaluateControl(const Position& position);
+
+const uint64_t CenterSquares = 0x1818000000;		
+const uint64_t OuterSquares = 0x7e424242427e00;
+const uint64_t InnerSquares = 0x3c24243c0000;
 
 int EvaluatePosition(const Position & position)
 {
@@ -32,7 +37,8 @@ int EvaluatePosition(const Position & position)
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
-	Score += Material + PieceSquares + PawnStructure + Castle;
+	int Control = EvaluateControl(position);
+	Score += Material + PieceSquares + PawnStructure + Castle + Control;
 
 	/*std::cout << "Material: " << Material << "\n";
 	std::cout << "Piece Squares: " << PieceSquares << "\n";
@@ -162,5 +168,17 @@ int EvaluateMaterial(const Position & position)
 	}
 
 	return Score;
+}
+
+int EvaluateControl(const Position & position)
+{
+	int WhiteCenterControl = GetBitCount((position.GetWhiteThreats() | position.GetWhitePieces()) & CenterSquares);
+	int BlackCenterControl = GetBitCount((position.GetBlackThreats()| position.GetBlackPieces()) & CenterSquares);
+	int WhiteInnerBoardControl = GetBitCount(position.GetWhiteThreats() & InnerSquares);
+	int BlackInnerBoardControl = GetBitCount(position.GetBlackThreats() & InnerSquares);
+	int WhiteOuterBoardControl = GetBitCount(position.GetWhiteThreats() & OuterSquares);
+	int BlackOuterBoardControl = GetBitCount(position.GetBlackThreats() & OuterSquares);
+
+	return (WhiteCenterControl - BlackCenterControl) * 4 + (WhiteInnerBoardControl - BlackInnerBoardControl) * 2 + (WhiteOuterBoardControl - BlackOuterBoardControl);
 }
 

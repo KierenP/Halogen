@@ -37,10 +37,10 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//EvaluatePosition(GameBoard);
-	PerftSuite();
-	//Benchmark();
+	//PerftSuite();
+	Benchmark();
 	//SearchPosition(GameBoard, 1500000000, true);
 
 	while (getline(cin, Line)) 
