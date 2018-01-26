@@ -98,6 +98,9 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 
 void BitBoard::GenerateAttackTables()
 {
+	WhiteThreats = EMPTY;
+	BlackThreats = EMPTY;
+
 	for (int i = 0; i < N_PIECES; i++)
 	{
 		AttackTable[i] = EMPTY;
@@ -109,7 +112,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KnightAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = KnightAttacks[start];// & (~GetWhitePieces());
 		AttackTable[WHITE_KNIGHT] |= moves;
 	}
 
@@ -117,7 +120,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KnightAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = KnightAttacks[start];// &(~GetBlackPieces());
 		AttackTable[BLACK_KNIGHT] |= moves;
 	}
 
@@ -125,7 +128,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = WhitePawnAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = WhitePawnAttacks[start];// &(~GetWhitePieces());
 		AttackTable[WHITE_PAWN] |= moves;
 	}
 
@@ -133,7 +136,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BlackPawnAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = BlackPawnAttacks[start];// &(~GetBlackPieces());
 		AttackTable[BLACK_PAWN] |= moves;
 	}
 
@@ -141,7 +144,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KingAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = KingAttacks[start];// &(~GetWhitePieces());
 		AttackTable[WHITE_KING] |= moves;
 	}
 
@@ -149,7 +152,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KingAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = KingAttacks[start];// &(~GetBlackPieces());
 		AttackTable[BLACK_KING] |= moves;
 	}
 
@@ -157,7 +160,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BishopAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = BishopAttacks[start];// &(~GetWhitePieces());
 
 		while (moves != 0)
 		{
@@ -171,7 +174,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BishopAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = BishopAttacks[start];// &(~GetBlackPieces());
 
 		while (moves != 0)
 		{
@@ -185,7 +188,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = RookAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = RookAttacks[start];// &(~GetWhitePieces());
 
 		while (moves != 0)
 		{
@@ -199,7 +202,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = RookAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = RookAttacks[start];// &(~GetBlackPieces());
 
 		while (moves != 0)
 		{
@@ -213,7 +216,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = QueenAttacks[start] & (~GetWhitePieces());
+		uint64_t moves = QueenAttacks[start];// &(~GetWhitePieces());
 
 		while (moves != 0)
 		{
@@ -227,7 +230,7 @@ void BitBoard::GenerateAttackTables()
 	while (movePiece != 0)
 	{
 		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = QueenAttacks[start] & (~GetBlackPieces());
+		uint64_t moves = QueenAttacks[start];// &(~GetBlackPieces());
 
 		while (moves != 0)
 		{
@@ -237,8 +240,8 @@ void BitBoard::GenerateAttackTables()
 		}
 	}
 
-	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
-	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
+	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_QUEEN] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
+	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_QUEEN] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
 }
 
 bool BitBoard::IsEmpty(unsigned int BitBoard) const
