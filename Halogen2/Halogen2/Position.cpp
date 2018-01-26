@@ -211,7 +211,7 @@ void Position::ApplyMove(std::string strmove)
 		flag = CAPTURE;
 
 	//Double pawn moves
-	if (RankDiff(prev, next) == 2)
+	if (AbsRankDiff(prev, next) == 2)
 		if (GetSquare(prev) == WHITE_PAWN || GetSquare(prev) == BLACK_PAWN)
 			flag = PAWN_DOUBLE_MOVE;
 
