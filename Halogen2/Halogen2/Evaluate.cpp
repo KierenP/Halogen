@@ -172,13 +172,15 @@ int EvaluateMaterial(const Position & position)
 
 int EvaluateControl(const Position & position)
 {
-	int WhiteCenterControl = GetBitCount((position.GetWhiteThreats() | position.GetWhitePieces()) & CenterSquares);
-	int BlackCenterControl = GetBitCount((position.GetBlackThreats()| position.GetBlackPieces()) & CenterSquares);
+	/*int WhiteCenterControl = GetBitCount((position.GetWhiteThreats() | position.GetWhitePieces()) & CenterSquares);
+	int BlackCenterControl = GetBitCount((position.GetBlackThreats() | position.GetBlackPieces()) & CenterSquares);
 	int WhiteInnerBoardControl = GetBitCount(position.GetWhiteThreats() & InnerSquares);
 	int BlackInnerBoardControl = GetBitCount(position.GetBlackThreats() & InnerSquares);
 	int WhiteOuterBoardControl = GetBitCount(position.GetWhiteThreats() & OuterSquares);
 	int BlackOuterBoardControl = GetBitCount(position.GetBlackThreats() & OuterSquares);
 
-	return (WhiteCenterControl - BlackCenterControl) * 4 + (WhiteInnerBoardControl - BlackInnerBoardControl) * 2 + (WhiteOuterBoardControl - BlackOuterBoardControl);
+	return (WhiteCenterControl - BlackCenterControl) * 4 + (WhiteInnerBoardControl - BlackInnerBoardControl) * 2 + (WhiteOuterBoardControl - BlackOuterBoardControl);*/
+
+	return 0;
 }
 

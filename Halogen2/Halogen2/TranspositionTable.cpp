@@ -35,3 +35,16 @@ void TranspositionTable::Reformat()
 		table[i].SetAncient(true);
 	}
 }
+
+int TranspositionTable::GetCapacity()
+{
+	int count = 0;
+
+	for (int i = 0; i < TTSize; i++)
+	{
+		if (!table[i].IsAncient())
+			count++;
+	}
+
+	return count;
+}

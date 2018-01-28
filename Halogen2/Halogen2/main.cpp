@@ -21,7 +21,7 @@ double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl);
 
 int main()
 {
-	std::cout << "Version 2.2" << std::endl;
+	std::cout << "Version 2.2.1" << std::endl;
 	//TTEntry test;
 	//std::cout << sizeof(test);
 

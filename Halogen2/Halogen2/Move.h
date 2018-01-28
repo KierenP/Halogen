@@ -45,7 +45,11 @@ private:
 	void SetFlag(unsigned int flag);
 
 	//16 bits, from right to left (lowest value to highest value) we have 6 bits for the from position (0-63), 6 bits for the to position (0-63), 4 bits for the flag totalling 16.
-	unsigned short int data;
+	//unsigned short int data;
+
+	char m_from;
+	char m_to;
+	char m_flag;
 };
 
 

@@ -2,7 +2,7 @@
 #include "TTEntry.h"
 #include "ABnode.h"
 
-const unsigned int TTSize = 67108864;						//2^26 * 16 bytes = 2^30 = 1GB
+const unsigned int TTSize = 8388608;						//2^23 * 16 bytes = 2^23 * 2^4 = 2^27 = 1/8 GB or 128MB
 
 class TranspositionTable
 {
@@ -15,6 +15,7 @@ public:
 	TTEntry GetEntry(uint64_t key);
 
 	void Reformat();
+	int GetCapacity();
 	void AddHit() { TTHits++; }
 
 	void ResetCount() { TTHits = 0; }

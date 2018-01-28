@@ -92,16 +92,24 @@ unsigned ABnode::CountNodeChildren()
 	unsigned int depth = 1;
 	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
 		depth++;
-	return depth - 1;	//Currently at the end of the line is a leaf node with no move, so we -1 so account for that
+	return depth;	//Currently at the end of the line is a leaf node with no move, so we -1 so account for that
 }
 
 void ABnode::PrintNodeChildren()
 {
-	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
+	GetMove().Print();
+
+	if (!HasChild())
+		return;
+
+	ABnode* ptr = this;
+
+	do
 	{
 		std::cout << " ";
+		ptr = ptr->GetChild();
 		ptr->GetMove().Print();
-	}
+	} while (ptr->HasChild());
 }
 
 ABnode* CreateLeafNode(Position& position, int depth)
@@ -137,7 +145,7 @@ ABnode * CreateCheckmateNode(bool colour, int depth)
 		return new ABnode(Move(), depth, CHECK_MATE, BlackLoses + depth);
 }
 
-ABnode * CreateDrawNode(Move& move, int depth)
+ABnode * CreateDrawNode(Move move, int depth)
 {
 	return new ABnode(move, depth, THREE_FOLD_REP, 0);
 }

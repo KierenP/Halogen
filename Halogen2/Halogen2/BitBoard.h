@@ -2,6 +2,10 @@
 #include "BitBoardDefine.h"
 #include <vector>
 
+class BitBoard;
+
+extern std::vector<BitBoard> previousBoards;
+
 class BitBoard
 {
 public:
@@ -32,6 +36,9 @@ protected:
 	void Reset();
 	bool InitialiseBoardFromFen(std::vector<std::string> fen);
 	void GenerateAttackTables();
+
+	void SaveBoard();
+	void RestorePreviousBoard();
 
 private:
 	uint64_t m_Bitboard[N_PIECES];
