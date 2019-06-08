@@ -16,7 +16,6 @@ int AllowedSearchTime = 0;	//in ms.
 bool AbortSearch = false;	//Periodically check CurrentTime - SearchBegin and if greater than some value then set this to true.
 
 ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta);
-ABnode* SearchToDepthAspiration(Position& position, int depth, int score);
 std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int beta);		//Return the best 4 moves in order from this position
 void PrintSearchInfo(Position & position, ABnode& node, unsigned int depth, double Time, bool isCheckmate);
 void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
@@ -377,65 +376,6 @@ ABnode* SearchToDepth(Position & position, int depth, int alpha, int beta)
 			break;
 
 		SetBest(best, node, position.GetTurn());
-	}
-
-	tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
-	return best;
-}
-
-ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
-{
-	int windowWidth = 25;
-
-	int alpha = score - windowWidth;
-	int beta = score + windowWidth;
-	int betaIncrements = 0;
-	int AlphaIncrements = 0;
-
-	tTable.ResetHitCount();
-
-	std::vector<Move> moves = GenerateLegalMoves(position);
-	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
-
-	OrderMoves(moves, position, depth);
-	bool Redo = true;
-	
-	while (Redo && !AbortSearch)
-	{
-		Redo = false;
-
-		for (int i = 0; i < moves.size(); i++)
-		{
-			ABnode* node = CreateBranchNode(moves[i], depth);
-
-			position.ApplyMove(moves[i]);
-			MinMax(position, depth - 1, node, alpha, beta, true, ALPHABETA);
-			position.RevertMove(moves[i]);
-
-			if (AbortSearch)	//go with what was previously found to be the best move so far, as he had to stop the search early.
-				break;
-
-			SetBest(best, node, position.GetTurn());
-		}
-
-		if (best->GetCutoff() == BETA_CUTOFF)
-		{
-			std::cout << "Fail BETA";
-			betaIncrements++;
-			beta = windowWidth * pow(2, betaIncrements) + beta;	//each time double the distance from score
-			delete best;
-			best = CreatePlaceHolderNode(position.GetTurn(), depth);
-			Redo = true;
-		}
-		if (best->GetCutoff() == ALPHA_CUTOFF)
-		{
-			std::cout << "Fail ALPHA";
-			AlphaIncrements++;
-			alpha = -windowWidth * pow(2, AlphaIncrements) + alpha;	//each time double the distance from score
-			delete best;
-			best = CreatePlaceHolderNode(position.GetTurn(), depth);
-			Redo = true;
-		}
 	}
 
 	tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
