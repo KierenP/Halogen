@@ -1,0 +1,75 @@
+[Settings]
+TournamentName=5-6-19 test.at
+Type=0
+CurrSwissRound=0
+Rounds=50
+CurrentPair=1
+CurrentRound=50
+Level=5 -1\5/-1#5@-1|5
+[Options]
+QuitAfterTournament=0
+ShutDownAfterTournament=0
+RestartEngines=1
+RepeatStartPosition=1
+Startposition=0
+Variant=0
+StartPGNEPD=
+Resign=0
+ResignValue=-900
+MaxGameLength=250
+EarlyDrawFromMove=9999
+TablebaseDraw=0
+Autoflag=1
+Ponder=0
+AutoRotateInGautlet=1
+RutschSystem=1
+RestartArenaAfterGamesValue=20
+RestartArenaAtHour1=0
+RestartArenaAtHourValue=2
+ShutdownComputerAfterGames1=0
+ShutdownComputerAfterGamesValue=10
+[Save]
+SaveGamesPGN=1
+SaveIncompleteGamesPGN=1
+PGNFile=C:\Users\David-Admin\Downloads\arena_3.5.1\Arena.pgn
+Protocolfile=Logfile001.log
+TurTabTextfile=C:\Users\David-Admin\Downloads\arena_3.5.1\Tournaments\Arena.txt
+TurTabHTMLfile=C:\Users\David-Admin\Downloads\arena_3.5.1\Tournaments\Arena.html
+SaveTurTabText=1
+SaveTurTabHTML=1
+HTMLuseCountry=0
+HTMLuseFlags=0
+HTMLuseEnglish=0
+HTMLshortResults=0
+HTMLonlyPoints=0
+HTMLFlagsFromWebsite=0
+HTMLshowPGNfilename=1
+HTMLshowBenchmark=0
+PGNwebsite=
+HTMLWinPercent=0
+HTMLStartELO=0
+HTMLShowConditions=0
+HTMLConditions=
+HTMLTopLineColorized=0
+HTMLTableTopLineColor=6737151
+SaveGamesFCH=0
+FCHdir=
+FCHnames=
+[Data]
+LastPGNEPDindex=1
+LastGameDate=2019.06.06
+LastGameTime=10:48:14
+Country=Australia
+Site=KIEREN-DELL
+Hardware=Intel(R) Core(TM) i7-4500U CPU @ 1.80GHz with 15.9 GB Memory
+OS=Windows 10 Enterprise Professional (Build 9200) 64 bit
+Website=
+E-Mail=
+ArenaVersion=Arena 3.5.1
+FirstGameDate=2019.06.06
+FirstGameTime=02:27:21
+[PairingResults]
+Halogen2 ------ Halogen2-2=000½½0½½01½00001100100½0½00½01½110110001½00001½1½1
+[Participants]
+Engine1=Halogen2
+Engine2=Halogen2-2

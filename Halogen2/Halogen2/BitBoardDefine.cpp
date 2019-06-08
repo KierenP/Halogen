@@ -239,7 +239,7 @@ unsigned int AlgebraicToPos(std::string str)
 {
 	if (str == "-")
 		return -1;
-	return (str[0] - 97) + (str[1] - 49) * 8;		//TODO: I don't think the cast here is nessesary 
+	return (str[0] - 97) + (str[1] - 49) * 8;		
 }
 
 unsigned int ColourOfPiece(unsigned int piece)
@@ -261,6 +261,7 @@ int bitScanFowardErase(uint64_t &bb)
 	return index;
 }
 
+//Not my code
 uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 {
 	const int64_t a2a7 = uint64_t(0x0001010101010100);

@@ -27,12 +27,6 @@ int EvaluatePosition(const Position & position)
 	int Score = 0;
 	unsigned int GameStage = CalculateGameStage(position);
 
-	//Score += PieceDevelopment(position);
-	//Score += CastleBonus(position);
-	//Score += EvaluatePieceSquareTables(position, GameStage);
-	//Score += EvaluatePawnStructure(position);
-	//Score += EvaluateKnightCenterControl(position, GameStage);
-
 	int Material = EvaluateMaterial(position);
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);

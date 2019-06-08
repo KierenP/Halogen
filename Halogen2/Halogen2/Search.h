@@ -7,9 +7,11 @@
 #include "Evaluate.h"
 #include "Move.h"
 #include <math.h>
+#include <ctime>
+#include <algorithm>
 
 extern TranspositionTable tTable;
 
-
 void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth);
 Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo);
+std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs, bool printInfo);

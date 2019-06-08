@@ -92,7 +92,7 @@ unsigned ABnode::CountNodeChildren()
 	unsigned int depth = 1;
 	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
 		depth++;
-	return depth;	//Currently at the end of the line is a leaf node with no move, so we -1 so account for that
+	return depth;	
 }
 
 void ABnode::PrintNodeChildren()
@@ -130,19 +130,19 @@ ABnode * CreatePlaceHolderNode(bool colour, int depth)
 		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
 }
 
-ABnode * CreateForcedNode(Move & move)
+/*ABnode * CreateForcedNode(Move & move)
 {
 	return new ABnode(move, 0, FORCED_MOVE, 0);
-}
+}*/
 
 ABnode * CreateCheckmateNode(bool colour, int depth)
 {
-	//more depths still to search produce more desirable results for the winning side.
+	//A sooner checkmate is more desirerable
 
 	if (colour == WHITE)
-		return new ABnode(Move(), depth, CHECK_MATE, WhiteLoses - depth);
+		return new ABnode(Move(), depth, CHECK_MATE, BlackWin - depth);
 	if (colour == BLACK)
-		return new ABnode(Move(), depth, CHECK_MATE, BlackLoses + depth);
+		return new ABnode(Move(), depth, CHECK_MATE, WhiteWin + depth);
 }
 
 ABnode * CreateDrawNode(Move move, int depth)

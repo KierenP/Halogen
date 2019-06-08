@@ -3,6 +3,11 @@
 TranspositionTable::TranspositionTable()
 {
 	TTHits = 0;
+
+	for (int i = 0; i < TTSize; i++)
+	{
+		table[i] = TTEntry();
+	}
 }
 
 TranspositionTable::~TranspositionTable()
@@ -16,10 +21,18 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
-void TranspositionTable::AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff)
+/*void TranspositionTable::AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff)
 {
 	if ((table[ZobristKey % TTSize].GetKey() == EMPTY) || (table[ZobristKey % TTSize].GetDepth() <= Depth) || (table[ZobristKey % TTSize].IsAncient()))
 		table[ZobristKey % TTSize] = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
+}*/
+
+void TranspositionTable::AddEntry(TTEntry entry)
+{
+	int hash = entry.GetKey() % TTSize;
+
+	if ((table[hash].GetKey() == EMPTY) || (table[hash].GetDepth() <= entry.GetDepth()) || (table[hash].IsAncient()))
+		table[hash] = entry;
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
@@ -28,7 +41,7 @@ TTEntry TranspositionTable::GetEntry(uint64_t key)
 	return table[key % TTSize];
 }
 
-void TranspositionTable::Reformat()
+void TranspositionTable::SetAllAncient()
 {
 	for (int i = 0; i < TTSize; i++)
 	{
@@ -47,4 +60,14 @@ int TranspositionTable::GetCapacity()
 	}
 
 	return count;
+}
+
+void TranspositionTable::ResetTable()
+{
+	TTHits = 0;
+
+	for (int i = 0; i < TTSize; i++)
+	{
+		table[i] = TTEntry();
+	}
 }

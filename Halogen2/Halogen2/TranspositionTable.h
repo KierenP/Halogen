@@ -11,15 +11,18 @@ public:
 	~TranspositionTable();
 
 	bool CheckEntry(uint64_t key, int depth);
-	void AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
+	//void AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
+	void AddEntry(TTEntry entry);
 	TTEntry GetEntry(uint64_t key);
 
-	void Reformat();
+	void SetAllAncient();
 	int GetCapacity();
 	void AddHit() { TTHits++; }
 
-	void ResetCount() { TTHits = 0; }
-	unsigned int GetCount() const { return TTHits; } 
+	void ResetHitCount() { TTHits = 0; }
+	unsigned int GetHitCount() const { return TTHits; } 
+
+	void ResetTable();
 
 private:
 	unsigned int TTHits;

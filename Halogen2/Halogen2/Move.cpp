@@ -85,7 +85,7 @@ bool Move::operator==(const Move & rhs) const
 
 unsigned int Move::GetData() const
 {
-	//return data;
+	return 0;
 }
 
 void Move::SetFrom(unsigned int from)

@@ -326,8 +326,6 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 
 bool IsInCheck(const Position & position, unsigned int square, bool colour)
 {
-
-
 	if ((KnightAttacks[square] & position.GetPieceBB(KNIGHT, !colour)) != 0)
 		return true;
 

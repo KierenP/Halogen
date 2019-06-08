@@ -3,27 +3,21 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <ctime>
+
 #include <Windows.h>
 
 using namespace::std;
 Position GameBoard;
 PerftTT PerftTable;
 
-//Move Search(float time);		//time remaining in milliseconds
 void Benchmark();
 void PerftSuite();
-void PrintSearchInfo(ABnode root, unsigned int depth, double Time);
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
-
-double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl);
 
 int main()
 {
 	std::cout << "Version 2.2.1" << std::endl;
-	//TTEntry test;
-	//std::cout << sizeof(test);
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -38,10 +32,9 @@ int main()
 	ZobristInit();
 	InitializeEvaluation();
 	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-	//EvaluatePosition(GameBoard);
-	//PerftSuite();
-	//Benchmark();
-	//SearchPosition(GameBoard, 1500000000, true);
+	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
+
+	//SearchBenchmark(GameBoard, 9999999999, true);
 
 	while (getline(cin, Line)) 
 	{
@@ -63,7 +56,7 @@ int main()
 		}
 
 		if (Line == "uci") {
-			cout << "id name Halogen 2" << endl;
+			cout << "id name Halogen 2.2.1" << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "uciok" << endl;
 		}
@@ -72,6 +65,7 @@ int main()
 		}
 		else if (Line == "ucinewgame") {
 			GameBoard.StartingPosition();
+			tTable.ResetTable(); //wipe the table
 		}
 		else if (Line == "quit") {
 			return 0;
@@ -102,9 +96,8 @@ int main()
 				continue;
 			}
 
-			GameBoard.Print();
+			//GameBoard.Print();
 		}
-
 		else if (arrayTokens[0] == "go")
 		{
 			// Received a command like: "go wtime 300000 btime 300000 winc 0 binc 0"
@@ -123,6 +116,25 @@ int main()
 			std::cout << std::endl;
 			GameBoard.ApplyMove(BestMove);
 		}
+		else if (arrayTokens[0] == "analyse")
+		{
+			GameBoard.Print();
+			Move BestMove;
+			BestMove = SearchPosition(GameBoard, 9999999999, true);
+		}
+		else if (arrayTokens[0] == "PerftTest")
+		{
+			PerftSuite();
+		}
+		else if (arrayTokens[0] == "Perft")
+		{
+			int total = PerftDivide(stoi(arrayTokens[1]));
+			std::cout << "\nTotal: " << total << std::endl;
+		}
+		else if (arrayTokens[0] == "Benchmark")
+		{
+			Benchmark();
+		}
 		else
 		{
 			std::cout << "Unknown command" << std::endl;
@@ -137,15 +149,13 @@ void Benchmark()
 {
 	std::cout << "\nSTART\n";
 	std::ifstream infile("bkt.txt");
-	HANDLE  hConsole;
-	SYSTEMTIME before;
-	SYSTEMTIME after;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	unsigned int Score = 0;
+	//For coloured text in console
+	HANDLE  hConsole;
+	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	float Score = 0;
 	std::string line;
 
-	GetSystemTime(&before);
 	while (std::getline(infile, line))
 	{
 		vector<string> arrayTokens;
@@ -162,36 +172,47 @@ void Benchmark()
 		GameBoard.InitialiseFromFen(arrayTokens[0], arrayTokens[1], arrayTokens[2], arrayTokens[3], "0", "1");
 		GameBoard.Print();
 
-		GetSystemTime(&before);
-		Move BestMove = SearchPosition(GameBoard, 1000 * 120, true);																		
-		GetSystemTime(&after);
-		double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
+		clock_t before = clock();
+		std::vector<Move> BestMoves = SearchBenchmark(GameBoard, 1000 * 120, true);																		
+		clock_t after = clock();
 
-		unsigned int prev = BestMove.GetFrom();
-		unsigned int current = BestMove.GetTo();
+		double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-		//string moveStr = { char(prev % 8 + 97), prev / 8 + 1, char(current % 8 + 97), char(current / 8 + 1) };
-		string moveStr;
-		moveStr.push_back(char(prev % 8 + 97));
-		moveStr.push_back('0' + prev / 8 + 1);
-		moveStr.push_back(char(current % 8 + 97));
-		moveStr.push_back('0' + current / 8 + 1);
-		//char(prev % 8 + 97), prev / 8 + 1, current % 8 + 97), current / 8 + 1
-
-		if (moveStr == arrayTokens[arrayTokens.size() - 3] || moveStr == arrayTokens[arrayTokens.size() - 2])
-		{		//correct
-			SetConsoleTextAttribute(hConsole, 2);	//green text
-			std::cout << "CORRECT bestmove " << moveStr;
-			std::cout << " in: " << Time / 1000 << "s";
-			SetConsoleTextAttribute(hConsole, 7);	//green text
-			Score++;
-		}
-		else
+		for (int i = 0; i < 4; i++)
 		{
-			SetConsoleTextAttribute(hConsole, 4);	//green text
-			std::cout << "INCORRECT bestmove " << moveStr;
-			std::cout << " in: " << Time / 1000 << "s correct move was: " << arrayTokens[arrayTokens.size() - 2];
-			SetConsoleTextAttribute(hConsole, 7);	//green text
+			unsigned int prev = BestMoves[i].GetFrom();
+			unsigned int current = BestMoves[i].GetTo();
+
+			string moveStr;
+			moveStr.push_back(char(prev % 8 + 97));
+			moveStr.push_back('0' + prev / 8 + 1);
+			moveStr.push_back(char(current % 8 + 97));
+			moveStr.push_back('0' + current / 8 + 1);
+
+			if (moveStr == arrayTokens[arrayTokens.size() - 3] || moveStr == arrayTokens[arrayTokens.size() - 2])
+			{		//correct
+
+				if (i == 0)
+					SetConsoleTextAttribute(hConsole, 10);	//green text
+				else
+					SetConsoleTextAttribute(hConsole, 9);	//yellow text
+
+				std::cout << "CORRECT bestmove " << moveStr << " Rank: " << i + 1;
+				std::cout << " in: " << elapsed_ms / 1000 << "s " << "Score: " << double(1) / (pow(2, i));
+				SetConsoleTextAttribute(hConsole, 7);	//white text
+				Score += 1 / (pow(2, i));
+				break;
+			}	
+			else
+			{
+				if (i == 3)
+				{
+					SetConsoleTextAttribute(hConsole, 4);	//red text
+					std::cout << "INCORRECT bestmove " << moveStr;
+					std::cout << " in: " << elapsed_ms / 1000 << "s correct move was: " << arrayTokens[arrayTokens.size() - 2];
+					SetConsoleTextAttribute(hConsole, 7);	//white text
+				}
+			}
 		}
 	}
 
@@ -201,9 +222,9 @@ void Benchmark()
 void PerftSuite()
 {
 	std::ifstream infile("perftsuite.txt");
+
+	//multi-coloured text in concole 
 	HANDLE  hConsole;
-	SYSTEMTIME before;
-	SYSTEMTIME after;
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	unsigned int Perfts = 0;
@@ -212,7 +233,7 @@ void PerftSuite()
 
 	std::string line;
 
-	GetSystemTime(&before);
+	clock_t before = clock();
 	while (std::getline(infile, line))
 	{
 		PerftTable.Reformat();
@@ -247,49 +268,13 @@ void PerftSuite()
 		Totalnodes += nodes;
 		Perfts++;
 	}
-	GetSystemTime(&after);
+	clock_t after = clock();
 
-	double Time = after.wDay * 1000 * 60 * 60 * 24 + after.wHour * 60 * 60 * 1000 + after.wMinute * 60 * 1000 + after.wSecond * 1000 + after.wMilliseconds - before.wDay * 1000 * 60 * 60 * 24 - before.wHour * 60 * 60 * 1000 - before.wMinute * 60 * 1000 - before.wSecond * 1000 - before.wMilliseconds;
+	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
 	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
-	std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << (Time / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / Time) * 1000);
-}
-
-void PrintSearchInfo(ABnode root, unsigned int depth, double Time)
-{
-	if (root.GetScore() > -5000 && root.GetScore() < 5000)
-	{
-		std::cout
-			<< "info depth " << depth
-			<< " seldepth " << root.CountNodeChildren()
-			<< " score cp " << (GameBoard.GetTurn() * 2 - 1) * root.GetScore()
-			<< " time " << Time
-			<< " nodes " << TotalNodeCount
-			<< " nps " << TotalNodeCount / (Time / 1000)
-			<< " tbhits " << tTable.GetCount()
-			<< " pv ";
-	}
-	else
-	{
-		std::cout
-			<< "info depth " << depth
-			<< " seldepth " << root.CountNodeChildren()
-			<< " score mate " << (root.CountNodeChildren() + 1) / 2
-			<< " time " << Time
-			<< " nodes " << TotalNodeCount
-			<< " nps " << TotalNodeCount / (Time / 1000)
-			<< " tbhits " << tTable.GetCount()
-			<< " pv ";
-	}
-
-	for (ABnode* ptr = &root; ptr->HasChild(); ptr = ptr->GetChild())
-	{
-		ptr->GetMove().Print();
-		std::cout << " ";
-	}
-
-	std::cout << std::endl;
+	std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
+	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
 }
 
 unsigned int PerftDivide(unsigned int depth)
@@ -319,10 +304,6 @@ unsigned int Perft(unsigned int depth)
 
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
-	//OrderMoves(moves, GameBoard, 5);
-
-	//GameBoard.ApplyNullMove();
-	//GameBoard.RevertNullMove();
 
 	if (depth == 1)
 		return moves.size();
@@ -336,22 +317,4 @@ unsigned int Perft(unsigned int depth)
 
 	PerftTable.AddEntry(key, nodeCount, depth);
 	return nodeCount;
-}
-
-double operator-(const SYSTEMTIME& pSr, const SYSTEMTIME& pSl)
-{
-	FILETIME v_ftime;
-	ULARGE_INTEGER v_ui;
-	__int64 v_right, v_left;
-	SystemTimeToFileTime(&pSr, &v_ftime);
-	v_ui.LowPart = v_ftime.dwLowDateTime;
-	v_ui.HighPart = v_ftime.dwHighDateTime;
-	v_right = v_ui.QuadPart;
-
-	SystemTimeToFileTime(&pSl, &v_ftime);
-	v_ui.LowPart = v_ftime.dwLowDateTime;
-	v_ui.HighPart = v_ftime.dwHighDateTime;
-	v_left = v_ui.QuadPart;
-
-	return v_right - v_left;
 }
