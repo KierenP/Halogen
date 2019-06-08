@@ -22,6 +22,7 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
 SearchLevels CalculateSearchType(Position& position, Move& move, int depth, bool check, int index);
 bool CheckForCutoff(int & alpha, int & beta, ABnode* best, unsigned int cutoff);
 bool CheckForTransposition(Position & position, int depth, int& alpha, int& beta, ABnode* parent);
+Move CheckForBestMoveCache(Position& position, int depth);
 bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool colour, ABnode* parent);
 bool CheckForDraw(Position & position, ABnode*& node, Move& move, int depth);
 void SetBest(ABnode*& best, ABnode*& node, bool colour);
@@ -287,6 +288,14 @@ bool CheckForTransposition(Position & position, int depth, int & alpha, int & be
 	return false;
 }
 
+Move CheckForBestMoveCache(Position& position, int depth)
+{
+	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
+	{
+
+	}
+}
+
 bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool colour, ABnode * parent)
 {
 	if (size != 0)
@@ -449,8 +458,8 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 				//If we are aborting, it's automatic stop search. If we are at a TERMINATE then keep going if the move gave check; There won't be many legal moves to search anyways
 				if ((Newsearch == TERMINATE && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || AbortSearch)
 				{
-					delete node;
-					node = new ABnode(moves[i], depth, EXACT, EvaluatePosition(position));
+					node->SetCutoff(EXACT);
+					node->SetScore(EvaluatePosition(position));
 				}
 				else
 				{
