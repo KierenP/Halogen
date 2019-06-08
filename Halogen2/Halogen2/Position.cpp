@@ -33,7 +33,6 @@ void Position::ApplyMove(Move move)
 	SaveParamiters();
 	SaveBoard();
 	SetEnPassant(-1);
-	SetCaptureSquare(-1);
 	NodeCount++;
 
 	switch (move.GetFlag())
@@ -64,54 +63,34 @@ void Position::ApplyMove(Move move)
 		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
 		break;
 	case CAPTURE:
-		SetCapturePiece(GetSquare(move.GetTo()));
-		SetCaptureSquare(move.GetTo());
 		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 		break;
 	case EN_PASSANT:
-		SetCapturePiece(GetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))));
-		SetCaptureSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;
 	case KNIGHT_PROMOTION:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
 		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
 		break;
 	case BISHOP_PROMOTION:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
 		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
 		break;
 	case ROOK_PROMOTION:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
 		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
 		break;
 	case QUEEN_PROMOTION:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
 		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
 		break;
 	case KNIGHT_PROMOTION_CAPTURE:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
-		SetCapturePiece(GetSquare(move.GetTo()));
-		SetCaptureSquare(move.GetTo());
 		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
 		break;
 	case BISHOP_PROMOTION_CAPTURE:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
-		SetCapturePiece(GetSquare(move.GetTo()));
-		SetCaptureSquare(move.GetTo());
 		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
 		break;
 	case ROOK_PROMOTION_CAPTURE:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
-		SetCapturePiece(GetSquare(move.GetTo()));
-		SetCaptureSquare(move.GetTo());
 		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
 		break;
 	case QUEEN_PROMOTION_CAPTURE:
-		SetPromotionPiece(GetSquare(move.GetFrom()));
-		SetCapturePiece(GetSquare(move.GetTo()));
-		SetCaptureSquare(move.GetTo());
 		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
 		break;
 	default:
@@ -188,7 +167,6 @@ void Position::ApplyNullMove()
 {
 	SaveParamiters();
 	SetEnPassant(-1);
-	SetCaptureSquare(-1);
 
 	NextTurn();
 	PreviousKeys.push_back(GenerateZobristKey(*this));

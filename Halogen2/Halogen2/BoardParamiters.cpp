@@ -38,10 +38,6 @@ bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
 	m_BlackKingCastle = false;
 	m_BlackQueenCastle = false;
 
-	m_CapturePiece = N_PIECES;
-	m_CaptureSquare = N_SQUARES;
-	m_PromotionPiece = N_PIECES;
-
 	m_HasCastledWhite = false;
 	m_HasCastledBlack = false;
 

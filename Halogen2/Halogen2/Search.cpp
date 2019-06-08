@@ -31,6 +31,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
 void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
 void CheckTime();
 bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
 
 void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 {
@@ -290,10 +291,9 @@ bool CheckForTransposition(Position & position, int depth, int & alpha, int & be
 
 Move CheckForBestMoveCache(Position& position, int depth)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
-	{
-
-	}
+	if (tTable.CheckEntry(GenerateZobristKey(position), depth - 1))
+		return tTable.GetEntry(GenerateZobristKey(position)).GetMove();
+	return Move();
 }
 
 bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool colour, ABnode * parent)
@@ -453,6 +453,10 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 				if (LateMoveReduction(position, depth, node, alpha, beta, true, Newsearch))
 					Cut = true;
 
+			if (!InCheck && !allowNull)
+				if (NullMovePrune(position, depth, node, alpha, beta, false, Newsearch))
+					Cut = true;
+
 			if (!Cut)
 			{
 				//If we are aborting, it's automatic stop search. If we are at a TERMINATE then keep going if the move gave check; There won't be many legal moves to search anyways
@@ -503,4 +507,10 @@ bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha,
 		return false;
 	}
 
+}
+
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
+{
+	position.ApplyNullMove();
+	return false;
 }
