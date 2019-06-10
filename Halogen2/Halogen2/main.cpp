@@ -79,6 +79,8 @@ int main()
 				{
 					GameBoard.InitialiseFromMoves(std::vector<std::string>(arrayTokens.begin() + 3, arrayTokens.end() - 1));
 				}
+
+				//GameBoard.Print();
 			}
 			else if (arrayTokens[1] == "fen")
 			{
@@ -97,6 +99,7 @@ int main()
 			}
 
 			//GameBoard.Print();
+			//EvaluatePosition(GameBoard);
 		}
 		else if (arrayTokens[0] == "go")
 		{

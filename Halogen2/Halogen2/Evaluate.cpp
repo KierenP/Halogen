@@ -34,11 +34,11 @@ int EvaluatePosition(const Position & position)
 	int Control = EvaluateControl(position);
 	Score += Material + PieceSquares + PawnStructure + Castle + Control;
 
-	/*std::cout << "Material: " << Material << "\n";
-	std::cout << "Piece Squares: " << PieceSquares << "\n";
-	std::cout << "Pawn Structure: " << PawnStructure << "\n";
-	std::cout << "Castle Bonus: " << Castle << "\n";
-	std::cout << "Total: " << Score << "\n";*/
+	//std::cout << "Material: " << Material << "\n";
+	//std::cout << "Piece Squares: " << PieceSquares << "\n";
+	//std::cout << "Pawn Structure: " << PawnStructure << "\n";
+	//std::cout << "Castle Bonus: " << Castle << "\n";
+	//std::cout << "Total: " << Score << "\n";
 
 	return Score;
 }

@@ -141,6 +141,7 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 
 		double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 		PrintSearchInfo(position, *ROOT, depth, elapsed_ms, false);
+		//std::cout << " " << ROOT->GetCutoff();
 		std::cout << std::endl;
 
 		if (ROOT->GetCutoff() == CHECK_MATE)	//no need to search deeper if this is the case.
@@ -192,9 +193,9 @@ std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs, bool pr
 
 		for (int i = 0; i < RankedMoves.size(); i++)
 		{
-			//PrintSearchInfo(position, *RankedMoves[i], depth, elapsed_ms, false);
-			//std::cout << " " << RankedMoves[i]->GetCutoff();
-			//std::cout << std::endl;
+			PrintSearchInfo(position, *RankedMoves[i], depth, elapsed_ms, false);
+			std::cout << " " << RankedMoves[i]->GetCutoff();
+			std::cout << std::endl;
 			delete RankedMoves[i];
 		}
 	}
@@ -258,7 +259,7 @@ SearchLevels CalculateSearchType(Position& position, Move& move, int depth, bool
 	if (move.IsCapture() && !(position.GetSquare(move.GetTo()) == WHITE_PAWN || position.GetSquare(move.GetTo()) == BLACK_PAWN))	//capture of non-pawn
 		return ALPHABETA;
 
-	if (index >= 4 && depth >= 3)
+	if (index >= 4 && depth >= 4)
 	{
 		return LATE_MOVE_REDUCTION;
 	}
@@ -277,7 +278,7 @@ bool CheckForTransposition(Position & position, int depth, int & alpha, int & be
 		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey(position));
 		if (ttEntry.GetCutoff() == EXACT || ttEntry.GetCutoff() == CHECK_MATE)
 		{
-			parent->SetChild(new ABnode(Move(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
 			return true;
 		}
 		if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
@@ -301,10 +302,25 @@ bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool c
 	if (size != 0)
 		return false;
 
-	if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	/*if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 		parent->SetChild(CreateDrawNode(Move(), depth));	//Stalemate
 	else
-		parent->SetChild(CreateCheckmateNode(colour, depth));
+		parent->SetChild(CreateCheckmateNode(colour, depth));*/
+
+	if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	{
+		parent->SetCutoff(THREE_FOLD_REP);
+		parent->SetScore(0);
+	}
+	else
+	{
+		if (colour == WHITE)
+			parent->SetScore(BlackWin - depth);
+		if (colour == BLACK)
+			parent->SetScore(WhiteWin + depth);
+
+		parent->SetCutoff(CHECK_MATE);
+	}
 
 	return true;
 }
@@ -453,7 +469,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 				if (LateMoveReduction(position, depth, node, alpha, beta, true, Newsearch))
 					Cut = true;
 
-			if (!InCheck && !allowNull)
+			if (!InCheck && allowNull)
 				if (NullMovePrune(position, depth, node, alpha, beta, false, Newsearch))
 					Cut = true;
 
@@ -491,6 +507,9 @@ bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha,
 {
 	if (position.GetTurn() == BLACK)
 	{ //we just had a white move played and it is now blacks turn to move
+		if (EvaluatePosition(position) > alpha - 350)
+			return false;
+
 		MinMax(position, depth - 2, parent, alpha, alpha + 1, true, search);	
 
 		if (parent->GetCutoff() == ALPHA_CUTOFF)
@@ -500,17 +519,40 @@ bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha,
 
 	if (position.GetTurn() == WHITE)
 	{ //we just had a white move played and it is now blacks turn to move
+		if (EvaluatePosition(position) < beta + 350)
+			return false;
+
 		MinMax(position, depth - 2, parent, beta - 1, beta, true, search);		
 
 		if (parent->GetCutoff() == BETA_CUTOFF)
 			return true;
 		return false;
 	}
-
 }
 
 bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
 {
-	position.ApplyNullMove();
+	if (position.GetTurn() == BLACK)
+	{ //we just had a white move played and it is now blacks turn to move
+		if (EvaluatePosition(position) < beta + 350)
+			return false;
+
+		position.ApplyNullMove();
+		MinMax(position, depth - 3, parent, beta - 1, beta, false, search);
+		position.RevertNullMove();
+		return (parent->GetCutoff() == BETA_CUTOFF);
+	}
+
+	if (position.GetTurn() == WHITE)
+	{ //we just had a white move played and it is now blacks turn to move
+		if (EvaluatePosition(position) > alpha - 350)
+			return false;
+
+		position.ApplyNullMove();
+		MinMax(position, depth - 3, parent, alpha, alpha + 1, false, search);
+		position.RevertNullMove();
+		return (parent->GetCutoff() == ALPHA_CUTOFF);
+	}
+
 	return false;
 }
