@@ -29,13 +29,14 @@ public:
 	uint64_t GetPieceBB(unsigned int pieceType, bool colour) const;
 	uint64_t GetWhiteThreats() const { return WhiteThreats; };
 	uint64_t GetBlackThreats() const { return BlackThreats; };
-	uint64_t GetAttackTable(unsigned int piece) { return AttackTable[piece]; };
+	uint64_t GetAttackTable(unsigned int piece) const { return AttackTable[piece]; };
 	unsigned int GetKing(bool colour) const;
+	void GenerateAttackTables();
 
 protected:
 	void Reset();
 	bool InitialiseBoardFromFen(std::vector<std::string> fen);
-	void GenerateAttackTables();
+	
 
 	void SaveBoard();
 	void RestorePreviousBoard();

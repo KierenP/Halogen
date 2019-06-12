@@ -2,7 +2,7 @@
 #include "Position.h"
 #include "PieceSquareTables.h"
 
-int EvaluatePosition(const Position& position);
+int EvaluatePosition(Position& position);
 void InitializeEvaluation();
 
 

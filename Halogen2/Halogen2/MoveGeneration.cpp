@@ -7,6 +7,8 @@ void PawnCaptures(const Position & position, std::vector<Move>& moves);
 void CastleMoves(const Position & position, std::vector<Move>& moves);
 
 void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
+void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
+void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 
 void RemoveIllegal(Position & position, std::vector<Move>& moves);																			//remove all the moves that put the current player's king in check
 
@@ -18,6 +20,42 @@ std::vector<Move> GenerateLegalMoves(Position & position)
 	GeneratePsudoLegalMoves(position, moves);
 	RemoveIllegal(position, moves);
 
+	return moves;
+}
+
+std::vector<Move> GenerateLegalCaptures(Position& position)
+{
+	std::vector<Move> moves;
+	moves.reserve(15);
+
+	PawnCaptures(position, moves);
+	PawnEnPassant(position, moves);
+
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanFowardErase(pieces), KnightAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanFowardErase(pieces), BishopAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanFowardErase(pieces), KingAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanFowardErase(pieces), RookAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanFowardErase(pieces), QueenAttacks, true));
+
+	RemoveIllegal(position, moves);
+	return moves;
+}
+
+std::vector<Move> GenerateLegalHangedCaptures(Position& position)
+{
+	std::vector<Move> moves;
+	moves.reserve(15);
+
+	PawnCaptures(position, moves);
+	PawnEnPassant(position, moves);
+
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), KnightAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), BishopAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), KingAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), RookAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), QueenAttacks, true));
+
+	RemoveIllegal(position, moves);
 	return moves;
 }
 
@@ -250,12 +288,37 @@ void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsig
 	}
 }
 
+void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
+{
+	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & attackMask[square];
+	uint64_t maskall = position.GetAllPieces() & attackMask[square];
+
+	while (captures != 0)
+	{
+		unsigned int target = bitScanFowardErase(captures);
+		if (!IsSliding || mayMove(square, target, maskall))
+			moves.push_back(Move(square, target, CAPTURE));
+	}
+}
+
+void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
+{
+	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & attackMask[square];
+	uint64_t maskall = position.GetAllPieces() & attackMask[square];
+
+	while (captures != 0)
+	{
+		unsigned int target = bitScanFowardErase(captures);
+		if ((!IsSliding || mayMove(square, target, maskall)) && !IsInCheck(position, target, position.GetTurn()))	//if I would be in check at target, then it is a defended piece so ignore.
+			moves.push_back(Move(square, target, CAPTURE));
+	}
+}
+
 void RemoveIllegal(Position & position, std::vector<Move>& moves)
 {
 	bool turn = position.GetTurn();
 	bool Pinned[64];
 	unsigned int king = position.GetKing(turn);
-	//uint64_t ThreatTable = (turn == BLACK) ? position.GetWhiteThreats() : position.GetBlackThreats();
 	bool InCheck = IsInCheck(position, king, turn);
 	uint64_t mask = position.GetAllPieces();
 
@@ -272,9 +335,6 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 			Pinned[moves[i].GetFrom()] = true;
 			continue;
 		}
-
-		//if ((SquareBB[moves[i].GetFrom()] & ThreatTable) == 0)				//if the piece isn't threatened, it can't be pinned
-			//continue;
 
 		if (!mayMove(king, moves[i].GetFrom(), mask))						//if you can't move from the piece to the king, it can't be pinned
 			continue;

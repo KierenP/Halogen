@@ -102,6 +102,10 @@ void Position::ApplyMove(Move move)
 	UpdateCastleRights(move);
 	PreviousKeys.push_back(GenerateZobristKey(*this));
 	//GenerateAttackTables();
+
+	//Print();
+	//std::cout << GetWhiteThreats() << std::endl;
+	//std::cout << GetBlackThreats() << std::endl;
 }
 
 void Position::ApplyMove(std::string strmove)

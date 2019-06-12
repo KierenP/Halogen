@@ -6,6 +6,7 @@ enum SearchLevels
 	ALPHABETA,
 	LATE_MOVE_REDUCTION,
 	TERMINATE,
+	QUIETESSENCE,
 };
 
 TranspositionTable tTable;
@@ -26,19 +27,20 @@ Move CheckForBestMoveCache(Position& position, int depth);
 bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool colour, ABnode* parent);
 bool CheckForDraw(Position & position, ABnode*& node, Move& move, int depth);
 void SetBest(ABnode*& best, ABnode*& node, bool colour);
-bool InitializeSearchVariables(Position & position, std::vector<Move>& moves, int depth, int & alpha, int & beta, ABnode* parent, bool allowNull, bool colour);
+bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
 void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
 void CheckTime();
 bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
 bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
+bool IsQuiet(Position& position);
+void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
 
 void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
 	*/
-
 	unsigned int swapIndex = 0;														
 	int PieceValues[N_PIECES] = { 1, 3, 3, 5, 9, 100, 1, 3, 3, 5, 9, 100 };			//relative values
 													
@@ -67,41 +69,10 @@ void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth)
 		}
 	}
 
-	std::vector<int> CaptureDifference;
-	std::vector<unsigned int> CaptureIndexes;
-
-	CaptureDifference.reserve(10);
-	CaptureIndexes.reserve(10);
-
-	for (int i = swapIndex; i < moves.size(); i++)
-	{
-		if (!moves[i].IsCapture())
-			continue;
-
-		CaptureDifference.push_back(PieceValues[position.GetSquare(moves[i].GetTo())] - PieceValues[position.GetSquare(moves[i].GetFrom())]);
-		CaptureIndexes.push_back(i);
-	}
-
-	//Order the captures from the biggest difference to the lowest  (eg queen taken by pawn would be closer to front than rook takes rook)
-	for (int j = PieceValues[KING] - PieceValues[PAWN]; j >= PieceValues[PAWN] - PieceValues[KING]; j--)
-	{
-		for (int i = 0; i < CaptureDifference.size(); i++)
+	std::sort(moves.begin() + swapIndex, moves.end(), [&position, PieceValues](const Move& lhs, const Move& rhs)	//stack exchange answer. Uses 'lambda' expressions. I don't really understand how this workd
 		{
-			if (CaptureDifference[i] == j)
-			{
-				SwapMoves(moves, CaptureIndexes[i], swapIndex);
-
-				for (int k = 0; k < CaptureIndexes.size(); k++)
-				{
-					if (CaptureIndexes[k] == swapIndex)
-						CaptureIndexes[k] = i;
-				}
-				CaptureIndexes[i] = swapIndex;
-
-				swapIndex++;
-			}
-		}
-	}
+			return PieceValues[position.GetSquare(lhs.GetTo())] - PieceValues[position.GetSquare(lhs.GetFrom())] > PieceValues[position.GetSquare(rhs.GetTo())] - PieceValues[position.GetSquare(rhs.GetFrom())];
+		});
 }
 
 Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
@@ -140,12 +111,13 @@ Move SearchPosition(Position & position, int allowedTimeMs, bool printInfo)
 		}
 
 		double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
-		PrintSearchInfo(position, *ROOT, depth, elapsed_ms, false);
-		//std::cout << " " << ROOT->GetCutoff();
-		std::cout << std::endl;
 
 		if (ROOT->GetCutoff() == CHECK_MATE)	//no need to search deeper if this is the case.
 			endSearch = true;
+
+		PrintSearchInfo(position, *ROOT, depth, elapsed_ms, endSearch);
+		//std::cout << " " << ROOT->GetCutoff();
+		std::cout << std::endl;
 	
 		Best = ROOT->GetMove();
 		score = ROOT->GetScore();
@@ -191,11 +163,14 @@ std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs, bool pr
 		best.push_back(RankedMoves[2]->GetMove());
 		best.push_back(RankedMoves[3]->GetMove());
 
+		PrintSearchInfo(position, *RankedMoves[0], depth, elapsed_ms, endSearch);
+		std::cout << std::endl;
+
 		for (int i = 0; i < RankedMoves.size(); i++)
 		{
-			PrintSearchInfo(position, *RankedMoves[i], depth, elapsed_ms, false);
-			std::cout << " " << RankedMoves[i]->GetCutoff();
-			std::cout << std::endl;
+			//PrintSearchInfo(position, *RankedMoves[i], depth, elapsed_ms, false);
+			//std::cout << " " << RankedMoves[i]->GetCutoff();
+			//std::cout << std::endl;
 			delete RankedMoves[i];
 		}
 	}
@@ -247,27 +222,16 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 
 SearchLevels CalculateSearchType(Position& position, Move& move, int depth, bool check, int index)
 {
-	if (depth <= -2)
+	if (depth <= -1)
 		return TERMINATE;
 
-	if (check)
-		return ALPHABETA;
-
-	if (move.IsPromotion())
-		return ALPHABETA;
-
-	if (move.IsCapture() && !(position.GetSquare(move.GetTo()) == WHITE_PAWN || position.GetSquare(move.GetTo()) == BLACK_PAWN))	//capture of non-pawn
-		return ALPHABETA;
-
-	if (index >= 4 && depth >= 4)
-	{
+	if (index >= 4 && depth >= 4 && !move.IsCapture() && !move.IsPromotion() && !check)
 		return LATE_MOVE_REDUCTION;
-	}
 
 	if (depth > 1)
 		return ALPHABETA;
 
-	return TERMINATE;
+	return QUIETESSENCE; //at depth of 1, 0
 }
 
 bool CheckForTransposition(Position & position, int depth, int & alpha, int & beta, ABnode * parent)
@@ -301,11 +265,6 @@ bool CheckForCheckmate(Position & position, unsigned int size, int depth, bool c
 {
 	if (size != 0)
 		return false;
-
-	/*if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
-		parent->SetChild(CreateDrawNode(Move(), depth));	//Stalemate
-	else
-		parent->SetChild(CreateCheckmateNode(colour, depth));*/
 
 	if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{
@@ -369,12 +328,53 @@ bool CheckForCutoff(int & alpha, int & beta, ABnode* best, unsigned int cutoff)
 	return false;
 }
 
-bool InitializeSearchVariables(Position & position, std::vector<Move>& moves, int depth, int & alpha, int & beta, ABnode* parent, bool allowNull, bool colour)
+bool InitializeSearchVariables(Position & position, std::vector<Move>& moves, int depth, int & alpha, int & beta, ABnode* parent, SearchLevels level, bool InCheck)
 {
 	if (CheckForTransposition(position, depth, alpha, beta, parent)) return true;
 
-	moves = GenerateLegalMoves(position);
-	if (CheckForCheckmate(position, moves.size(), depth, colour, parent)) return true;
+	bool StopSearch = false;
+
+	if (level != QUIETESSENCE || InCheck)
+		moves = GenerateLegalMoves(position);
+	else
+	{
+		moves = GenerateLegalHangedCaptures(position);
+
+		if (moves.size() == 0)
+		{
+			//not in check and no hanging pieces
+			StopSearch = true;
+			moves = GenerateLegalMoves(position);	//with zero captures we need to make sure its not actually stalemate. This SHOULD be rare and quick to check for anyways I think
+		}
+	}
+
+	//check for possible check mate / stalemate in this position
+	if (moves.size() == 0)
+	{
+		if (!InCheck)
+		{
+			parent->SetCutoff(THREE_FOLD_REP);
+			parent->SetScore(0);
+		}
+		else
+		{
+			if (position.GetTurn() == WHITE)
+				parent->SetScore(BlackWin - depth);	//sooner checkmates are better
+			if (position.GetTurn() == BLACK)
+				parent->SetScore(WhiteWin + depth);
+
+			parent->SetCutoff(CHECK_MATE);
+		}
+
+		return true;
+	}
+
+	if (StopSearch)
+	{//not in check and no hanging pieces, also not in checkmate or stalemate so do static evaluation
+		parent->SetCutoff(EXACT);
+		parent->SetScore(EvaluatePosition(position));
+		return true;
+	}
 
 	OrderMoves(moves, position, depth);
 	return false;
@@ -444,16 +444,97 @@ std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int b
 	return MoveNodes;
 }
 
+bool IsQuiet(Position& position)
+{
+	if (position.GetTurn() == BLACK)
+	{
+		uint64_t KnightThreats = position.GetAttackTable(BLACK_KNIGHT) & (position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(WHITE_QUEEN));
+		if (KnightThreats != EMPTY) return false;
+
+		uint64_t BishopThreats = position.GetAttackTable(BLACK_BISHOP) & (position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(WHITE_QUEEN));
+		if (BishopThreats != EMPTY) return false;
+
+		uint64_t RookThreats = position.GetAttackTable(BLACK_ROOK) & (position.GetPieceBB(WHITE_QUEEN));
+		if (RookThreats != EMPTY) return false;
+	}
+
+	if (position.GetTurn() == WHITE)
+	{
+		uint64_t KnightThreats = position.GetAttackTable(WHITE_KNIGHT) & (position.GetPieceBB(BLACK_ROOK) | position.GetPieceBB(BLACK_QUEEN));
+		if (KnightThreats != EMPTY) return false;
+
+		uint64_t BishopThreats = position.GetAttackTable(WHITE_BISHOP) & (position.GetPieceBB(BLACK_ROOK) | position.GetPieceBB(BLACK_QUEEN));
+		if (BishopThreats != EMPTY) return false;
+
+		uint64_t RookThreats = position.GetAttackTable(WHITE_ROOK) & (position.GetPieceBB(BLACK_QUEEN));
+		if (RookThreats != EMPTY) return false;
+	}
+
+	return true;
+}
+
+void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
+{
+	CurrentTime = clock();
+	CheckTime();
+
+	std::vector<Move> moves;
+	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, search, InCheck)) return;
+
+	//if no captures turn out to be any good, then assume there is a quiet move alternative and we cut the branch at the parent
+	//note we already checked for checkmate, so its a safe assumption that if not in check there is another possible move 
+	ABnode* best;
+
+	if (!IsInCheck)
+		best = CreateLeafNode(position, depth);
+	else
+		best = CreatePlaceHolderNode(position.GetTurn(), depth);
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		ABnode* node = CreateBranchNode(moves[i], depth);
+		SearchLevels Newsearch = CalculateSearchType(position, moves[i], depth, InCheck, i);
+
+		position.ApplyMove(moves[i]);
+		if (!CheckForDraw(position, node, moves[i], depth))
+		{
+			if ((Newsearch == QUIETESSENCE || IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) && !AbortSearch)
+				Quietessence(position, depth - 1, node, alpha, beta, true, Newsearch);
+			else
+			{
+				node->SetCutoff(EXACT);
+				node->SetScore(EvaluatePosition(position));
+			}
+		}
+		position.RevertMove(moves[i]);
+
+		SetBest(best, node, position.GetTurn());
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break;
+	}
+
+	if (best->GetMove() == Move())	//if none of the captures were any good...
+	{
+		parent = CreateLeafNode(position, depth);
+	}
+	else
+	{
+		parent->SetChild(best);
+		tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
+	}
+}
+
 void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
 {
 	CurrentTime = clock();
 	CheckTime();
 
 	std::vector<Move> moves;
-	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, allowNull, position.GetTurn())) return;
+	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+
+	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, search, InCheck)) return;
 
 	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
-	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -474,18 +555,10 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 					Cut = true;
 
 			if (!Cut)
-			{
-				//If we are aborting, it's automatic stop search. If we are at a TERMINATE then keep going if the move gave check; There won't be many legal moves to search anyways
-				if ((Newsearch == TERMINATE && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) || AbortSearch)
-				{
-					node->SetCutoff(EXACT);
-					node->SetScore(EvaluatePosition(position));
-				}
+				if (Newsearch == QUIETESSENCE || AbortSearch || Newsearch == TERMINATE)
+					Quietessence(position, depth - 1, node, alpha, beta, true, Newsearch);
 				else
-				{
 					MinMax(position, depth - 1, node, alpha, beta, true, Newsearch);
-				}
-			}
 		}
 		position.RevertMove(moves[i]);
 
