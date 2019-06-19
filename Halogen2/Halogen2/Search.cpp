@@ -571,6 +571,12 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 				if (NullMovePrune(position, depth, node, alpha, beta, Newsearch))
 					Cut = true;
 
+			if (!Cut && node->HasChild())
+			{
+				delete node;
+				node = CreateBranchNode(moves[i], depth);
+			}
+
 			if (!Cut)
 				if (AbortSearch || Newsearch != ALPHABETA)
 					Quietessence(position, depth - 1, node, alpha, beta, true, Newsearch);
