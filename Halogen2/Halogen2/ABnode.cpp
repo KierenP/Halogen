@@ -20,10 +20,8 @@ ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode*
 
 ABnode::~ABnode()
 {
-<<<<<<< HEAD
-
-=======
-	TotalNodeCount++;
+	if (HasChild())
+		delete m_Child;
 }
 
 int ABnode::GetScore() const
@@ -87,12 +85,11 @@ bool ABnode::HasChild() const
 
 unsigned ABnode::CountNodeChildren()
 {
-	//unsigned int depth = 1;
-	//for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
-		//depth++;
-	if (HasChild())
-		return m_Child->CountNodeChildren() + 1;
-	return 1;	
+	unsigned int depth = 1;
+	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
+		depth++;	
+
+	return depth;
 }
 
 void ABnode::PrintNodeChildren()
@@ -128,21 +125,6 @@ ABnode * CreatePlaceHolderNode(bool colour, int depth)
 		return new ABnode(Move(), depth, UNINITIALIZED_NODE, LowINF);
 	else
 		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
-}
-
-/*ABnode * CreateForcedNode(Move & move)
-{
-	return new ABnode(move, 0, FORCED_MOVE, 0);
-}*/
-
-ABnode * CreateCheckmateNode(bool colour, int depth)
-{
-	//A sooner checkmate is more desirerable
-
-	if (colour == WHITE)
-		return new ABnode(Move(), depth, CHECK_MATE, BlackWin - depth);
-	if (colour == BLACK)
-		return new ABnode(Move(), depth, CHECK_MATE, WhiteWin + depth);
 }
 
 ABnode * CreateDrawNode(Move move, int depth)
