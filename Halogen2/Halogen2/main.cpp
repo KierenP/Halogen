@@ -36,7 +36,7 @@ int main()
 	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
 	//GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
 	//GameBoard.InitialiseFromFen("7K/8/k1P5/7p/8/8/8/8 w - -");
-	//GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
+	GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
 	//SearchBenchmark(GameBoard, 9999999999, true);
 
 	while (getline(cin, Line)) 

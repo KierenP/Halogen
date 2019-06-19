@@ -1,7 +1,5 @@
 #include "ABnode.h"
 
-int TotalNodeCount = 0;
-
 ABnode::ABnode()
 {
 	m_Cutoff = UNINITIALIZED_NODE;
@@ -22,7 +20,7 @@ ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, std::sh
 
 ABnode::~ABnode()
 {
-	TotalNodeCount++;
+
 }
 
 int ABnode::GetScore() const
@@ -86,9 +84,6 @@ bool ABnode::HasChild() const
 
 unsigned ABnode::CountNodeChildren()
 {
-	//unsigned int depth = 1;
-	//for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
-		//depth++;
 	if (HasChild())
 		return m_Child->CountNodeChildren() + 1;
 	return 1;	

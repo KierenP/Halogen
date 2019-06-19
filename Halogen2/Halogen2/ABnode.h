@@ -4,7 +4,6 @@
 #include "Evaluate.h"
 #include <memory>
 
-extern int TotalNodeCount;
 class ABnode;
 
 enum AlphaBetaCutoff
@@ -58,9 +57,6 @@ public:
 
 	unsigned CountNodeChildren();							//interativly accesses sucsessive children and returns the true depth of the node
 	void PrintNodeChildren();
-
-	bool operator < (const ABnode& node) const { return (m_Score < node.GetScore()); }
-	bool operator > (const ABnode& node) const { return (m_Score > node.GetScore()); }
 
 private:
 	int m_Score;				

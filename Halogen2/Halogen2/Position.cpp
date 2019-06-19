@@ -35,38 +35,40 @@ void Position::ApplyMove(Move move)
 	SetEnPassant(-1);
 	NodeCount++;
 
-	switch (move.GetFlag())
+	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+
+	if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
 	{
-	case QUIET:
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
-		break;
-	case PAWN_DOUBLE_MOVE:
-		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white 
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
-		break;
-	case KING_CASTLE:
 		if (GetTurn() == WHITE)
 			WhiteCastled();
 		else
 			BlackCastled();
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	}
+
+	if (move.GetFlag() == KING_CASTLE)
+	{
+		if (GetTurn() == WHITE)
+			WhiteCastled();
+		else
+			BlackCastled();
 		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
-		break;
-	case QUEEN_CASTLE:
-		if (GetTurn() == WHITE)
-			WhiteCastled();
-		else
-			BlackCastled();
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	}
+
+	if (move.GetFlag() == QUEEN_CASTLE)
+	{
+
 		SetSquare(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
-		break;
-	case CAPTURE:
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	}
+
+	//for some special moves we need to do other things
+	switch (move.GetFlag())
+	{
+	case PAWN_DOUBLE_MOVE:
+		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white 
 		break;
 	case EN_PASSANT:
-		SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;
 	case KNIGHT_PROMOTION:
@@ -101,11 +103,6 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	PreviousKeys.push_back(GenerateZobristKey(*this));
-	//GenerateAttackTables();
-
-	//Print();
-	//std::cout << GetWhiteThreats() << std::endl;
-	//std::cout << GetBlackThreats() << std::endl;
 }
 
 void Position::ApplyMove(std::string strmove)
