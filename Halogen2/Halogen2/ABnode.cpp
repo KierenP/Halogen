@@ -27,6 +27,9 @@ ABnode::~ABnode()
 	
 	if (HasChild())
 		delete m_Child;
+<<<<<<< HEAD
+>>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
+=======
 >>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
 }
 
@@ -92,14 +95,20 @@ bool ABnode::HasChild() const
 unsigned ABnode::CountNodeChildren()
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (HasChild())
 		return m_Child->CountNodeChildren() + 1;
 	return 1;	
 =======
+=======
+>>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
 	unsigned int depth = 1;
 	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
 		depth++;
 	return depth;	
+<<<<<<< HEAD
+>>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
+=======
 >>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
 }
 
