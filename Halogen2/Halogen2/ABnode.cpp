@@ -9,7 +9,7 @@ ABnode::ABnode()
 	m_BestMove = Move();
 }
 
-ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, std::shared_ptr<ABnode> child)
+ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child)
 {
 	m_Cutoff = cutoff;
 	m_Depth = depth;
@@ -20,7 +20,14 @@ ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, std::sh
 
 ABnode::~ABnode()
 {
+<<<<<<< HEAD
 
+=======
+	TotalNodeCount++;
+	
+	if (HasChild())
+		delete m_Child;
+>>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
 }
 
 int ABnode::GetScore() const
@@ -33,7 +40,7 @@ Move ABnode::GetMove() const
 	return m_BestMove;
 }
 
-std::shared_ptr<ABnode> ABnode::GetChild() const
+ABnode * ABnode::GetChild() const
 {
 	return m_Child;
 }
@@ -58,7 +65,7 @@ void ABnode::SetMove(Move & move)
 	m_BestMove = move;
 }
 
-void ABnode::SetChild(std::shared_ptr<ABnode> child)
+void ABnode::SetChild(ABnode * child)
 {
 	m_Child = child;
 	m_Score = child->GetScore();
@@ -84,42 +91,69 @@ bool ABnode::HasChild() const
 
 unsigned ABnode::CountNodeChildren()
 {
+<<<<<<< HEAD
 	if (HasChild())
 		return m_Child->CountNodeChildren() + 1;
 	return 1;	
+=======
+	unsigned int depth = 1;
+	for (ABnode* ptr = this; ptr->HasChild(); ptr = ptr->GetChild())
+		depth++;
+	return depth;	
+>>>>>>> parent of fbd1870... Fixed memory leak (2% decrease in speed)
 }
 
 void ABnode::PrintNodeChildren()
 {
 	GetMove().Print();
-	std::cout << " ";
 
 	if (!HasChild())
 		return;
 
-	m_Child->PrintNodeChildren();
+	ABnode* ptr = this;
+
+	do
+	{
+		std::cout << " ";
+		ptr = ptr->GetChild();
+		ptr->GetMove().Print();
+	} while (ptr->HasChild());
 }
 
-std::shared_ptr<ABnode> CreateLeafNode(Position& position, int depth)
+ABnode* CreateLeafNode(Position& position, int depth)
 {
-	return std::make_shared<ABnode>(Move(), depth, EXACT, EvaluatePosition(position));
+	return new ABnode(Move(), depth, EXACT, EvaluatePosition(position));
 }
 
-std::shared_ptr<ABnode> CreateBranchNode(Move & move, int depth)
+ABnode * CreateBranchNode(Move & move, int depth)
 {
-	return std::make_shared<ABnode>(move, depth, UNINITIALIZED_NODE, 0);
+	return new ABnode(move, depth, UNINITIALIZED_NODE, 0);
 }
 
-std::shared_ptr<ABnode> CreatePlaceHolderNode(bool colour, int depth)
+ABnode * CreatePlaceHolderNode(bool colour, int depth)
 {
 	if (colour == WHITE)
-		return std::make_shared<ABnode>(Move(), depth, UNINITIALIZED_NODE, LowINF);
+		return new ABnode(Move(), depth, UNINITIALIZED_NODE, LowINF);
 	else
-		return std::make_shared<ABnode>(Move(), depth, UNINITIALIZED_NODE, HighINF);
+		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
 }
 
-std::shared_ptr<ABnode> CreateDrawNode(Move move, int depth)
+/*ABnode * CreateForcedNode(Move & move)
 {
-	return std::make_shared<ABnode>(move, depth, THREE_FOLD_REP, 0);
+	return new ABnode(move, 0, FORCED_MOVE, 0);
+}*/
+
+ABnode * CreateCheckmateNode(bool colour, int depth)
+{
+	//A sooner checkmate is more desirerable
+
+	if (colour == WHITE)
+		return new ABnode(Move(), depth, CHECK_MATE, BlackWin - depth);
+	if (colour == BLACK)
+		return new ABnode(Move(), depth, CHECK_MATE, WhiteWin + depth);
 }
 
+ABnode * CreateDrawNode(Move move, int depth)
+{
+	return new ABnode(move, depth, THREE_FOLD_REP, 0);
+}

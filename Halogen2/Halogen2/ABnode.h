@@ -28,30 +28,31 @@ enum ScoreConstant
 	Draw = 0
 };
 
-std::shared_ptr<ABnode> CreateLeafNode(Position& position, int depth);			//returns the pointer to a terminal leaf node
-std::shared_ptr<ABnode> CreateBranchNode(Move& move, int depth);				//returns the pointer to a branch node who's score and cutoff are still to be set by its children
-std::shared_ptr<ABnode> CreatePlaceHolderNode(bool colour, int depth);			//Pass either HighINF or LowINF to set the 'best' node to this in initialization
-std::shared_ptr<ABnode> CreateDrawNode(Move move, int depth);
-
+ABnode* CreateLeafNode(Position& position, int depth);			//returns the pointer to a terminal leaf node
+ABnode* CreateBranchNode(Move& move, int depth);				//returns the pointer to a branch node who's score and cutoff are still to be set by its children
+ABnode* CreatePlaceHolderNode(bool colour, int depth);			//Pass either HighINF or LowINF to set the 'best' node to this in initialization
+//ABnode* CreateForcedNode(Move& move);							//In the event of searching a position AT THE ROOT LEVEL and only one legal move being available, we can create a node with a cutoff of EXACT and a given move
+ABnode* CreateCheckmateNode(bool colour, int depth);	
+ABnode* CreateDrawNode(Move move, int depth);
 
 class ABnode
 {
 public:
 	ABnode();
-	ABnode(Move bestmove, int depth, unsigned int cutoff, int score, std::shared_ptr<ABnode> child = nullptr);
+	ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child = nullptr);
 	~ABnode();
 
 	int GetScore() const;
 	int GetDepth() const;
 	unsigned int GetCutoff() const;
 	Move GetMove() const;
-	std::shared_ptr<ABnode> GetChild() const;
+	ABnode* GetChild() const;
 
 	void SetScore(int score);
 	void SetDepth(int depth);
 	void SetCutoff(unsigned int cutoff);
 	void SetMove(Move& move);
-	void SetChild(std::shared_ptr<ABnode> child);
+	void SetChild(ABnode* child);
 
 	bool HasChild() const;
 
@@ -63,6 +64,6 @@ private:
 	int m_Depth;											//note this is depth remaining!
 	unsigned int m_Cutoff;
 	Move m_BestMove;			
-	std::shared_ptr<ABnode> m_Child;
+	ABnode* m_Child;
 };
 
