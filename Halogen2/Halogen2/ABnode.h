@@ -14,7 +14,8 @@ enum AlphaBetaCutoff
 	EXACT,
 	UNINITIALIZED_NODE,
 	CHECK_MATE,				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff which made a blind assumption
-	THREE_FOLD_REP
+	THREE_FOLD_REP,
+	QUIESSENCE_NODE,
 };
 
 enum ScoreConstant

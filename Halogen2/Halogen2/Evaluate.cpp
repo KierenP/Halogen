@@ -16,7 +16,6 @@ int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
-int EvaluateSaftey(Position& position);
 
 const uint64_t CenterSquares = 0x1818000000;		
 const uint64_t OuterSquares = 0x7e424242427e00;
@@ -35,8 +34,14 @@ const int SafetyTable[100] = {
  500, 500, 500, 500, 500, 500, 500, 500, 500, 500
 };
 
-int EvaluatePosition(Position & position)
+int EvaluatePosition(const Position & position)
 {
+	/*if (CalculateGameStage(position) == ENDGAME)
+	{
+		if (GetBitCount(position.GetAllPieces()) == 2)	//just kings left
+			return 0;									//This is drawn
+	}*/
+
 	int Score = 0;
 	unsigned int GameStage = CalculateGameStage(position);
 
@@ -44,8 +49,7 @@ int EvaluatePosition(Position & position)
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
-	int Control = EvaluateSaftey(position);
-	Score += Material + PieceSquares + PawnStructure + Castle + Control;
+	Score += Material + PieceSquares + PawnStructure + Castle;
 
 	//std::cout << "Material: " << Material << "\n";
 	//std::cout << "Piece Squares: " << PieceSquares << "\n";
@@ -53,7 +57,7 @@ int EvaluatePosition(Position & position)
 	//std::cout << "Castle Bonus: " << Castle << "\n";
 	//std::cout << "Total: " << Score << "\n";
 
-	return Score;
+	return Score;// + Tempo;
 }
 
 void InitializeEvaluation()
@@ -175,30 +179,5 @@ int EvaluateMaterial(const Position & position)
 	}
 
 	return Score;
-}
-
-int EvaluateSaftey(Position & position)
-{
-	//position.GenerateAttackTables();
-
-	/*int AttacksOnWhite = 0;
-	int AttacksOnBlack = 0;
-
-	uint64_t BlackKingZone = WhiteKingAttackSquares[position.GetKing(position.GetTurn())];
-	uint64_t WhiteKingZone = BlackKingAttackSquares[position.GetKing(position.GetTurn())];
-
-	AttacksOnBlack += GetBitCount(BlackKingZone & position.GetAttackTable(WHITE_QUEEN)) * 5;
-	AttacksOnBlack += GetBitCount(BlackKingZone & position.GetAttackTable(WHITE_ROOK)) * 3;
-	AttacksOnBlack += GetBitCount(BlackKingZone & position.GetAttackTable(WHITE_KNIGHT)) * 2;
-	AttacksOnBlack += GetBitCount(BlackKingZone & position.GetAttackTable(WHITE_BISHOP)) * 2;
-
-	AttacksOnWhite += GetBitCount(WhiteKingZone & position.GetAttackTable(BLACK_QUEEN)) * 5;
-	AttacksOnWhite += GetBitCount(WhiteKingZone & position.GetAttackTable(BLACK_ROOK)) * 3;
-	AttacksOnWhite += GetBitCount(WhiteKingZone & position.GetAttackTable(BLACK_KNIGHT)) * 2;
-	AttacksOnWhite += GetBitCount(WhiteKingZone & position.GetAttackTable(BLACK_BISHOP)) * 2;
-
-	return (SafetyTable[AttacksOnBlack] - SafetyTable[AttacksOnWhite]) / 5;*/
-
-	return 0;
 }
 

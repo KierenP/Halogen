@@ -6,6 +6,8 @@ void PawnEnPassant(const Position & position, std::vector<Move>& moves);
 void PawnCaptures(const Position & position, std::vector<Move>& moves);
 void CastleMoves(const Position & position, std::vector<Move>& moves);
 
+void PawnCapturesHung(const Position& position, std::vector<Move>& moves);
+
 void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
@@ -46,7 +48,7 @@ std::vector<Move> GenerateLegalHangedCaptures(Position& position)
 	std::vector<Move> moves;
 	moves.reserve(15);
 
-	PawnCaptures(position, moves);
+	PawnCapturesHung(position, moves);
 	PawnEnPassant(position, moves);
 
 	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBBHangedCapture(position, moves, bitScanFowardErase(pieces), KnightAttacks, false));
@@ -264,6 +266,60 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 				moves.push_back(Move(SQ_E8, SQ_C8, QUEEN_CASTLE));
 			}
 		}
+	}
+}
+
+void PawnCapturesHung(const Position& position, std::vector<Move>& moves)
+{
+	//we have the same code here but we ignore captures of pawns because they aren't vert interesting and usually are defended anyways (doesn't improve position significantly)
+
+	int fowardleft = 0;
+	int fowardright = 0;
+	uint64_t leftAttack = 0;
+	uint64_t rightAttack = 0;
+	uint64_t pawnSquares = position.GetPieceBB(PAWN, position.GetTurn());
+
+	if (position.GetTurn() == WHITE)
+	{
+		fowardleft = 7;
+		fowardright = 9;
+		leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) << 7) & position.GetBlackPieces() & ~position.GetPieceBB(BLACK_PAWN);
+		rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) << 9) & position.GetBlackPieces() & ~position.GetPieceBB(BLACK_PAWN);
+	}
+	if (position.GetTurn() == BLACK)
+	{
+		fowardleft = -9;
+		fowardright = -7;
+		leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) >> 9) & position.GetWhitePieces() & ~position.GetPieceBB(WHITE_PAWN);
+		rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) >> 7) & position.GetWhitePieces() & ~position.GetPieceBB(WHITE_PAWN);
+	}
+
+	while (leftAttack != 0)
+	{
+		unsigned int end = bitScanFowardErase(leftAttack);
+		if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
+		{
+			moves.push_back(Move(end - fowardleft, end, QUEEN_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardleft, end, KNIGHT_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardleft, end, ROOK_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardleft, end, BISHOP_PROMOTION_CAPTURE));
+		}
+		else
+			moves.push_back(Move(end - fowardleft, end, CAPTURE));
+	}
+
+	while (rightAttack != 0)
+	{
+		unsigned int end = bitScanFowardErase(rightAttack);
+		if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
+		{
+			moves.push_back(Move(end - fowardright, end, QUEEN_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardright, end, KNIGHT_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardright, end, ROOK_PROMOTION_CAPTURE));
+			moves.push_back(Move(end - fowardright, end, BISHOP_PROMOTION_CAPTURE));
+		}
+		else
+			moves.push_back(Move(end - fowardright, end, CAPTURE));
 	}
 }
 
