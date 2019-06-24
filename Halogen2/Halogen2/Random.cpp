@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "Random.h"
 
 #define NN 312

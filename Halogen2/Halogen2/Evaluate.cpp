@@ -16,32 +16,12 @@ int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
+int EvaluateKingTropism(const Position& position);
 
-const uint64_t CenterSquares = 0x1818000000;		
-const uint64_t OuterSquares = 0x7e424242427e00;
-const uint64_t InnerSquares = 0x3c24243c0000;
-
-const int SafetyTable[100] = {
-	0,  0,   1,   2,   3,   5,   7,   9,  12,  15,
-  18,  22,  26,  30,  35,  39,  44,  50,  56,  62,
-  68,  75,  82,  85,  89,  97, 105, 113, 122, 131,
- 140, 150, 169, 180, 191, 202, 213, 225, 237, 248,
- 260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
- 377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
- 494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
- 500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
- 500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
- 500, 500, 500, 500, 500, 500, 500, 500, 500, 500
-};
+int CalculateDistance(int a, int b);
 
 int EvaluatePosition(const Position & position)
 {
-	/*if (CalculateGameStage(position) == ENDGAME)
-	{
-		if (GetBitCount(position.GetAllPieces()) == 2)	//just kings left
-			return 0;									//This is drawn
-	}*/
-
 	int Score = 0;
 	unsigned int GameStage = CalculateGameStage(position);
 
@@ -57,7 +37,7 @@ int EvaluatePosition(const Position & position)
 	//std::cout << "Castle Bonus: " << Castle << "\n";
 	//std::cout << "Total: " << Score << "\n";
 
-	return Score;// + Tempo;
+	return Score;
 }
 
 void InitializeEvaluation()
@@ -99,10 +79,10 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 	bool IsOpposed = false;
 	bool IsDoubled = false;
 
-	int foward, back;
+	int foward = 0, back = 0;
 
-	if (colour == WHITE) { foward = 8; back = -8; }
-	if (colour == BLACK) { foward = -8; back = 8; }
+	if (colour == WHITE)	{ foward = 8; back = -8; }
+	else					{ foward = -8; back = 8; }
 
 	if ((colour == WHITE) && (((position.GetPieceBB(PAWN, BLACK)) & PassedPawnMaskWhite[square]) == 0))
 		IsPassed = true;
@@ -179,5 +159,27 @@ int EvaluateMaterial(const Position & position)
 	}
 
 	return Score;
+}
+
+int EvaluateKingTropism(const Position& position)
+{
+	/*int Score = 0;
+	int WhiteKing = position.GetKing(WHITE);
+	int BlackKing = position.GetKing(BLACK);
+
+	for (int i = 0; i < N_PIECE_TYPES; i++)
+	{
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score += CalculateDistance(WhiteKing, bitScanFowardErase(piece)));							//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score -= CalculateDistance(BlackKing, bitScanFowardErase(piece)));			//white piece
+	}
+
+	return Score;*/
+
+	return 0;
+}
+
+int CalculateDistance(int a, int b)
+{
+	return (AbsRankDiff(a, b) + AbsFileDiff(a, b));
 }
 

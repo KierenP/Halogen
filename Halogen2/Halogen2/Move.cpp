@@ -26,19 +26,16 @@ Move::~Move()
 
 unsigned int Move::GetFrom() const
 {
-	//return data & FROM_MASK;
 	return m_from;
 }
 
 unsigned int Move::GetTo() const
 {
-	//return (data & TO_MASK) >> 6;
 	return m_to;
 }
 
 unsigned int Move::GetFlag() const
 {
-	//return (data & FLAG_MASK) >> 12;
 	return m_flag;
 }
 
@@ -83,28 +80,17 @@ bool Move::operator==(const Move & rhs) const
 	return false;
 }
 
-unsigned int Move::GetData() const
-{
-	return 0;
-}
-
 void Move::SetFrom(unsigned int from)
 {
-	//data &= ~FROM_MASK;
-	//data |= from & FROM_MASK;
 	m_from = from;
 }
 
 void Move::SetTo(unsigned int to)
 {
-	//data &= ~TO_MASK;
-	//data |= (to << 6) & TO_MASK;
 	m_to = to;
 }
 
 void Move::SetFlag(unsigned int flag)
 {
-	//data &= ~FLAG_MASK;
-	//data |= (flag << 12) & FLAG_MASK;
 	m_flag = flag;
 }

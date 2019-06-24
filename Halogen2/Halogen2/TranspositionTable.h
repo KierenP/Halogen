@@ -26,6 +26,6 @@ public:
 
 private:
 	unsigned int TTHits;
-	TTEntry table[TTSize];
+	std::vector<TTEntry> table;
 };
 

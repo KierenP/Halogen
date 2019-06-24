@@ -2,7 +2,6 @@
 #include "Move.h"
 #include "Position.h"
 #include "Evaluate.h"
-#include <memory>
 
 class ABnode;
 
@@ -50,7 +49,7 @@ public:
 	void SetDepth(int depth);
 	void SetCutoff(unsigned int cutoff);
 	void SetMove(Move& move);
-	void SetChild(ABnode* child);
+	void SetChild(ABnode* child);	//NOTE: will delete the current child if it has one!
 
 	bool HasChild() const;
 

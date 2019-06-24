@@ -325,6 +325,8 @@ void PawnCapturesHung(const Position& position, std::vector<Move>& moves)
 
 void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
 {
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	uint64_t quiet = position.GetEmptySquares() & attackMask[square];
 	uint64_t captures = position.GetPiecesColour(!position.GetTurn()) & attackMask[square];
 	uint64_t maskall = position.GetAllPieces() & attackMask[square];
@@ -346,6 +348,8 @@ void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsig
 
 void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
 {
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & attackMask[square];
 	uint64_t maskall = position.GetAllPieces() & attackMask[square];
 
@@ -359,6 +363,8 @@ void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves,
 
 void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
 {
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & attackMask[square];
 	uint64_t maskall = position.GetAllPieces() & attackMask[square];
 
@@ -442,6 +448,8 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 
 bool IsInCheck(const Position & position, unsigned int square, bool colour)
 {
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	if ((KnightAttacks[square] & position.GetPieceBB(KNIGHT, !colour)) != 0)
 		return true;
 
@@ -513,7 +521,11 @@ bool MovePutsSelfInCheck(Position & position, Move & move)
 	}
 
 	position.SetSquare(move.GetFrom(), fromPiece);
-	position.SetSquare(move.GetTo(), toPiece);
+
+	if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
+		position.SetSquare(move.GetTo(), toPiece);
+	else
+		position.ClearSquare(move.GetTo());
 
 	return InCheck;
 }

@@ -42,8 +42,8 @@ protected:
 	void RestorePreviousBoard();
 
 private:
-	uint64_t m_Bitboard[N_PIECES];
-	uint64_t AttackTable[N_PIECES];
+	uint64_t m_Bitboard[N_PIECES] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
+	uint64_t AttackTable[N_PIECES] = { 0,0,0,0,0,0,0,0,0,0,0,0 };
 	uint64_t WhiteThreats = EMPTY;
 	uint64_t BlackThreats = EMPTY;
 };

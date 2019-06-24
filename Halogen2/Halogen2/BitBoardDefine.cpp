@@ -1,4 +1,5 @@
 #include "BitBoardDefine.h"
+#include <stdexcept>
 
 uint64_t EMPTY;
 uint64_t UNIVERCE;
@@ -168,6 +169,8 @@ void BBInit()
 
 char PieceToChar(unsigned int piece)
 {
+	if (piece > N_PIECES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	char PieceChar[13] = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
 	return PieceChar[piece];
 }
@@ -239,6 +242,8 @@ unsigned int AlgebraicToPos(std::string str)
 {
 	if (str == "-")
 		return -1;
+
+	if (str.length() < 2) throw std::invalid_argument("Bad paramiter to SetSquare()");
 	return (str[0] - 97) + (str[1] - 49) * 8;		
 }
 
@@ -282,6 +287,9 @@ uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 
 uint64_t inBetweenCache(unsigned int from, unsigned int to)
 {
+	if (from >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	if (to >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	return betweenArray[from][to];
 }
 

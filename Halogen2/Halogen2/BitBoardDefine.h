@@ -1,7 +1,4 @@
 #pragma once
-#include <stdint.h>
-#include <intrin.h>
-#include <math.h>
 #include <string>
 
 enum Squares

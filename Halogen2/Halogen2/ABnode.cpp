@@ -61,6 +61,8 @@ void ABnode::SetMove(Move & move)
 
 void ABnode::SetChild(ABnode * child)
 {
+	if (HasChild()) delete m_Child;	//avoiding memory leaks
+
 	m_Child = child;
 	m_Score = child->GetScore();
 	m_Cutoff = child->GetCutoff();

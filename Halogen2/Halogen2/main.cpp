@@ -1,10 +1,6 @@
 #include "Search.h"
 #include "PerftTT.h"
-#include <string>
-#include <sstream>
 #include <fstream>
-
-#include <Windows.h>
 
 using namespace::std;
 Position GameBoard;
@@ -17,12 +13,11 @@ unsigned int Perft(unsigned int depth);
 
 int main()
 {
-	std::cout << "Version 2.4.0" << std::endl;
+	std::cout << "Version 2.4.1" << std::endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
 
-	srand(0);
 	BBInit();
 
 	string Line;					//to read the command given by the GUI
@@ -31,13 +26,15 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-	GameBoard.InitialiseFromFen("r5k1/5ppp/1p6/p1p5/7b/1PPrqPP1/1PQ4P/R4R1K b - - 0 1");
+	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//GameBoard.InitialiseFromFen("r5k1/5ppp/1p6/p1p5/7b/1PPrqPP1/1PQ4P/R4R1K b - - 0 1");
 	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
 	//GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
 	//GameBoard.InitialiseFromFen("7K/8/k1P5/7p/8/8/8/8 w - -");
-	GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
+	//GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
 	//SearchBenchmark(GameBoard, 9999999999, true);
+
+	//std::cout << bitScanForward(0);
 
 	while (getline(cin, Line)) 
 	{
@@ -59,7 +56,7 @@ int main()
 		}
 
 		if (Line == "uci") {
-			cout << "id name Halogen 2.4.0" << endl;
+			cout << "id name Halogen 2.4.1" << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "uciok" << endl;
 		}
@@ -77,6 +74,7 @@ int main()
 		{
 			if (arrayTokens[1] == "startpos")
 			{
+				GameBoard = Position();	//completly wipe the board
 				GameBoard.StartingPosition();
 				if (arrayTokens[2] == "moves")
 				{
@@ -120,13 +118,13 @@ int main()
 			std::cout << "\nbestmove ";
 			BestMove.Print();
 			std::cout << std::endl;
-			GameBoard.ApplyMove(BestMove);
+			//GameBoard.ApplyMove(BestMove);
 		}
 		else if (arrayTokens[0] == "analyse")
 		{
 			GameBoard.Print();
 			Move BestMove;
-			BestMove = SearchPosition(GameBoard, 9999999999, true);
+			BestMove = SearchPosition(GameBoard, 99999999, true);
 		}
 		else if (arrayTokens[0] == "PerftTest")
 		{
@@ -140,6 +138,21 @@ int main()
 		else if (arrayTokens[0] == "Benchmark")
 		{
 			Benchmark();
+		}
+		else if (arrayTokens[0] == "Yeet")
+		{
+			for (;;)
+			{
+				GameBoard.Print();
+				Move BestMove;
+				unsigned int timeMs = 50000;
+				BestMove = SearchPosition(GameBoard, timeMs / 20, true);
+				std::cout << std::endl;
+				std::cout << "\nbestmove ";
+				BestMove.Print();
+				std::cout << std::endl;
+				GameBoard.ApplyMove(BestMove);
+			}
 		}
 		else
 		{

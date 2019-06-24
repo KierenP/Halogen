@@ -2,11 +2,8 @@
 #include "BoardParamiters.h"
 #include "BitBoard.h"
 #include "Zobrist.h"
-#include <string>
 #include <sstream>
-#include <vector>
 #include <Windows.h>
-#include <string>
 
 extern std::vector<uint64_t> PreviousKeys;
 extern int NodeCount;
