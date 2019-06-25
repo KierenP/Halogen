@@ -5,7 +5,7 @@ int NodeCount = 0;
 
 Position::Position()
 {
-	
+	key = EMPTY;
 }
 
 Position::Position(std::vector<std::string> moves)
@@ -102,7 +102,8 @@ void Position::ApplyMove(Move move)
 	ClearSquare(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
-	PreviousKeys.push_back(GenerateZobristKey(*this));
+	key = GenerateZobristKey();
+	PreviousKeys.push_back(key);
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -170,7 +171,8 @@ void Position::ApplyNullMove()
 	SetEnPassant(-1);
 
 	NextTurn();
-	PreviousKeys.push_back(GenerateZobristKey(*this));
+	key = GenerateZobristKey();
+	PreviousKeys.push_back(key);
 }
 
 void Position::RevertNullMove()
@@ -279,4 +281,37 @@ bool Position::InitialiseFromMoves(std::vector<std::string> moves)
 	}
 
 	return true;
+}
+
+uint64_t Position::GenerateZobristKey()
+{
+	uint64_t Key = EMPTY;
+
+	for (int i = 0; i < N_PIECES; i++)
+	{
+		uint64_t bitboard = GetPieceBB(i);
+		while (bitboard != 0)
+		{
+			Key ^= ZobristTable.at(i * 64 + bitScanFowardErase(bitboard));
+		}
+	}
+
+	if (GetTurn() == WHITE)
+		Key ^= ZobristTable.at(12 * 64);
+
+	if (CanCastleWhiteKingside())
+		Key ^= ZobristTable.at(12 * 64 + 1);
+	if (CanCastleWhiteQueenside())
+		Key ^= ZobristTable.at(12 * 64 + 2);
+	if (CanCastleBlackKingside())
+		Key ^= ZobristTable.at(12 * 64 + 3);
+	if (CanCastleBlackQueenside())
+		Key ^= ZobristTable.at(12 * 64 + 4);
+
+	if (GetEnPassant() <= SQ_H8)														//no ep = -1 which wraps around to a very large number
+	{
+		Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));
+	}
+
+	return Key;
 }

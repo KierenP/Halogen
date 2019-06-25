@@ -35,15 +35,15 @@ protected:
 	void UpdateCastleRights(Move move);
 
 private:
-	bool m_CurrentTurn = WHITE;
-	bool m_WhiteKingCastle = false;
-	bool m_WhiteQueenCastle = false;
-	bool m_BlackKingCastle = false;
-	bool m_BlackQueenCastle = false;
+	bool m_CurrentTurn;
+	bool m_WhiteKingCastle;
+	bool m_WhiteQueenCastle;
+	bool m_BlackKingCastle;
+	bool m_BlackQueenCastle;
 
-	unsigned int m_EnPassant = N_SQUARES;
-	unsigned int m_FiftyMoveCount = 0;
-	unsigned int m_TurnCount = 1;
+	unsigned int m_EnPassant;
+	unsigned int m_FiftyMoveCount;
+	unsigned int m_TurnCount;
 
 	bool m_HasCastledWhite = false;
 	bool m_HasCastledBlack = false;

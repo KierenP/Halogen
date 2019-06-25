@@ -3,13 +3,9 @@
 
 std::vector<BitBoard> previousBoards;
 
-BitBoard::BitBoard()
+BitBoard::BitBoard() : AttackTable{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, m_Bitboard{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 {
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		AttackTable[i] = EMPTY;
-		m_Bitboard[i] = EMPTY;
-	}
+
 }
 
 
@@ -56,9 +52,6 @@ void BitBoard::Reset()
 		m_Bitboard[i] = EMPTY;
 		AttackTable[i] = EMPTY;
 	}
-
-	uint64_t WhiteThreats = EMPTY;
-	uint64_t BlackThreats = EMPTY;
 }
 
 bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
@@ -101,157 +94,7 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 		FenLetter++;
 	}
 
-	GenerateAttackTables();
-
 	return true;
-}
-
-void BitBoard::GenerateAttackTables()
-{
-	WhiteThreats = EMPTY;
-	BlackThreats = EMPTY;
-
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		AttackTable[i] = EMPTY;
-	}
-
-	uint64_t mask = GetAllPieces();
-
-	uint64_t movePiece = GetPieceBB(WHITE_KNIGHT);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KnightAttacks[start] & (~GetWhitePieces());
-		AttackTable[WHITE_KNIGHT] |= moves;
-	}
-
-	movePiece = GetPieceBB(BLACK_KNIGHT);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KnightAttacks[start] &(~GetBlackPieces());
-		AttackTable[BLACK_KNIGHT] |= moves;
-	}
-
-	movePiece = GetPieceBB(WHITE_PAWN);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = WhitePawnAttacks[start] &(~GetWhitePieces());
-		AttackTable[WHITE_PAWN] |= moves;
-	}
-
-	movePiece = GetPieceBB(BLACK_PAWN);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BlackPawnAttacks[start] &(~GetBlackPieces());
-		AttackTable[BLACK_PAWN] |= moves;
-	}
-
-	movePiece = GetPieceBB(WHITE_KING);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KingAttacks[start] &(~GetWhitePieces());
-		AttackTable[WHITE_KING] |= moves;
-	}
-
-	movePiece = GetPieceBB(BLACK_KING);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = KingAttacks[start] &(~GetBlackPieces());
-		AttackTable[BLACK_KING] |= moves;
-	}
-
-	movePiece = GetPieceBB(WHITE_BISHOP);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BishopAttacks[start] &(~GetWhitePieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[WHITE_BISHOP] |= SquareBB[end];
-		}
-	}
-
-	movePiece = GetPieceBB(BLACK_BISHOP);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = BishopAttacks[start] &(~GetBlackPieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[BLACK_BISHOP] |= SquareBB[end];
-		}
-	}
-
-	movePiece = GetPieceBB(WHITE_ROOK);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = RookAttacks[start] &(~GetWhitePieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[WHITE_ROOK] |= SquareBB[end];
-		}
-	}
-
-	movePiece = GetPieceBB(BLACK_ROOK);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = RookAttacks[start] &(~GetBlackPieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[BLACK_ROOK] |= SquareBB[end];
-		}
-	}
-
-	movePiece = GetPieceBB(WHITE_QUEEN);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = QueenAttacks[start] &(~GetWhitePieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[WHITE_QUEEN] |= SquareBB[end];
-		}
-	}
-
-	movePiece = GetPieceBB(BLACK_QUEEN);
-	while (movePiece != 0)
-	{
-		unsigned int start = bitScanFowardErase(movePiece);
-		uint64_t moves = QueenAttacks[start] &(~GetBlackPieces());
-
-		while (moves != 0)
-		{
-			unsigned int end = bitScanFowardErase(moves);
-			if (mayMove(start, end, mask))
-				AttackTable[BLACK_QUEEN] |= SquareBB[end];
-		}
-	}
-
-	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_QUEEN] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
-	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_QUEEN] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
 }
 
 void BitBoard::SaveBoard()
@@ -267,26 +110,26 @@ void BitBoard::RestorePreviousBoard()
 	previousBoards.erase(previousBoards.end() - 1);			//erase the last element
 }
 
-bool BitBoard::IsEmpty(unsigned int BitBoard) const
+bool BitBoard::IsEmpty(unsigned int square) const
 {
-	if (BitBoard >= N_PIECES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
 
-	uint64_t mask = SquareBB[BitBoard] & GetEmptySquares();
+	uint64_t mask = SquareBB[square] & GetEmptySquares();
 	if (mask != 0)
 		return true;
 	return false;
 }
 
-bool BitBoard::IsOccupied(unsigned int BitBoard) const
+bool BitBoard::IsOccupied(unsigned int square) const
 {
-	if (BitBoard >= N_PIECES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
-	return !IsEmpty(BitBoard);
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	return !IsEmpty(square);
 }
 
-bool BitBoard::IsOccupied(unsigned int bitBoard, bool colour) const
+bool BitBoard::IsOccupied(unsigned int square, bool colour) const
 {
-	if (bitBoard >= N_PIECES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
-	if ((SquareBB[bitBoard] & GetPiecesColour(colour)) != 0)
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	if ((SquareBB[square] & GetPiecesColour(colour)) != 0)
 		return true;
 	return false;
 }

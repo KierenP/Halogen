@@ -256,6 +256,8 @@ unsigned int ColourOfPiece(unsigned int piece)
 
 int bitScanForward(uint64_t bb)
 {
+	if (bb == EMPTY) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 

@@ -16,7 +16,6 @@ int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
-int EvaluateKingTropism(const Position& position);
 
 int CalculateDistance(int a, int b);
 
@@ -73,6 +72,9 @@ int EvaluateCastleBonus(const Position & position)
 
 int EvaluatePawn(const Position & position, const unsigned int square, const bool colour)
 {
+	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	if (GetRank(square) == RANK_1 || GetRank(square) == RANK_8) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	int result = 0;
 	bool IsPassed = false;
 	bool IsWeak = true;
@@ -159,23 +161,6 @@ int EvaluateMaterial(const Position & position)
 	}
 
 	return Score;
-}
-
-int EvaluateKingTropism(const Position& position)
-{
-	/*int Score = 0;
-	int WhiteKing = position.GetKing(WHITE);
-	int BlackKing = position.GetKing(BLACK);
-
-	for (int i = 0; i < N_PIECE_TYPES; i++)
-	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score += CalculateDistance(WhiteKing, bitScanFowardErase(piece)));							//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score -= CalculateDistance(BlackKing, bitScanFowardErase(piece)));			//white piece
-	}
-
-	return Score;*/
-
-	return 0;
 }
 
 int CalculateDistance(int a, int b)

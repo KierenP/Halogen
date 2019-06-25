@@ -24,7 +24,7 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
 SearchLevels CalculateSearchType(Position& position, int depth, bool check);
 bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff);
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent);
-bool CheckForDraw(Position& position, ABnode*& node, Move& move, int depth);
+bool CheckForDraw(ABnode*& node, Move& move, int depth, Position& position);
 void SetBest(ABnode*& best, ABnode*& node, bool colour);
 bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
@@ -32,7 +32,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 void CheckTime();
 bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
 bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
-void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
+void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
 ABnode* SearchToDepthAspiration(Position& position, int depth, int score);
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
@@ -44,9 +44,9 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 	std::vector<int> PieceValues = { 1, 3, 3, 5, 9, 100, 1, 3, 3, 5, 9, 100, 1 };	//relative values. Note empty is a pawn. This is explained below
 
 	//move previously cached position to front
-	if (tTable.CheckEntry(GenerateZobristKey(position), searchDepth - 1))
+	if (tTable.CheckEntry(position.GetZobristKey(), searchDepth - 1))
 	{
-		Move bestprev = tTable.GetEntry(GenerateZobristKey(position)).GetMove();
+		Move bestprev = tTable.GetEntry(position.GetZobristKey()).GetMove();
 		for (int i = swapIndex; i < moves.size(); i++)
 		{
 			if (bestprev == moves.at(i))
@@ -84,13 +84,19 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 	//stack exchange answer. Uses 'lambda' expressions. I don't really understand how this works
 	//Note if it is an en passant, then there is nothing in the square the piece is moving to and this caused an out of bounds index and garbage memory access.
 	//It took me about 5 hours to figure it out. The workaround was adding a 1 to the end of the pieceValues vector.
-	std::sort(moves.begin() + swapIndex - captures, moves.begin() + swapIndex, [&position, PieceValues](const Move& lhs, const Move& rhs)
+	/*
+	EDIT: about 6 hours more googling and debugging it turns out that std::sort is an unstable sort which was causing non-deterministic behaviour.
+	I have replaced this with std::stable_sort which should hopefully fix the problem
+	*/
+
+
+	std::stable_sort(moves.begin() + swapIndex - captures, moves.begin() + swapIndex, [&position, PieceValues](const Move& lhs, const Move& rhs)
 		{
 			return PieceValues.at(position.GetSquare(lhs.GetTo())) - PieceValues.at(position.GetSquare(lhs.GetFrom())) > PieceValues.at(position.GetSquare(rhs.GetTo())) - PieceValues.at(position.GetSquare(rhs.GetFrom()));
 		});
 }
 
-Move SearchPosition(Position& position, int allowedTimeMs, bool printInfo)
+Move SearchPosition(Position& position, int allowedTimeMs)
 {
 	SearchBegin = clock();
 	CurrentTime = clock();
@@ -141,7 +147,7 @@ Move SearchPosition(Position& position, int allowedTimeMs, bool printInfo)
 	return Best;
 }
 
-std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs, bool printInfo)
+std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs)
 {
 	AbortSearch = false;
 	AllowedSearchTime = allowedTimeMs;
@@ -154,8 +160,6 @@ std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs, bool pr
 
 	Move Best[4];
 
-	double passedTime = 1;
-	unsigned int DepthMultiRatio = 1;
 	bool endSearch = false;
 
 	for (int depth = 1; !AbortSearch && !endSearch; depth++)
@@ -273,10 +277,10 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)
 {
-	if (tTable.CheckEntry(GenerateZobristKey(position), depth))
+	if (tTable.CheckEntry(position.GetZobristKey(), depth))
 	{
 		tTable.AddHit();
-		TTEntry ttEntry = tTable.GetEntry(GenerateZobristKey(position));
+		TTEntry ttEntry = tTable.GetEntry(position.GetZobristKey());
 		if (ttEntry.GetCutoff() == EXACT || ttEntry.GetCutoff() == QUIETESSENCE)
 		{
 			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
@@ -313,10 +317,10 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 	return false;
 }
 
-bool CheckForDraw(Position& position, ABnode*& node, Move& move, int depth)
+bool CheckForDraw(ABnode*& node, Move& move, int depth, Position& position)
 {
 	int rep = 0;
-	uint64_t current = PreviousKeys.at(PreviousKeys.size() - 1);
+	uint64_t current = position.GetZobristKey();
 
 	for (int i = 0; i < PreviousKeys.size(); i++)
 	{
@@ -363,8 +367,6 @@ bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff)
 bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck)
 {
 	if (CheckForTransposition(position, depth, alpha, beta, parent)) return true;
-
-	bool StopSearch = false;
 
 	if (level == QUIETESSENCE)
 		moves = GenerateLegalCaptures(position);
@@ -430,7 +432,7 @@ ABnode* SearchToDepth(Position& position, int depth, int alpha, int beta)
 		SetBest(best, node, position.GetTurn());
 	}
 
-	tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
+	tTable.AddEntry(TTEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff()));
 	return best;
 }
 
@@ -467,11 +469,11 @@ std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int b
 		}
 	} while (swapped);
 
-	tTable.AddEntry(TTEntry(MoveNodes[0]->GetMove(), GenerateZobristKey(position), MoveNodes[0]->GetScore(), depth, MoveNodes[0]->GetCutoff()));
+	tTable.AddEntry(TTEntry(MoveNodes[0]->GetMove(), position.GetZobristKey(), MoveNodes[0]->GetScore(), depth, MoveNodes[0]->GetCutoff()));
 	return MoveNodes;
 }
 
-void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
+void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search)
 {
 	CurrentTime = clock();
 	CheckTime();
@@ -496,7 +498,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		position.ApplyMove(moves.at(i));
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 
-		if (!CheckForDraw(position, node, moves.at(i), depth))
+		if (!CheckForDraw(node, moves.at(i), depth, position))
 		{
 			if (Newsearch == TERMINATE || AbortSearch)
 			{
@@ -504,7 +506,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 				node->SetScore(EvaluatePosition(position));
 			}
 			else
-				Quietessence(position, depth - 1, node, alpha, beta, true, Newsearch);
+				Quietessence(position, depth - 1, node, alpha, beta, Newsearch);
 		}
 		position.RevertMove(moves.at(i));
 
@@ -521,7 +523,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 	else
 	{
 		parent->SetChild(best);
-		tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
+		tTable.AddEntry(TTEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff()));
 	}
 }
 
@@ -583,7 +585,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 		}
 	}
 
-	tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
+	tTable.AddEntry(TTEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff()));
 	return best;
 }
 
@@ -605,7 +607,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 		position.ApplyMove(moves.at(i));
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 
-		if (!CheckForDraw(position, node, moves.at(i), depth))
+		if (!CheckForDraw(node, moves.at(i), depth, position))
 		{
 			bool Cut = false;
 
@@ -621,7 +623,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 
 			if (!Cut)
 				if (AbortSearch || Newsearch != ALPHABETA)
-					Quietessence(position, depth - 1, node, alpha, beta, true, Newsearch);
+					Quietessence(position, depth - 1, node, alpha, beta, Newsearch);
 				else
 					MinMax(position, depth - 1, node, alpha, beta, true, Newsearch);
 		}
@@ -632,7 +634,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 	}
 
 	parent->SetChild(best);
-	tTable.AddEntry(TTEntry(best->GetMove(), GenerateZobristKey(position), best->GetScore(), depth, best->GetCutoff()));
+	tTable.AddEntry(TTEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff()));
 }
 
 void CheckTime()

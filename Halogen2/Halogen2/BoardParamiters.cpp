@@ -4,6 +4,18 @@ std::vector<BoardParamiters> PreviousParamiters;
 
 BoardParamiters::BoardParamiters()
 {
+	m_CurrentTurn = WHITE;
+	m_WhiteKingCastle = false;
+	m_WhiteQueenCastle = false;
+	m_BlackKingCastle = false;
+	m_BlackQueenCastle = false;
+
+	m_EnPassant = N_SQUARES;
+	m_FiftyMoveCount = 0;
+	m_TurnCount = 1;
+
+	m_HasCastledWhite = false;
+	m_HasCastledBlack = false;
 }
 
 
@@ -74,6 +86,8 @@ void BoardParamiters::SaveParamiters()
 
 void BoardParamiters::RestorePreviousParamiters()
 {
+	if (PreviousParamiters.size() == 0) throw std::invalid_argument("Yeet");
+
 	*this = PreviousParamiters[PreviousParamiters.size() - 1];
 	PreviousParamiters.erase(PreviousParamiters.end() - 1);			//erase the last element
 }

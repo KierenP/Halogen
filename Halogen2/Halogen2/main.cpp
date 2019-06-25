@@ -26,15 +26,12 @@ int main()
 	GameBoard.StartingPosition();
 	ZobristInit();
 	InitializeEvaluation();
-	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//GameBoard.InitialiseFromFen("r5k1/5ppp/1p6/p1p5/7b/1PPrqPP1/1PQ4P/R4R1K b - - 0 1");
-	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
+	GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
 	//GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
 	//GameBoard.InitialiseFromFen("7K/8/k1P5/7p/8/8/8/8 w - -");
 	//GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
-	//SearchBenchmark(GameBoard, 9999999999, true);
-
-	//std::cout << bitScanForward(0);
 
 	while (getline(cin, Line)) 
 	{
@@ -70,20 +67,20 @@ int main()
 		else if (Line == "quit") {
 			return 0;
 		}
-		else if (arrayTokens[0] == "position")
+		else if (arrayTokens.at(0) == "position")
 		{
-			if (arrayTokens[1] == "startpos")
+			if (arrayTokens.at(1) == "startpos")
 			{
 				GameBoard = Position();	//completly wipe the board
 				GameBoard.StartingPosition();
-				if (arrayTokens[2] == "moves")
+				if (arrayTokens.at(2) == "moves")
 				{
 					GameBoard.InitialiseFromMoves(std::vector<std::string>(arrayTokens.begin() + 3, arrayTokens.end() - 1));
 				}
 
 				//GameBoard.Print();
 			}
-			else if (arrayTokens[1] == "fen")
+			else if (arrayTokens.at(1) == "fen")
 			{
 				if (arrayTokens.size() != 9)
 				{
@@ -91,7 +88,7 @@ int main()
 					continue;
 				}
 
-				GameBoard.InitialiseFromFen(arrayTokens[2], arrayTokens[3], arrayTokens[4], arrayTokens[5], arrayTokens[6], arrayTokens[7]);
+				GameBoard.InitialiseFromFen(arrayTokens.at(2), arrayTokens.at(3), arrayTokens.at(4), arrayTokens.at(5), arrayTokens.at(6), arrayTokens.at(7));
 			}
 			else
 			{
@@ -102,7 +99,7 @@ int main()
 			//GameBoard.Print();
 			//EvaluatePosition(GameBoard);
 		}
-		else if (arrayTokens[0] == "go")
+		else if (arrayTokens.at(0) == "go")
 		{
 			// Received a command like: "go wtime 300000 btime 300000 winc 0 binc 0"
 			if (arrayTokens.size() != 10)
@@ -112,41 +109,41 @@ int main()
 			}
 
 			Move BestMove;
-			unsigned int timeMs = stoi(GameBoard.GetTurn() == WHITE ? arrayTokens[2] : arrayTokens[4]);
-			BestMove = SearchPosition(GameBoard, timeMs / 20, true);
+			unsigned int timeMs = stoi(GameBoard.GetTurn() == WHITE ? arrayTokens.at(2) : arrayTokens.at(4));
+			BestMove = SearchPosition(GameBoard, timeMs / 20);
 			std::cout << std::endl;
 			std::cout << "\nbestmove ";
 			BestMove.Print();
 			std::cout << std::endl;
 			//GameBoard.ApplyMove(BestMove);
 		}
-		else if (arrayTokens[0] == "analyse")
+		else if (arrayTokens.at(0) == "analyse")
 		{
 			GameBoard.Print();
 			Move BestMove;
-			BestMove = SearchPosition(GameBoard, 99999999, true);
+			BestMove = SearchPosition(GameBoard, 99999999);
 		}
-		else if (arrayTokens[0] == "PerftTest")
+		else if (arrayTokens.at(0) == "PerftTest")
 		{
 			PerftSuite();
 		}
-		else if (arrayTokens[0] == "Perft")
+		else if (arrayTokens.at(0) == "Perft")
 		{
-			int total = PerftDivide(stoi(arrayTokens[1]));
+			int total = PerftDivide(stoi(arrayTokens.at(1)));
 			std::cout << "\nTotal: " << total << std::endl;
 		}
-		else if (arrayTokens[0] == "Benchmark")
+		else if (arrayTokens.at(0) == "Benchmark")
 		{
 			Benchmark();
 		}
-		else if (arrayTokens[0] == "Yeet")
+		else if (arrayTokens.at(0) == "Yeet")
 		{
 			for (;;)
 			{
 				GameBoard.Print();
 				Move BestMove;
 				unsigned int timeMs = 50000;
-				BestMove = SearchPosition(GameBoard, timeMs / 20, true);
+				BestMove = SearchPosition(GameBoard, timeMs / 20);
 				std::cout << std::endl;
 				std::cout << "\nbestmove ";
 				BestMove.Print();
@@ -188,19 +185,19 @@ void Benchmark()
 			arrayTokens.push_back(stub);
 		} while (iss);
 
-		GameBoard.InitialiseFromFen(arrayTokens[0], arrayTokens[1], arrayTokens[2], arrayTokens[3], "0", "1");
+		GameBoard.InitialiseFromFen(arrayTokens.at(0), arrayTokens.at(1), arrayTokens.at(2), arrayTokens.at(3), "0", "1");
 		GameBoard.Print();
 
 		clock_t before = clock();
-		std::vector<Move> BestMoves = SearchBenchmark(GameBoard, 1000 * 20, true);																		
+		std::vector<Move> BestMoves = SearchBenchmark(GameBoard, 1000 * 20);																		
 		clock_t after = clock();
 
 		double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
 		for (int i = 0; i < 4; i++)
 		{
-			unsigned int prev = BestMoves[i].GetFrom();
-			unsigned int current = BestMoves[i].GetTo();
+			unsigned int prev = BestMoves.at(i).GetFrom();
+			unsigned int current = BestMoves.at(i).GetTo();
 
 			string moveStr;
 			moveStr.push_back(char(prev % 8 + 97));
@@ -208,7 +205,7 @@ void Benchmark()
 			moveStr.push_back(char(current % 8 + 97));
 			moveStr.push_back('0' + current / 8 + 1);
 
-			if (moveStr == arrayTokens[arrayTokens.size() - 3] || moveStr == arrayTokens[arrayTokens.size() - 2])
+			if (moveStr == arrayTokens.at(arrayTokens.size() - 3) || moveStr == arrayTokens.at(arrayTokens.size() - 2))
 			{		//correct
 
 				if (i == 0)
@@ -228,7 +225,7 @@ void Benchmark()
 				{
 					SetConsoleTextAttribute(hConsole, 4);	//red text
 					std::cout << "INCORRECT";
-					std::cout << " in: " << elapsed_ms / 1000 << "s correct move was: " << arrayTokens[arrayTokens.size() - 2];
+					std::cout << " in: " << elapsed_ms / 1000 << "s correct move was: " << arrayTokens.at(arrayTokens.size() - 2);
 					SetConsoleTextAttribute(hConsole, 7);	//white text
 				}
 			}
@@ -270,7 +267,7 @@ void PerftSuite()
 		GameBoard.InitialiseFromFen(line);
 		
 		unsigned int nodes = Perft((arrayTokens.size() - 7) / 2);
-		if (nodes == stoi(arrayTokens[arrayTokens.size() - 2]))
+		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
 			std::cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
@@ -303,11 +300,11 @@ unsigned int PerftDivide(unsigned int depth)
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		GameBoard.ApplyMove(moves[i]);
+		GameBoard.ApplyMove(moves.at(i));
 		unsigned int ChildNodeCount = Perft(depth - 1);
-		GameBoard.RevertMove(moves[i]);
+		GameBoard.RevertMove(moves.at(i));
 
-		moves[i].Print();
+		moves.at(i).Print();
 		std::cout << ": " << ChildNodeCount << std::endl;
 		nodeCount += ChildNodeCount;
 	}
@@ -317,7 +314,7 @@ unsigned int PerftDivide(unsigned int depth)
 
 unsigned int Perft(unsigned int depth)
 {
-	uint64_t key = GenerateZobristKey(GameBoard);
+	uint64_t key = GameBoard.GetZobristKey();
 	if ((PerftTable.CheckEntry(key)) && (PerftTable.GetEntry(key).GetDepth() == depth))
 		return PerftTable.GetEntry(key).GetNodes();
 
@@ -329,9 +326,9 @@ unsigned int Perft(unsigned int depth)
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		GameBoard.ApplyMove(moves[i]);
+		GameBoard.ApplyMove(moves.at(i));
 		nodeCount += Perft(depth - 1);
-		GameBoard.RevertMove(moves[i]);
+		GameBoard.RevertMove(moves.at(i));
 	}
 
 	PerftTable.AddEntry(key, nodeCount, depth);

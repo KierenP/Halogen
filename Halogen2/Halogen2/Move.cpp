@@ -15,6 +15,10 @@ Move::Move()
 
 Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 {
+	if (from >= 64) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	if (to >= 64) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	if (flag >= 16) throw std::invalid_argument("Bad paramiter to SetSquare()");
+
 	SetFrom(from);
 	SetTo(to);
 	SetFlag(flag);

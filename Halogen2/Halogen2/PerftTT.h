@@ -1,5 +1,6 @@
 #pragma once
 #include "Zobrist.h"
+#include "BitBoardDefine.h"
 
 const unsigned int HashTableSize = 1000000;//67108864;			//2^26 * 16 bytes = 2^30 bytes = 1GB
 
