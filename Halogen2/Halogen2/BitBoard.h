@@ -13,9 +13,6 @@ public:
 	~BitBoard();
 
 	unsigned int GetSquare(unsigned int square) const;
-	void SetSquare(unsigned int square, unsigned int piece);
-	void ClearSquare(unsigned int square);
-
 	bool IsEmpty(unsigned int positon) const;
 	bool IsOccupied(unsigned int position) const;
 	bool IsOccupied(unsigned int position, bool colour) const;
@@ -29,10 +26,12 @@ public:
 	uint64_t GetPieceBB(unsigned int pieceType, bool colour) const;
 	unsigned int GetKing(bool colour) const;
 
+	void SetSquare(unsigned int square, unsigned int piece);
+	void ClearSquare(unsigned int square);
+
 protected:
 	void Reset();
 	bool InitialiseBoardFromFen(std::vector<std::string> fen);
-	
 
 	void SaveBoard();
 	void RestorePreviousBoard();

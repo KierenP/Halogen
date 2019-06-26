@@ -522,7 +522,7 @@ bool MovePutsSelfInCheck(Position & position, Move & move)
 
 	position.SetSquare(move.GetFrom(), fromPiece);
 
-	if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
+	if (toPiece != N_PIECES)
 		position.SetSquare(move.GetTo(), toPiece);
 	else
 		position.ClearSquare(move.GetTo());

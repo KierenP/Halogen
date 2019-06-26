@@ -30,6 +30,7 @@ Position::~Position()
 
 void Position::ApplyMove(Move move)
 {
+	PreviousKeys.push_back(key);
 	SaveParamiters();
 	SaveBoard();
 	SetEnPassant(-1);
@@ -103,7 +104,6 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	key = GenerateZobristKey();
-	PreviousKeys.push_back(key);
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -160,24 +160,30 @@ void Position::ApplyMove(std::string strmove)
 
 void Position::RevertMove(Move move)
 {
+	if (PreviousKeys.size() == 0) throw std::invalid_argument("YEET");
+
 	RestorePreviousBoard();
 	RestorePreviousParamiters();
+	key = PreviousKeys[PreviousKeys.size() - 1];
 	PreviousKeys.pop_back();
 }
 
 void Position::ApplyNullMove()
 {
+	PreviousKeys.push_back(key);
 	SaveParamiters();
 	SetEnPassant(-1);
 
 	NextTurn();
 	key = GenerateZobristKey();
-	PreviousKeys.push_back(key);
 }
 
 void Position::RevertNullMove()
 {
+	if (PreviousKeys.size() == 0) throw std::invalid_argument("YEET");
+
 	RestorePreviousParamiters();
+	key = PreviousKeys[PreviousKeys.size() - 1];
 	PreviousKeys.pop_back();
 }
 
@@ -233,6 +239,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 
 	InitialiseBoardFromFen(fen);
 	InitialiseParamitersFromFen(fen);
+	key = GenerateZobristKey();
 
 	return true;
 }
@@ -267,7 +274,6 @@ bool Position::InitialiseFromFen(std::string fen)
 		if (stub != "")
 			splitFen[i] = (stub);
 	}
-
 	return InitialiseFromFen(splitFen[0], splitFen[1], splitFen[2], splitFen[3], splitFen[4], splitFen[5]);
 }
 
@@ -281,6 +287,12 @@ bool Position::InitialiseFromMoves(std::vector<std::string> moves)
 	}
 
 	return true;
+}
+
+uint64_t Position::GetZobristKey()
+{
+	//if (GenerateZobristKey() != key) throw std::invalid_argument("YEET");
+	return key;
 }
 
 uint64_t Position::GenerateZobristKey()

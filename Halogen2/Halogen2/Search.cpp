@@ -87,9 +87,10 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 	/*
 	EDIT: about 6 hours more googling and debugging it turns out that std::sort is an unstable sort which was causing non-deterministic behaviour.
 	I have replaced this with std::stable_sort which should hopefully fix the problem
+
+	honestly if you add up all the time saved using this over a custom sort written by me, 
+	it would have been quicker if I never tried to be clever in the first place
 	*/
-
-
 	std::stable_sort(moves.begin() + swapIndex - captures, moves.begin() + swapIndex, [&position, PieceValues](const Move& lhs, const Move& rhs)
 		{
 			return PieceValues.at(position.GetSquare(lhs.GetTo())) - PieceValues.at(position.GetSquare(lhs.GetFrom())) > PieceValues.at(position.GetSquare(rhs.GetTo())) - PieceValues.at(position.GetSquare(rhs.GetFrom()));
@@ -257,15 +258,6 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 		return QUIETESSENCE;
 	}
 
-	/*if (depth <= -1 && depth > -3)	// [-1, 3)
-	{
-		if (check)
-			return CHECK_EXTENSION;
-
-		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	//if I just got put in check by that move
-			return CHECK_EXTENSION;
-	}*/
-
 	if (depth == -1)
 		return LEAF_SEARCH;
 
@@ -339,8 +331,7 @@ bool CheckForDraw(ABnode*& node, Move& move, int depth, Position& position)
 
 bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff)
 {
-	if (best->GetMove() == Move())
-		return false;
+	//if (best->GetMove() == Move()) return false;
 
 	if (cutoff == BETA_CUTOFF)
 	{
@@ -368,12 +359,29 @@ bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int
 {
 	if (CheckForTransposition(position, depth, alpha, beta, parent)) return true;
 
-	if (level == QUIETESSENCE)
-		moves = GenerateLegalCaptures(position);
-	else if (level == LEAF_SEARCH)
-		moves = GenerateLegalHangedCaptures(position);
-	else
+	switch (level)
+	{
+	case MINMAX:
 		moves = GenerateLegalMoves(position);
+		break;
+	case ALPHABETA:
+		moves = GenerateLegalMoves(position);
+		break;
+	case TERMINATE:
+		throw std::invalid_argument("YEET");
+		break;
+	case QUIETESSENCE:
+		moves = GenerateLegalCaptures(position);
+		break;
+	case LEAF_SEARCH:
+		moves = GenerateLegalHangedCaptures(position);
+		break;
+	case CHECK_EXTENSION:
+		moves = GenerateLegalMoves(position);
+		break;
+	default:
+		break;
+	}
 
 	if (moves.size() == 0)
 	{
@@ -486,8 +494,8 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 	//note we already checked for checkmate, so its a safe assumption that if not in check there is another possible move 
 	ABnode* best;
 
-	if (!InCheck)
-		best = CreateLeafNode(position, depth);
+	if (!InCheck)// && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+		best = CreateLeafNode(position, depth);														//possible zanzuag issue, see below
 	else
 		best = CreatePlaceHolderNode(position.GetTurn(), depth);
 
@@ -511,7 +519,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		position.RevertMove(moves.at(i));
 
 		SetBest(best, node, position.GetTurn());
-		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break;
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
 	}
 
 	if (best->GetMove() == Move())	//if none of the captures were any good...
@@ -569,7 +577,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 		{
 			std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
 			betaIncrements++;
-			beta = HighINF;
+			beta = score + (score - beta) * (score - beta);	//double the distance
 			delete best;
 			best = CreatePlaceHolderNode(position.GetTurn(), depth);
 			Redo = true;
@@ -578,7 +586,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 		{
 			std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
 			AlphaIncrements++;
-			alpha = LowINF;
+			alpha = score - (score - alpha) * (score - alpha);	//double the distance
 			delete best;
 			best = CreatePlaceHolderNode(position.GetTurn(), depth);
 			Redo = true;
@@ -620,7 +628,7 @@ void MinMax(Position& position, int depth, ABnode* parent, int alpha, int beta, 
 			if (!IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && allowNull && depth >= 4)
 				if (NullMovePrune(position, depth, node, alpha, beta, Newsearch))
 					Cut = true;
-
+					
 			if (!Cut)
 				if (AbortSearch || Newsearch != ALPHABETA)
 					Quietessence(position, depth - 1, node, alpha, beta, Newsearch);

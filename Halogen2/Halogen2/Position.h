@@ -36,7 +36,7 @@ public:
 	bool InitialiseFromFen(std::string fen);
 	bool InitialiseFromMoves(std::vector<std::string> moves);
 
-	uint64_t GetZobristKey() const { return key; };
+	uint64_t GetZobristKey();
 
 private:
 	uint64_t key;

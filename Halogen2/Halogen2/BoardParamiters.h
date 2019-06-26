@@ -23,16 +23,15 @@ public:
 	bool CanCastleBlackQueenside() const { return m_BlackQueenCastle; }
 	unsigned int GetEnPassant() const { return m_EnPassant; }
 
-	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
-	void WhiteCastled();
-	void BlackCastled();
-	void NextTurn();
-
 protected:
 	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
 	void SaveParamiters();
 	void RestorePreviousParamiters();
 	void UpdateCastleRights(Move move);
+	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
+	void WhiteCastled();
+	void BlackCastled();
+	void NextTurn();
 
 private:
 	bool m_CurrentTurn;
