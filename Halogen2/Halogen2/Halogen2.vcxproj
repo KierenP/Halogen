@@ -31,6 +31,7 @@
     <ClInclude Include="Position.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Search.h" />
+    <ClInclude Include="TimeManage.h" />
     <ClInclude Include="TranspositionTable.h" />
     <ClInclude Include="TTEntry.h" />
     <ClInclude Include="Zobrist.h" />
@@ -49,6 +50,7 @@
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Search.cpp" />
+    <ClCompile Include="TimeManage.cpp" />
     <ClCompile Include="TranspositionTable.cpp" />
     <ClCompile Include="TTEntry.cpp" />
     <ClCompile Include="Zobrist.cpp" />
