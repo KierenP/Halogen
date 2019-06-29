@@ -94,10 +94,10 @@ void BBInit()
 	AntiDiagonalBB[DIAG_A2B1] = 0x102;
 	AntiDiagonalBB[DIAG_A1A1] = 0x1;
 
-
 	for (int i = SQ_A1; i < N_SQUARES; i++)
 	{
-		SquareBB[i] = 1i64 << i;
+		uint64_t Bit = 1;
+		SquareBB[i] = Bit << i;
 	}
 
 	for (int i = 0; i < 64; i++)

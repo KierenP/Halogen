@@ -179,6 +179,7 @@ unsigned int BitBoard::GetKing(bool colour) const
 	uint64_t squares = GetPieceBB(KING, colour);
 
 	if (squares == 0)
-		return N_SQUARES;
+		throw std::invalid_argument("ILLEGAL POSITION DETECTED");
+
 	return bitScanForward(squares);
 }

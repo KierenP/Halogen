@@ -9,12 +9,12 @@ public:
 	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
 	~TTEntry();
 
-	uint64_t GetKey() { return key; }
-	int GetScore() { return score; }		
-	char GetDepth() { return depth; }
-	bool IsAncient() { return ancient; }
-	char GetCutoff() { return cutoff; }
-	Move GetMove() { return bestMove; }
+	uint64_t GetKey() const { return key; }
+	int GetScore() const { return score; } 	
+	char GetDepth() const { return depth; }
+	bool IsAncient() const { return ancient; }
+	char GetCutoff() const { return cutoff; }
+	Move GetMove() const { return bestMove; }
 
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 

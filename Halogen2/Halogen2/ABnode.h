@@ -9,11 +9,11 @@ enum AlphaBetaCutoff
 {
 	ALPHA_CUTOFF,
 	BETA_CUTOFF,
-	EXACT,
+	EXACT_CUTOFF,
 	UNINITIALIZED_NODE,
-	CHECK_MATE,				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff which made a blind assumption
-	THREE_FOLD_REP,
-	QUIESSENCE_NODE,
+	CHECK_MATE_CUTOFF,				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff which made a blind assumption
+	THREE_FOLD_REP_CUTOFF,
+	QUIESSENCE_NODE_CUTOFF,
 };
 
 enum ScoreConstant
@@ -46,9 +46,7 @@ public:
 	ABnode* GetChild() const;
 
 	void SetScore(int score);
-	void SetDepth(int depth);
 	void SetCutoff(unsigned int cutoff);
-	void SetMove(Move& move);
 	void SetChild(ABnode* child);	//NOTE: will delete the current child if it has one!
 
 	bool HasChild() const;

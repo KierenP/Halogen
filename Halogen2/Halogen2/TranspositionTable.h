@@ -11,8 +11,7 @@ public:
 	~TranspositionTable();
 
 	bool CheckEntry(uint64_t key, int depth);
-	//void AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
-	void AddEntry(TTEntry entry);
+	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
 	TTEntry GetEntry(uint64_t key);
 
 	void SetAllAncient();

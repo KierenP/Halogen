@@ -10,10 +10,10 @@ public:
 	PerftTTEntry(uint64_t ZobristKey = EMPTY, unsigned int ChildNodes = -1, unsigned int Depth = -1);
 	~PerftTTEntry();
 
-	uint64_t GetKey() { return key; }
-	unsigned int GetNodes() { return nodes; }
-	unsigned int GetDepth() { return depth; }
-	bool IsAncient() { return ancient; }
+	uint64_t GetKey() const { return key; }
+	unsigned int GetNodes() const { return nodes; }
+	unsigned int GetDepth() const { return depth; }
+	bool IsAncient() const { return ancient; }
 
 	void SetKey(uint64_t Key) { key = Key; }
 	void SetAncient(bool isAncient) { ancient = isAncient; }

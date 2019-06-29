@@ -21,18 +21,12 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
-/*void TranspositionTable::AddEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff)
 {
-	if ((table.at(ZobristKey % TTSize).GetKey() == EMPTY) || (table.at(ZobristKey % TTSize).GetDepth() <= Depth) || (table.at(ZobristKey % TTSize).IsAncient()))
-		table.at(ZobristKey % TTSize) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
-}*/
+	int hash = ZobristKey % TTSize;
 
-void TranspositionTable::AddEntry(TTEntry entry)
-{
-	int hash = entry.GetKey() % TTSize;
-
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= entry.GetDepth()) || (table.at(hash).IsAncient()))
-		table.at(hash) = entry;
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()))
+		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)

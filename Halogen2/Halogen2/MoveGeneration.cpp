@@ -144,7 +144,7 @@ void PawnDoublePushes(const Position & position, std::vector<Move>& moves)
 
 void PawnEnPassant(const Position & position, std::vector<Move>& moves)
 {
-	if (position.GetEnPassant() <= SQ_H8 && position.GetEnPassant() >= SQ_A1)
+	if (position.GetEnPassant() <= SQ_H8)
 	{
 		if (position.GetTurn() == WHITE)
 		{
@@ -323,7 +323,7 @@ void PawnCapturesHung(const Position& position, std::vector<Move>& moves)
 	}
 }
 
-void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
+void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding)
 {
 	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
 
@@ -334,19 +334,19 @@ void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsig
 	while (quiet != 0)
 	{
 		unsigned int target = bitScanFowardErase(quiet);
-		if (!IsSliding || mayMove(square, target, maskall))
+		if (!isSliding || mayMove(square, target, maskall))
 			moves.push_back(Move(square, target, QUIET));
 	}
 
 	while (captures != 0)
 	{
 		unsigned int target = bitScanFowardErase(captures);
-		if (!IsSliding || mayMove(square, target, maskall))
+		if (!isSliding || mayMove(square, target, maskall))
 			moves.push_back(Move(square, target, CAPTURE));
 	}
 }
 
-void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
+void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding)
 {
 	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
 
@@ -356,12 +356,12 @@ void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves,
 	while (captures != 0)
 	{
 		unsigned int target = bitScanFowardErase(captures);
-		if (!IsSliding || mayMove(square, target, maskall))
+		if (!isSliding || mayMove(square, target, maskall))
 			moves.push_back(Move(square, target, CAPTURE));
 	}
 }
 
-void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool IsSliding)
+void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding)
 {
 	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
 
@@ -371,7 +371,7 @@ void CalculateMovesBBHangedCapture(const Position& position, std::vector<Move>& 
 	while (captures != 0)
 	{
 		unsigned int target = bitScanFowardErase(captures);
-		if ((!IsSliding || mayMove(square, target, maskall)) && !IsInCheck(position, target, position.GetTurn()))	//if I would be in check at target, then it is a defended piece so ignore.
+		if ((!isSliding || mayMove(square, target, maskall)) && !IsInCheck(position, target, position.GetTurn()))	//if I would be in check at target, then it is a defended piece so ignore.
 			moves.push_back(Move(square, target, CAPTURE));
 	}
 }
@@ -455,13 +455,13 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 
 	if (colour == WHITE)
 	{
-		if ((WhitePawnAttacks[square] & position.GetPieceBB(PAWN, !colour)) != 0)
+		if ((WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN)) != 0)
 			return true;
 	}
 
 	if (colour == BLACK)
 	{
-		if ((BlackPawnAttacks[square] & position.GetPieceBB(PAWN, !colour)) != 0)
+		if ((BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN)) != 0)
 			return true;
 	}
 

@@ -18,11 +18,11 @@ public:
 	Position();
 	Position(std::vector<std::string> moves);																								//Initialise from a vector of moves from the starting position
 	Position(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount);		//split fen
-	Position(std::string fen);																												//whole fen
+	Position(std::string fen);																										//whole fen
 	~Position();
 
 	void ApplyMove(Move move);
-	void ApplyMove(std::string move);
+	void ApplyMove(std::string strmove);
 	void RevertMove(Move move);
 
 	void ApplyNullMove();
@@ -36,10 +36,10 @@ public:
 	bool InitialiseFromFen(std::string fen);
 	bool InitialiseFromMoves(std::vector<std::string> moves);
 
-	uint64_t GetZobristKey();
+	uint64_t GetZobristKey() const;
 
 private:
 	uint64_t key;
-	uint64_t GenerateZobristKey();
+	uint64_t GenerateZobristKey() const;
 };
 

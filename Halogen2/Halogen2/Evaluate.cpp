@@ -17,8 +17,6 @@ int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
 
-int CalculateDistance(int a, int b);
-
 int EvaluatePosition(const Position & position)
 {
 	int Score = 0;
@@ -81,10 +79,10 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 	bool IsOpposed = false;
 	bool IsDoubled = false;
 
-	int foward = 0, back = 0;
+	int back = 0;
 
-	if (colour == WHITE)	{ foward = 8; back = -8; }
-	else					{ foward = -8; back = 8; }
+	if (colour == WHITE)	{ back = -8; }
+	else					{ back = 8; }
 
 	if ((colour == WHITE) && (((position.GetPieceBB(PAWN, BLACK)) & PassedPawnMaskWhite[square]) == 0))
 		IsPassed = true;
@@ -161,10 +159,5 @@ int EvaluateMaterial(const Position & position)
 	}
 
 	return Score;
-}
-
-int CalculateDistance(int a, int b)
-{
-	return (AbsRankDiff(a, b) + AbsFileDiff(a, b));
 }
 

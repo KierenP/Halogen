@@ -164,7 +164,7 @@ void Position::RevertMove(Move move)
 
 	RestorePreviousBoard();
 	RestorePreviousParamiters();
-	key = PreviousKeys[PreviousKeys.size() - 1];
+	key = PreviousKeys.at(PreviousKeys.size() - 1);
 	PreviousKeys.pop_back();
 }
 
@@ -183,7 +183,7 @@ void Position::RevertNullMove()
 	if (PreviousKeys.size() == 0) throw std::invalid_argument("YEET");
 
 	RestorePreviousParamiters();
-	key = PreviousKeys[PreviousKeys.size() - 1];
+	key = PreviousKeys.at(PreviousKeys.size() - 1);
 	PreviousKeys.pop_back();
 }
 
@@ -289,13 +289,13 @@ bool Position::InitialiseFromMoves(std::vector<std::string> moves)
 	return true;
 }
 
-uint64_t Position::GetZobristKey()
+uint64_t Position::GetZobristKey() const
 {
 	//if (GenerateZobristKey() != key) throw std::invalid_argument("YEET");
 	return key;
 }
 
-uint64_t Position::GenerateZobristKey()
+uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
 

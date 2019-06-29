@@ -27,8 +27,7 @@ public:
 	bool ContinueSearch();	//Should I search to another depth, or stop with what ive got?
 	bool AbortSearch();		//should I attempt to stop searching right now?
 
-	//either tell it the allowed time then start it, or call start and give it then
-	void StartSearch(int ms);
+	void StartSearch(int ms);	//pass the allowed search time maximum in milliseconds
 
 private:
 	Timer timer;

@@ -1,9 +1,7 @@
 #include "TimeManage.h"
 
-Timer::Timer()
+Timer::Timer() : Begin(clock()), End(clock())
 {
-	Begin = clock();
-	End = clock();
 	ElapsedTime = 0;
 }
 
@@ -32,10 +30,9 @@ int Timer::ElapsedMs()
 	return ElapsedTime;
 }
 
-SearchTimeManage::SearchTimeManage()
+SearchTimeManage::SearchTimeManage() : timer(Timer())
 {
 	AllowedSearchTimeMS = 0;
-	timer = Timer();
 }
 
 SearchTimeManage::~SearchTimeManage()
