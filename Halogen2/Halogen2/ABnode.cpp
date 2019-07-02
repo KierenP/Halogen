@@ -116,8 +116,3 @@ ABnode * CreatePlaceHolderNode(bool colour, int depth)
 	else
 		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
 }
-
-ABnode * CreateDrawNode(Move move, int depth)
-{
-	return new ABnode(move, depth, THREE_FOLD_REP_CUTOFF, 0);
-}

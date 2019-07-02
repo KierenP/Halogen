@@ -13,7 +13,7 @@ unsigned int Perft(unsigned int depth);
 
 int main()
 {
-	std::cout << "Version 2.4.1" << std::endl;
+	std::cout << "Version 2.6.1" << std::endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -28,13 +28,13 @@ int main()
 
 	//A series of test positions. Comment out the one you want and compile
 
-	GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//GameBoard.InitialiseFromFen("r5k1/5ppp/1p6/p1p5/7b/1PPrqPP1/1PQ4P/R4R1K b - - 0 1");
 	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
-	//GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
+	GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
 	//GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
 
-	while (getline(cin, Line)) 
+	while (getline(cin, Line))
 	{
 		vector<string> arrayTokens;			//Split the line into an array of strings seperated by each space
 		std::istringstream iss(Line);
@@ -54,7 +54,7 @@ int main()
 		}
 
 		if (Line == "uci") {
-			cout << "id name Halogen 2.4.1" << endl;
+			cout << "id name Halogen 2.6.1" << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "uciok" << endl;
 		}

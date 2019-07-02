@@ -30,7 +30,6 @@ enum ScoreConstant
 ABnode* CreateLeafNode(Position& position, int depth);			//returns the pointer to a terminal leaf node
 ABnode* CreateBranchNode(Move& move, int depth);				//returns the pointer to a branch node who's score and cutoff are still to be set by its children
 ABnode* CreatePlaceHolderNode(bool colour, int depth);			//Pass either HighINF or LowINF to set the 'best' node to this in initialization
-ABnode* CreateDrawNode(Move move, int depth);
 
 class ABnode
 {
