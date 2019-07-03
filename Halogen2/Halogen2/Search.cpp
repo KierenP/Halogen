@@ -127,6 +127,7 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 			endSearch = true;
 
 		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
+		//std::cout << ROOT->GetCutoff();
 
 		Best = ROOT->GetMove();
 		score = ROOT->GetScore();
@@ -544,6 +545,8 @@ bool IsFutile(Position& position, Move& move, int alpha, int beta)
 	if (move.IsCapture())
 		CapValue = PieceValues[position.GetSquare(move.GetTo())];
 
+	if (move.IsPromotion()) CapValue += 900;
+
 	if (position.GetTurn() == WHITE)
 	{ 
 		if (StaticEval + CapValue + 100 <= alpha) return true;
@@ -577,8 +580,8 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		//futility pruning
 		if (depth <= 2 && !InCheck && IsFutile(position, moves[i], alpha, beta)) continue;
 
-		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		position.ApplyMove(moves.at(i));
+		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 		bool Cut = false;
 
