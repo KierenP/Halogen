@@ -6,6 +6,7 @@
 #include "Zobrist.h"
 #include "Evaluate.h"
 #include "Move.h"
+#include "TimeManage.h"
 #include <ctime>
 #include <algorithm>
 

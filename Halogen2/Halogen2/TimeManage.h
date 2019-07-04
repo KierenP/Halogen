@@ -1,5 +1,8 @@
 #pragma once
 #include <time.h>
+#include <atomic>
+
+extern std::atomic<bool> KeepSearching;
 
 class Timer
 {

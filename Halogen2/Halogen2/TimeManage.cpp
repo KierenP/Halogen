@@ -1,5 +1,7 @@
 #include "TimeManage.h"
 
+std::atomic<bool> KeepSearching;
+
 Timer::Timer() : Begin(clock()), End(clock())
 {
 	ElapsedTime = 0;
@@ -46,7 +48,7 @@ bool SearchTimeManage::ContinueSearch()
 
 bool SearchTimeManage::AbortSearch()
 {
-	return (timer.ElapsedMs() > AllowedSearchTimeMS);
+	return (!KeepSearching || timer.ElapsedMs() > AllowedSearchTimeMS);
 }
 
 void SearchTimeManage::StartSearch(int ms)

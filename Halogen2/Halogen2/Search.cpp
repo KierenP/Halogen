@@ -1,5 +1,4 @@
 #include "Search.h"
-#include "TimeManage.h"
 
 enum SearchLevels
 {
@@ -29,6 +28,21 @@ bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha,
 void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
 ABnode* SearchToDepthAspiration(Position& position, int depth, int score);
 bool IsFutile(Position& position, Move& move, int alpha, int beta);
+int int_pow(int base, int exp); //Node pow() as part of the std uses the double data type and hence is not suitable for integer powers due to the possibility of 2 ^ 5 = 31.9999999999997 = 31 for example
+
+//stolen from stack-overflow. Uses the 'exponentiation by squaring' technique which is faster
+int int_pow(int base, int exp)
+{
+	int result = 1;
+	while (exp)
+	{
+		if (exp & 1)
+			result *= base;
+		exp /= 2;
+		base *= base;
+	}
+	return result;
+}
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 {
@@ -102,7 +116,13 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 	std::vector<Move> moves = GenerateLegalMoves(position);
 
 	if (moves.size() == 1)	//If there is only one legal move, then we just play that move immediantly
+	{
+		std::cout << "bestmove ";
+		moves[0].Print();
+		std::cout << std::endl;
+
 		return moves[0];
+	}
 
 	Move Best;
 	int score = EvaluatePosition(position);
@@ -133,6 +153,10 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 		score = ROOT->GetScore();
 		delete ROOT;
 	}
+
+	std::cout << "bestmove ";
+	Best.Print();
+	std::cout << std::endl;
 
 	return Best;
 }
@@ -191,7 +215,7 @@ void PrintSearchInfo(Position& position, ABnode& node, unsigned int depth, doubl
 		<< " seldepth " << node.CountNodeChildren();															//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
-		std::cout << " score mate " << (depth + 1) / 2;															//TODO: should use negative value if the engine is being mated
+		std::cout << " score mate " << (max(depth, node.CountNodeChildren()) + 1) / 2;							//TODO: should use negative value if the engine is being mated
 	else
 		std::cout << " score cp " << (position.GetTurn() * 2 - 1) * node.GetScore();							//The score in hundreths of a pawn (a 1 pawn advantage is +100)
 
@@ -232,7 +256,7 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 	if (depth > 1)				// (inf, 1)
 		return ALPHABETA;
 
-	if (depth <= 1 && depth > -1)	// [1, -1)
+	if (depth <= 1 && depth > -3)	// [1, -1)
 	{
 		if (check)
 			return CHECK_EXTENSION;
@@ -240,10 +264,10 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	//if I just got put in check by that move
 			return CHECK_EXTENSION;
 
-		return QUIETESSENCE;
+		//return QUIETESSENCE;
 	}
 
-	//if (depth <= 1 && depth > -1) return QUIETESSENCE;
+	if (depth <= 1 && depth > -1) return QUIETESSENCE;
 
 	if (depth == -1)
 		return LEAF_SEARCH;
@@ -482,8 +506,10 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 {
 	int windowWidth = 25;
 
-	int alpha = score - windowWidth;
-	int beta = score + windowWidth;
+	int alphaInc = 0;
+	int betaInc = 0;
+	int alpha = score - windowWidth * int_pow(2, alphaInc);
+	int beta = score + windowWidth * int_pow(2, betaInc);
 
 	tTable.ResetHitCount();
 
@@ -517,7 +543,8 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 		if (best->GetCutoff() == BETA_CUTOFF)
 		{
 			std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
-			beta = score + (score - beta) * (score - beta);	//double the distance
+			betaInc++;
+			beta = score + windowWidth * int_pow(2, betaInc);	//double the distance
 			delete best;
 			best = CreatePlaceHolderNode(position.GetTurn(), depth);
 			Redo = true;
@@ -525,7 +552,8 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 		if (best->GetCutoff() == ALPHA_CUTOFF)
 		{
 			std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
-			alpha = score - (score - alpha) * (score - alpha);	//double the distance
+			alphaInc++;
+			alpha = score - windowWidth * int_pow(2, alphaInc);	//double the distance
 			delete best;
 			best = CreatePlaceHolderNode(position.GetTurn(), depth);
 			Redo = true;
@@ -538,6 +566,8 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 
 bool IsFutile(Position& position, Move& move, int alpha, int beta)
 {
+	if (alpha < BlackWin + 100 || beta > WhiteWin - 100) return false;	//don't do futility pruning if we think there might be a checkmate in another branch!
+
 	int StaticEval = EvaluatePosition(position);
 	int PieceValues[13] = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000, 100 };	//100 at the end for ep because the capture square is empty
 	int CapValue = 0;
@@ -547,12 +577,12 @@ bool IsFutile(Position& position, Move& move, int alpha, int beta)
 
 	if (move.IsPromotion()) CapValue += 900;
 
-	if (position.GetTurn() == WHITE)
+	if (position.GetTurn() == BLACK)
 	{ 
 		if (StaticEval + CapValue + 100 <= alpha) return true;
 	}
 
-	if (position.GetTurn() == BLACK)
+	if (position.GetTurn() == WHITE)
 	{
 		if (StaticEval - CapValue - 100 >= beta) return true;
 	}
@@ -575,12 +605,19 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 
 	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
 
+	bool Futile = true;
+
 	for (int i = 0; i < moves.size(); i++)
 	{
-		//futility pruning
-		if (depth <= 2 && !InCheck && IsFutile(position, moves[i], alpha, beta)) continue;
-
 		position.ApplyMove(moves.at(i));
+
+		//futility pruning
+		if (depth <= 2 && !InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
+			position.RevertMove(moves.at(i));
+			continue;
+		}
+		Futile = false; //at least one move made it past the above line
+
 		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 		bool Cut = false;
@@ -600,6 +637,11 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 
 		SetBest(best, node, position.GetTurn());
 		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break;
+	}
+
+	if (Futile)
+	{	//every move was found to be futile
+		best->SetScore(EvaluatePosition(position)); //this is safe because the score + a bonus was less than alpha, so we know theres a better line elsewhere
 	}
 
 	parent->SetChild(best);

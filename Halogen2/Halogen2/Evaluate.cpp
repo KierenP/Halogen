@@ -2,10 +2,12 @@
 
 const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 10000, 100, 320, 330, 500, 900, 10000 };
 
-const int PassedPawnBonus = 25;
+//const int PassedPawnBonus = 25;
 const int WeakPawnPenalty = 10;
 const int WeakOpenPawnPenalty = 20;
 const int DoubledPawnPenalty = 10;
+
+const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
 
 const int CastledBonus = 40;
 const unsigned int Threat[N_PIECES] = { 1, 2, 2, 3, 5, 0, 1, 2, 2, 3, 5, 0 };
@@ -109,7 +111,12 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 		IsWeak = false;
 
 	if (IsPassed)
-		result += PassedPawnBonus;
+	{
+		if (colour == WHITE)
+			result += PassedPawnBonus[GetRank(square)];
+		else
+			result += PassedPawnBonus[N_RANKS - GetRank(square)];
+	}
 
 	if (IsWeak)
 	{

@@ -1,19 +1,21 @@
 #include "Search.h"
 #include "PerftTT.h"
 #include <fstream>
+#include <thread>
 
 using namespace::std;
 Position GameBoard;
 PerftTT PerftTable;
 
-void Benchmark();
 void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
+string version = "2.6.3";
+
 int main()
 {
-	std::cout << "Version 2.6.1" << std::endl;
+	std::cout << version << std::endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -26,214 +28,90 @@ int main()
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	//A series of test positions. Comment out the one you want and compile
-
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-	GameBoard.InitialiseFromFen("r5k1/5ppp/1p6/p1p5/7b/1PPrqPP1/1PQ4P/R4R1K b - - 0 1");
-	//GameBoard.InitialiseFromFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ");
-	//GameBoard.InitialiseFromFen("8/5k2/7K/6P1/8/8/8/8 w - - 0 1");
-	//GameBoard.InitialiseFromFen("8/7k/3b1K1B/8/p7/p7/R7/1b6 w - -");
-
 	while (getline(cin, Line))
 	{
-		vector<string> arrayTokens;			//Split the line into an array of strings seperated by each space
 		std::istringstream iss(Line);
-		arrayTokens.clear();
+		string token;
 
-		do
+		iss >> token;
+
+		if (token == "uci")
 		{
-			std::string stub;
-			iss >> stub;
-			arrayTokens.push_back(stub);
-		} while (iss);
-
-		if (arrayTokens.size() == 1)
-		{
-			std::cout << "Bad input: Empty input" << std::endl;
-			continue;
-		}
-
-		if (Line == "uci") {
-			cout << "id name Halogen 2.6.1" << endl;
-			cout << "id author Kieren Pearson" << endl;
+			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
 			cout << "uciok" << endl;
 		}
-		else if (Line == "isready") {
-			cout << "readyok" << endl;
-		}
-		else if (Line == "ucinewgame") {
+
+		else if (token == "isready") cout << "readyok" << endl;
+
+		else if (token == "ucinewgame")
+		{
 			GameBoard.StartingPosition();
-			tTable.ResetTable(); //wipe the table
+			tTable.ResetTable();
 		}
-		else if (Line == "quit") {
-			return 0;
-		}
-		else if (arrayTokens.at(0) == "position")
+
+		else if (token == "position")
 		{
-			if (arrayTokens.at(1) == "startpos")
+			GameBoard.StartingPosition();
+			iss >> token;
+
+			if (token == "fen")
 			{
-				GameBoard = Position();	//completly wipe the board
-				GameBoard.StartingPosition();
-				if (arrayTokens.at(2) == "moves")
+				vector<string> fen;
+
+				while (iss >> token && token != "moves")
 				{
-					GameBoard.InitialiseFromMoves(std::vector<std::string>(arrayTokens.begin() + 3, arrayTokens.end() - 1));
+					fen.push_back(token);
 				}
 
-				//GameBoard.Print();
-			}
-			else if (arrayTokens.at(1) == "fen")
-			{
-				if (arrayTokens.size() != 9)
-				{
-					std::cout << "Bad fen" << std::endl;
-					continue;
-				}
-
-				GameBoard.InitialiseFromFen(arrayTokens.at(2), arrayTokens.at(3), arrayTokens.at(4), arrayTokens.at(5), arrayTokens.at(6), arrayTokens.at(7));
-			}
-			else
-			{
-				std::cout << "Position input format not recognised" << std::endl;
-				continue;
+				if (!GameBoard.InitialiseFromFen(fen)) cout << "BAD FEN";
+				if (token == "moves") while (iss >> token) GameBoard.ApplyMove(token);
 			}
 
-			//GameBoard.Print();
-			//EvaluatePosition(GameBoard);
-		}
-		else if (arrayTokens.at(0) == "go")
-		{
-			// Received a command like: "go wtime 300000 btime 300000 winc 0 binc 0"
-			if (arrayTokens.size() != 10)
+			if (token == "startpos")
 			{
-				std::cout << "Bad go command" << std::endl;
-				continue;
+				iss >> token;
+				if (token == "moves") while (iss >> token) GameBoard.ApplyMove(token);
+			}
+		}
+
+		else if (token == "go")
+		{
+			KeepSearching = true;
+
+			int wtime = 0;
+			int btime = 0;
+			int winc = 0;
+			int binc = 0;
+			int searchTime = 0;
+
+
+			while (iss >> token)
+			{
+				if (token == "wtime")	iss >> wtime;
+				else if (token == "btime")	iss >> btime;
+				else if (token == "winc")	iss >> winc;
+				else if (token == "binc")	iss >> binc;
+				else if (token == "movetime") iss >> searchTime;
+				else if (token == "infinite") searchTime = 2147483647;
 			}
 
-			Move BestMove;
-			unsigned int timeMs = stoi(GameBoard.GetTurn() == WHITE ? arrayTokens.at(2) : arrayTokens.at(4));
-			BestMove = SearchPosition(GameBoard, timeMs / 20);
-			std::cout << std::endl;
-			std::cout << "\nbestmove ";
-			BestMove.Print();
-			std::cout << std::endl;
-			//GameBoard.ApplyMove(BestMove);
+			int movetime = 0;
+
+			if (searchTime != 0) movetime = searchTime;
+			else movetime = GameBoard.GetTurn() ? btime / 20 : wtime / 20; //we use a 20th of the available time
+
+			std::thread SearchThread(SearchPosition, std::ref(GameBoard), movetime);
+			SearchThread.detach();
 		}
-		else if (arrayTokens.at(0) == "analyse")
-		{
-			GameBoard.Print();
-			Move BestMove;
-			BestMove = SearchPosition(GameBoard, 99999999);
-		}
-		else if (arrayTokens.at(0) == "PerftTest")
-		{
-			PerftSuite();
-		}
-		else if (arrayTokens.at(0) == "Perft")
-		{
-			int total = PerftDivide(stoi(arrayTokens.at(1)));
-			std::cout << "\nTotal: " << total << std::endl;
-		}
-		else if (arrayTokens.at(0) == "Benchmark")
-		{
-			Benchmark();
-		}
-		else if (arrayTokens.at(0) == "Yeet")
-		{
-			for (;;)
-			{
-				GameBoard.Print();
-				Move BestMove;
-				unsigned int timeMs = 50000;
-				BestMove = SearchPosition(GameBoard, timeMs / 20);
-				std::cout << std::endl;
-				std::cout << "\nbestmove ";
-				BestMove.Print();
-				std::cout << std::endl;
-				GameBoard.ApplyMove(BestMove);
-			}
-		}
-		else
-		{
-			std::cout << "Unknown command" << std::endl;
-			continue;
-		}
+
+		else if (token == "stop") KeepSearching = false;
+		else if (token == "quit") return 0;
+		else if (token == "print") GameBoard.Print();
+
+		else cout << "Unknown command" << endl;
 	}
 
 	return 0;
-}
-
-void Benchmark()
-{
-	std::cout << "\nSTART\n";
-	std::ifstream infile("bkt.txt");
-
-	//For coloured text in console
-	HANDLE  hConsole;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	float Score = 0;
-	std::string line;
-
-	while (std::getline(infile, line))
-	{
-		vector<string> arrayTokens;
-		std::istringstream iss(line);
-		arrayTokens.clear();
-
-		do
-		{
-			std::string stub;
-			iss >> stub;
-			arrayTokens.push_back(stub);
-		} while (iss);
-
-		GameBoard.InitialiseFromFen(arrayTokens.at(0), arrayTokens.at(1), arrayTokens.at(2), arrayTokens.at(3), "0", "1");
-		GameBoard.Print();
-
-		clock_t before = clock();
-		std::vector<Move> BestMoves = SearchBenchmark(GameBoard, 1000 * 20);																		
-		clock_t after = clock();
-
-		double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
-
-		for (int i = 0; i < 4; i++)
-		{
-			unsigned int prev = BestMoves.at(i).GetFrom();
-			unsigned int current = BestMoves.at(i).GetTo();
-
-			string moveStr;
-			moveStr.push_back(char(prev % 8 + 97));
-			moveStr.push_back('0' + prev / 8 + 1);
-			moveStr.push_back(char(current % 8 + 97));
-			moveStr.push_back('0' + current / 8 + 1);
-
-			if (moveStr == arrayTokens.at(arrayTokens.size() - 3) || moveStr == arrayTokens.at(arrayTokens.size() - 2))
-			{		//correct
-
-				if (i == 0)
-					SetConsoleTextAttribute(hConsole, 10);	//green text
-				else
-					SetConsoleTextAttribute(hConsole, 9);	//yellow text
-
-				std::cout << "CORRECT bestmove " << moveStr << " Rank: " << i + 1;
-				std::cout << " in: " << elapsed_ms / 1000 << "s " << "Score: " << double(1) / (pow(2, i));
-				SetConsoleTextAttribute(hConsole, 7);	//white text
-				Score += 1 / (pow(2, i));
-				break;
-			}	
-			else
-			{
-				if (i == 3)
-				{
-					SetConsoleTextAttribute(hConsole, 4);	//red text
-					std::cout << "INCORRECT";
-					std::cout << " in: " << elapsed_ms / 1000 << "s correct move was: " << arrayTokens.at(arrayTokens.size() - 2);
-					SetConsoleTextAttribute(hConsole, 7);	//white text
-				}
-			}
-		}
-	}
-
-	std::cout << "\n\nCompleted all positions with score: " << Score << "/24";
 }
 
 void PerftSuite()
