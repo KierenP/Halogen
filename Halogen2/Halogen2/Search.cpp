@@ -12,23 +12,36 @@ enum SearchLevels
 TranspositionTable tTable;
 SearchTimeManage timeManage;
 
+//Search functions
+ABnode* SearchToDepthAspiration(Position& position, int depth, int score);
+void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha);
 std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int beta);		//Return the best 4 moves in order from this position
-void PrintSearchInfo(Position& position, ABnode& node, unsigned int depth, double Time, bool isCheckmate);
-void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
+void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
+void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
+
+//Search aid functions
 SearchLevels CalculateSearchType(Position& position, int depth, bool check);
+void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& position);
+bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
+void SetBest(ABnode*& best, ABnode*& node, bool colour);
 bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff);
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent);
 bool CheckForDraw(ABnode*& node, int depth, Position& position);
-void SetBest(ABnode*& best, ABnode*& node, bool colour);
-bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
-void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
-bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
-bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
-void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
-ABnode* SearchToDepthAspiration(Position& position, int depth, int score);
+void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCheck, int depth);
+void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha);
+
+//Branch pruning techniques
 bool IsFutile(Position& position, Move& move, int alpha, int beta);
+bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
+
+//Utility functions
+void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
+void PrintSearchInfo(Position& position, ABnode& node, unsigned int depth, double Time, bool isCheckmate);
 int int_pow(int base, int exp); //Node pow() as part of the std uses the double data type and hence is not suitable for integer powers due to the possibility of 2 ^ 5 = 31.9999999999997 = 31 for example
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
+void PrintBestMove(Move& Best);
+
 
 //stolen from stack-overflow. Uses the 'exponentiation by squaring' technique which is faster
 int int_pow(int base, int exp)
@@ -117,10 +130,7 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 
 	if (moves.size() == 1)	//If there is only one legal move, then we just play that move immediantly
 	{
-		std::cout << "bestmove ";
-		moves[0].Print();
-		std::cout << std::endl;
-
+		PrintBestMove(moves[0]);
 		return moves[0];
 	}
 
@@ -147,65 +157,22 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 			endSearch = true;
 
 		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
-		//std::cout << ROOT->GetCutoff();
 
 		Best = ROOT->GetMove();
 		score = ROOT->GetScore();
 		delete ROOT;
 	}
 
-	std::cout << "bestmove ";
-	Best.Print();
-	std::cout << std::endl;
+	PrintBestMove(Best);
 
 	return Best;
 }
 
-std::vector<Move> SearchBenchmark(Position& position, int allowedTimeMs)
+void PrintBestMove(Move& Best)
 {
-	timeManage.StartSearch(allowedTimeMs);
-
-	tTable.SetAllAncient();
-
-	std::vector<Move> best;
-
-	Move Best[4];
-
-	bool endSearch = false;
-
-	for (int depth = 1; !timeManage.AbortSearch() && !endSearch; depth++)
-	{
-		NodeCount = 0;
-
-		Timer searchTime;
-
-		searchTime.Start();
-		std::vector<ABnode*> RankedMoves = SearchDebug(position, depth, LowINF, HighINF);
-
-		if (RankedMoves[0]->GetCutoff() == CHECK_MATE_CUTOFF)
-			endSearch = true;
-
-		if (!timeManage.AbortSearch())
-		{	//stick with what we previously found to be best if we had to abort.
-			best.clear();
-			best.push_back(RankedMoves[0]->GetMove());
-			best.push_back(RankedMoves[1]->GetMove());
-			best.push_back(RankedMoves[2]->GetMove());
-			best.push_back(RankedMoves[3]->GetMove());
-
-			PrintSearchInfo(position, *RankedMoves[0], depth, searchTime.ElapsedMs(), endSearch);
-		}
-
-		for (int i = 0; i < RankedMoves.size(); i++)
-		{
-			//PrintSearchInfo(position, *RankedMoves.at(i), depth, elapsed_ms, false);
-			//std::cout << " " << RankedMoves.at(i)->GetCutoff();
-			//std::cout << std::endl;
-			delete RankedMoves.at(i);
-		}
-	}
-
-	return best;
+	std::cout << "bestmove ";
+	Best.Print();
+	std::cout << std::endl;
 }
 
 void PrintSearchInfo(Position& position, ABnode& node, unsigned int depth, double Time, bool isCheckmate)
@@ -253,18 +220,16 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 
 SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 {
-	if (depth > 1)				// (inf, 1)
+	if (depth > 1)				
 		return ALPHABETA;
 
-	if (depth <= 1 && depth > -3)	// [1, -1)
+	if (depth <= 1 && depth > -3)	
 	{
 		if (check)
 			return CHECK_EXTENSION;
 
 		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	//if I just got put in check by that move
 			return CHECK_EXTENSION;
-
-		//return QUIETESSENCE;
 	}
 
 	if (depth <= 1 && depth > -1) return QUIETESSENCE;
@@ -323,7 +288,7 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 
 bool CheckForDraw(ABnode*& node, int depth, Position& position)
 {
-	int rep = 0;
+	int rep = 1;
 	uint64_t current = position.GetZobristKey();
 
 	for (int i = 0; i < PreviousKeys.size(); i++)
@@ -332,7 +297,7 @@ bool CheckForDraw(ABnode*& node, int depth, Position& position)
 			rep++;
 	}
 
-	if (rep >= 2)
+	if (rep >= 3)
 	{
 		node->SetScore(0);
 		node->SetCutoff(THREE_FOLD_REP_CUTOFF);
@@ -365,11 +330,50 @@ bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff)
 	return false;
 }
 
+
 bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck)
 {
 	if (CheckForDraw(parent, depth, position)) return true;
 	if (CheckForTransposition(position, depth, alpha, beta, parent)) return true;
 
+	GetSearchMoves(level, moves, position);
+
+	if (moves.size() == 0)
+	{
+		EndSearch(level, parent, position, InCheck, depth);
+		return true;
+	}
+
+	OrderMoves(moves, position, depth);
+	return false;
+}
+
+void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCheck, int depth)
+{
+	if (level == QUIETESSENCE || level == LEAF_SEARCH)
+	{
+		parent->SetCutoff(EXACT_CUTOFF);
+		parent->SetScore(EvaluatePosition(position));
+	}
+
+	else if (InCheck)
+	{
+		if (position.GetTurn() == WHITE)
+			parent->SetScore(BlackWin - depth);	//sooner checkmates are better
+		if (position.GetTurn() == BLACK)
+			parent->SetScore(WhiteWin + depth);
+
+		parent->SetCutoff(CHECK_MATE_CUTOFF);
+	}
+	else
+	{
+		parent->SetCutoff(THREE_FOLD_REP_CUTOFF);
+		parent->SetScore(0);
+	}
+}
+
+void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& position)
+{
 	switch (level)
 	{
 	case ALPHABETA:
@@ -390,36 +394,6 @@ bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int
 	default:
 		break;
 	}
-
-	if (moves.size() == 0)
-	{
-		if (level == QUIETESSENCE || level == LEAF_SEARCH)
-		{
-			parent->SetCutoff(EXACT_CUTOFF);
-			parent->SetScore(EvaluatePosition(position));
-			return true;
-		}
-
-		if (InCheck)
-		{
-			if (position.GetTurn() == WHITE)
-				parent->SetScore(BlackWin - depth);	//sooner checkmates are better
-			if (position.GetTurn() == BLACK)
-				parent->SetScore(WhiteWin + depth);
-
-			parent->SetCutoff(CHECK_MATE_CUTOFF);
-		}
-		else
-		{
-			parent->SetCutoff(THREE_FOLD_REP_CUTOFF);
-			parent->SetScore(0);
-		}
-
-		return true;
-	}
-
-	OrderMoves(moves, position, depth);
-	return false;
 }
 
 std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int beta)
@@ -540,28 +514,34 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 			SetBest(best, node, position.GetTurn());
 		}
 
-		if (best->GetCutoff() == BETA_CUTOFF)
-		{
-			std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
-			betaInc++;
-			beta = score + windowWidth * int_pow(2, betaInc);	//double the distance
-			delete best;
-			best = CreatePlaceHolderNode(position.GetTurn(), depth);
-			Redo = true;
-		}
-		if (best->GetCutoff() == ALPHA_CUTOFF)
-		{
-			std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
-			alphaInc++;
-			alpha = score - windowWidth * int_pow(2, alphaInc);	//double the distance
-			delete best;
-			best = CreatePlaceHolderNode(position.GetTurn(), depth);
-			Redo = true;
-		}
+		AspirationWindowAdjust(best, betaInc, beta, score, windowWidth, position, depth, Redo, alphaInc, alpha);
 	}
 
 	tTable.AddEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff());
 	return best;
+}
+
+void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha)
+{
+	if (best->GetCutoff() == BETA_CUTOFF)
+	{
+		std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
+		betaInc++;
+		beta = score + windowWidth * int_pow(2, betaInc);	//double the distance
+		delete best;
+		best = CreatePlaceHolderNode(position.GetTurn(), depth);
+		Redo = true;
+	}
+
+	if (best->GetCutoff() == ALPHA_CUTOFF)
+	{
+		std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
+		alphaInc++;
+		alpha = score - windowWidth * int_pow(2, alphaInc);	//double the distance
+		delete best;
+		best = CreatePlaceHolderNode(position.GetTurn(), depth);
+		Redo = true;
+	}
 }
 
 bool IsFutile(Position& position, Move& move, int alpha, int beta)
