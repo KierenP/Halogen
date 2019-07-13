@@ -26,7 +26,6 @@
     <ClInclude Include="Evaluate.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="MoveGeneration.h" />
-    <ClInclude Include="PerftTT.h" />
     <ClInclude Include="PieceSquareTables.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Random.h" />
@@ -45,7 +44,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Move.cpp" />
     <ClCompile Include="MoveGeneration.cpp" />
-    <ClCompile Include="PerftTT.cpp" />
     <ClCompile Include="PieceSquareTables.cpp" />
     <ClCompile Include="Position.cpp" />
     <ClCompile Include="Random.cpp" />

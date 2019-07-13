@@ -182,7 +182,12 @@ void PrintSearchInfo(Position& position, ABnode& node, unsigned int depth, doubl
 		<< " seldepth " << node.CountNodeChildren();															//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
-		std::cout << " score mate " << (max(depth, node.CountNodeChildren()) + 1) / 2;							//TODO: should use negative value if the engine is being mated
+	{
+		if ((node.GetScore() > 0 && position.GetTurn() == WHITE) || (node.GetScore() < 0 && position.GetTurn() == BLACK))
+			std::cout << " score mate " << (max(depth, node.CountNodeChildren()) + 1) / 2;	//mating opponent	
+		else
+			std::cout << " score mate " << -int(max(depth, node.CountNodeChildren()) + 1) / 2;	//getting mated
+	}
 	else
 		std::cout << " score cp " << (position.GetTurn() * 2 - 1) * node.GetScore();							//The score in hundreths of a pawn (a 1 pawn advantage is +100)
 

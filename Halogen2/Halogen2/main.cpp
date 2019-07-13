@@ -1,11 +1,9 @@
 #include "Search.h"
-#include "PerftTT.h"
 #include <fstream>
 #include <thread>
 
 using namespace::std;
 Position GameBoard;
-PerftTT PerftTable;
 
 void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
@@ -193,10 +191,6 @@ unsigned int PerftDivide(unsigned int depth)
 
 unsigned int Perft(unsigned int depth)
 {
-	uint64_t key = GameBoard.GetZobristKey();
-	if ((PerftTable.CheckEntry(key)) && (PerftTable.GetEntry(key).GetDepth() == depth))
-		return PerftTable.GetEntry(key).GetNodes();
-
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
 
@@ -210,6 +204,5 @@ unsigned int Perft(unsigned int depth)
 		GameBoard.RevertMove(moves.at(i));
 	}
 
-	PerftTable.AddEntry(key, nodeCount, depth);
 	return nodeCount;
 }
