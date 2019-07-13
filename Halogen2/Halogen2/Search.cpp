@@ -546,25 +546,16 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 
 bool IsFutile(Position& position, Move& move, int alpha, int beta)
 {
-	if (alpha < BlackWin + 100 || beta > WhiteWin - 100) return false;	//don't do futility pruning if we think there might be a checkmate in another branch!
-
 	int StaticEval = EvaluatePosition(position);
-	int PieceValues[13] = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000, 100 };	//100 at the end for ep because the capture square is empty
-	int CapValue = 0;
-
-	if (move.IsCapture())
-		CapValue = PieceValues[position.GetSquare(move.GetTo())];
-
-	if (move.IsPromotion()) CapValue += 900;
 
 	if (position.GetTurn() == BLACK)
-	{ 
-		if (StaticEval + CapValue + 100 <= alpha) return true;
+	{
+		if (StaticEval + 100 <= alpha) return true;
 	}
 
 	if (position.GetTurn() == WHITE)
 	{
-		if (StaticEval - CapValue - 100 >= beta) return true;
+		if (StaticEval - 100 >= beta) return true;
 	}
 
 	return false;
@@ -591,7 +582,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	{
 		position.ApplyMove(moves.at(i));
 
-		//futility pruning
+		//futility pruning. Dont prune promotions, captures or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
 		if (depth <= 2 && !InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
 			position.RevertMove(moves.at(i));
 			continue;
@@ -621,7 +612,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 
 	if (Futile)
 	{	//every move was found to be futile
-		best->SetScore(EvaluatePosition(position)); //this is safe because the score + a bonus was less than alpha, so we know theres a better line elsewhere
+		best->SetScore(EvaluatePosition(position)); //this is safe because the score + a bonus was less than alpha, so we know theres a better line elsewhere. EDIT: possible zanzuag issue
 	}
 
 	parent->SetChild(best);
