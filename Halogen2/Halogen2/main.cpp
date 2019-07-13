@@ -129,7 +129,6 @@ void PerftSuite()
 	clock_t before = clock();
 	while (std::getline(infile, line))
 	{
-		PerftTable.Reformat();
 		vector<string> arrayTokens;
 		std::istringstream iss(line);
 		arrayTokens.clear();
