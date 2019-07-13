@@ -257,6 +257,25 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 
 		if (ttEntry.GetCutoff() == EXACT_CUTOFF || ttEntry.GetCutoff() == QUIESSENCE_NODE_CUTOFF)
 		{
+			int rep = 1;
+			uint64_t current = position.GetZobristKey();
+
+			for (int i = 0; i < PreviousKeys.size(); i++)
+			{
+				if (PreviousKeys.at(i) == current)
+					rep++;
+			}
+
+			if (rep >= 2)	//we have been here before, so penalise that
+			{
+				ttEntry.SetScore(ttEntry.GetScore() * 0.9);
+			}
+
+			if (rep >= 3)	//Its a draw
+			{
+				ttEntry.SetScore(0);
+			}
+
 			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
 			return true;
 		}
@@ -587,8 +606,8 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	{
 		position.ApplyMove(moves.at(i));
 
-		//futility pruning. Dont prune promotions, captures or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
-		if (depth <= 2 && !InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
+		//futility pruning. Dont prune promotions or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
+		if (depth <= 2 &&!InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
 			position.RevertMove(moves.at(i));
 			continue;
 		}

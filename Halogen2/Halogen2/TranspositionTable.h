@@ -2,7 +2,7 @@
 #include "TTEntry.h"
 #include "ABnode.h"
 
-const unsigned int TTSize = 8388608;						//2^23 * 16 bytes = 2^23 * 2^4 = 2^27 = 1/8 GB or 128MB
+extern unsigned int TTSize;	//default is 1MB hash
 
 class TranspositionTable
 {
@@ -22,6 +22,7 @@ public:
 	unsigned int GetHitCount() const { return TTHits; } 
 
 	void ResetTable();
+	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 
 private:
 	unsigned int TTHits;

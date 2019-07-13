@@ -16,6 +16,7 @@ public:
 	char GetCutoff() const { return cutoff; }
 	Move GetMove() const { return bestMove; }
 
+	void SetScore(int num) { score = num; }
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 
 private:

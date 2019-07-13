@@ -1,5 +1,7 @@
 #include "TranspositionTable.h"
 
+unsigned int TTSize = 62500;	//default is 1MB hash
+
 TranspositionTable::TranspositionTable()
 {
 	TTHits = 0;
@@ -58,10 +60,23 @@ int TranspositionTable::GetCapacity()
 
 void TranspositionTable::ResetTable()
 {
+
 	TTHits = 0;
 
 	for (int i = 0; i < TTSize; i++)
 	{
 		table.at(i) = TTEntry();
+	}
+}
+
+void TranspositionTable::SetSize(unsigned int MB)
+{
+	table.clear();
+	unsigned int EntrySize = sizeof(TTEntry);
+	TTSize = MB * 1024 * 1024 / EntrySize;
+	
+	for (int i = 0; i < TTSize; i++)
+	{
+		table.push_back(TTEntry());
 	}
 }

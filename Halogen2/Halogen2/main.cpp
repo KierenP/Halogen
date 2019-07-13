@@ -9,7 +9,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "2.6.3";
+string version = "2.7";
 
 int main()
 {
@@ -36,6 +36,8 @@ int main()
 		if (token == "uci")
 		{
 			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
+			cout << "option name Clear Hash type button" << endl;
+			cout << "option name Hash type spin default 1 min 1 max 1024" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -102,10 +104,29 @@ int main()
 			SearchThread.detach();
 		}
 
+		else if (token == "setoption")
+		{
+			iss >> token; //'name'
+			iss >> token; 
+
+			if (token == "Clear") 
+			{
+				iss >> token;
+				if (token == "Hash") tTable.ResetTable();
+			}
+
+			else if (token == "Hash")
+			{
+				iss >> token; //'value'
+				iss >> token;
+
+				tTable.SetSize(stoi(token));
+			}
+		}
+
 		else if (token == "stop") KeepSearching = false;
 		else if (token == "quit") return 0;
 		else if (token == "print") GameBoard.Print();
-
 		else cout << "Unknown command" << endl;
 	}
 
