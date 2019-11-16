@@ -19,6 +19,12 @@ int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
 
+//DEBUG FUNCTIONS
+void FlipColours(Position pos);
+void MirrorTopBottom(Position pos);
+void MirrorLeftRight(Position pos);
+
+
 int EvaluatePosition(const Position & position)
 {
 	int Score = 0;
@@ -161,10 +167,87 @@ int EvaluateMaterial(const Position & position)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanFowardErase(piece);										//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanFowardErase(piece);		//white piece
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanFowardErase(piece);																		//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanFowardErase(piece);										//white piece
 	}
 
 	return Score;
 }
+
+bool EvaluateDebug()
+{
+	std::ifstream infile("perftsuite.txt");
+	std::string line;
+
+	while (std::getline(infile, line))
+	{
+		std::vector<std::string> arrayTokens;
+		std::istringstream iss(line);
+		arrayTokens.clear();
+
+		do
+		{
+			std::string stub;
+			iss >> stub;
+			arrayTokens.push_back(stub);
+		} while (iss);
+
+		Position testPosition;
+		testPosition.InitialiseFromFen(line);
+
+		Position copy = testPosition;
+
+		int score = EvaluatePosition(testPosition);
+
+		FlipColours(testPosition);
+		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+
+		MirrorLeftRight(testPosition);
+		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+
+		MirrorTopBottom(testPosition);
+		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+
+		MirrorTopBottom(testPosition);
+		MirrorLeftRight(testPosition);
+		FlipColours(testPosition);
+
+		for (int i = 0; i < N_SQUARES; i++)
+		{
+			if (testPosition.GetSquare(i) != copy.GetSquare(i)) throw std::invalid_argument("YEET");
+		}
+
+		//testPosition.Print();
+	}
+}
+
+void FlipColours(Position pos)
+{
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		pos.SetSquare(i, Piece(pos.GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(pos.GetSquare(i))));
+	}
+}
+
+void MirrorLeftRight(Position pos)
+{
+	Position copy = pos;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		pos.SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
+	}
+}
+
+void MirrorTopBottom(Position pos)
+{
+	Position copy = pos;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
+	}
+}
+
+
 

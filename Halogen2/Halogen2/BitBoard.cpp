@@ -29,10 +29,12 @@ unsigned int BitBoard::GetSquare(unsigned int square) const
 void BitBoard::SetSquare(unsigned int square, unsigned int piece)
 {
 	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
-	if (piece >= N_PIECES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	if (piece > N_PIECES) throw std::invalid_argument("Bad paramiter to SetSquare()");
 
 	ClearSquare(square);
-	m_Bitboard[piece] |= SquareBB[square];
+
+	if (piece < N_PIECES)	//it is possible we might set a square to be empty using this function rather than using the ClearSquare function below. 
+		m_Bitboard[piece] |= SquareBB[square];
 }
 
 void BitBoard::ClearSquare(unsigned int square)

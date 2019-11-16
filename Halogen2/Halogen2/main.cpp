@@ -1,5 +1,4 @@
 #include "Search.h"
-#include <fstream>
 #include <thread>
 
 using namespace::std;
@@ -25,6 +24,8 @@ int main()
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
+
+	EvaluateDebug();
 
 	while (getline(cin, Line))
 	{
@@ -83,7 +84,6 @@ int main()
 			int winc = 0;
 			int binc = 0;
 			int searchTime = 0;
-
 
 			while (iss >> token)
 			{

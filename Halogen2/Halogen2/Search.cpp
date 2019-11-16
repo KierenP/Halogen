@@ -257,25 +257,6 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 
 		if (ttEntry.GetCutoff() == EXACT_CUTOFF || ttEntry.GetCutoff() == QUIESSENCE_NODE_CUTOFF)
 		{
-			int rep = 1;
-			uint64_t current = position.GetZobristKey();
-
-			for (int i = 0; i < PreviousKeys.size(); i++)
-			{
-				if (PreviousKeys.at(i) == current)
-					rep++;
-			}
-
-			if (rep >= 2)	//we have been here before, so penalise that
-			{
-				ttEntry.SetScore(ttEntry.GetScore() * 0.9);
-			}
-
-			if (rep >= 3)	//Its a draw
-			{
-				ttEntry.SetScore(0);
-			}
-
 			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
 			return true;
 		}
