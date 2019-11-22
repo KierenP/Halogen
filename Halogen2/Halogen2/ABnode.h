@@ -12,7 +12,7 @@ enum class NodeCut
 	EXACT_CUTOFF,
 	UNINITIALIZED_NODE,
 	CHECK_MATE_CUTOFF,				//note checkmate is also an 'exact' evaluation, that is, we did not do a cutoff which made a blind assumption
-	THREE_FOLD_REP_CUTOFF,
+	THREE_FOLD_REP_CUTOFF,			//Also used in cases of stalemate, not that this is an issue I think
 	QUIESSENCE_NODE_CUTOFF,
 	FUTILE_NODE,
 };

@@ -102,10 +102,11 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 		}
 	}
 
-	//stack exchange answer. Uses 'lambda' expressions. I don't really understand how this works
-	//Note if it is an en passant, then there is nothing in the square the piece is moving to and this caused an out of bounds index and garbage memory access.
-	//It took me about 5 hours to figure it out. The workaround was adding a 1 to the end of the pieceValues vector.
 	/*
+	stack exchange answer. Uses 'lambda' expressions. I don't really understand how this works
+	Note if it is an en passant, then there is nothing in the square the piece is moving to and this caused an out of bounds index and garbage memory access.
+	It took me about 5 hours to figure it out. The workaround was adding a 1 to the end of the pieceValues vector.
+	
 	EDIT: about 6 hours more googling and debugging it turns out that std::sort is an unstable sort which was causing non-deterministic behaviour.
 	I have replaced this with std::stable_sort which should hopefully fix the problem
 
@@ -554,15 +555,10 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 
 	std::vector<Move> moves;
 	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
-
 	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, search, InCheck)) return; //This checks for transpositions, draws, generates the moves, and checkmate
-
-	//Null move prune
 	if (NullMovePrune(position, depth, parent, alpha, beta, search, InCheck, allowNull)) return;
 
 	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
-
-	bool Futile = true;
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -572,7 +568,6 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 			position.RevertMove(moves.at(i));
 			continue;
 		}
-		Futile = false; //at least one move made it past the above line
 
 		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
@@ -592,8 +587,9 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? NodeCut::BETA_CUTOFF : NodeCut::ALPHA_CUTOFF)) break;
 	}
 
-	if (Futile)
-	{	//every move was found to be futile
+	if (best->GetCutoff() == NodeCut::UNINITIALIZED_NODE) //every move was found to be futile
+	{	
+		best->SetCutoff(NodeCut::FUTILE_NODE);
 		best->SetScore(EvaluatePosition(position)); //this is safe because the score + a bonus was less than alpha, so we know theres a better line elsewhere. EDIT: possible zanzuag issue
 	}
 
