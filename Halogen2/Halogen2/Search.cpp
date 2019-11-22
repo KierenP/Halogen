@@ -33,8 +33,9 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 
 //Branch pruning techniques
 bool IsFutile(Position& position, Move& move, int alpha, int beta);
-bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
-bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull);
+bool FutilityPrune(int depth, bool InCheck, Position& position, int i, int alpha, int beta);
+bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch);
 
 //Utility functions
 void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
@@ -287,13 +288,15 @@ bool CheckForDraw(ABnode*& node, int depth, Position& position)
 	int rep = 1;
 	uint64_t current = position.GetZobristKey();
 
+	//note Previous keys will not contain the current key
 	for (int i = 0; i < PreviousKeys.size(); i++)
 	{
 		if (PreviousKeys.at(i) == current)
 			rep++;
 	}
 
-	if (rep >= 3)
+	//we want to put a 2 fold rep as a draw to avoid the program delaying the inevitable and thinking repeating a position might be good/bad
+	if (rep >= 2)
 	{
 		node->SetScore(0);
 		node->SetCutoff(NodeCut::THREE_FOLD_REP_CUTOFF);
@@ -542,19 +545,7 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 
 bool IsFutile(Position& position, Move& move, int alpha, int beta)
 {
-	int StaticEval = EvaluatePosition(position);
-
-	if (position.GetTurn() == BLACK)
-	{
-		if (StaticEval + 100 <= alpha) return true;
-	}
-
-	if (position.GetTurn() == WHITE)
-	{
-		if (StaticEval - 100 >= beta) return true;
-	}
-
-	return false;
+	
 }
 
 void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
@@ -567,8 +558,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, search, InCheck)) return; //This checks for transpositions, draws, generates the moves, and checkmate
 
 	//Null move prune
-	if (!InCheck && allowNull && depth >= 4)
-		if (NullMovePrune(position, depth, parent, alpha, beta, search)) return;
+	if (NullMovePrune(position, depth, parent, alpha, beta, search, InCheck, allowNull)) return;
 
 	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
 
@@ -578,8 +568,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	{
 		position.ApplyMove(moves.at(i));
 
-		//futility pruning. Dont prune promotions or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
-		if (depth <= 2 && !InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
+		if (FutilityPrune(depth, InCheck, position, i, alpha, beta)) {
 			position.RevertMove(moves.at(i));
 			continue;
 		}
@@ -587,12 +576,9 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 
 		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
-		bool Cut = false;
 
 		//Late move reductions	
-		if (i >= 4 && depth >= 4 && !moves.at(i).IsCapture() && !moves.at(i).IsPromotion() && !InCheck)
-			if (LateMoveReduction(position, depth, node, alpha, beta, Newsearch))
-				Cut = true;
+		bool Cut = LateMoveReduction(i, depth, moves, InCheck, position, node, alpha, beta, Newsearch);
 
 		if (!Cut)
 			if (Newsearch != SearchLevels::ALPHABETA)
@@ -615,8 +601,49 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	tTable.AddEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff());
 }
 
-bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search)
+bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch)
 {
+	if (i < 4 || depth < 4 || moves.at(i).IsCapture() || moves.at(i).IsPromotion() || InCheck) return false;
+
+	if (position.GetTurn() == WHITE)
+	{	//just did a black move, so we see if this position is good for white (hence check for beta cutoff)
+		AlphaBeta(position, depth - 2, node, beta - 1, beta, true, Newsearch);
+		return (node->GetCutoff() == NodeCut::BETA_CUTOFF);
+	}
+
+	if (position.GetTurn() == BLACK)
+	{
+		AlphaBeta(position, depth - 2, node, alpha, alpha + 1, true, Newsearch);
+		return (node->GetCutoff() == NodeCut::ALPHA_CUTOFF);
+	}
+
+	return false;
+}
+
+bool FutilityPrune(int depth, bool InCheck, Position& position, int i, int alpha, int beta)
+{
+	//futility pruning. Dont prune promotions or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
+	if (depth > 2 || InCheck || IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return false;
+
+	int StaticEval = EvaluatePosition(position);
+
+	if (position.GetTurn() == BLACK)
+	{
+		if (StaticEval + 100 <= alpha) return true;
+	}
+
+	if (position.GetTurn() == WHITE)
+	{
+		if (StaticEval - 100 >= beta) return true;
+	}
+
+	return false;
+}
+
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull)
+{
+	if (inCheck || !allowNull || depth < 4) return false;
+
 	if (position.GetTurn() == WHITE)
 	{ //whites turn to move, which we are skipping to see if its still good for white 'beta cutoff'
 		position.ApplyNullMove();
@@ -630,25 +657,6 @@ bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int
 		position.ApplyNullMove();
 		AlphaBeta(position, depth - 3, parent, alpha, alpha + 1, false, search);
 		position.RevertNullMove();
-		return (parent->GetCutoff() == NodeCut::ALPHA_CUTOFF);
-	}
-
-	return false;
-}
-
-bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search)
-{
-	//int Eval = EvaluatePosition(position);
-
-	if (position.GetTurn() == WHITE)
-	{	//just did a black move, so we see if this position is good for white (hence check for beta cutoff)
-		AlphaBeta(position, depth - 2, parent, beta - 1, beta, true, search);
-		return (parent->GetCutoff() == NodeCut::BETA_CUTOFF);
-	}
-
-	if (position.GetTurn() == BLACK)
-	{
-		AlphaBeta(position, depth - 2, parent, alpha, alpha + 1, true, search);
 		return (parent->GetCutoff() == NodeCut::ALPHA_CUTOFF);
 	}
 
