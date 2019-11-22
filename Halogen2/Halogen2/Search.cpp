@@ -20,11 +20,12 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
 
 //Search aid functions
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
 SearchLevels CalculateSearchType(Position& position, int depth, bool check);
 void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& position);
 bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
 void SetBest(ABnode*& best, ABnode*& node, bool colour);
-bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff);
+bool CheckForCutoff(int& alpha, int& beta, ABnode* best, NodeCut cutoff);
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent);
 bool CheckForDraw(ABnode*& node, int depth, Position& position);
 void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCheck, int depth);
@@ -153,7 +154,7 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 			break;
 		}
 
-		if (ROOT->GetCutoff() == CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
+		if (ROOT->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
 			endSearch = true;
 
 		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
@@ -253,13 +254,13 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 		tTable.AddHit();
 		TTEntry ttEntry = tTable.GetEntry(position.GetZobristKey());
 
-		if (ttEntry.GetCutoff() == EXACT_CUTOFF || ttEntry.GetCutoff() == QUIESSENCE_NODE_CUTOFF)
+		if (ttEntry.GetCutoff() == NodeCut::EXACT_CUTOFF || ttEntry.GetCutoff() == NodeCut::QUIESSENCE_NODE_CUTOFF)
 		{
 			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
 			return true;
 		}
 
-		if (ttEntry.GetCutoff() == BETA_CUTOFF)
+		if (ttEntry.GetCutoff() == NodeCut::BETA_CUTOFF)
 		{
 			//the score is at least the saved score
 			if (position.GetTurn() == WHITE)
@@ -272,7 +273,7 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 			}
 		}
 
-		if (ttEntry.GetCutoff() == ALPHA_CUTOFF)
+		if (ttEntry.GetCutoff() == NodeCut::ALPHA_CUTOFF)
 		{
 			//the score is at most the saved score
 			if (position.GetTurn() == BLACK)
@@ -303,29 +304,29 @@ bool CheckForDraw(ABnode*& node, int depth, Position& position)
 	if (rep >= 3)
 	{
 		node->SetScore(0);
-		node->SetCutoff(THREE_FOLD_REP_CUTOFF);
+		node->SetCutoff(NodeCut::THREE_FOLD_REP_CUTOFF);
 		return true;
 	}
 	return false;
 }
 
-bool CheckForCutoff(int& alpha, int& beta, ABnode* best, unsigned int cutoff)
+bool CheckForCutoff(int& alpha, int& beta, ABnode* best, NodeCut cutoff)
 {
-	if (cutoff == BETA_CUTOFF)
+	if (cutoff == NodeCut::BETA_CUTOFF)
 	{
 		alpha = max(alpha, best->GetScore());
 		if (alpha >= beta)
 		{
-			best->SetCutoff(BETA_CUTOFF);
+			best->SetCutoff(NodeCut::BETA_CUTOFF);
 			return true;
 		}
 	}
-	if (cutoff == ALPHA_CUTOFF)
+	if (cutoff == NodeCut::ALPHA_CUTOFF)
 	{
 		beta = min(beta, best->GetScore());
 		if (beta <= alpha)
 		{
-			best->SetCutoff(ALPHA_CUTOFF);
+			best->SetCutoff(NodeCut::ALPHA_CUTOFF);
 			return true;
 		}
 	}
@@ -355,22 +356,22 @@ void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCh
 {
 	if (level == QUIETESSENCE || level == LEAF_SEARCH)
 	{
-		parent->SetCutoff(EXACT_CUTOFF);
+		parent->SetCutoff(NodeCut::EXACT_CUTOFF);
 		parent->SetScore(EvaluatePosition(position));
 	}
 
 	else if (InCheck)
 	{
 		if (position.GetTurn() == WHITE)
-			parent->SetScore(BlackWin - depth);	//sooner checkmates are better
+			parent->SetScore(static_cast<int>(Score::BlackWin) - depth);	//sooner checkmates are better
 		if (position.GetTurn() == BLACK)
-			parent->SetScore(WhiteWin + depth);
+			parent->SetScore(static_cast<int>(Score::WhiteWin) + depth);
 
-		parent->SetCutoff(CHECK_MATE_CUTOFF);
+		parent->SetCutoff(NodeCut::CHECK_MATE_CUTOFF);
 	}
 	else
 	{
-		parent->SetCutoff(THREE_FOLD_REP_CUTOFF);
+		parent->SetCutoff(NodeCut::THREE_FOLD_REP_CUTOFF);
 		parent->SetScore(0);
 	}
 }
@@ -454,7 +455,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 
 		if (Newsearch == TERMINATE)
 		{
-			node->SetCutoff(QUIESSENCE_NODE_CUTOFF);
+			node->SetCutoff(NodeCut::QUIESSENCE_NODE_CUTOFF);
 			node->SetScore(EvaluatePosition(position));
 		}
 		else
@@ -463,12 +464,12 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		position.RevertMove(moves.at(i));
 
 		SetBest(best, node, position.GetTurn());
-		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? NodeCut::BETA_CUTOFF : NodeCut::ALPHA_CUTOFF)) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
 	}
 
 	if (best->GetMove() == Move())	//if none of the captures were any good we assume there exists another quiet move we could have done instead
 	{	
-		parent->SetCutoff(EXACT_CUTOFF);
+		parent->SetCutoff(NodeCut::EXACT_CUTOFF);
 		parent->SetScore(EvaluatePosition(position));
 		delete best;
 	}
@@ -526,7 +527,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 
 void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha)
 {
-	if (best->GetCutoff() == BETA_CUTOFF)
+	if (best->GetCutoff() == NodeCut::BETA_CUTOFF)
 	{
 		std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
 		betaInc++;
@@ -536,7 +537,7 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 		Redo = true;
 	}
 
-	if (best->GetCutoff() == ALPHA_CUTOFF)
+	if (best->GetCutoff() == NodeCut::ALPHA_CUTOFF)
 	{
 		std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
 		alphaInc++;
@@ -610,7 +611,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		position.RevertMove(moves.at(i));
 
 		SetBest(best, node, position.GetTurn());
-		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? BETA_CUTOFF : ALPHA_CUTOFF)) break;
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? NodeCut::BETA_CUTOFF : NodeCut::ALPHA_CUTOFF)) break;
 	}
 
 	if (Futile)
@@ -629,7 +630,7 @@ bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int
 		position.ApplyNullMove();
 		AlphaBeta(position, depth - 3, parent, beta - 1, beta, false, search);
 		position.RevertNullMove();
-		return (parent->GetCutoff() == BETA_CUTOFF);
+		return (parent->GetCutoff() == NodeCut::BETA_CUTOFF);
 	}
 
 	if (position.GetTurn() == BLACK)
@@ -637,7 +638,7 @@ bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int
 		position.ApplyNullMove();
 		AlphaBeta(position, depth - 3, parent, alpha, alpha + 1, false, search);
 		position.RevertNullMove();
-		return (parent->GetCutoff() == ALPHA_CUTOFF);
+		return (parent->GetCutoff() == NodeCut::ALPHA_CUTOFF);
 	}
 
 	return false;
@@ -650,13 +651,13 @@ bool LateMoveReduction(Position& position, int depth, ABnode* parent, int alpha,
 	if (position.GetTurn() == WHITE)
 	{	//just did a black move, so we see if this position is good for white (hence check for beta cutoff)
 		AlphaBeta(position, depth - 2, parent, beta - 1, beta, true, search);
-		return (parent->GetCutoff() == BETA_CUTOFF);
+		return (parent->GetCutoff() == NodeCut::BETA_CUTOFF);
 	}
 
 	if (position.GetTurn() == BLACK)
 	{
 		AlphaBeta(position, depth - 2, parent, alpha, alpha + 1, true, search);
-		return (parent->GetCutoff() == ALPHA_CUTOFF);
+		return (parent->GetCutoff() == NodeCut::ALPHA_CUTOFF);
 	}
 
 	return false;

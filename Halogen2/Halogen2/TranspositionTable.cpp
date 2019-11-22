@@ -23,7 +23,7 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, NodeCut Cutoff)
 {
 	int hash = ZobristKey % TTSize;
 

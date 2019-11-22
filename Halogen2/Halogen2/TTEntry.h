@@ -1,22 +1,20 @@
 #pragma once
-#include "Move.h"
-#include "BitBoardDefine.h"
+#include "ABnode.h"
 
 class TTEntry
 {
 public:
 	TTEntry();
-	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
+	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, NodeCut Cutoff);
 	~TTEntry();
 
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
 	char GetDepth() const { return depth; }
 	bool IsAncient() const { return ancient; }
-	char GetCutoff() const { return cutoff; }
+	NodeCut GetCutoff() const { return cutoff; }
 	Move GetMove() const { return bestMove; }
 
-	void SetScore(int num) { score = num; }
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 
 private:
@@ -26,6 +24,6 @@ private:
 	signed char depth;		//1 bytes
 	Move bestMove;			//3 bytes  
 	bool ancient;			//1 byte 
-	char cutoff;			//1 byte   
+	NodeCut cutoff;			//1 byte  (?) 
 };
 

@@ -1,6 +1,5 @@
 #pragma once
 #include "TTEntry.h"
-#include "ABnode.h"
 
 extern unsigned int TTSize;	//default is 1MB hash
 
@@ -11,7 +10,7 @@ public:
 	~TranspositionTable();
 
 	bool CheckEntry(uint64_t key, int depth);
-	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, unsigned int Cutoff);
+	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, NodeCut Cutoff);
 	TTEntry GetEntry(uint64_t key);
 
 	void SetAllAncient();

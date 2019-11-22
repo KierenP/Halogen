@@ -12,6 +12,4 @@
 
 extern TranspositionTable tTable;
 
-void OrderMoves(std::vector<Move>& moves, Position & position, int searchDepth);
 Move SearchPosition(Position & position, int allowedTimeMs);
-void PrintBestMove(Move& Best);

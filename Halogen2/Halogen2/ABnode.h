@@ -5,7 +5,7 @@
 
 class ABnode;
 
-enum AlphaBetaCutoff
+enum class NodeCut
 {
 	ALPHA_CUTOFF,
 	BETA_CUTOFF,
@@ -17,7 +17,7 @@ enum AlphaBetaCutoff
 	FUTILE_NODE,
 };
 
-enum ScoreConstant
+enum class Score
 {
 	HighINF = 30000,
 	LowINF = -30000,
@@ -35,17 +35,17 @@ ABnode* CreatePlaceHolderNode(bool colour, int depth);			//Pass either HighINF o
 class ABnode
 {
 public:
-	ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child = nullptr);
+	ABnode(Move bestmove, int depth, NodeCut cutoff, int score, ABnode* child = nullptr);
 	~ABnode();
 
 	int GetScore() const;
 	int GetDepth() const;
-	unsigned int GetCutoff() const;
+	NodeCut GetCutoff() const;
 	Move GetMove() const;
 	ABnode* GetChild() const;
 
 	void SetScore(int score);
-	void SetCutoff(unsigned int cutoff);
+	void SetCutoff(NodeCut cutoff);
 	void SetChild(ABnode* child);							//NOTE: will delete the current child if it has one!
 
 	bool HasChild() const;
@@ -56,7 +56,7 @@ public:
 private:
 	int m_Score;				
 	int m_Depth;											//note this is depth remaining!
-	unsigned int m_Cutoff;
+	NodeCut m_Cutoff;
 	Move m_BestMove;			
 	ABnode* m_Child;
 };

@@ -1,6 +1,6 @@
 #include "ABnode.h"
 
-ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child) : m_BestMove(bestmove)
+ABnode::ABnode(Move bestmove, int depth, NodeCut cutoff, int score, ABnode* child) : m_BestMove(bestmove)
 {
 	m_Cutoff = cutoff;
 	m_Depth = depth;
@@ -29,7 +29,7 @@ ABnode * ABnode::GetChild() const
 	return m_Child;
 }
 
-unsigned int ABnode::GetCutoff() const
+NodeCut ABnode::GetCutoff() const
 {
 	return m_Cutoff;
 }
@@ -53,7 +53,7 @@ void ABnode::SetChild(ABnode * child)
 	m_Cutoff = child->GetCutoff();
 }
 
-void ABnode::SetCutoff(unsigned int cutoff)
+void ABnode::SetCutoff(NodeCut cutoff)
 {
 	m_Cutoff = cutoff;
 }
@@ -93,18 +93,18 @@ void ABnode::PrintNodeChildren()
 
 ABnode* CreateLeafNode(Position& position, int depth)
 {
-	return new ABnode(Move(), depth, EXACT_CUTOFF, EvaluatePosition(position));
+	return new ABnode(Move(), depth, NodeCut::EXACT_CUTOFF, EvaluatePosition(position));
 }
 
 ABnode * CreateBranchNode(Move & move, int depth)
 {
-	return new ABnode(move, depth, UNINITIALIZED_NODE, 0);
+	return new ABnode(move, depth, NodeCut::UNINITIALIZED_NODE, 0);
 }
 
 ABnode * CreatePlaceHolderNode(bool colour, int depth)
 {
 	if (colour == WHITE)
-		return new ABnode(Move(), depth, UNINITIALIZED_NODE, LowINF);
+		return new ABnode(Move(), depth, NodeCut::UNINITIALIZED_NODE, static_cast<int>(Score::LowINF));
 	else
-		return new ABnode(Move(), depth, UNINITIALIZED_NODE, HighINF);
+		return new ABnode(Move(), depth, NodeCut::UNINITIALIZED_NODE, static_cast<int>(Score::HighINF));
 }
