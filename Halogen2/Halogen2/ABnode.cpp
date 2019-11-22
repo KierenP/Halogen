@@ -103,7 +103,7 @@ ABnode * CreateBranchNode(Move & move, int depth)
 
 ABnode * CreatePlaceHolderNode(bool colour, int depth)
 {
-	if (colour == WHITE)
+	if (colour == Players::WHITE)
 		return new ABnode(Move(), depth, NodeCut::UNINITIALIZED_NODE, static_cast<int>(Score::LowINF));
 	else
 		return new ABnode(Move(), depth, NodeCut::UNINITIALIZED_NODE, static_cast<int>(Score::HighINF));

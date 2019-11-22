@@ -1,11 +1,11 @@
 #include "Search.h"
 
-enum SearchLevels
+enum class SearchLevels
 {
 	ALPHABETA,
 	TERMINATE,
 	QUIETESSENCE,			//captures and all moves if in check
-	LEAF_SEARCH,				//only look at captures of hanged pieces
+	LEAF_SEARCH,			//only look at captures of hanged pieces
 	CHECK_EXTENSION
 };
 
@@ -47,15 +47,12 @@ void PrintBestMove(Move& Best);
 //stolen from stack-overflow. Uses the 'exponentiation by squaring' technique which is faster
 int int_pow(int base, int exp)
 {
-	int result = 1;
-	while (exp)
-	{
-		if (exp & 1)
-			result *= base;
-		exp /= 2;
-		base *= base;
-	}
-	return result;
+	if (exp == 0) return 1;
+	if (exp == 1) return base;
+
+	int tmp = int_pow(base, exp / 2);
+	if (exp % 2 == 0) return tmp * tmp;
+	else return base * tmp * tmp;
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
@@ -137,35 +134,30 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 
 	Move Best;
 	int score = EvaluatePosition(position);
-	bool endSearch = false;
 
 	//abort if I have used up more than half the time, if we have used up less than half it will try and search another ply.
-	for (int depth = 1; !timeManage.AbortSearch() && !endSearch && timeManage.ContinueSearch(); depth++)
+	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch(); depth++)
 	{
 		NodeCount = 0;
+
 		Timer searchTime;
-
 		searchTime.Start();
-		ABnode* ROOT = SearchToDepthAspiration(position, depth, score);
 
-		if (timeManage.AbortSearch()) //stick with what we previously found to be best if we had to abort.
-		{	
-			delete ROOT;
+		std::unique_ptr<ABnode> SearchResult = std::make_unique<ABnode>(*SearchToDepthAspiration(position, depth, score));
+
+		if (timeManage.AbortSearch()) //stick with what we previously found to be best if we had to abort while executing SearchToDepthAspiration.
 			break;
-		}
 
-		if (ROOT->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
-			endSearch = true;
+		PrintSearchInfo(position, *SearchResult, depth, searchTime.ElapsedMs(), SearchResult->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF);
 
-		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
+		Best = SearchResult->GetMove();
+		score = SearchResult->GetScore();
 
-		Best = ROOT->GetMove();
-		score = ROOT->GetScore();
-		delete ROOT;
+		if (SearchResult->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
+			break;
 	}
-
+	
 	PrintBestMove(Best);
-
 	return Best;
 }
 
@@ -227,24 +219,24 @@ void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 {
 	if (depth > 1)				
-		return ALPHABETA;
+		return SearchLevels::ALPHABETA;
 
 	if (depth <= 1 && depth > -3)	
 	{
 		if (check) 
-			return CHECK_EXTENSION;
+			return SearchLevels::CHECK_EXTENSION;
 
 		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
-			return CHECK_EXTENSION;
+			return SearchLevels::CHECK_EXTENSION;
 	}
 
-	if (depth <= 1 && depth > -1) return QUIETESSENCE;
+	if (depth <= 1 && depth > -1) return SearchLevels::QUIETESSENCE;
 
 	if (depth == -1)
-		return LEAF_SEARCH;
+		return SearchLevels::LEAF_SEARCH;
 
 	if (depth <= -2)
-		return TERMINATE;
+		return SearchLevels::TERMINATE;
 }
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)
@@ -354,7 +346,7 @@ bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int
 
 void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCheck, int depth)
 {
-	if (level == QUIETESSENCE || level == LEAF_SEARCH)
+	if (level == SearchLevels::QUIETESSENCE || level == SearchLevels::LEAF_SEARCH)
 	{
 		parent->SetCutoff(NodeCut::EXACT_CUTOFF);
 		parent->SetScore(EvaluatePosition(position));
@@ -380,19 +372,19 @@ void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& posi
 {
 	switch (level)
 	{
-	case ALPHABETA:
+	case SearchLevels::ALPHABETA:
 		moves = GenerateLegalMoves(position);
 		break;
-	case TERMINATE:
+	case SearchLevels::TERMINATE:
 		throw std::invalid_argument("YEET");
 		break;
-	case QUIETESSENCE:
+	case SearchLevels::QUIETESSENCE:
 		moves = GenerateLegalCaptures(position);
 		break;
-	case LEAF_SEARCH:
+	case SearchLevels::LEAF_SEARCH:
 		moves = GenerateLegalHangedCaptures(position);
 		break;
-	case CHECK_EXTENSION:
+	case SearchLevels::CHECK_EXTENSION:
 		moves = GenerateLegalMoves(position);
 		break;
 	default:
@@ -413,7 +405,7 @@ std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int b
 	{
 		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		position.ApplyMove(moves.at(i));
-		AlphaBeta(position, depth - 1, node, alpha, beta, true, ALPHABETA);
+		AlphaBeta(position, depth - 1, node, alpha, beta, true, SearchLevels::ALPHABETA);
 		position.RevertMove(moves.at(i));
 		MoveNodes.push_back(node);
 	}
@@ -453,7 +445,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		position.ApplyMove(moves.at(i));
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 
-		if (Newsearch == TERMINATE)
+		if (Newsearch == SearchLevels::TERMINATE)
 		{
 			node->SetCutoff(NodeCut::QUIESSENCE_NODE_CUTOFF);
 			node->SetScore(EvaluatePosition(position));
@@ -506,7 +498,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depth, int score)
 			ABnode* node = CreateBranchNode(moves.at(i), depth);
 
 			position.ApplyMove(moves.at(i));
-			AlphaBeta(position, depth - 1, node, alpha, beta, true, ALPHABETA);
+			AlphaBeta(position, depth - 1, node, alpha, beta, true, SearchLevels::ALPHABETA);
 			position.RevertMove(moves.at(i));
 
 			if (timeManage.AbortSearch())	//go with what was previously found to be the best move so far, as he had to stop the search early.	
@@ -603,7 +595,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 				Cut = true;
 
 		if (!Cut)
-			if (Newsearch != ALPHABETA)
+			if (Newsearch != SearchLevels::ALPHABETA)
 				Quietessence(position, depth - 1, node, alpha, beta, Newsearch);
 			else
 				AlphaBeta(position, depth - 1, node, alpha, beta, true, Newsearch);

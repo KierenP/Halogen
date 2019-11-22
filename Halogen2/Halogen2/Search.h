@@ -9,6 +9,7 @@
 #include "TimeManage.h"
 #include <ctime>
 #include <algorithm>
+#include <utility>
 
 extern TranspositionTable tTable;
 
