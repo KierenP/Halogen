@@ -35,7 +35,6 @@ ABnode* CreatePlaceHolderNode(bool colour, int depth);			//Pass either HighINF o
 class ABnode
 {
 public:
-	ABnode();
 	ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child = nullptr);
 	~ABnode();
 
@@ -47,7 +46,7 @@ public:
 
 	void SetScore(int score);
 	void SetCutoff(unsigned int cutoff);
-	void SetChild(ABnode* child);	//NOTE: will delete the current child if it has one!
+	void SetChild(ABnode* child);							//NOTE: will delete the current child if it has one!
 
 	bool HasChild() const;
 

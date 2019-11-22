@@ -1,13 +1,5 @@
 #include "ABnode.h"
 
-ABnode::ABnode() : m_BestMove(Move())
-{
-	m_Cutoff = UNINITIALIZED_NODE;
-	m_Depth = -1;
-	m_Score = -1;
-	m_Child = nullptr;
-}
-
 ABnode::ABnode(Move bestmove, int depth, unsigned int cutoff, int score, ABnode* child) : m_BestMove(bestmove)
 {
 	m_Cutoff = cutoff;

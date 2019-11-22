@@ -97,9 +97,9 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 	{
 		if (moves.at(i).IsCapture())
 		{
-			captures++;
 			SwapMoves(moves, i, swapIndex);
 			swapIndex++;
+			captures++;
 		}
 	}
 
@@ -230,10 +230,10 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 
 	if (depth <= 1 && depth > -3)	
 	{
-		if (check)
+		if (check) 
 			return CHECK_EXTENSION;
 
-		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	//if I just got put in check by that move
+		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
 			return CHECK_EXTENSION;
 	}
 
@@ -244,8 +244,6 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 
 	if (depth <= -2)
 		return TERMINATE;
-
-	return TERMINATE;
 }
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)
@@ -588,7 +586,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		position.ApplyMove(moves.at(i));
 
 		//futility pruning. Dont prune promotions or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
-		if (depth <= 2 &&!InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
+		if (depth <= 2 && !InCheck && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && IsFutile(position, moves[i], alpha, beta)) {
 			position.RevertMove(moves.at(i));
 			continue;
 		}
