@@ -22,9 +22,6 @@ uint64_t KingAttacks[N_SQUARES];
 uint64_t WhitePawnAttacks[N_SQUARES];
 uint64_t BlackPawnAttacks[N_SQUARES];
 
-uint64_t WhiteKingAttackSquares[N_SQUARES];
-uint64_t BlackKingAttackSquares[N_SQUARES];
-
 const int index64[64] = {
 	0, 47,  1, 56, 48, 27,  2, 60,
 	57, 49, 41, 37, 28, 16,  3, 61,
@@ -115,8 +112,6 @@ void BBInit()
 		KingAttacks[i] = EMPTY;
 		WhitePawnAttacks[i] = EMPTY;
 		BlackPawnAttacks[i] = EMPTY;
-		WhiteKingAttackSquares[i] = EMPTY;
-		BlackKingAttackSquares[i] = EMPTY;
 
 		for (int j = 0; j < 64; j++)
 		{
@@ -145,21 +140,9 @@ void BBInit()
 				BlackPawnAttacks[i] ^= SquareBB[j];
 			}
 
-			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(j, i) > 1) && (RankDiff(j, i) <= 4))		//left, same file, or right
-			{
-				WhiteKingAttackSquares[i] ^= SquareBB[j];
-			}
-			if ((AbsFileDiff(i, j) <= 1) && (RankDiff(j, i) < -1) && (RankDiff(j, i) >= -4))		//left, same file, or right
-			{
-				BlackKingAttackSquares[i] ^= SquareBB[j];
-			}
-
 			if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
 				KnightAttacks[i] |= SquareBB[j];
 		}
-
-		WhiteKingAttackSquares[i] |= KingAttacks[i];
-		BlackKingAttackSquares[i] |= KingAttacks[i];
 
 		RookAttacks[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];		//All the spaces in the same rank and file but not the starting square
 		BishopAttacks[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];

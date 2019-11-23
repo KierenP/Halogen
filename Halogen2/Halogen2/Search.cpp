@@ -32,7 +32,6 @@ void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCh
 void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha);
 
 //Branch pruning techniques
-bool IsFutile(Position& position, Move& move, int alpha, int beta);
 bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull);
 bool FutilityPrune(int depth, bool InCheck, Position& position, int i, int alpha, int beta);
 bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch);
@@ -542,11 +541,6 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 		best = CreatePlaceHolderNode(position.GetTurn(), depth);
 		Redo = true;
 	}
-}
-
-bool IsFutile(Position& position, Move& move, int alpha, int beta)
-{
-	
 }
 
 void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)

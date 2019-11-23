@@ -20,9 +20,9 @@ int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
 
 //DEBUG FUNCTIONS
-void FlipColours(Position pos);
-void MirrorTopBottom(Position pos);
-void MirrorLeftRight(Position pos);
+void FlipColours(Position& pos);
+void MirrorTopBottom(Position& pos);
+void MirrorLeftRight(Position& pos);
 
 
 int EvaluatePosition(const Position & position)
@@ -121,7 +121,7 @@ int EvaluatePawn(const Position & position, const unsigned int square, const boo
 		if (colour == WHITE)
 			result += PassedPawnBonus[GetRank(square)];
 		else
-			result += PassedPawnBonus[N_RANKS - GetRank(square)];
+			result += PassedPawnBonus[RANK_8 - GetRank(square)];
 	}
 
 	if (IsWeak)
@@ -194,58 +194,67 @@ bool EvaluateDebug()
 
 		Position testPosition;
 		testPosition.InitialiseFromFen(line);
-
 		Position copy = testPosition;
-
 		int score = EvaluatePosition(testPosition);
 
 		FlipColours(testPosition);
-		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+		MirrorTopBottom(testPosition);
+		if (score != -EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");	//negitive as the colours are backwards
 
 		MirrorLeftRight(testPosition);
-		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+		if (score != -EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet"); //negitive as the colours are backwards
 
-		MirrorTopBottom(testPosition);
-		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
-
-		MirrorTopBottom(testPosition);
-		MirrorLeftRight(testPosition);
 		FlipColours(testPosition);
+		MirrorTopBottom(testPosition);
+		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+
+		MirrorLeftRight(testPosition);
 
 		for (int i = 0; i < N_SQUARES; i++)
 		{
 			if (testPosition.GetSquare(i) != copy.GetSquare(i)) throw std::invalid_argument("YEET");
 		}
-
-		//testPosition.Print();
 	}
 }
 
-void FlipColours(Position pos)
+void FlipColours(Position& pos)
 {
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		pos.SetSquare(i, Piece(pos.GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(pos.GetSquare(i))));
+		if (pos.IsOccupied(i))
+			pos.SetSquare(i, Piece(pos.GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(pos.GetSquare(i))));
 	}
 }
 
-void MirrorLeftRight(Position pos)
-{
-	Position copy = pos;
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		pos.SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
-	}
-}
-
-void MirrorTopBottom(Position pos)
+void MirrorLeftRight(Position& pos)
 {
 	Position copy = pos;
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
+		pos.ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))))
+			pos.SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
+	}
+}
+
+void MirrorTopBottom(Position& pos)
+{
+	Position copy = pos;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		pos.ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
+			pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
 	}
 }
 

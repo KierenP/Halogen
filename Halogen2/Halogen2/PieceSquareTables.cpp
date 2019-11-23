@@ -1,4 +1,5 @@
 #include "PieceSquareTables.h"
+#include <iostream>
 
 int PieceSquareTables[N_STAGES][N_PIECES][N_SQUARES];
 void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, const int layer[64]);			
@@ -16,11 +17,11 @@ const int PawnSquareValuesOpeningMid[64] = {
 const int PawnSquareValuesEndGame[64] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 	5,  5,  5,  5,  5,  5,  5,  5,
-	10, 10, 10, 10, 10, 10, 10, 10, 
+	10, 10, 10, 10, 10, 10, 10, 10,
 	15, 15, 15, 15, 15, 15, 15, 15,
 	20, 20, 20, 20, 20, 20, 20, 20,
 	25, 25, 25, 25, 25, 25, 25, 25,
-	30, 30, 30, 30, 30, 30, 30, 30, 
+	30, 30, 30, 30, 30, 30, 30, 30,
 	35, 35, 35, 35, 35, 35, 35, 35,
 };
 const int KnightSquareValues[64] = {
@@ -54,10 +55,10 @@ const int RookSquareValues[64] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 };
 const int QueenSquareValues[64] = {
-	-20,-10,-10, 0, -5,-10,-10,-20
-	- 10,  0,  5,  0,  0,  0,  0,-10,
-	-10,  5,  5,  5,  5,  5,  0,-10,
-	0,  0,  5,  5,  5,  5,  0, -5,
+	-20,-10,-10, -5, -5,-10,-10,-20,
+	-10,  0,  0,  0,  0,  0,  0,-10,
+	-10,  5,  5,  5,  5,  5,  5,-10,
+	0,  0,  5,  5,  5,  5,  0, 0,
 	-5,  0,  5,  5,  5,  5,  0, -5,
 	-10,  0,  5,  5,  5,  5,  0,-10,
 	-10,  0,  0,  0,  0,  0,  0,-10,
@@ -111,6 +112,20 @@ void InitializePieceSquareTable()
 	AddPieceSquareTableLayer(MIDGAME, BLACK_PAWN, PawnSquareValuesOpeningMid);
 	AddPieceSquareTableLayer(ENDGAME, WHITE_PAWN, PawnSquareValuesEndGame);
 	AddPieceSquareTableLayer(ENDGAME, BLACK_PAWN, PawnSquareValuesEndGame);
+
+	//if (PieceSquareTables[OPENING][WHITE_PAWN][SQ_B2] != PieceSquareTables[OPENING][BLACK_PAWN][SQ_B7]) std::cout << "YEET";
+
+	for (int i = 0; i < N_STAGES; i++)
+	{
+		for (int j = 0; j < N_PIECES; j++)
+		{
+			for (int k = 0; k < N_SQUARES; k++)
+			{
+				if (PieceSquareTables[i][j][k] != PieceSquareTables[i][j][GetPosition(N_FILES - GetFile(k) - 1, GetRank(k))])
+					std::cout << "Yeetus";
+			}
+		}
+	}
 }
 
 void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, const int layer[64])
@@ -122,6 +137,7 @@ void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, const int 
 			PieceSquareTables[stage][piece][i] = layer[i];
 		}
 	}
+
 	if (ColourOfPiece(piece) == BLACK)
 	{
 		for (int i = 0; i < N_SQUARES; i++)

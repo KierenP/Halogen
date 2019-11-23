@@ -170,8 +170,6 @@ extern uint64_t QueenAttacks[N_SQUARES];
 extern uint64_t KingAttacks[N_SQUARES];
 extern uint64_t WhitePawnAttacks[N_SQUARES];
 extern uint64_t BlackPawnAttacks[N_SQUARES];
-extern uint64_t WhiteKingAttackSquares[N_SQUARES];
-extern uint64_t BlackKingAttackSquares[N_SQUARES];
 
 /**
 * bitScanForward
