@@ -236,8 +236,7 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 	if (depth == -1)
 		return SearchLevels::LEAF_SEARCH;
 
-	if (depth <= -2)
-		return SearchLevels::TERMINATE;
+	return SearchLevels::TERMINATE;
 }
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)

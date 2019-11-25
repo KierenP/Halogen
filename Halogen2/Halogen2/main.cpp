@@ -98,9 +98,15 @@ int main()
 
 			int movetime = 0;
 
-			if (searchTime != 0) movetime = searchTime;
-			else movetime = GameBoard.GetTurn() ? btime / 20 : wtime / 20; //we use a 20th of the available time
-
+			if (searchTime != 0) 
+				movetime = searchTime;
+			else
+			{
+				if (GameBoard.GetTurn() == WHITE)
+					movetime = wtime / 20;
+				else
+					movetime = btime / 20;
+			}
 			std::thread SearchThread(SearchPosition, std::ref(GameBoard), movetime);
 			SearchThread.detach();
 		}

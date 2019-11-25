@@ -215,6 +215,8 @@ bool EvaluateDebug()
 			if (testPosition.GetSquare(i) != copy.GetSquare(i)) throw std::invalid_argument("YEET");
 		}
 	}
+
+	return true;
 }
 
 void FlipColours(Position& pos)
