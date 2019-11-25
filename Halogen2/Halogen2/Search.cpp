@@ -25,7 +25,7 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check);
 void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& position);
 bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int depth, int& alpha, int& beta, ABnode* parent, SearchLevels level, bool InCheck);
 void SetBest(ABnode*& best, ABnode*& node, bool colour);
-bool CheckForCutoff(int& alpha, int& beta, ABnode* best, NodeCut cutoff);
+bool CheckForCutoff(int& alpha, int& beta, ABnode* best, bool turn);
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent);
 bool CheckForDraw(ABnode*& node, int depth, Position& position);
 void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCheck, int depth);
@@ -304,9 +304,9 @@ bool CheckForDraw(ABnode*& node, int depth, Position& position)
 	return false;
 }
 
-bool CheckForCutoff(int& alpha, int& beta, ABnode* best, NodeCut cutoff)
+bool CheckForCutoff(int& alpha, int& beta, ABnode* best, bool turn)
 {
-	if (cutoff == NodeCut::BETA_CUTOFF)
+	if (turn == WHITE)
 	{
 		alpha = max(alpha, best->GetScore());
 		if (alpha >= beta)
@@ -315,7 +315,7 @@ bool CheckForCutoff(int& alpha, int& beta, ABnode* best, NodeCut cutoff)
 			return true;
 		}
 	}
-	if (cutoff == NodeCut::ALPHA_CUTOFF)
+	if (turn == BLACK)
 	{
 		beta = min(beta, best->GetScore());
 		if (beta <= alpha)
@@ -458,7 +458,7 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		position.RevertMove(moves.at(i));
 
 		SetBest(best, node, position.GetTurn());
-		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? NodeCut::BETA_CUTOFF : NodeCut::ALPHA_CUTOFF)) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn())) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
 	}
 
 	if (best->GetMove() == Move())	//if none of the captures were any good we assume there exists another quiet move we could have done instead
@@ -577,7 +577,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		position.RevertMove(moves.at(i));
 
 		SetBest(best, node, position.GetTurn());
-		if (CheckForCutoff(alpha, beta, best, position.GetTurn() ? NodeCut::BETA_CUTOFF : NodeCut::ALPHA_CUTOFF)) break;
+		if (CheckForCutoff(alpha, beta, best, position.GetTurn())) break;
 	}
 
 	if (best->GetCutoff() == NodeCut::UNINITIALIZED_NODE) //every move was found to be futile
