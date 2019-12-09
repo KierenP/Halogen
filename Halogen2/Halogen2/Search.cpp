@@ -135,30 +135,35 @@ Move SearchPosition(Position& position, int allowedTimeMs)
 
 	Move Best;
 	int score = EvaluatePosition(position);
+	bool endSearch = false;
 
 	//abort if I have used up more than half the time, if we have used up less than half it will try and search another ply.
-	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch(); depth++)
+	for (int depth = 1; !timeManage.AbortSearch() && !endSearch && timeManage.ContinueSearch(); depth++)
 	{
 		NodeCount = 0;
-
 		Timer searchTime;
+
 		searchTime.Start();
+		ABnode* ROOT = SearchToDepthAspiration(position, depth, score);
 
-		std::unique_ptr<ABnode> SearchResult = std::make_unique<ABnode>(*SearchToDepthAspiration(position, depth, score));
-
-		if (timeManage.AbortSearch()) //stick with what we previously found to be best if we had to abort while executing SearchToDepthAspiration.
+		if (timeManage.AbortSearch()) //stick with what we previously found to be best if we had to abort.
+		{
+			delete ROOT;
 			break;
+		}
 
-		PrintSearchInfo(position, *SearchResult, depth, searchTime.ElapsedMs(), SearchResult->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF);
+		if (ROOT->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
+			endSearch = true;
 
-		Best = SearchResult->GetMove();
-		score = SearchResult->GetScore();
+		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
 
-		if (SearchResult->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
-			break;
+		Best = ROOT->GetMove();
+		score = ROOT->GetScore();
+		delete ROOT;
 	}
-	
+
 	PrintBestMove(Best);
+
 	return Best;
 }
 
