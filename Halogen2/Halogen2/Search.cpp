@@ -246,8 +246,6 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)
 {
-	return false;	//TODO: reactivate the transpotition table
-
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
 	{
 		tTable.AddHit();

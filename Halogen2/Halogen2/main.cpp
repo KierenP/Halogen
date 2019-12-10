@@ -8,7 +8,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "2.7.2";
+string version = "2.7.3";
 
 int main()
 {
@@ -118,9 +118,9 @@ int main()
 				else
 				{
 					if (GameBoard.GetTurn() == WHITE)
-						movetime = wtime / (movestogo * 0.75);
+						movetime = wtime / (movestogo) - 500 * (movestogo == 1);	//half a second buffer for if this is the last turn before extra time: we don't want to run the clock right down to zero!
 					else
-						movetime = btime / (movestogo * 0.75);
+						movetime = btime / (movestogo) - 500 * (movestogo == 1);
 				}
 			}
 			std::thread SearchThread(SearchPosition, GameBoard, movetime);
