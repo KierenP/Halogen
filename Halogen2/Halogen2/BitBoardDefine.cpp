@@ -152,7 +152,7 @@ void BBInit()
 
 char PieceToChar(unsigned int piece)
 {
-	if (piece > N_PIECES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(piece <= N_PIECES);
 
 	char PieceChar[13] = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
 	return PieceChar[piece];
@@ -160,51 +160,77 @@ char PieceToChar(unsigned int piece)
 
 unsigned int Piece(unsigned int piecetype, unsigned int colour)
 {
+	assert(piecetype < N_PIECE_TYPES);
+	assert(colour < N_PLAYERS);
+
 	return piecetype + N_PIECE_TYPES * colour;
 }
 
 unsigned int GetFile(unsigned int square)
 {
+	assert(square < N_SQUARES);
+
 	return square % 8;
 }
 
 unsigned int GetRank(unsigned int square)
 {
+	assert(square < N_SQUARES);
+
 	return square / 8;
 }
 
 unsigned int GetPosition(unsigned int file, unsigned int rank)
 {
+	assert(file < N_FILES);
+	assert(file < N_RANKS);
+
 	return rank * 8 + file;
 }
 
 unsigned int AbsRankDiff(unsigned int sq1, unsigned int sq2)
 {
+	assert(sq1 < N_SQUARES);
+	assert(sq2 < N_SQUARES);
+
 	return abs(static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2)));
 }
 
 unsigned int AbsFileDiff(unsigned int sq1, unsigned int sq2)
 {
+	assert(sq1 < N_SQUARES);
+	assert(sq2 < N_SQUARES);
+
 	return abs(static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2)));
 }
 
 int RankDiff(unsigned int sq1, unsigned int sq2)
 {
+	assert(sq1 < N_SQUARES);
+	assert(sq2 < N_SQUARES);
+
 	return static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2));
 }
 
 int FileDiff(unsigned int sq1, unsigned int sq2)
 {
+	assert(sq1 < N_SQUARES);
+	assert(sq2 < N_SQUARES);
+
 	return static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2));
 }
 
 unsigned int GetDiagonal(unsigned int square)
 {
+	assert(square < N_SQUARES);
+
 	return (RANK_8 - GetRank(square)) + GetFile(square);
 }
 
 unsigned int GetAntiDiagonal(unsigned int square)
 {
+	assert(square < N_SQUARES);
+
 	return RANK_8 + FILE_H - GetRank(square) - GetFile(square);
 }
 
@@ -214,7 +240,7 @@ unsigned int GetBitCount(uint64_t bb)
 
 	while (bb != 0)
 	{
-		bitScanFowardErase(bb);
+		bitScanForwardErase(bb);
 		num++;
 	}
 
@@ -226,25 +252,26 @@ unsigned int AlgebraicToPos(std::string str)
 	if (str == "-")
 		return -1;
 
-	if (str.length() < 2) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(str.length() >= 2);
+
 	return (str[0] - 97) + (str[1] - 49) * 8;		
 }
 
 unsigned int ColourOfPiece(unsigned int piece)
 {
-	if (piece <= BLACK_KING)
-		return BLACK;
-	return WHITE;
+	assert(piece < N_PIECES);
+
+	return piece / N_PIECE_TYPES;
 }
 
 int bitScanForward(uint64_t bb)
 {
-	if (bb == EMPTY) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(bb != EMPTY);
 
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-int bitScanFowardErase(uint64_t &bb)
+int bitScanForwardErase(uint64_t &bb)
 {
 	int index = bitScanForward(bb);
 	bb ^= SquareBB[index];
@@ -272,8 +299,8 @@ uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 
 uint64_t inBetweenCache(unsigned int from, unsigned int to)
 {
-	if (from >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
-	if (to >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(from < N_SQUARES);
+	assert(to < N_SQUARES);
 
 	return betweenArray[from][to];
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <assert.h>
 
 enum Squares
 {
@@ -179,7 +180,7 @@ extern uint64_t BlackPawnAttacks[N_SQUARES];
 * @return index (0..63) of least significant one bit
 */
 int bitScanForward(uint64_t bb);
-int bitScanFowardErase(uint64_t &bb);
+int bitScanForwardErase(uint64_t &bb);
 
 uint64_t inBetween(unsigned int sq1, unsigned int sq2);	//return the bb of the squares in between (exclusive) the two squares
 uint64_t inBetweenCache(unsigned int from, unsigned int to);

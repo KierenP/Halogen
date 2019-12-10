@@ -142,8 +142,8 @@ int EvaluatePawnStructure(const Position & position)
 {
 	int result = 0;
 
-	for (uint64_t WhitePawns = position.GetPieceBB(WHITE_PAWN); WhitePawns != 0; result += EvaluatePawn(position, bitScanFowardErase(WhitePawns), WHITE));
-	for (uint64_t BlackPawns = position.GetPieceBB(BLACK_PAWN); BlackPawns != 0; result -= EvaluatePawn(position, bitScanFowardErase(BlackPawns), BLACK));
+	for (uint64_t WhitePawns = position.GetPieceBB(WHITE_PAWN); WhitePawns != 0; result += EvaluatePawn(position, bitScanForwardErase(WhitePawns), WHITE));
+	for (uint64_t BlackPawns = position.GetPieceBB(BLACK_PAWN); BlackPawns != 0; result -= EvaluatePawn(position, bitScanForwardErase(BlackPawns), BLACK));
 
 	return result;
 }
@@ -154,8 +154,8 @@ int EvaluatePieceSquareTables(const Position & position, unsigned int gameStage)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceSquareTables[gameStage][i][bitScanFowardErase(piece)]);														//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceSquareTables[gameStage][i + N_PIECE_TYPES][bitScanFowardErase(piece)]);						//white piece
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceSquareTables[gameStage][i][bitScanForwardErase(piece)]);														//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceSquareTables[gameStage][i + N_PIECE_TYPES][bitScanForwardErase(piece)]);						//white piece
 	}
 
 	return Score;
@@ -167,8 +167,8 @@ int EvaluateMaterial(const Position & position)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanFowardErase(piece);																		//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanFowardErase(piece);										//white piece
+		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanForwardErase(piece);																		//black piece
+		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanForwardErase(piece);										//white piece
 	}
 
 	return Score;

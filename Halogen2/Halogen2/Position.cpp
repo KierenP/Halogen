@@ -304,7 +304,7 @@ uint64_t Position::GenerateZobristKey() const
 		uint64_t bitboard = GetPieceBB(i);
 		while (bitboard != 0)
 		{
-			Key ^= ZobristTable.at(i * 64 + bitScanFowardErase(bitboard));
+			Key ^= ZobristTable.at(i * 64 + bitScanForwardErase(bitboard));
 		}
 	}
 
