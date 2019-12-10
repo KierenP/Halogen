@@ -120,7 +120,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 		});
 }
 
-Move SearchPosition(Position& position, int allowedTimeMs)
+Move SearchPosition(Position position, int allowedTimeMs)
 {
 	timeManage.StartSearch(allowedTimeMs);
 
@@ -291,6 +291,8 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 
 bool CheckForDraw(ABnode*& node, int depth, Position& position)
 {
+	//TODO: potential early break from loop and speedup!
+
 	int rep = 1;
 	uint64_t current = position.GetZobristKey();
 

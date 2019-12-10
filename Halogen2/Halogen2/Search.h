@@ -12,5 +12,4 @@
 #include <utility>
 
 extern TranspositionTable tTable;
-
-Move SearchPosition(Position & position, int allowedTimeMs);
+Move SearchPosition(Position position, int allowedTimeMs);

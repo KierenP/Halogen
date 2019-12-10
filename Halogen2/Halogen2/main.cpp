@@ -53,6 +53,10 @@ int main()
 		else if (token == "position")
 		{
 			GameBoard.StartingPosition();
+			PreviousKeys.clear();
+			previousBoards.clear();
+			PreviousParamiters.clear();
+
 			iss >> token;
 
 			if (token == "fen")
@@ -119,7 +123,7 @@ int main()
 						movetime = btime / (movestogo * 0.75);
 				}
 			}
-			std::thread SearchThread(SearchPosition, std::ref(GameBoard), movetime);
+			std::thread SearchThread(SearchPosition, GameBoard, movetime);
 			SearchThread.detach();
 		}
 
