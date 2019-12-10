@@ -15,7 +15,7 @@ BitBoard::~BitBoard()
 
 unsigned int BitBoard::GetSquare(unsigned int square) const
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to GetSquare()");
+	assert(square < N_SQUARES);
 
 	for (int i = 0; i < N_PIECES; i++)
 	{
@@ -28,8 +28,8 @@ unsigned int BitBoard::GetSquare(unsigned int square) const
 
 void BitBoard::SetSquare(unsigned int square, unsigned int piece)
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
-	if (piece > N_PIECES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(square < N_SQUARES);
+	assert(piece < N_PIECES);
 
 	ClearSquare(square);
 
@@ -39,7 +39,7 @@ void BitBoard::SetSquare(unsigned int square, unsigned int piece)
 
 void BitBoard::ClearSquare(unsigned int square)
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(square < N_SQUARES);
 
 	for (int i = 0; i < N_PIECES; i++)
 	{
@@ -106,7 +106,7 @@ void BitBoard::SaveBoard()
 
 void BitBoard::RestorePreviousBoard()
 {
-	if (previousBoards.size() == 0) throw std::invalid_argument("No previous board!");
+	assert(previousBoards.size() != 0);
 
 	*this = previousBoards[previousBoards.size() - 1];
 	previousBoards.erase(previousBoards.end() - 1);			//erase the last element
@@ -114,7 +114,7 @@ void BitBoard::RestorePreviousBoard()
 
 bool BitBoard::IsEmpty(unsigned int square) const
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	assert(square < N_SQUARES);
 
 	uint64_t mask = SquareBB[square] & GetEmptySquares();
 	if (mask != 0)
@@ -124,13 +124,15 @@ bool BitBoard::IsEmpty(unsigned int square) const
 
 bool BitBoard::IsOccupied(unsigned int square) const
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	assert(square < N_SQUARES);
+
 	return !IsEmpty(square);
 }
 
 bool BitBoard::IsOccupied(unsigned int square, bool colour) const
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	assert(square < N_SQUARES);
+
 	if ((SquareBB[square] & GetPiecesColour(colour)) != 0)
 		return true;
 	return false;
@@ -166,13 +168,15 @@ uint64_t BitBoard::GetPiecesColour(bool colour) const
 
 uint64_t BitBoard::GetPieceBB(unsigned int piece) const
 {
-	if (piece >= N_PIECES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	assert(piece < N_PIECES);
+
 	return m_Bitboard[piece];
 }
 
 uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
 {
-	if (pieceType >= N_PIECE_TYPES) throw std::invalid_argument("Bad paramiter to IsEmpty()");
+	assert(pieceType < N_PIECE_TYPES);
+
 	return m_Bitboard[pieceType + 6 * (colour)];
 }
 
@@ -180,8 +184,7 @@ unsigned int BitBoard::GetKing(bool colour) const
 {
 	uint64_t squares = GetPieceBB(KING, colour);
 
-	if (squares == 0)
-		throw std::invalid_argument("ILLEGAL POSITION DETECTED");
+	assert(squares != 0);
 
 	return bitScanForward(squares);
 }

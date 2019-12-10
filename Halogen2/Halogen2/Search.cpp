@@ -215,7 +215,8 @@ void SetBest(ABnode*& best, ABnode*& node, bool colour)
 
 void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b)
 {
-	if (a >= moves.size() || b >= moves.size()) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(a < moves.size());
+	assert(b < moves.size());
 
 	Move temp = moves[b];
 	moves[b] = moves[a];
@@ -384,9 +385,6 @@ void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& posi
 	case SearchLevels::ALPHABETA:
 		moves = GenerateLegalMoves(position);
 		break;
-	case SearchLevels::TERMINATE:
-		throw std::invalid_argument("YEET");
-		break;
 	case SearchLevels::QUIETESSENCE:
 		moves = GenerateLegalCaptures(position);
 		break;
@@ -397,7 +395,7 @@ void GetSearchMoves(SearchLevels level, std::vector<Move>& moves, Position& posi
 		moves = GenerateLegalMoves(position);
 		break;
 	default:
-		break;
+		throw std::invalid_argument("Error");
 	}
 }
 

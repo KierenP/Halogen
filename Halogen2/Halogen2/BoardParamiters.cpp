@@ -86,7 +86,7 @@ void BoardParamiters::SaveParamiters()
 
 void BoardParamiters::RestorePreviousParamiters()
 {
-	if (PreviousParamiters.size() == 0) throw std::invalid_argument("Yeet");
+	assert(PreviousParamiters.size() != 0);
 
 	*this = PreviousParamiters[PreviousParamiters.size() - 1];
 	PreviousParamiters.erase(PreviousParamiters.end() - 1);			//erase the last element

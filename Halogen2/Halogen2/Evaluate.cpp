@@ -78,8 +78,9 @@ int EvaluateCastleBonus(const Position & position)
 
 int EvaluatePawn(const Position & position, const unsigned int square, const bool colour)
 {
-	if (square >= N_SQUARES) throw std::invalid_argument("Bad paramiter to SetSquare()");
-	if (GetRank(square) == RANK_1 || GetRank(square) == RANK_8) throw std::invalid_argument("Bad paramiter to SetSquare()");
+	assert(square < N_SQUARES);
+	assert(GetRank(square) != RANK_1);
+	assert(GetRank(square) != RANK_8);
 
 	int result = 0;
 	bool IsPassed = false;
@@ -199,20 +200,21 @@ bool EvaluateDebug()
 
 		FlipColours(testPosition);
 		MirrorTopBottom(testPosition);
-		if (score != -EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");	//negitive as the colours are backwards
+
+		assert(score == -EvaluatePosition(testPosition)); 
 
 		MirrorLeftRight(testPosition);
-		if (score != -EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet"); //negitive as the colours are backwards
+		assert(score == -EvaluatePosition(testPosition));
 
 		FlipColours(testPosition);
 		MirrorTopBottom(testPosition);
-		if (score != EvaluatePosition(testPosition)) throw std::invalid_argument("Yeet");
+		assert(score == EvaluatePosition(testPosition));
 
 		MirrorLeftRight(testPosition);
 
 		for (int i = 0; i < N_SQUARES; i++)
 		{
-			if (testPosition.GetSquare(i) != copy.GetSquare(i)) throw std::invalid_argument("YEET");
+			assert(testPosition.GetSquare(i) != copy.GetSquare(i));
 		}
 	}
 
