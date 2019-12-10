@@ -84,6 +84,7 @@ int main()
 			int winc = 0;
 			int binc = 0;
 			int searchTime = 0;
+			int movestogo = 0;
 
 			while (iss >> token)
 			{
@@ -93,6 +94,7 @@ int main()
 				else if (token == "binc")	iss >> binc;
 				else if (token == "movetime") iss >> searchTime;
 				else if (token == "infinite") searchTime = 2147483647;
+				else if (token == "movestogo") iss >> movestogo;
 			}
 
 			int movetime = 0;
@@ -101,10 +103,21 @@ int main()
 				movetime = searchTime;
 			else
 			{
-				if (GameBoard.GetTurn() == WHITE)
-					movetime = wtime / 20;
+				if (movestogo == 0)
+				{
+
+					if (GameBoard.GetTurn() == WHITE)
+						movetime = wtime / 20;
+					else
+						movetime = btime / 20;
+				}
 				else
-					movetime = btime / 20;
+				{
+					if (GameBoard.GetTurn() == WHITE)
+						movetime = wtime / (movestogo * 0.75);
+					else
+						movetime = btime / (movestogo * 0.75);
+				}
 			}
 			std::thread SearchThread(SearchPosition, std::ref(GameBoard), movetime);
 			SearchThread.detach();
