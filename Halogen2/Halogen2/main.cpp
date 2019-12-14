@@ -26,6 +26,7 @@ int main()
 	GameBoard.StartingPosition();
 
 	EvaluateDebug();
+	//PerftSuite();
 
 	while (getline(cin, Line))
 	{
@@ -166,7 +167,7 @@ void PerftSuite()
 
 	unsigned int Perfts = 0;
 	unsigned int Correct = 0;
-	double Totalnodes = 0;
+	uint64_t Totalnodes = 0;
 
 	std::string line;
 

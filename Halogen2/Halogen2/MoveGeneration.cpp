@@ -228,7 +228,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_H1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_F1, position.GetTurn()) && !IsInCheck(position, SQ_G1, position.GetTurn()))
+			if ((position.GetBlackThreats() & (SquareBB[SQ_E1] | SquareBB[SQ_F1] | SquareBB[SQ_G1])) == 0)
 			{
 				moves.push_back(Move(SQ_E1, SQ_G1, KING_CASTLE));
 			}
@@ -239,7 +239,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_A1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_D1, position.GetTurn()) && !IsInCheck(position, SQ_C1, position.GetTurn()))
+			if ((position.GetBlackThreats() & (SquareBB[SQ_E1] | SquareBB[SQ_D1] | SquareBB[SQ_C1])) == 0)
 			{
 				moves.push_back(Move(SQ_E1, SQ_C1, QUEEN_CASTLE));
 			}
@@ -250,7 +250,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_H8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_F8, position.GetTurn()) && !IsInCheck(position, SQ_G8, position.GetTurn()))
+			if ((position.GetWhiteThreats() & (SquareBB[SQ_E8] | SquareBB[SQ_F8] | SquareBB[SQ_G8])) == 0)
 			{
 				moves.push_back(Move(SQ_E8, SQ_G8, KING_CASTLE));
 			}
@@ -261,7 +261,7 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_A8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_D8, position.GetTurn()) && !IsInCheck(position, SQ_C8, position.GetTurn()))
+			if ((position.GetWhiteThreats() & (SquareBB[SQ_E8] | SquareBB[SQ_D8] | SquareBB[SQ_C8])) == 0)
 			{
 				moves.push_back(Move(SQ_E8, SQ_C8, QUEEN_CASTLE));
 			}
@@ -383,6 +383,7 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 	unsigned int king = position.GetKing(turn);
 	bool InCheck = IsInCheck(position, king, turn);
 	uint64_t mask = position.GetAllPieces();
+	uint64_t ThreatTable = (turn == BLACK) ? position.GetWhiteThreats() : position.GetBlackThreats();
 
 	for (int i = 0; i < 64; i++)
 		Pinned[i] = InCheck;
@@ -397,6 +398,9 @@ void RemoveIllegal(Position & position, std::vector<Move>& moves)
 			Pinned[moves[i].GetFrom()] = true;
 			continue;
 		}
+
+		if ((SquareBB[moves[i].GetFrom()] & ThreatTable) == 0)				//if the piece isn't threatened, it can't be pinned
+			continue;
 
 		if (!mayMove(king, moves[i].GetFrom(), mask))						//if you can't move from the piece to the king, it can't be pinned
 			continue;

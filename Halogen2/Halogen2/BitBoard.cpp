@@ -180,6 +180,13 @@ uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
 	return m_Bitboard[pieceType + 6 * (colour)];
 }
 
+uint64_t BitBoard::GetThreats(unsigned int piece) const
+{
+	assert(piece < N_PIECES);
+
+	return AttackTable[piece];
+}
+
 unsigned int BitBoard::GetKing(bool colour) const
 {
 	uint64_t squares = GetPieceBB(KING, colour);
@@ -187,4 +194,152 @@ unsigned int BitBoard::GetKing(bool colour) const
 	assert(squares != 0);
 
 	return bitScanForward(squares);
+}
+
+void BitBoard::GenerateAttackTables()
+{
+	WhiteThreats = EMPTY;
+	BlackThreats = EMPTY;
+
+	for (int i = 0; i < N_PIECES; i++)
+	{
+		AttackTable[i] = EMPTY;
+	}
+
+	uint64_t mask = GetAllPieces();
+
+	uint64_t movePiece = GetPieceBB(WHITE_KNIGHT);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = KnightAttacks[start] & (~GetWhitePieces());
+		AttackTable[WHITE_KNIGHT] |= moves;
+	}
+
+	movePiece = GetPieceBB(BLACK_KNIGHT);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = KnightAttacks[start] & (~GetBlackPieces());
+		AttackTable[BLACK_KNIGHT] |= moves;
+	}
+
+	movePiece = GetPieceBB(WHITE_PAWN);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = WhitePawnAttacks[start] & (~GetWhitePieces());
+		AttackTable[WHITE_PAWN] |= moves;
+	}
+
+	movePiece = GetPieceBB(BLACK_PAWN);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = BlackPawnAttacks[start] & (~GetBlackPieces());
+		AttackTable[BLACK_PAWN] |= moves;
+	}
+
+	movePiece = GetPieceBB(WHITE_KING);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = KingAttacks[start] & (~GetWhitePieces());
+		AttackTable[WHITE_KING] |= moves;
+	}
+
+	movePiece = GetPieceBB(BLACK_KING);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = KingAttacks[start] & (~GetBlackPieces());
+		AttackTable[BLACK_KING] |= moves;
+	}
+
+	movePiece = GetPieceBB(WHITE_BISHOP);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = BishopAttacks[start] & (~GetWhitePieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_BISHOP] |= SquareBB[end];
+		}
+	}
+
+	movePiece = GetPieceBB(BLACK_BISHOP);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = BishopAttacks[start] & (~GetBlackPieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_BISHOP] |= SquareBB[end];
+		}
+	}
+
+	movePiece = GetPieceBB(WHITE_ROOK);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = RookAttacks[start] & (~GetWhitePieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_ROOK] |= SquareBB[end];
+		}
+	}
+
+	movePiece = GetPieceBB(BLACK_ROOK);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = RookAttacks[start] & (~GetBlackPieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_ROOK] |= SquareBB[end];
+		}
+	}
+
+	movePiece = GetPieceBB(WHITE_QUEEN);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = QueenAttacks[start] & (~GetWhitePieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[WHITE_QUEEN] |= SquareBB[end];
+		}
+	}
+
+	movePiece = GetPieceBB(BLACK_QUEEN);
+	while (movePiece != 0)
+	{
+		unsigned int start = bitScanForwardErase(movePiece);
+		uint64_t moves = QueenAttacks[start] & (~GetBlackPieces());
+
+		while (moves != 0)
+		{
+			unsigned int end = bitScanForwardErase(moves);
+			if (mayMove(start, end, mask))
+				AttackTable[BLACK_QUEEN] |= SquareBB[end];
+		}
+	}
+
+	WhiteThreats |= AttackTable[WHITE_PAWN] | AttackTable[WHITE_KNIGHT] | AttackTable[WHITE_BISHOP] | AttackTable[WHITE_QUEEN] | AttackTable[WHITE_ROOK] | AttackTable[WHITE_KING];
+	BlackThreats |= AttackTable[BLACK_PAWN] | AttackTable[BLACK_KNIGHT] | AttackTable[BLACK_BISHOP] | AttackTable[BLACK_QUEEN] | AttackTable[BLACK_ROOK] | AttackTable[BLACK_KING];
 }

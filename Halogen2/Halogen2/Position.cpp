@@ -104,6 +104,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	key = GenerateZobristKey();
+	GenerateAttackTables();
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -240,6 +241,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	InitialiseBoardFromFen(fen);
 	InitialiseParamitersFromFen(fen);
 	key = GenerateZobristKey();
+	GenerateAttackTables();
 
 	return true;
 }

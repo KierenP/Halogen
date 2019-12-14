@@ -24,10 +24,15 @@ public:
 	uint64_t GetPiecesColour(bool colour) const;
 	uint64_t GetPieceBB(unsigned int piece) const;
 	uint64_t GetPieceBB(unsigned int pieceType, bool colour) const;
+	uint64_t GetWhiteThreats() const { return WhiteThreats; };
+	uint64_t GetBlackThreats() const { return BlackThreats; };
+	uint64_t GetThreats(unsigned int piece) const;
 	unsigned int GetKing(bool colour) const;
 
 	void SetSquare(unsigned int square, unsigned int piece);
 	void ClearSquare(unsigned int square);
+
+	void GenerateAttackTables();
 
 protected:
 	void Reset();
@@ -39,5 +44,8 @@ protected:
 private:
 	uint64_t m_Bitboard[N_PIECES];
 	uint64_t AttackTable[N_PIECES];
+
+	uint64_t WhiteThreats;
+	uint64_t BlackThreats;
 };
 
