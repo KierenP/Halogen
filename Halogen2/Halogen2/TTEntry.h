@@ -18,12 +18,11 @@ public:
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 
 private:
-	//fits within 16 bytes.
-	uint64_t key;			//8 bytes
-	short int score;		//2 bytes
-	signed char depth;		//1 bytes
-	Move bestMove;			//3 bytes  
-	bool ancient;			//1 byte 
-	NodeCut cutoff;			//1 byte  (?) 
+	uint64_t key;			
+	short int score;		
+	signed char depth;		
+	Move bestMove;			  
+	bool ancient;			
+	NodeCut cutoff;			 
 };
 

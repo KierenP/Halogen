@@ -214,7 +214,7 @@ bool EvaluateDebug()
 
 		for (int i = 0; i < N_SQUARES; i++)
 		{
-			assert(testPosition.GetSquare(i) != copy.GetSquare(i));
+			assert(testPosition.GetSquare(i) == copy.GetSquare(i));
 		}
 	}
 

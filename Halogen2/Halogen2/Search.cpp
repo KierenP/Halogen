@@ -33,7 +33,7 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 
 //Branch pruning techniques
 bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull);
-bool FutilityPrune(int depth, bool InCheck, Position& position, int i, int alpha, int beta);
+bool FutilityPrune(int depth, bool InCheck, Position& position, int alpha, int beta);
 bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch);
 
 //Utility functions
@@ -60,63 +60,65 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
 	*/
-	unsigned int swapIndex = 0;
-	std::vector<int> PieceValues = { 1, 3, 3, 5, 9, 100, 1, 3, 3, 5, 9, 100, 1 };	//relative values. Note empty is a pawn. This is explained below
 
-	//move previously cached position to front
+	Move TTmove;
+	std::vector<int> RelativePieceValues = { 1, 3, 3, 5, 9, 100, 1, 3, 3, 5, 9, 100 };	//technically, there is no way we can be capturing a king as the game would already be over.
+
 	if (tTable.CheckEntry(position.GetZobristKey(), searchDepth - 1))
 	{
-		Move bestprev = tTable.GetEntry(position.GetZobristKey()).GetMove();
-		for (int i = swapIndex; i < moves.size(); i++)
+		TTmove = tTable.GetEntry(position.GetZobristKey()).GetMove();
+	}
+
+	//give each move a score on how 'good' it is. 
+	for (int i = 0; i < moves.size(); i++)
+	{
+		if (moves[i] == TTmove) {
+			moves[i].OrderScore = 100;	//we want this at the front
+			continue;
+		}
+
+		if (!moves[i].IsCapture() && !moves[i].IsPromotion()) {
+			continue;	//quite moves get a score of zero, but may come before some bad captures which get a negative score
+		}
+
+		if (moves[i].IsCapture())
 		{
-			if (bestprev == moves.at(i))
+			int PieceValue = RelativePieceValues.at(position.GetSquare(moves[i].GetFrom()));
+			int CaptureValue = 0;
+
+			if (moves[i].GetFlag() == EN_PASSANT)
+				CaptureValue = RelativePieceValues[WHITE_PAWN];	//1
+
+			if (moves[i].IsCapture() && moves[i].GetFlag() != EN_PASSANT)
 			{
-				SwapMoves(moves, i, swapIndex);
-				swapIndex++;
-				break;
+				CaptureValue = RelativePieceValues.at(position.GetSquare(moves[i].GetTo()));	//if enpassant then the .GetTo() square is empty
 			}
+
+			moves[i].OrderScore += CaptureValue;
+
+			if (IsInCheck(position, moves[i].GetTo(), position.GetTurn()))
+				moves[i].OrderScore -= PieceValue;
+		}
+
+		if (moves[i].IsPromotion())
+		{
+			if (moves[i].GetFlag() == KNIGHT_PROMOTION || moves[i].GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+				moves[i].OrderScore += RelativePieceValues[WHITE_KNIGHT];	
+			if (moves[i].GetFlag() == ROOK_PROMOTION || moves[i].GetFlag() == ROOK_PROMOTION_CAPTURE)
+				moves[i].OrderScore += RelativePieceValues[WHITE_ROOK];
+			if (moves[i].GetFlag() == BISHOP_PROMOTION || moves[i].GetFlag() == BISHOP_PROMOTION_CAPTURE)
+				moves[i].OrderScore += RelativePieceValues[WHITE_BISHOP];
+			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
+				moves[i].OrderScore += RelativePieceValues[WHITE_QUEEN];
+
+			if (!moves[i].IsCapture())
+				moves[i].OrderScore -= RelativePieceValues[WHITE_PAWN];
 		}
 	}
 
-	//The move promotions to front
-	for (int i = swapIndex; i < moves.size(); i++)
-	{
-		if (moves.at(i).IsPromotion())
+	std::stable_sort(moves.begin(), moves.end(), [](const Move& lhs, const Move& rhs)
 		{
-			SwapMoves(moves, i, swapIndex);
-			swapIndex++;
-		}
-	}
-
-	int captures = 0;
-
-	//move all captures behind it
-	for (int i = swapIndex; i < moves.size(); i++)
-	{
-		if (moves.at(i).IsCapture())
-		{
-			SwapMoves(moves, i, swapIndex);
-			swapIndex++;
-			captures++;
-		}
-	}
-
-	/*
-	stack exchange answer. Uses 'lambda' expressions. I don't really understand how this works
-	Note if it is an en passant, then there is nothing in the square the piece is moving to and this caused an out of bounds index and garbage memory access.
-	It took me about 5 hours to figure it out. The workaround was adding a 1 to the end of the pieceValues vector.
-	
-	EDIT: about 6 hours more googling and debugging it turns out that std::sort is an unstable sort which was causing non-deterministic behaviour.
-	I have replaced this with std::stable_sort which should hopefully fix the problem
-
-	honestly if you add up all the time saved using this over a custom sort written by me, 
-	it would have been quicker if I never tried to be clever in the first place
-	*/
-
-	//Sort the captures
-	std::stable_sort(moves.begin() + swapIndex - captures, moves.begin() + swapIndex, [position, PieceValues](const Move& lhs, const Move& rhs)
-		{
-			return PieceValues.at(position.GetSquare(lhs.GetTo())) - PieceValues.at(position.GetSquare(lhs.GetFrom())) > PieceValues.at(position.GetSquare(rhs.GetTo())) - PieceValues.at(position.GetSquare(rhs.GetFrom()));
+			return lhs.OrderScore > rhs.OrderScore;
 		});
 }
 
@@ -247,6 +249,8 @@ SearchLevels CalculateSearchType(Position& position, int depth, bool check)
 
 bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta, ABnode* parent)
 {
+	//return false;
+
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
 	{
 		tTable.AddHit();
@@ -341,7 +345,7 @@ bool InitializeSearchVariables(Position& position, std::vector<Move>& moves, int
 {
 	if (CheckForDraw(parent, depth, position)) return true;
 	if (CheckForTransposition(position, depth, alpha, beta, parent)) return true;
-
+	
 	GetSearchMoves(level, moves, position);
 
 	if (moves.size() == 0)
@@ -358,7 +362,7 @@ void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCh
 {
 	if (level == SearchLevels::QUIETESSENCE || level == SearchLevels::LEAF_SEARCH)
 	{
-		parent->SetCutoff(NodeCut::EXACT_CUTOFF);
+		parent->SetCutoff(NodeCut::EXACT_CUTOFF); //we found no captures, but likely there is other quiet moves so it isn't checkmate
 		parent->SetScore(EvaluatePosition(position));
 	}
 
@@ -373,7 +377,7 @@ void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCh
 	}
 	else
 	{
-		parent->SetCutoff(NodeCut::THREE_FOLD_REP_CUTOFF);
+		parent->SetCutoff(NodeCut::THREE_FOLD_REP_CUTOFF); //we use three fold rep to mean stalemate
 		parent->SetScore(0);
 	}
 }
@@ -562,7 +566,7 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 	{
 		position.ApplyMove(moves.at(i));
 
-		if (FutilityPrune(depth, InCheck, position, i, alpha, beta)) {
+		if (FutilityPrune(depth, InCheck, position, alpha, beta)) {
 			position.RevertMove(moves.at(i));
 			continue;
 		}
@@ -614,7 +618,7 @@ bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck,
 	return false;
 }
 
-bool FutilityPrune(int depth, bool InCheck, Position& position, int i, int alpha, int beta)
+bool FutilityPrune(int depth, bool InCheck, Position& position, int alpha, int beta)
 {
 	//futility pruning. Dont prune promotions or checks. Make sure it's more than 100 points below alpha (if so and previous condtitions met then prune)
 	if (depth > 2 || InCheck || IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return false;

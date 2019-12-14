@@ -38,6 +38,8 @@ public:
 
 	bool operator==(const Move& rhs) const;
 
+	int OrderScore;
+
 private:
 
 	void SetFrom(unsigned int from);
