@@ -18,6 +18,32 @@ int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
+int KingTropism(const Position& pos);
+
+int Distance[64][64];
+
+int Diagonals[64] = {
+   0, 1, 2, 3, 4, 5, 6, 7,
+   1, 2, 3, 4, 5, 6, 7, 8,
+   2, 3, 4, 5, 6, 7, 8, 9,
+   3, 4, 5, 6, 7, 8, 9,10,
+   4, 5, 6, 7, 8, 9,10,11,
+   5, 6, 7, 8, 9,10,11,12,
+   6, 7, 8, 9,10,11,12,13,
+   7, 8, 9,10,11,12,13,14
+};
+
+int AntiDiagonals[64] = {
+   7, 6, 5, 4, 3, 2, 1, 0,
+   8, 7, 6, 5, 4, 3, 2, 1,
+   9, 8, 7, 6, 5, 4, 3, 2,
+  10, 9, 8, 7, 6, 5, 4, 3,
+  11,10, 9, 8, 7, 6, 5, 4,
+  12,11,10, 9, 8, 7, 6, 5,
+  13,12,11,10, 9, 8, 7, 6,
+  14,13,12,11,10, 9, 8, 7
+};
+
 
 //DEBUG FUNCTIONS
 void FlipColours(Position& pos);
@@ -34,7 +60,8 @@ int EvaluatePosition(const Position & position)
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
-	Score += Material + PieceSquares + PawnStructure + Castle;
+	int Tropism = KingTropism(position);
+	Score += Material + PieceSquares + PawnStructure + Castle + Tropism;
 
 	//std::cout << "Material: " << Material << "\n";
 	//std::cout << "Piece Squares: " << PieceSquares << "\n";
@@ -48,6 +75,12 @@ int EvaluatePosition(const Position & position)
 void InitializeEvaluation()
 {
 	InitializePieceSquareTable();
+
+	for (int i = 0; i < 64; ++i) {
+		for (int j = 0; j < 64; ++j) {
+			Distance[i][j] = 14 - (AbsFileDiff(i, j) + AbsRankDiff(i, j));
+		}
+	}
 }
 
 unsigned int CalculateGameStage(const Position & position)
@@ -214,7 +247,7 @@ bool EvaluateDebug()
 
 		for (int i = 0; i < N_SQUARES; i++)
 		{
-			assert(testPosition.GetSquare(i) != copy.GetSquare(i));
+			assert(testPosition.GetSquare(i) == copy.GetSquare(i));
 		}
 	}
 
@@ -260,6 +293,44 @@ void MirrorTopBottom(Position& pos)
 		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
 			pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
 	}
+}
+
+//gives a score based on how close the pieces are to an opponents king
+int KingTropism(const Position& pos)
+{
+	int WhiteTropism = 0;
+	int BlackTropism = 0;
+	int whiteKing = pos.GetKing(WHITE);
+	int blackKing = pos.GetKing(BLACK);
+
+	int bonus_dia_distance[15] = { 5, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	for (uint64_t pieces = pos.GetPieceBB(KNIGHT, WHITE); pieces != 0; BlackTropism += Distance[bitScanForwardErase(pieces)][blackKing]);
+	for (uint64_t pieces = pos.GetPieceBB(KNIGHT, BLACK); pieces != 0; WhiteTropism += Distance[bitScanForwardErase(pieces)][whiteKing]);
+
+	for (uint64_t pieces = pos.GetPieceBB(ROOK, WHITE); pieces != 0; BlackTropism += Distance[bitScanForwardErase(pieces)][blackKing] / 2);
+	for (uint64_t pieces = pos.GetPieceBB(ROOK, BLACK); pieces != 0; WhiteTropism += Distance[bitScanForwardErase(pieces)][whiteKing] / 2);
+
+	for (uint64_t pieces = pos.GetPieceBB(QUEEN, WHITE); pieces != 0; BlackTropism += Distance[bitScanForwardErase(pieces)][blackKing] * 5 / 2);
+	for (uint64_t pieces = pos.GetPieceBB(QUEEN, BLACK); pieces != 0; WhiteTropism += Distance[bitScanForwardErase(pieces)][whiteKing] * 5 / 2);
+
+	for (uint64_t pieces = pos.GetPieceBB(BISHOP, WHITE); pieces != 0; )
+	{
+		int sq = bitScanForwardErase(pieces);
+
+		BlackTropism += bonus_dia_distance[abs(Diagonals[sq] - Diagonals[blackKing])];
+		BlackTropism += bonus_dia_distance[abs(AntiDiagonals[sq] - AntiDiagonals[blackKing])];
+	}
+	
+	for (uint64_t pieces = pos.GetPieceBB(BISHOP, BLACK); pieces != 0; )
+	{
+		int sq = bitScanForwardErase(pieces);
+
+		WhiteTropism += bonus_dia_distance[abs(Diagonals[sq] - Diagonals[whiteKing])];
+		WhiteTropism += bonus_dia_distance[abs(AntiDiagonals[sq] - AntiDiagonals[whiteKing])];
+	}
+	
+	return BlackTropism - WhiteTropism;
 }
 
 
