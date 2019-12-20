@@ -44,7 +44,7 @@ void ABnode::SetScore(int score)
 	m_Score = score;
 }
 
-void ABnode::SetChild(ABnode * child)
+void ABnode::SetChild(ABnode * child, bool transposition)
 {
 	if (HasChild()) delete m_Child;	//avoiding memory leaks
 
@@ -52,7 +52,7 @@ void ABnode::SetChild(ABnode * child)
 	m_Score = child->GetScore();
 	m_Cutoff = child->GetCutoff();
 
-	if (child->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF || abs(child->GetScore()) > 7500)
+	if ((child->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF || abs(child->GetScore()) > 7500))// && !transposition)
 	{
 		if (m_Score < 0)				
 			m_Score += 1;

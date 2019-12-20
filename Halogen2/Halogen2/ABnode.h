@@ -15,6 +15,8 @@ enum class NodeCut
 	THREE_FOLD_REP_CUTOFF,			//Also used in cases of stalemate, not that this is an issue I think
 	QUIESSENCE_NODE_CUTOFF,
 	FUTILE_NODE,
+	LATE_MOVE_REDUCTION,
+	NULL_PRUNE
 };
 
 enum class Score
@@ -46,7 +48,7 @@ public:
 
 	void SetScore(int score);
 	void SetCutoff(NodeCut cutoff);
-	void SetChild(ABnode* child);							//NOTE: will delete the current child if it has one!
+	void SetChild(ABnode* child, bool transposition);							//NOTE: will delete the current child if it has one!
 
 	bool HasChild() const;
 

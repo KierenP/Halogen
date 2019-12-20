@@ -6,7 +6,7 @@
 #include <Windows.h>
 
 extern std::vector<uint64_t> PreviousKeys;
-extern int NodeCount;
+extern uint64_t NodeCount;
 
 /*
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.

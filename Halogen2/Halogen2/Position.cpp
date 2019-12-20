@@ -1,7 +1,7 @@
 #include "Position.h"
 
 std::vector<uint64_t> PreviousKeys;
-int NodeCount = 0;
+uint64_t NodeCount = 0;
 
 Position::Position()
 {
@@ -34,7 +34,7 @@ void Position::ApplyMove(Move move)
 	SaveParamiters();
 	SaveBoard();
 	SetEnPassant(-1);
-	NodeCount++;
+	NodeCount += 1;
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 

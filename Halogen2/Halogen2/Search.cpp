@@ -13,10 +13,10 @@ TranspositionTable tTable;
 SearchTimeManage timeManage;
 
 //Search functions
-ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int score);
+ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int score, bool CheckmateFound);
 void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha);
 std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int beta);		//Return the best 4 moves in order from this position
-void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search);
+void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search, int distanceFromRoot);
 void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search);
 
 //Search aid functions
@@ -32,9 +32,9 @@ void EndSearch(SearchLevels level, ABnode* parent, Position& position, bool InCh
 void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, int windowWidth, Position& position, int depth, bool& Redo, int& alphaInc, int& alpha);
 
 //Branch pruning techniques
-bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull);
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull, int distanceFromRoot);
 bool FutilityPrune(int depth, bool InCheck, Position& position, int alpha, int beta);
-bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch);
+bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch, int distanceFromRoot);
 
 //Utility functions
 void SwapMoves(std::vector<Move>& moves, unsigned int a, unsigned int b);
@@ -136,6 +136,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 	Move Best;
 	int score = EvaluatePosition(position);
 	bool endSearch = false;
+	bool MateFound = false;
 
 	//abort if I have used up more than half the time, if we have used up less than half it will try and search another ply.
 	for (int depth = 1; !timeManage.AbortSearch() && !endSearch && timeManage.ContinueSearch(); depth++)
@@ -144,7 +145,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		Timer searchTime;
 
 		searchTime.Start();
-		ABnode* ROOT = SearchToDepthAspiration(position, depth, score);
+		ABnode* ROOT = SearchToDepthAspiration(position, depth, score, MateFound);
 
 		if (timeManage.AbortSearch()) //stick with what we previously found to be best if we had to abort.
 		{
@@ -152,10 +153,10 @@ Move SearchPosition(Position position, int allowedTimeMs)
 			break;
 		}
 
-		if (ROOT->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)	//no need to search deeper if this is the case.
-			endSearch = true;
+		if (ROOT->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)
+			MateFound = true;
 
-		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), endSearch);
+		PrintSearchInfo(position, *ROOT, depth, searchTime.ElapsedMs(), MateFound);
 
 		Best = ROOT->GetMove();
 		score = ROOT->GetScore();
@@ -254,9 +255,9 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 
 		//we don't like to get the values for checkmates as its possible the checkmate is not the quickest possible checkmate
 		//instead, we should recalculate next move to make SURE that we are heading towards a checkmate
-		if (ttEntry.GetCutoff() == NodeCut::EXACT_CUTOFF || ttEntry.GetCutoff() == NodeCut::QUIESSENCE_NODE_CUTOFF || ttEntry.GetCutoff() == NodeCut::CHECK_MATE_CUTOFF)
+		if (ttEntry.GetCutoff() == NodeCut::EXACT_CUTOFF || ttEntry.GetCutoff() == NodeCut::QUIESSENCE_NODE_CUTOFF || ttEntry.GetCutoff() == NodeCut::CHECK_MATE_CUTOFF || ttEntry.GetCutoff() == NodeCut::THREE_FOLD_REP_CUTOFF)
 		{
-			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+			parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()), true);
 			return true;
 		}
 
@@ -267,7 +268,7 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 			{
 				if (ttEntry.GetScore() >= beta)
 				{
-					parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+					parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()), true);
 					return true;
 				}
 			}
@@ -280,7 +281,7 @@ bool CheckForTransposition(Position& position, int depth, int& alpha, int& beta,
 			{
 				if (ttEntry.GetScore() <= alpha)
 				{
-					parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()));
+					parent->SetChild(new ABnode(ttEntry.GetMove(), depth, ttEntry.GetCutoff(), ttEntry.GetScore()), true);
 					return true;
 				}
 			}
@@ -415,7 +416,7 @@ std::vector<ABnode*> SearchDebug(Position& position, int depth, int alpha, int b
 	{
 		ABnode* node = CreateBranchNode(moves.at(i), depth);
 		position.ApplyMove(moves.at(i));
-		AlphaBeta(position, depth - 1, node, alpha, beta, true, SearchLevels::ALPHABETA);
+		AlphaBeta(position, depth - 1, node, alpha, beta, true, SearchLevels::ALPHABETA, 1);
 		position.RevertMove(moves.at(i));
 		MoveNodes.push_back(node);
 	}
@@ -469,22 +470,20 @@ void Quietessence(Position& position, int depth, ABnode* parent, int alpha, int 
 		if (CheckForCutoff(alpha, beta, best, position.GetTurn())) break; //if in zanzuag, this may cause a cutoff if best was a leaf node
 	}
 
-	if (best->GetMove() == Move())	//if none of the captures were any good we assume there exists another quiet move we could have done instead
+	if (best->GetMove() == Move())	//if none of the captures were any good we assume there exists another quiet move we could have done instead. 
 	{	
 		parent->SetCutoff(NodeCut::EXACT_CUTOFF);
-		parent->SetScore(EvaluatePosition(position));
-		tTable.AddEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff());
-
+		parent->SetScore(best->GetScore());
 		delete best;
 	}
 	else
 	{
-		parent->SetChild(best);
+		parent->SetChild(best, false);
 		tTable.AddEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff());
 	}
 }
 
-ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int score)
+ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int score, bool CheckmateFound)
 {
 	int windowWidth = 25;
 
@@ -492,6 +491,20 @@ ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int scor
 	int betaInc = 0;
 	int alpha = score - windowWidth * int_pow(2, alphaInc);
 	int beta = score + windowWidth * int_pow(2, betaInc);
+
+	if (CheckmateFound)
+	{
+		if (score < 0)
+		{
+			beta = score + 1;
+			alpha = static_cast<int>(Score::LowINF) + 1;
+		}
+		else
+		{
+			beta = static_cast<int>(Score::HighINF) - 1;
+			alpha = score - 1;
+		}
+	}
 
 	tTable.ResetHitCount();
 
@@ -510,7 +523,7 @@ ABnode* SearchToDepthAspiration(Position& position, int depthRemaining, int scor
 			ABnode* node = CreateBranchNode(moves.at(i), depthRemaining);
 
 			position.ApplyMove(moves.at(i));
-			AlphaBeta(position, depthRemaining - 1, node, alpha, beta, true, SearchLevels::ALPHABETA);
+			AlphaBeta(position, depthRemaining - 1, node, alpha, beta, true, SearchLevels::ALPHABETA, 10);
 			position.RevertMove(moves.at(i));
 
 			if (timeManage.AbortSearch())	//go with what was previously found to be the best move so far, as he had to stop the search early.	
@@ -533,7 +546,7 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 {
 	if (best->GetCutoff() == NodeCut::BETA_CUTOFF)
 	{
-		std::cout << "info Beta-Cutoff" << best->GetScore() << std::endl;
+		std::cout << "info Beta-Cutoff score: " << best->GetScore() << " alpha " << alpha << " beta " << beta << std::endl;
 		betaInc++;
 		beta = score + windowWidth * int_pow(2, betaInc);	//double the distance
 		delete best;
@@ -543,23 +556,26 @@ void AspirationWindowAdjust(ABnode*& best, int& betaInc, int& beta, int score, i
 
 	if (best->GetCutoff() == NodeCut::ALPHA_CUTOFF)
 	{
-		std::cout << "info Alpha-Cutoff" << best->GetScore() << std::endl;
+		std::cout << "info Alpha-Cutoff score: " << best->GetScore() << " alpha " << alpha << " beta " << beta << std::endl;
 		alphaInc++;
 		alpha = score - windowWidth * int_pow(2, alphaInc);	//double the distance
 		delete best;
 		best = CreatePlaceHolderNode(position.GetTurn(), depth);
 		Redo = true;
 	}
+
+	//std::cout << "info Repeat!\n";
 }
 
-void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search)
+void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int beta, bool allowNull, SearchLevels search, int distanceFromRoot)
 {
 	if (timeManage.AbortSearch()) return;
 
 	std::vector<Move> moves;
 	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+
 	if (InitializeSearchVariables(position, moves, depth, alpha, beta, parent, search, InCheck)) return; //This checks for transpositions, draws, generates the moves, and checkmate
-	if (NullMovePrune(position, depth, parent, alpha, beta, search, InCheck, allowNull)) return;
+	if (NullMovePrune(position, depth, parent, alpha, beta, search, InCheck, allowNull, distanceFromRoot)) return;
 
 	ABnode* best = CreatePlaceHolderNode(position.GetTurn(), depth);
 
@@ -576,13 +592,13 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		SearchLevels Newsearch = CalculateSearchType(position, depth, InCheck);
 
 		//Late move reductions	
-		bool Cut = LateMoveReduction(i, depth, moves, InCheck, position, node, alpha, beta, Newsearch);
+		bool Cut = LateMoveReduction(i, depth, moves, InCheck, position, node, alpha, beta, Newsearch, distanceFromRoot);
 
 		if (!Cut)
 			if (Newsearch != SearchLevels::ALPHABETA)
 				Quietessence(position, depth - 1, node, alpha, beta, Newsearch);
 			else
-				AlphaBeta(position, depth - 1, node, alpha, beta, true, Newsearch);
+				AlphaBeta(position, depth - 1, node, alpha, beta, true, Newsearch, distanceFromRoot + 1);
 
 		position.RevertMove(moves.at(i));
 
@@ -596,23 +612,23 @@ void AlphaBeta(Position& position, int depth, ABnode* parent, int alpha, int bet
 		best->SetScore(EvaluatePosition(position)); //this is safe because the score + a bonus was less than alpha, so we know theres a better line elsewhere. EDIT: possible zanzuag issue
 	}
 
-	parent->SetChild(best);
+	parent->SetChild(best, false);
 	tTable.AddEntry(best->GetMove(), position.GetZobristKey(), best->GetScore(), depth, best->GetCutoff());
 }
 
-bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch)
+bool LateMoveReduction(int i, int depth, std::vector<Move>& moves, bool InCheck, Position& position, ABnode* node, int alpha, int beta, SearchLevels Newsearch, int distanceFromRoot)
 {
 	if (i < 4 || depth < 4 || moves.at(i).IsCapture() || moves.at(i).IsPromotion() || InCheck || IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())) return false;
 
 	if (position.GetTurn() == WHITE)
 	{	//just did a black move, so we see if this position is good for white (hence check for beta cutoff)
-		AlphaBeta(position, depth - 2, node, beta - 1, beta, true, Newsearch);
+		AlphaBeta(position, depth - 2, node, beta - 1, beta, true, Newsearch, distanceFromRoot + 1);
 		return (node->GetCutoff() == NodeCut::BETA_CUTOFF);
 	}
 
 	if (position.GetTurn() == BLACK)
 	{
-		AlphaBeta(position, depth - 2, node, alpha, alpha + 1, true, Newsearch);
+		AlphaBeta(position, depth - 2, node, alpha, alpha + 1, true, Newsearch, distanceFromRoot + 1);
 		return (node->GetCutoff() == NodeCut::ALPHA_CUTOFF);
 	}
 
@@ -639,14 +655,14 @@ bool FutilityPrune(int depth, bool InCheck, Position& position, int alpha, int b
 	return false;
 }
 
-bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull)
+bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int beta, SearchLevels search, bool inCheck, bool allowNull, int distanceFromRoot)
 {
 	if (inCheck || !allowNull || depth < 4 || GetBitCount(position.GetAllPieces()) < 5) return false;	//attempt to avoid zanzuag issues
 
 	if (position.GetTurn() == WHITE)
 	{ //whites turn to move, which we are skipping to see if its still good for white 'beta cutoff'
 		position.ApplyNullMove();
-		AlphaBeta(position, depth - 3, parent, beta - 1, beta, false, search);
+		AlphaBeta(position, depth - 3, parent, beta - 1, beta, false, search, distanceFromRoot);
 		position.RevertNullMove();
 		return (parent->GetCutoff() == NodeCut::BETA_CUTOFF);
 	}
@@ -654,7 +670,7 @@ bool NullMovePrune(Position& position, int depth, ABnode* parent, int alpha, int
 	if (position.GetTurn() == BLACK)
 	{
 		position.ApplyNullMove();
-		AlphaBeta(position, depth - 3, parent, alpha, alpha + 1, false, search);
+		AlphaBeta(position, depth - 3, parent, alpha, alpha + 1, false, search, distanceFromRoot);
 		position.RevertNullMove();
 		return (parent->GetCutoff() == NodeCut::ALPHA_CUTOFF);
 	}

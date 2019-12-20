@@ -24,7 +24,7 @@ public:
 	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 
 private:
-	unsigned int TTHits;
+	uint64_t TTHits;
 	std::vector<TTEntry> table;
 };
 
