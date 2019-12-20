@@ -1,6 +1,6 @@
 #include "Evaluate.h"
 
-const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 10000, 100, 320, 330, 500, 900, 10000 };
+const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 5000, 100, 320, 330, 500, 900, 5000 };
 
 //const int PassedPawnBonus = 25;
 const int WeakPawnPenalty = 10;
@@ -57,19 +57,39 @@ int EvaluatePosition(const Position & position)
 	unsigned int GameStage = CalculateGameStage(position);
 
 	int Material = EvaluateMaterial(position);
+
+	if (InsufficentMaterial(position, Material)) return 0;
+
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
 	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
 	int Tropism = KingTropism(position);
 	Score += Material + PieceSquares + PawnStructure + Castle + Tropism;
 
-	//std::cout << "Material: " << Material << "\n";
-	//std::cout << "Piece Squares: " << PieceSquares << "\n";
-	//std::cout << "Pawn Structure: " << PawnStructure << "\n";
-	//std::cout << "Castle Bonus: " << Castle << "\n";
-	//std::cout << "Total: " << Score << "\n";
-
 	return Score;
+}
+
+bool InsufficentMaterial(const Position& position, int Material)
+{
+	if (GetBitCount(position.GetPieceBB(WHITE_PAWN)) != 0) return false;
+	if (GetBitCount(position.GetPieceBB(WHITE_ROOK)) != 0) return false;
+	if (GetBitCount(position.GetPieceBB(WHITE_QUEEN)) != 0) return false;
+
+	if (GetBitCount(position.GetPieceBB(BLACK_PAWN)) != 0) return false;
+	if (GetBitCount(position.GetPieceBB(BLACK_ROOK)) != 0) return false;
+	if (GetBitCount(position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
+
+	//in almost all cases, you need to have more than 400 points difference. That equates to 2 or more minor pieces (KNN, KNB, KBB). 
+	//Note KNN is not a forced win and should be counted as a draw, but 
+	if (abs(Material) < 400) return true;	
+
+	return false;
+}
+
+bool InsufficentMaterial(const Position& position)
+{
+	int Material = EvaluateMaterial(position);
+	return InsufficentMaterial(position, Material);
 }
 
 void InitializeEvaluation()

@@ -51,6 +51,14 @@ void ABnode::SetChild(ABnode * child)
 	m_Child = child;
 	m_Score = child->GetScore();
 	m_Cutoff = child->GetCutoff();
+
+	if (child->GetCutoff() == NodeCut::CHECK_MATE_CUTOFF || abs(child->GetScore()) > 7500)
+	{
+		if (m_Score < 0)				
+			m_Score += 1;
+		else 
+			m_Score -= 1;
+	}
 }
 
 void ABnode::SetCutoff(NodeCut cutoff)

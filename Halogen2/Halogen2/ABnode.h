@@ -22,8 +22,8 @@ enum class Score
 	HighINF = 30000,
 	LowINF = -30000,
 
-	WhiteWin = 9999,
-	BlackWin = -9999,
+	WhiteWin = 10000,
+	BlackWin = -10000,
 
 	Draw = 0
 };
