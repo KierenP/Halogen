@@ -5,11 +5,11 @@ TTEntry::TTEntry() : bestMove(0, 0, 0)
 	key = EMPTY;
 	score = -1;
 	depth = -1;
-	cutoff = NodeCut::UNINITIALIZED_NODE;
+	cutoff = EntryType::EMPTY;
 	ancient = true;
 }
 
-TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, NodeCut Cutoff) : bestMove(best)
+TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, EntryType Cutoff) : bestMove(best)
 {
 	key = ZobristKey;
 	score = Score;
@@ -21,4 +21,12 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, NodeCut C
 
 TTEntry::~TTEntry()
 {
+}
+
+void TTEntry::MateScoreAdjustment(int distanceFromRoot)
+{
+	if (GetScore() > 9000)	//checkmate node
+		score -= distanceFromRoot;
+	if (GetScore() < -9000)
+		score += distanceFromRoot;
 }

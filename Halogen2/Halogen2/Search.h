@@ -10,6 +10,8 @@
 #include <ctime>
 #include <algorithm>
 #include <utility>
+#include <deque>
 
 extern TranspositionTable tTable;
 Move SearchPosition(Position position, int allowedTimeMs);
+Move NegaMaxRoot(Position position, int allowedTimeMs);

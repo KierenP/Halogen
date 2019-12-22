@@ -23,9 +23,14 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, NodeCut Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
 {
 	int hash = ZobristKey % TTSize;
+
+	if (Score > 9000)	//checkmate node
+		Score += distanceFromRoot;
+	if (Score < -9000)
+		Score -= distanceFromRoot;
 
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()))
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);

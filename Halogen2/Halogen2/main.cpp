@@ -124,7 +124,7 @@ int main()
 						movetime = btime / (movestogo) - 500 * (movestogo == 1);
 				}
 			}
-			std::thread SearchThread(SearchPosition, GameBoard, movetime);
+			std::thread SearchThread(NegaMaxRoot, GameBoard, movetime);
 			SearchThread.detach();
 		}
 
