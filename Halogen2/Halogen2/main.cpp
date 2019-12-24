@@ -26,7 +26,6 @@ int main()
 	GameBoard.StartingPosition();
 
 	EvaluateDebug();
-	//PerftSuite();
 
 	while (getline(cin, Line))
 	{

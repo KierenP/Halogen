@@ -1,6 +1,7 @@
 #include "MoveGeneration.h"
 
 void PawnPushes(const Position & position, std::vector<Move>& moves);
+void PawnPromotions(const Position& position, std::vector<Move>& moves);
 void PawnDoublePushes(const Position & position, std::vector<Move>& moves);
 void PawnEnPassant(const Position & position, std::vector<Move>& moves);
 void PawnCaptures(const Position & position, std::vector<Move>& moves);
@@ -21,12 +22,13 @@ std::vector<Move> GenerateLegalMoves(Position & position)
 	return moves;
 }
 
-std::vector<Move> GenerateLegalCaptures(Position& position)
+std::vector<Move> QuiescenceMoves(Position& position)
 {
 	std::vector<Move> moves;
 
 	PawnCaptures(position, moves);
 	PawnEnPassant(position, moves);
+	PawnPromotions(position, moves);
 
 	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), KnightAttacks, false));
 	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), BishopAttacks, true));
@@ -41,6 +43,7 @@ std::vector<Move> GenerateLegalCaptures(Position& position)
 void GeneratePsudoLegalMoves(const Position & position, std::vector<Move>& moves)
 {
 	PawnPushes(position, moves);
+	PawnPromotions(position, moves);
 	PawnDoublePushes(position, moves);
 	PawnCaptures(position, moves);
 	PawnEnPassant(position, moves);
@@ -71,13 +74,32 @@ void PawnPushes(const Position & position, std::vector<Move>& moves)
 	}
 
 	uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
-	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
 
 	while (pawnPushes != 0)
 	{
 		unsigned int end = bitScanForwardErase(pawnPushes);
 		moves.push_back(Move(end - foward, end, QUIET));
 	}
+}
+
+void PawnPromotions(const Position& position, std::vector<Move>& moves)
+{
+	int foward = 0;
+	uint64_t targets = 0;
+	uint64_t pawnSquares = position.GetPieceBB(PAWN, position.GetTurn());
+
+	if (position.GetTurn() == WHITE)
+	{
+		foward = 8;
+		targets = (pawnSquares << 8) & position.GetEmptySquares();
+	}
+	if (position.GetTurn() == BLACK)
+	{
+		foward = -8;
+		targets = (pawnSquares >> 8)& position.GetEmptySquares();
+	}
+
+	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
 
 	while (pawnPromotions != 0)
 	{

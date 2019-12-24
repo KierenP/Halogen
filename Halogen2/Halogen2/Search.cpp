@@ -36,6 +36,7 @@ void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, std::deque<Move>& pv);
+int extension(Position& position, Move& move);
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 {
@@ -183,9 +184,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, std::deque<Move>& pv)
 {
 	pv.clear();
-
-	if (timeManage.AbortSearch()) return 0;
-	int alphaOriginal = alpha;
+	if (timeManage.AbortSearch()) return 0;	//checking the time is expensive so we only do it every so often
 
 	//check for draw
 	int rep = 1;
@@ -217,14 +216,14 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		int NewAlpha = alpha;
 		int NewBeta = beta;
 
-		UpdateBounds(entry, NewAlpha, NewBeta);
+		UpdateBounds(entry, NewAlpha, NewBeta);	//aspiration windows and search instability lead to issues with shrinking the original window
 
 		if (NewAlpha >= NewBeta)
 			return entry.GetScore();
 	}
 
 	std::deque<Move> line;
-	if (depth <= 0) 
+	if (depth <= 0 && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{ 
 		int score = Quiescence(position, alpha, beta, colour, distanceFromRoot, line);
 		pv = line;
@@ -285,9 +284,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 			}
 		}
 
-		int extendedDepth = depth;
-		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && moves[i].SEE >= 0)
-			extendedDepth++;	
+		int extendedDepth = depth + extension(position, moves[i]);
 
 		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, line);
 		if (newScore > a && newScore < beta && i >= 1)
@@ -310,8 +307,24 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		b = a + 1;				//Set a new zero width window
 	}
 
-	AddScoreToTable(Score, alphaOriginal, position, depth, distanceFromRoot, beta, bestMove);
+	AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 	return Score;
+}
+
+int extension(Position& const position, Move& const move)
+{
+	int extension = 0;
+
+	if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && move.SEE >= 0)
+		extension++;
+
+	if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
+		extension++;
+
+	if (position.GetSquare(move.GetTo()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_2)
+		extension++;
+
+	return extension;
 }
 
 void CheckForRep(Position& position, TTEntry& entry)
@@ -408,25 +421,24 @@ int TerminalScore(Position& position, int distanceFromRoot)
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, std::deque<Move>& pv)
 {
 	pv.clear();
-
-	std::deque<Move> line;
+	if (timeManage.AbortSearch()) return 0;	//checking the time is expensive so we only do it every so often
 
 	int staticScore = colour * EvaluatePosition(position);
-
 	if (staticScore >= beta)
 	{
 		return staticScore;
 	}
 
 	alpha = max(staticScore, alpha);
-	std::vector<Move> moves = GenerateLegalCaptures(position);
+	std::vector<Move> moves = QuiescenceMoves(position);
 
 	int Score = staticScore;
 	OrderMoves(moves, position, 0);
+	std::deque<Move> line;
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if (moves[i].SEE < 0)																										//prune 'bad' captures
+		if (moves[i].SEE <= 0)																										//prune 'bad' captures
 			break;
 
 		if (moves[i].IsPromotion() && !(moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
