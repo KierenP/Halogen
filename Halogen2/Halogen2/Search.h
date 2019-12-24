@@ -1,6 +1,5 @@
 #pragma once
 #include "TranspositionTable.h"
-#include "ABnode.h"
 #include "Position.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
@@ -13,5 +12,4 @@
 #include <deque>
 
 extern TranspositionTable tTable;
-Move SearchPosition(Position position, int allowedTimeMs);
 Move NegaMaxRoot(Position position, int allowedTimeMs);

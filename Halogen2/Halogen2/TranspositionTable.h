@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "TTEntry.h"
 
 extern unsigned int TTSize;	//default is 1MB hash

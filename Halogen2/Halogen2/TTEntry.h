@@ -1,5 +1,6 @@
 #pragma once
-#include "ABnode.h"
+#include "Move.h"
+#include "BitBoardDefine.h"
 
 enum class EntryType {
 	EMPTY,
@@ -24,6 +25,7 @@ public:
 
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 	void MateScoreAdjustment(int distanceFromRoot);
+	void DrawScoreAdjustment() { score /= 2; }
 
 private:
 	//fits within 16 bytes.

@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ABnode.h" />
     <ClInclude Include="BitBoard.h" />
     <ClInclude Include="BitBoardDefine.h" />
     <ClInclude Include="BoardParamiters.h" />
@@ -36,7 +35,6 @@
     <ClInclude Include="Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ABnode.cpp" />
     <ClCompile Include="BitBoard.cpp" />
     <ClCompile Include="BitBoardDefine.cpp" />
     <ClCompile Include="BoardParamiters.cpp" />

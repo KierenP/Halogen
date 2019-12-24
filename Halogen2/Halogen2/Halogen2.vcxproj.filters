@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ABnode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="BitBoard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -62,9 +59,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ABnode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="BitBoard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
