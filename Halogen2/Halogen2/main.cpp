@@ -26,7 +26,7 @@ int main()
 	GameBoard.StartingPosition();
 
 	EvaluateDebug();
-
+	
 	while (getline(cin, Line))
 	{
 		std::istringstream iss(Line);
@@ -216,7 +216,8 @@ void PerftSuite()
 unsigned int PerftDivide(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
-	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+	std::vector<Move> moves;
+	LegalMoves(GameBoard, moves);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -235,7 +236,8 @@ unsigned int PerftDivide(unsigned int depth)
 unsigned int Perft(unsigned int depth)
 {
 	unsigned int nodeCount = 0;
-	std::vector<Move> moves = GenerateLegalMoves(GameBoard);
+	std::vector<Move> moves;
+	LegalMoves(GameBoard, moves);
 
 	if (depth == 1)
 		return moves.size();

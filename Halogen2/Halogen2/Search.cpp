@@ -22,21 +22,21 @@ TranspositionTable tTable;
 SearchTimeManage timeManage;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
-void PrintSearchInfo(Position& position, unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
 void PrintBestMove(Move& Best);
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, std::deque<Move>& pv);
 void CheckForRep(Position& position, TTEntry& entry);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
 bool IsFutile(int beta, int alpha, int depth, std::vector<Move>& moves, int i, bool InCheck, Position& position);
-bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int colour);
+bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, std::deque<Move>& pv);
-int extension(Position& position, Move& move);
+int extension(Position & position, Move & move);
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
 {
@@ -109,7 +109,7 @@ void PrintBestMove(Move& Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(Position& position, unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score)
 {
 	std::cout
 		<< "info depth " << depth																				//the depth of search
@@ -170,7 +170,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 		}
 
 		move = pv[0];	//this is only hit if the continue before is not hit
-		PrintSearchInfo(position, depth, searchTime.ElapsedMs(), abs(score) > 9000, pv, score);
+		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, pv, score);
 
 		depth++;			
 		alpha = score - 25;
@@ -184,7 +184,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, std::deque<Move>& pv)
 {
 	pv.clear();
-	if (timeManage.AbortSearch()) return 0;	//checking the time is expensive so we only do it every so often
+	if (timeManage.AbortSearch()) return 0;	
 
 	//check for draw
 	int rep = 1;
@@ -230,14 +230,15 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		return score;
 	}
 
-	std::vector<Move> moves = GenerateLegalMoves(position);
+	std::vector<Move> moves;
+	LegalMoves(position, moves);
 
 	if (moves.size() == 0)
 	{
 		return TerminalScore(position, distanceFromRoot);
 	}
 
-	if (AllowedNull(allowedNull, position, beta, alpha, colour))
+	if (AllowedNull(allowedNull, position, beta, alpha))
 	{
 		position.ApplyNullMove();
 		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, line);
@@ -311,7 +312,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	return Score;
 }
 
-int extension(Position& const position, Move& const move)
+int extension(Position & position, Move & move)
 {
 	int extension = 0;
 
@@ -364,7 +365,7 @@ bool IsFutile(int beta, int alpha, int depth, std::vector<Move>& moves, int i, b
 		&& !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
 }
 
-bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int colour)
+bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha)
 {
 	return allowedNull
 		&& !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())
@@ -430,7 +431,8 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	}
 
 	alpha = max(staticScore, alpha);
-	std::vector<Move> moves = QuiescenceMoves(position);
+	std::vector<Move> moves;
+	QuiescenceMoves(position, moves);
 
 	int Score = staticScore;
 	OrderMoves(moves, position, 0);

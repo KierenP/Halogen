@@ -7,25 +7,28 @@ void PawnEnPassant(const Position & position, std::vector<Move>& moves);
 void PawnCaptures(const Position & position, std::vector<Move>& moves);
 void CastleMoves(const Position & position, std::vector<Move>& moves);
 
-void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
+void CalculateQuietMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 
 void RemoveIllegal(Position & position, std::vector<Move>& moves);																			//remove all the moves that put the current player's king in check
 bool MovePutsSelfInCheck(Position & position, Move & move);
 
-std::vector<Move> GenerateLegalMoves(Position & position)
+void AddQuiescenceMoves(const Position& position, std::vector<Move>& moves);
+
+void LegalMoves(Position & position, std::vector<Move>& moves)
 {
-	std::vector<Move> moves;
 	GeneratePsudoLegalMoves(position, moves);
 	RemoveIllegal(position, moves);
-
-	return moves;
 }
 
-std::vector<Move> QuiescenceMoves(Position& position)
+void QuiescenceMoves(Position& position, std::vector<Move>& moves)
 {
-	std::vector<Move> moves;
+	AddQuiescenceMoves(position, moves);
+	RemoveIllegal(position, moves);
+}
 
+void AddQuiescenceMoves(const Position& position, std::vector<Move>& moves)
+{
 	PawnCaptures(position, moves);
 	PawnEnPassant(position, moves);
 	PawnPromotions(position, moves);
@@ -35,25 +38,21 @@ std::vector<Move> QuiescenceMoves(Position& position)
 	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), KingAttacks, false));
 	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), RookAttacks, true));
 	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), QueenAttacks, true));
-
-	RemoveIllegal(position, moves);
-	return moves;
 }
 
 void GeneratePsudoLegalMoves(const Position & position, std::vector<Move>& moves)
 {
 	PawnPushes(position, moves);
-	PawnPromotions(position, moves);
 	PawnDoublePushes(position, moves);
-	PawnCaptures(position, moves);
-	PawnEnPassant(position, moves);
 	CastleMoves(position, moves);
 
-	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanForwardErase(pieces), KnightAttacks, false));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanForwardErase(pieces), KingAttacks, false));
-	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanForwardErase(pieces), BishopAttacks, true));
-	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanForwardErase(pieces), QueenAttacks, true));
-	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBB(position, moves, bitScanForwardErase(pieces), RookAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), KnightAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), KingAttacks, false));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), BishopAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), QueenAttacks, true));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), RookAttacks, true));
+
+	AddQuiescenceMoves(position, moves);
 }
 
 void PawnPushes(const Position & position, std::vector<Move>& moves)
@@ -99,7 +98,7 @@ void PawnPromotions(const Position& position, std::vector<Move>& moves)
 		targets = (pawnSquares >> 8)& position.GetEmptySquares();
 	}
 
-	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that aren't to the back ranks
+	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that are to the back ranks
 
 	while (pawnPromotions != 0)
 	{
@@ -266,66 +265,11 @@ void CastleMoves(const Position & position, std::vector<Move>& moves)
 	}
 }
 
-void PawnCapturesHung(const Position& position, std::vector<Move>& moves)
-{
-	//we have the same code here but we ignore captures of pawns because they aren't vert interesting and usually are defended anyways (doesn't improve position significantly)
-
-	int fowardleft = 0;
-	int fowardright = 0;
-	uint64_t leftAttack = 0;
-	uint64_t rightAttack = 0;
-	uint64_t pawnSquares = position.GetPieceBB(PAWN, position.GetTurn());
-
-	if (position.GetTurn() == WHITE)
-	{
-		fowardleft = 7;
-		fowardright = 9;
-		leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) << 7) & position.GetBlackPieces() & ~position.GetPieceBB(BLACK_PAWN);
-		rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) << 9) & position.GetBlackPieces() & ~position.GetPieceBB(BLACK_PAWN);
-	}
-	if (position.GetTurn() == BLACK)
-	{
-		fowardleft = -9;
-		fowardright = -7;
-		leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) >> 9) & position.GetWhitePieces() & ~position.GetPieceBB(WHITE_PAWN);
-		rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) >> 7) & position.GetWhitePieces() & ~position.GetPieceBB(WHITE_PAWN);
-	}
-
-	while (leftAttack != 0)
-	{
-		unsigned int end = bitScanForwardErase(leftAttack);
-		if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
-		{
-			moves.push_back(Move(end - fowardleft, end, QUEEN_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardleft, end, KNIGHT_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardleft, end, ROOK_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardleft, end, BISHOP_PROMOTION_CAPTURE));
-		}
-		else
-			moves.push_back(Move(end - fowardleft, end, CAPTURE));
-	}
-
-	while (rightAttack != 0)
-	{
-		unsigned int end = bitScanForwardErase(rightAttack);
-		if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
-		{
-			moves.push_back(Move(end - fowardright, end, QUEEN_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardright, end, KNIGHT_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardright, end, ROOK_PROMOTION_CAPTURE));
-			moves.push_back(Move(end - fowardright, end, BISHOP_PROMOTION_CAPTURE));
-		}
-		else
-			moves.push_back(Move(end - fowardright, end, CAPTURE));
-	}
-}
-
-void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding)
+void CalculateQuietMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding)
 {
 	assert(square < N_SQUARES);
 
 	uint64_t quiet = position.GetEmptySquares() & attackMask[square];
-	uint64_t captures = position.GetPiecesColour(!position.GetTurn()) & attackMask[square];
 	uint64_t maskall = position.GetAllPieces() & attackMask[square];
 
 	while (quiet != 0)
@@ -333,13 +277,6 @@ void CalculateMovesBB(const Position & position, std::vector<Move>& moves, unsig
 		unsigned int target = bitScanForwardErase(quiet);
 		if (!isSliding || mayMove(square, target, maskall))
 			moves.push_back(Move(square, target, QUIET));
-	}
-
-	while (captures != 0)
-	{
-		unsigned int target = bitScanForwardErase(captures);
-		if (!isSliding || mayMove(square, target, maskall))
-			moves.push_back(Move(square, target, CAPTURE));
 	}
 }
 
