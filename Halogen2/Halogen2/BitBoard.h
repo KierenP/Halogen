@@ -12,7 +12,7 @@ public:
 	BitBoard();
 	~BitBoard();
 
-	unsigned int GetSquare(unsigned int square) const;
+	unsigned int GetSquare(unsigned int square) const;	//returns N_PIECES = 12 if empty
 	bool IsEmpty(unsigned int positon) const;
 	bool IsOccupied(unsigned int position) const;
 	bool IsOccupied(unsigned int position, bool colour) const;
@@ -38,6 +38,5 @@ protected:
 
 private:
 	uint64_t m_Bitboard[N_PIECES];
-	uint64_t AttackTable[N_PIECES];
 };
 

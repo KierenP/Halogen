@@ -2,7 +2,6 @@
 
 const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 5000, 100, 320, 330, 500, 900, 5000 };
 
-//const int PassedPawnBonus = 25;
 const int WeakPawnPenalty = 10;
 const int WeakOpenPawnPenalty = 20;
 const int DoubledPawnPenalty = 10;
@@ -49,7 +48,6 @@ int AntiDiagonals[64] = {
 void FlipColours(Position& pos);
 void MirrorTopBottom(Position& pos);
 void MirrorLeftRight(Position& pos);
-
 
 int EvaluatePosition(const Position & position)
 {

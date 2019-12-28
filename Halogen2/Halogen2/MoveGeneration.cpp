@@ -17,12 +17,16 @@ void AddQuiescenceMoves(const Position& position, std::vector<Move>& moves);
 
 void LegalMoves(Position & position, std::vector<Move>& moves)
 {
+	moves.reserve(50);
+
 	GeneratePsudoLegalMoves(position, moves);
 	RemoveIllegal(position, moves);
 }
 
 void QuiescenceMoves(Position& position, std::vector<Move>& moves)
 {
+	moves.reserve(10);
+
 	AddQuiescenceMoves(position, moves);
 	RemoveIllegal(position, moves);
 }

@@ -3,7 +3,7 @@
 
 std::vector<BitBoard> previousBoards;
 
-BitBoard::BitBoard() : AttackTable{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, m_Bitboard{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+BitBoard::BitBoard() : m_Bitboard{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 {
 
 }
@@ -52,7 +52,6 @@ void BitBoard::Reset()
 	for (int i = 0; i < N_PIECES; i++)
 	{
 		m_Bitboard[i] = EMPTY;
-		AttackTable[i] = EMPTY;
 	}
 }
 
@@ -116,10 +115,7 @@ bool BitBoard::IsEmpty(unsigned int square) const
 {
 	assert(square < N_SQUARES);
 
-	uint64_t mask = SquareBB[square] & GetEmptySquares();
-	if (mask != 0)
-		return true;
-	return false;
+	return ((SquareBB[square] & GetEmptySquares()) != 0);
 }
 
 bool BitBoard::IsOccupied(unsigned int square) const
@@ -133,9 +129,7 @@ bool BitBoard::IsOccupied(unsigned int square, bool colour) const
 {
 	assert(square < N_SQUARES);
 
-	if ((SquareBB[square] & GetPiecesColour(colour)) != 0)
-		return true;
-	return false;
+	return ((SquareBB[square] & GetPiecesColour(colour)) != 0);
 }
 
 uint64_t BitBoard::GetAllPieces() const

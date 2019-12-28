@@ -18,12 +18,15 @@ enum Score
 	Draw = 0
 };
 
+const unsigned int MaxDepth = 100;
+
 TranspositionTable tTable;
 SearchTimeManage timeManage;
+std::vector<Move[2]> KillerMoves(MaxDepth);	//2 moves indexed by distanceFromRoot
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score);
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth);
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
 void PrintBestMove(Move& Best);
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, std::deque<Move>& pv);
 void CheckForRep(Position& position, TTEntry& entry);
@@ -37,32 +40,30 @@ void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, std::deque<Move>& pv);
 int extension(Position & position, Move & move);
+Move GetHashMove(Position& position, int depth);
+void AddKiller(Move move, int distanceFromRoot);
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth)
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
 	*/
 
-	Move TTmove;
+	Move TTmove = GetHashMove(position, searchDepth - 1);
 	std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
-
-	if (tTable.CheckEntry(position.GetZobristKey(), searchDepth - 1))
-	{
-		TTmove = tTable.GetEntry(position.GetZobristKey()).GetMove();
-	}
 
 	//give each move a score on how 'good' it is. 
 	for (int i = 0; i < moves.size(); i++)
 	{
 		if (moves[i] == TTmove) {
-			moves[i].SEE = 15000;	//we want this at the front
+			moves[i].SEE = 15000;	
 			continue;
 		}
 
-		if (!moves[i].IsCapture() && !moves[i].IsPromotion()) {
-			continue;	//quite moves get a score of zero, but may come before some bad captures which get a negative score
-		}
+		if (moves[i] == KillerMoves.at(distanceFromRoot)[0])
+			moves[i].SEE = 20;
+		if (moves[i] == KillerMoves.at(distanceFromRoot)[1])
+			moves[i].SEE = 10;
 
 		if (moves[i].IsCapture())
 		{
@@ -117,7 +118,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deq
 
 	if (isCheckmate)
 	{
-		std::cout << " score mate " << (-abs(score) -MateScore + 1) / 2;
+		std::cout << " score mate " << (-abs(score) -MateScore) / 2;
 	}
 	else
 		std::cout << " score cp " << score;							//The score in hundreths of a pawn (a 1 pawn advantage is +100)
@@ -154,7 +155,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 	int alpha = -30000;
 	int beta = 30000;
 
-	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch(); )
+	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch() && depth < 100; )
 	{
 		std::deque<Move> pv;
 		int score = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 1, true, pv);
@@ -222,6 +223,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 			return entry.GetScore();
 	}
 
+	/*Drop into quiescence search*/
 	std::deque<Move> line;
 	if (depth <= 0 && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{ 
@@ -241,7 +243,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (AllowedNull(allowedNull, position, beta, alpha))
 	{
 		position.ApplyNullMove();
-		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, line);
+		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 2, false, line);
 		position.RevertNullMove();
 
 		if (score >= beta)
@@ -251,15 +253,22 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		}
 	}
 
-	OrderMoves(moves, position, depth);
+	//mate distance pruning
+	alpha = max(Score::MateScore + distanceFromRoot, alpha);
+	beta = min(-Score::MateScore - distanceFromRoot, beta);
+	if (alpha >= beta)
+		return alpha;
+
+	OrderMoves(moves, position, depth, distanceFromRoot);
 	Move bestMove = Move();	//used for adding to transposition table later
+	Move hashMove = GetHashMove(position, depth);
 	int Score = LowINF;
-	int a = alpha;	
+	int a = alpha;
 	int b = beta;
 	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
 	int staticScore = colour * EvaluatePosition(position);
 
-	for (int i = 0; i < moves.size(); i++)
+	for (int i = 0; i < moves.size(); i++)	
 	{
 		position.ApplyMove(moves.at(i));
 
@@ -304,7 +313,14 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 			bestMove = moves.at(i);
 		}	
 
-		if (a >= beta) break;	//Fail high cutoff
+		if (a >= beta) //Fail high cutoff
+		{
+			if (!(moves.at(i) == hashMove))
+				AddKiller(moves.at(i), distanceFromRoot);
+
+			break;
+		}
+
 		b = a + 1;				//Set a new zero width window
 	}
 
@@ -411,11 +427,11 @@ int TerminalScore(Position& position, int distanceFromRoot)
 {
 	if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{
-		return static_cast<int>(MateScore) + (distanceFromRoot - 1);
+		return (MateScore) + (distanceFromRoot);
 	}
 	else
 	{
-		return static_cast<int>(Draw);
+		return (Draw);
 	}
 }
 
@@ -434,8 +450,11 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	std::vector<Move> moves;
 	QuiescenceMoves(position, moves);
 
+	if (moves.size() == 0)
+		return staticScore;
+
 	int Score = staticScore;
-	OrderMoves(moves, position, 0);
+	OrderMoves(moves, position, 0, distanceFromRoot);
 	std::deque<Move> line;
 
 	for (int i = 0; i < moves.size(); i++)
@@ -463,4 +482,32 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	}
 
 	return Score;
+}
+
+void AddKiller(Move move, int distanceFromRoot)
+{
+	if (move.IsCapture() || move.IsPromotion()) return;
+
+	if (move == KillerMoves.at(distanceFromRoot)[0]) return;
+	if (move == KillerMoves.at(distanceFromRoot)[1])
+	{
+		//swap to the front
+		Move temp = KillerMoves.at(distanceFromRoot)[0];
+		KillerMoves.at(distanceFromRoot)[0] = KillerMoves.at(distanceFromRoot)[1];
+		KillerMoves.at(distanceFromRoot)[1] = temp;
+
+		return;
+	}
+
+	KillerMoves.at(distanceFromRoot)[1] = move;	//replace the 2nd one
+}
+
+Move GetHashMove(Position& position, int depth)
+{
+	if (tTable.CheckEntry(position.GetZobristKey(), depth))
+	{
+		return tTable.GetEntry(position.GetZobristKey()).GetMove();
+	}
+
+	return {};
 }
