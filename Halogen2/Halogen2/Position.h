@@ -23,7 +23,7 @@ public:
 
 	void ApplyMove(Move move);
 	void ApplyMove(std::string strmove);
-	void RevertMove(Move move);
+	void RevertMove();
 
 	void ApplyNullMove();
 	void RevertNullMove();

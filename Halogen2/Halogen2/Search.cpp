@@ -1,14 +1,5 @@
 #include "Search.h"
 
-enum class SearchLevels
-{
-	ALPHABETA,
-	TERMINATE,
-	QUIETESSENCE,			//captures and all moves if in check
-	LEAF_SEARCH,			//only look at captures of hanged pieces
-	CHECK_EXTENSION
-};
-
 enum Score
 {
 	HighINF = 30000,
@@ -19,19 +10,19 @@ enum Score
 };
 
 const unsigned int MaxDepth = 100;
+const unsigned int SearchIncrement = 2;
 
 TranspositionTable tTable;
 SearchTimeManage timeManage;
 std::vector<Move[2]> KillerMoves(MaxDepth);	//2 moves indexed by distanceFromRoot
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score, Position& position);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
 void PrintBestMove(Move& Best);
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, std::deque<Move>& pv);
-void CheckForRep(Position& position, TTEntry& entry);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
-bool IsFutile(int beta, int alpha, int depth, std::vector<Move>& moves, int i, bool InCheck, Position& position);
+bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position);
 bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
@@ -39,7 +30,7 @@ void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, std::deque<Move>& pv);
-int extension(Position & position, Move & move);
+int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depth);
 void AddKiller(Move move, int distanceFromRoot);
 
@@ -49,7 +40,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 	We want to order the moves such that the best moves are more likely to be further towards the front.
 	*/
 
-	Move TTmove = GetHashMove(position, searchDepth - 1);
+	Move TTmove = GetHashMove(position, searchDepth - SearchIncrement);
 	std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
 
 	//give each move a score on how 'good' it is. 
@@ -71,7 +62,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 			int CaptureValue = 0;
 
 			if (moves[i].GetFlag() == EN_PASSANT)
-				CaptureValue = RelativePieceValues[WHITE_PAWN];	//1
+				CaptureValue = RelativePieceValues[WHITE_PAWN];	
 
 			if (moves[i].IsCapture() && moves[i].GetFlag() != EN_PASSANT)
 			{
@@ -110,8 +101,32 @@ void PrintBestMove(Move& Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, std::deque<Move> pv, int score, Position& position)
 {
+	for (int i = 0; i < pv.size(); i++)
+	{
+		position.ApplyMove(pv[i]);
+	}
+
+	bool repeat = false;
+	while (tTable.CheckEntry(position.GetZobristKey()) && !repeat && pv.size() < 100)	//see if there are any more moves in the pv we can extract from the transposition table
+	{
+		uint64_t current = position.GetZobristKey();
+		for (int i = 0; i < PreviousKeys.size(); i++)
+		{
+			if (PreviousKeys.at(i) == current)
+				repeat = true;
+		}
+
+		pv.push_back(tTable.GetEntry(position.GetZobristKey()).GetMove());
+		position.ApplyMove(pv.back());
+	}
+
+	for (int i = 0; i < pv.size(); i++)
+	{
+		position.RevertMove();
+	}
+
 	std::cout
 		<< "info depth " << depth																				//the depth of search
 		<< " seldepth " << pv.size();															//the selective depth (for example searching further for checks and captures)
@@ -158,7 +173,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch() && depth < 100; )
 	{
 		std::deque<Move> pv;
-		int score = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 1, true, pv);
+		int score = NegaScout(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 1, true, pv);
 
 		if (timeManage.AbortSearch()) {	break; }
 
@@ -171,7 +186,7 @@ Move NegaMaxRoot(Position position, int allowedTimeMs)
 		}
 
 		move = pv[0];	//this is only hit if the continue before is not hit
-		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, pv, score);
+		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, pv, score, position);
 
 		depth++;			
 		alpha = score - 25;
@@ -243,12 +258,11 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (AllowedNull(allowedNull, position, beta, alpha))
 	{
 		position.ApplyNullMove();
-		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 2, false, line);
+		int score = -NegaScout(position, depth - 3 * SearchIncrement, -beta, -beta + 1, -colour, distanceFromRoot + 2, false, line);
 		position.RevertNullMove();
 
 		if (score >= beta)
 		{
-			UpdatePV(pv, line, Move());
 			return score;
 		}
 	}
@@ -273,11 +287,11 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		position.ApplyMove(moves.at(i));
 
 		//futility pruning
-		if (IsFutile(beta, alpha, depth, moves, i, InCheck, position) && i > 0)	//note .GetTurn() has changed
+		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//note .GetTurn() has changed
 		{
-			if (staticScore + 200 < a)
+			if (staticScore + 200 < a && depth == 2)	
 			{
-				position.RevertMove(moves.at(i));
+				position.RevertMove();
 				continue;	
 			}
 		}
@@ -285,32 +299,35 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		//late move reductions
 		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
 		{
-			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true, line);
+			int score = -NegaScout(position, depth - 2 * SearchIncrement, -a - 1, -a, -colour, distanceFromRoot + 1, true, line);
 
 			if (score < a)
 			{
-				position.RevertMove(moves.at(i));
+				position.RevertMove();
 				continue;
 			}
 		}
 
-		int extendedDepth = depth + extension(position, moves[i]);
+		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
 
-		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, line);
+		int newScore = -NegaScout(position, extendedDepth - SearchIncrement, -b, -a, -colour, distanceFromRoot + 1, true, line);
 		if (newScore > a && newScore < beta && i >= 1)
 		{	
-			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true, line);	//possibly -newScore rather than -alpha
+			newScore = -NegaScout(position, extendedDepth - SearchIncrement, -beta, -alpha, -colour, distanceFromRoot + 1, true, line);	//possibly -newScore rather than -alpha
 		}
 
-		position.RevertMove(moves.at(i));
+		position.RevertMove();
 
-		Score = max(Score, newScore);
+		if (newScore > Score)
+		{
+			Score = newScore;
+			bestMove = moves.at(i);
+		}
 
 		if (Score > a)
 		{
 			a = Score;
 			UpdatePV(pv, line, moves.at(i));
-			bestMove = moves.at(i);
 		}	
 
 		if (a >= beta) //Fail high cutoff
@@ -328,53 +345,49 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	return Score;
 }
 
-int extension(Position & position, Move & move)
+int extension(Position & position, Move & move, int alpha, int beta)
 {
 	int extension = 0;
 
-	if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && move.SEE >= 0)
-		extension++;
+	if (IsPV(beta, alpha))
+	{
+		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
+			extension += SearchIncrement;
 
-	if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
-		extension++;
+		if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
+			extension += SearchIncrement;
 
-	if (position.GetSquare(move.GetTo()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_2)
-		extension++;
+		if (position.GetSquare(move.GetTo()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_2)
+			extension += SearchIncrement;
+	}
+	else
+	{
+		if (IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) && move.SEE >= 0)
+			extension += SearchIncrement;
+
+		if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
+			extension += SearchIncrement;
+
+		if (position.GetSquare(move.GetTo()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_2)
+			extension += SearchIncrement;
+	}
 
 	return extension;
-}
-
-void CheckForRep(Position& position, TTEntry& entry)
-{
-	int rep = 1;
-	uint64_t current = position.GetZobristKey();
-	for (int i = 0; i < PreviousKeys.size(); i++)
-	{
-		if (PreviousKeys.at(i) == current)
-			rep++;
-
-		if (rep == 2)	//intentional. if it has occured 3 times we would have caught it before
-		{
-			entry.DrawScoreAdjustment();
-			break;
-		}
-	}
 }
 
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth)
 {
 	return !moves[i].IsCapture() 
 		&& !moves[i].IsPromotion() 
-		&& beta == alpha + 1 
+		&& !IsPV(beta, alpha)
 		&& !InCheck 
 		&& !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) 
 		&& depth > 3;
 }
 
-bool IsFutile(int beta, int alpha, int depth, std::vector<Move>& moves, int i, bool InCheck, Position& position)
+bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position)
 {
 	return !IsPV(beta, alpha)
-		&& depth == 1
 		&& !moves[i].IsCapture() 
 		&& !moves[i].IsPromotion() 
 		&& !InCheck 
@@ -385,7 +398,7 @@ bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha)
 {
 	return allowedNull
 		&& !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn())
-		&& GetBitCount(position.GetAllPieces()) >= 5
+		&& GetBitCount(position.GetAllPieces()) >= 5 //TODO: experiment with this number
 		&& !IsPV(beta, alpha);
 }
 
@@ -459,7 +472,10 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if (moves[i].SEE <= 0)																										//prune 'bad' captures
+		if (moves[i].SEE <= 0 && position.GetCaptureSquare() != moves[i].GetTo())	//prune bad or equal captures that are not recaptures
+			continue;
+
+		if (moves[i].SEE < 0 && position.GetCaptureSquare() == moves[i].GetTo())	//prune only bad recaptures and allow equal recaptures. Once SEE < 0 we will skip all remaining
 			break;
 
 		if (moves[i].IsPromotion() && !(moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
@@ -469,16 +485,16 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 
 		position.ApplyMove(moves.at(i));
 		Score = max(Score, -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, line));
-		position.RevertMove(moves.at(i));
-
-		if (Score >= beta)
-			return Score;
+		position.RevertMove();
 
 		if (Score > alpha)
 		{
 			alpha = Score;
 			UpdatePV(pv, line, moves.at(i));
 		}
+
+		if (Score >= beta)
+			return Score;
 	}
 
 	return Score;

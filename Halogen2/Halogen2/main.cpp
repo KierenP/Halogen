@@ -223,7 +223,7 @@ unsigned int PerftDivide(unsigned int depth)
 	{
 		GameBoard.ApplyMove(moves.at(i));
 		unsigned int ChildNodeCount = Perft(depth - 1);
-		GameBoard.RevertMove(moves.at(i));
+		GameBoard.RevertMove();
 
 		moves.at(i).Print();
 		std::cout << ": " << ChildNodeCount << std::endl;
@@ -246,7 +246,7 @@ unsigned int Perft(unsigned int depth)
 	{
 		GameBoard.ApplyMove(moves.at(i));
 		nodeCount += Perft(depth - 1);
-		GameBoard.RevertMove(moves.at(i));
+		GameBoard.RevertMove();
 	}
 
 	return nodeCount;

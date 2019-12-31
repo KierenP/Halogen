@@ -11,6 +11,7 @@ public:
 	~TranspositionTable();
 
 	bool CheckEntry(uint64_t key, int depth);
+	bool CheckEntry(uint64_t key);
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff);
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 

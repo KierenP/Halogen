@@ -23,6 +23,13 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
+bool TranspositionTable::CheckEntry(uint64_t key)
+{
+	if ((table.at(key % TTSize).GetKey() == key))
+		return true;
+	return false;
+}
+
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
 {
 	int hash = ZobristKey % TTSize;

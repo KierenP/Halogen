@@ -1,6 +1,7 @@
 #pragma once
 #include <time.h>
 #include <atomic>
+#include <mutex>
 
 extern std::atomic<bool> KeepSearching;
 

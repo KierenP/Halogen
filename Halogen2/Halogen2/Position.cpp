@@ -100,6 +100,11 @@ void Position::ApplyMove(Move move)
 		break;
 	}
 
+	if (move.IsCapture())
+		SetCaptureSquare(move.GetTo());
+	else
+		SetCaptureSquare(-1);
+
 	ClearSquare(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
@@ -158,7 +163,7 @@ void Position::ApplyMove(std::string strmove)
 	ApplyMove(Move(prev, next, flag));
 }
 
-void Position::RevertMove(Move move)
+void Position::RevertMove()
 {
 	assert(PreviousKeys.size() > 0);
 
@@ -173,6 +178,7 @@ void Position::ApplyNullMove()
 	PreviousKeys.push_back(key);
 	SaveParamiters();
 	SetEnPassant(-1);
+	SetCaptureSquare(-1);
 
 	NextTurn();
 	key = GenerateZobristKey();

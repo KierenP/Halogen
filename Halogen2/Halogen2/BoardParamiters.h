@@ -22,6 +22,7 @@ public:
 	bool CanCastleBlackKingside() const { return m_BlackKingCastle; }
 	bool CanCastleBlackQueenside() const { return m_BlackQueenCastle; }
 	unsigned int GetEnPassant() const { return m_EnPassant; }
+	unsigned int GetCaptureSquare() const { return m_CaptureSquare; }
 
 protected:
 	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
@@ -32,6 +33,7 @@ protected:
 	void WhiteCastled();
 	void BlackCastled();
 	void NextTurn();
+	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
 
 private:
 	bool m_CurrentTurn;
@@ -46,5 +48,7 @@ private:
 
 	bool m_HasCastledWhite = false;
 	bool m_HasCastledBlack = false;
+
+	unsigned int m_CaptureSquare = N_SQUARES;
 };
 
