@@ -48,17 +48,12 @@ void Position::ApplyMove(Move move)
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
-		if (GetTurn() == WHITE)
-			WhiteCastled();
-		else
-			BlackCastled();
 		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
 	}
 
 	if (move.GetFlag() == QUEEN_CASTLE)
 	{
-
 		SetSquare(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
 	}
@@ -108,7 +103,10 @@ void Position::ApplyMove(Move move)
 	ClearSquare(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
-	key = GenerateZobristKey();
+	key = IncrementZobristKey(move);	
+
+	//if debugging a hash issue, try assert(GenerateZobristKey() == Increment...)
+	//In order to see if the key was corrupted at some point
 }
 
 void Position::ApplyMove(std::string strmove)
@@ -181,7 +179,7 @@ void Position::ApplyNullMove()
 	SetCaptureSquare(-1);
 
 	NextTurn();
-	key = GenerateZobristKey();
+	key = IncrementZobristKey(Move());
 }
 
 void Position::RevertNullMove()
@@ -331,4 +329,68 @@ uint64_t Position::GenerateZobristKey() const
 	}
 
 	return Key;
+}
+
+uint64_t Position::IncrementZobristKey(Move move) 
+{
+	//Change of turn
+	key ^= ZobristTable.at(12 * 64);	//because who's turn it is changed
+
+	//En Passant
+	if (PreviousParamiters.back().GetEnPassant() <= SQ_H8)
+		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(PreviousParamiters.back().GetEnPassant()));		//undo the previous ep square
+
+	if (GetEnPassant() <= SQ_H8)
+		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));									//apply new EP
+
+	if (move.GetFlag() == EN_PASSANT)
+		key ^= ZobristTable.at(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));	//remove the captured piece
+
+	//Castling
+	if (CanCastleWhiteKingside() != PreviousParamiters.back().CanCastleWhiteKingside())					//if casteling rights changed, flip that one
+		key ^= ZobristTable.at(12 * 64 + 1);
+	if (CanCastleWhiteQueenside() != PreviousParamiters.back().CanCastleWhiteQueenside())
+		key ^= ZobristTable.at(12 * 64 + 2);
+	if (CanCastleBlackKingside() != PreviousParamiters.back().CanCastleBlackKingside())
+		key ^= ZobristTable.at(12 * 64 + 3);
+	if (CanCastleBlackQueenside() != PreviousParamiters.back().CanCastleBlackQueenside())
+		key ^= ZobristTable.at(12 * 64 + 4);
+
+	if (move.GetFlag() == KING_CASTLE)
+	{
+		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom())));
+		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom())));
+	}
+
+	if (move.GetFlag() == QUEEN_CASTLE)
+	{
+		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom())));
+		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom())));
+	}
+
+	//Captures
+	if (previousBoards.back().GetSquare(move.GetTo()) != N_PIECES && (move.IsCapture()) && (move.GetFlag() != EN_PASSANT))	//2nd term is to detect a null move. We want to toggle the captured piece
+		key ^= ZobristTable.at(previousBoards.back().GetSquare(move.GetTo()) * 64 + move.GetTo());
+
+	//Promotions
+	if (move.IsPromotion())
+	{
+		key ^= ZobristTable.at(Piece(PAWN, !GetTurn()) * 64 + move.GetFrom());
+
+		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+			key ^= ZobristTable.at(Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo());
+		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+			key ^= ZobristTable.at(Piece(BISHOP, !GetTurn()) * 64 + move.GetTo());
+		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
+			key ^= ZobristTable.at(Piece(ROOK, !GetTurn()) * 64 + move.GetTo());
+		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+			key ^= ZobristTable.at(Piece(QUEEN, !GetTurn()) * 64 + move.GetTo());
+	}
+	else
+	{
+		key ^= ZobristTable.at(GetSquare(move.GetTo()) * 64 + move.GetFrom());	//toggle the square we left
+		key ^= ZobristTable.at(GetSquare(move.GetTo()) * 64 + move.GetTo());	//toggle the arriving square
+	}
+
+	return key;
 }

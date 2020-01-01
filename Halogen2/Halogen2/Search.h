@@ -12,4 +12,4 @@
 #include <deque>
 
 extern TranspositionTable tTable;
-Move NegaMaxRoot(Position position, int allowedTimeMs);
+Move SearchPosition(Position position, int allowedTimeMs);

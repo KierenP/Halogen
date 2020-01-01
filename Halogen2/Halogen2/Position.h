@@ -41,5 +41,6 @@ public:
 private:
 	uint64_t key;
 	uint64_t GenerateZobristKey() const;
+	uint64_t IncrementZobristKey(Move move);
 };
 

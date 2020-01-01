@@ -8,7 +8,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "2.7.3";
+string version = "2.8.6";
 
 int main()
 {
@@ -25,7 +25,8 @@ int main()
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	EvaluateDebug();
+	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	//PerftSuite();
 	
 	while (getline(cin, Line))
 	{
@@ -123,7 +124,7 @@ int main()
 						movetime = btime / (movestogo) - 500 * (movestogo == 1);
 				}
 			}
-			std::thread SearchThread(NegaMaxRoot, GameBoard, movetime);
+			std::thread SearchThread(SearchPosition, GameBoard, movetime);
 			SearchThread.detach();
 		}
 
