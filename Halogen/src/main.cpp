@@ -8,7 +8,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "2.8.6";
+string version = "2.8.7";
 
 int main()
 {
