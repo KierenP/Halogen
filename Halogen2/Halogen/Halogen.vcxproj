@@ -18,6 +18,39 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\BitBoard.cpp" />
+    <ClCompile Include="..\src\BitBoardDefine.cpp" />
+    <ClCompile Include="..\src\BoardParamiters.cpp" />
+    <ClCompile Include="..\src\Evaluate.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\Move.cpp" />
+    <ClCompile Include="..\src\MoveGeneration.cpp" />
+    <ClCompile Include="..\src\PieceSquareTables.cpp" />
+    <ClCompile Include="..\src\Position.cpp" />
+    <ClCompile Include="..\src\Random.cpp" />
+    <ClCompile Include="..\src\Search.cpp" />
+    <ClCompile Include="..\src\TimeManage.cpp" />
+    <ClCompile Include="..\src\TranspositionTable.cpp" />
+    <ClCompile Include="..\src\TTEntry.cpp" />
+    <ClCompile Include="..\src\Zobrist.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\BitBoard.h" />
+    <ClInclude Include="..\src\BitBoardDefine.h" />
+    <ClInclude Include="..\src\BoardParamiters.h" />
+    <ClInclude Include="..\src\Evaluate.h" />
+    <ClInclude Include="..\src\Move.h" />
+    <ClInclude Include="..\src\MoveGeneration.h" />
+    <ClInclude Include="..\src\PieceSquareTables.h" />
+    <ClInclude Include="..\src\Position.h" />
+    <ClInclude Include="..\src\Random.h" />
+    <ClInclude Include="..\src\Search.h" />
+    <ClInclude Include="..\src\TimeManage.h" />
+    <ClInclude Include="..\src\TranspositionTable.h" />
+    <ClInclude Include="..\src\TTEntry.h" />
+    <ClInclude Include="..\src\Zobrist.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{0E8FED2A-3CE7-46FB-B8AC-7E8786B5937D}</ProjectGuid>
@@ -137,39 +170,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\Halogen2\BitBoard.cpp" />
-    <ClCompile Include="..\Halogen2\BitBoardDefine.cpp" />
-    <ClCompile Include="..\Halogen2\BoardParamiters.cpp" />
-    <ClCompile Include="..\Halogen2\Evaluate.cpp" />
-    <ClCompile Include="..\Halogen2\main.cpp" />
-    <ClCompile Include="..\Halogen2\Move.cpp" />
-    <ClCompile Include="..\Halogen2\MoveGeneration.cpp" />
-    <ClCompile Include="..\Halogen2\PieceSquareTables.cpp" />
-    <ClCompile Include="..\Halogen2\Position.cpp" />
-    <ClCompile Include="..\Halogen2\Random.cpp" />
-    <ClCompile Include="..\Halogen2\Search.cpp" />
-    <ClCompile Include="..\Halogen2\TimeManage.cpp" />
-    <ClCompile Include="..\Halogen2\TranspositionTable.cpp" />
-    <ClCompile Include="..\Halogen2\TTEntry.cpp" />
-    <ClCompile Include="..\Halogen2\Zobrist.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Halogen2\BitBoard.h" />
-    <ClInclude Include="..\Halogen2\BitBoardDefine.h" />
-    <ClInclude Include="..\Halogen2\BoardParamiters.h" />
-    <ClInclude Include="..\Halogen2\Evaluate.h" />
-    <ClInclude Include="..\Halogen2\Move.h" />
-    <ClInclude Include="..\Halogen2\MoveGeneration.h" />
-    <ClInclude Include="..\Halogen2\PieceSquareTables.h" />
-    <ClInclude Include="..\Halogen2\Position.h" />
-    <ClInclude Include="..\Halogen2\Random.h" />
-    <ClInclude Include="..\Halogen2\Search.h" />
-    <ClInclude Include="..\Halogen2\TimeManage.h" />
-    <ClInclude Include="..\Halogen2\TranspositionTable.h" />
-    <ClInclude Include="..\Halogen2\TTEntry.h" />
-    <ClInclude Include="..\Halogen2\Zobrist.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -15,93 +15,93 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Halogen2\BitBoard.cpp">
+    <ClCompile Include="..\src\BitBoard.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\BitBoardDefine.cpp">
+    <ClCompile Include="..\src\BitBoardDefine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\BoardParamiters.cpp">
+    <ClCompile Include="..\src\BoardParamiters.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Evaluate.cpp">
+    <ClCompile Include="..\src\Evaluate.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\main.cpp">
+    <ClCompile Include="..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Move.cpp">
+    <ClCompile Include="..\src\Move.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\MoveGeneration.cpp">
+    <ClCompile Include="..\src\MoveGeneration.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\PieceSquareTables.cpp">
+    <ClCompile Include="..\src\PieceSquareTables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Position.cpp">
+    <ClCompile Include="..\src\Position.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Random.cpp">
+    <ClCompile Include="..\src\Random.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Search.cpp">
+    <ClCompile Include="..\src\Search.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\TimeManage.cpp">
+    <ClCompile Include="..\src\TimeManage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\TranspositionTable.cpp">
+    <ClCompile Include="..\src\TranspositionTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\TTEntry.cpp">
+    <ClCompile Include="..\src\TTEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Halogen2\Zobrist.cpp">
+    <ClCompile Include="..\src\Zobrist.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Halogen2\BitBoard.h">
+    <ClInclude Include="..\src\BitBoard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\BitBoardDefine.h">
+    <ClInclude Include="..\src\BitBoardDefine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\BoardParamiters.h">
+    <ClInclude Include="..\src\BoardParamiters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Evaluate.h">
+    <ClInclude Include="..\src\Evaluate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Move.h">
+    <ClInclude Include="..\src\Move.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\MoveGeneration.h">
+    <ClInclude Include="..\src\MoveGeneration.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\PieceSquareTables.h">
+    <ClInclude Include="..\src\PieceSquareTables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Position.h">
+    <ClInclude Include="..\src\Position.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Random.h">
+    <ClInclude Include="..\src\Random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Search.h">
+    <ClInclude Include="..\src\Search.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\TimeManage.h">
+    <ClInclude Include="..\src\TimeManage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\TranspositionTable.h">
+    <ClInclude Include="..\src\TranspositionTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\TTEntry.h">
+    <ClInclude Include="..\src\TTEntry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Halogen2\Zobrist.h">
+    <ClInclude Include="..\src\Zobrist.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
