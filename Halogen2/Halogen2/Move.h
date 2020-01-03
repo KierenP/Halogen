@@ -4,20 +4,21 @@
 
 enum MoveFlag
 {
-	QUIET,							//0		0 0 0 0
-	PAWN_DOUBLE_MOVE,				//1		0 0 0 1
-	KING_CASTLE,					//2		0 0 1 0
-	QUEEN_CASTLE,					//3		0 0 1 1
-	CAPTURE,						//4		0 1 0 0
-	EN_PASSANT,						//5		0 1 0 1
-	KNIGHT_PROMOTION = 8,			//8		1 0 0 0
-	BISHOP_PROMOTION,				//9		1 0 0 1
-	ROOK_PROMOTION,					//10	1 0 1 0
-	QUEEN_PROMOTION,				//11	1 0 1 1
-	KNIGHT_PROMOTION_CAPTURE,		//12	1 1 0 0
-	BISHOP_PROMOTION_CAPTURE,		//13	1 1 0 1	
-	ROOK_PROMOTION_CAPTURE,			//14	1 1 1 0
-	QUEEN_PROMOTION_CAPTURE			//15	1 1 1 1
+	UNINITIALIZED,
+	QUIET,							
+	PAWN_DOUBLE_MOVE,				
+	KING_CASTLE,					
+	QUEEN_CASTLE,					
+	CAPTURE,						
+	EN_PASSANT,						
+	KNIGHT_PROMOTION = 8,	//no real reason, if you change this also change IsPromotion and IsCapture!		
+	BISHOP_PROMOTION,				
+	ROOK_PROMOTION,					
+	QUEEN_PROMOTION,				
+	KNIGHT_PROMOTION_CAPTURE,		
+	BISHOP_PROMOTION_CAPTURE,		
+	ROOK_PROMOTION_CAPTURE,			
+	QUEEN_PROMOTION_CAPTURE			
 };
 
 class Move
@@ -38,7 +39,7 @@ public:
 
 	bool operator==(const Move& rhs) const;
 	
-	int SEE = 0;
+	int SEE;
 
 private:
 

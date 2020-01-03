@@ -27,6 +27,11 @@ int main()
 
 	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
+	//GameBoard.InitialiseFromFen("r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2");
+	//PerftDivide(2);
+
+	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	//GetThreats(GameBoard, SQ_D5, WHITE);
 	
 	while (getline(cin, Line))
 	{
@@ -236,6 +241,9 @@ unsigned int PerftDivide(unsigned int depth)
 
 unsigned int Perft(unsigned int depth)
 {
+	if (depth == 0)
+		return 0;	//if perftdivide is called with 1 this is necesary
+
 	unsigned int nodeCount = 0;
 	std::vector<Move> moves;
 	LegalMoves(GameBoard, moves);

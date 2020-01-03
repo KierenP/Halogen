@@ -10,17 +10,52 @@ void CastleMoves(const Position & position, std::vector<Move>& moves);
 void CalculateQuietMovesBB(const Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 void CalculateMovesBBCapture(const Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding);
 
-void RemoveIllegal(Position & position, std::vector<Move>& moves);																			//remove all the moves that put the current player's king in check
+void RemoveIllegal(Position & position, std::vector<Move>& moves);	//remove all the moves that put the current player's king in check
 bool MovePutsSelfInCheck(Position & position, Move & move);
 
 void AddQuiescenceMoves(const Position& position, std::vector<Move>& moves);
 
+//special generators for when in check
+void KingEvasions(Position & position, std::vector<Move>& moves);
+void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats);
+void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats);
+
 void LegalMoves(Position & position, std::vector<Move>& moves)
 {
-	moves.reserve(50);
+	if (IsInCheck(position, position.GetTurn()))
+	{
+		moves.reserve(10);
 
-	GeneratePsudoLegalMoves(position, moves);
-	RemoveIllegal(position, moves);
+		uint64_t Threats = GetThreats(position, position.GetKing(position.GetTurn()), position.GetTurn());
+
+		assert(Threats != 0);
+
+		if (GetBitCount(Threats) > 1)	//double check
+		{
+			KingEvasions(position, moves);
+		}
+		else
+		{
+			PawnPushes(position, moves);		//pawn moves are hard :( so we calculate those normally
+			PawnDoublePushes(position, moves);
+			PawnCaptures(position, moves);
+			PawnEnPassant(position, moves);
+			PawnPromotions(position, moves);
+
+			RemoveIllegal(position, moves);
+
+			KingEvasions(position, moves);
+			CaptureThreat(position, moves, Threats);
+			BlockThreat(position, moves, Threats);
+		}
+	}
+	else
+	{
+		moves.reserve(50);
+
+		GeneratePsudoLegalMoves(position, moves);
+		RemoveIllegal(position, moves);
+	}
 }
 
 void QuiescenceMoves(Position& position, std::vector<Move>& moves)
@@ -42,6 +77,75 @@ void AddQuiescenceMoves(const Position& position, std::vector<Move>& moves)
 	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), KingAttacks, false));
 	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), RookAttacks, true));
 	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), QueenAttacks, true));
+}
+
+void KingEvasions(Position & position, std::vector<Move>& moves)
+{
+	unsigned int square = position.GetKing(position.GetTurn());
+
+	uint64_t quiet = position.GetEmptySquares() & KingAttacks[square];
+	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & KingAttacks[square];
+
+	while (quiet != 0)
+	{
+		unsigned int target = bitScanForwardErase(quiet);
+		Move move(square, target, QUIET);
+
+		if (!MovePutsSelfInCheck(position, move))
+			moves.push_back(move);
+	}
+
+	while (captures != 0)
+	{
+		unsigned int target = bitScanForwardErase(captures);
+		Move move(square, target, CAPTURE);
+
+		if (!MovePutsSelfInCheck(position, move))
+			moves.push_back(move);
+	}
+}
+
+void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
+{
+	unsigned int threatSquare = bitScanForwardErase(threats);
+
+	uint64_t potentialCaptures = GetThreats(position, threatSquare, !position.GetTurn()) 
+		& ~SquareBB[position.GetKing(position.GetTurn())]									//King captures handelled in KingEvasions()
+		& ~position.GetPieceBB(Piece(PAWN, position.GetTurn()));							//Pawn captures handelled elsewhere
+
+	while (potentialCaptures != 0)
+	{
+		unsigned int start = bitScanForwardErase(potentialCaptures);
+		Move move(start, threatSquare, CAPTURE);
+
+		if (!MovePutsSelfInCheck(position, move))
+			moves.push_back(move);
+	}
+}
+
+void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
+{
+	unsigned int threatSquare = bitScanForwardErase(threats);
+	unsigned int piece = position.GetSquare(threatSquare);
+
+	if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT) return;	//cant block non-sliders. Also cant be threatened by enemy king
+
+	uint64_t blockSquares = inBetweenCache(threatSquare, position.GetKing(position.GetTurn()));
+
+	while (blockSquares != 0)
+	{
+		unsigned int sq = bitScanForwardErase(blockSquares);
+		uint64_t potentialBlockers = GetThreats(position, sq, !position.GetTurn()) & ~position.GetPieceBB(Piece(PAWN, position.GetTurn()));	//pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
+
+		while (potentialBlockers != 0)
+		{
+			unsigned int start = bitScanForwardErase(potentialBlockers);
+			Move move(start, sq, QUIET);
+
+			if (!MovePutsSelfInCheck(position, move))
+				moves.push_back(move);
+		}
+	}
 }
 
 void GeneratePsudoLegalMoves(const Position & position, std::vector<Move>& moves)
@@ -393,7 +497,7 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 
 	uint64_t Pieces = position.GetAllPieces();
 
-	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
+	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];	//could put all sliding threats together
 	while (queen != 0)
 	{
 		unsigned int start = bitScanForwardErase(queen);
@@ -418,6 +522,59 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 	}
 
 	return false;
+}
+
+bool IsInCheck(const Position& position, bool colour)
+{
+	return IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+}
+
+uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
+{
+	assert(square < N_SQUARES);
+	uint64_t threats = EMPTY;
+
+	threats |= (KnightAttacks[square] & position.GetPieceBB(KNIGHT, !colour));
+
+	if (colour == WHITE)
+	{
+		threats |= (WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN));
+	}
+
+	if (colour == BLACK)
+	{
+		threats |= (BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN));
+	}
+
+	threats |= (KingAttacks[square] & position.GetPieceBB(KING, !colour));					//if I can attack the enemy king he can attack me
+
+	uint64_t Pieces = position.GetAllPieces();
+
+	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
+	while (queen != 0)
+	{
+		unsigned int start = bitScanForwardErase(queen);
+		if (mayMove(start, square, Pieces))
+			threats |= SquareBB[start];
+	}
+
+	uint64_t bishops = position.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
+	while (bishops != 0)
+	{
+		unsigned int start = bitScanForwardErase(bishops);
+		if (mayMove(start, square, Pieces))
+			threats |= SquareBB[start];
+	}
+
+	uint64_t rook = position.GetPieceBB(ROOK, !colour) & RookAttacks[square];
+	while (rook != 0)
+	{
+		unsigned int start = bitScanForwardErase(rook);
+		if (mayMove(start, square, Pieces))
+			threats |= SquareBB[start];
+	}
+
+	return threats;
 }
 
 bool MovePutsSelfInCheck(Position & position, Move & move)

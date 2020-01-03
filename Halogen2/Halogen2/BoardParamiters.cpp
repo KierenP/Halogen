@@ -4,18 +4,7 @@ std::vector<BoardParamiters> PreviousParamiters;
 
 BoardParamiters::BoardParamiters()
 {
-	m_CurrentTurn = WHITE;
-	m_WhiteKingCastle = false;
-	m_WhiteQueenCastle = false;
-	m_BlackKingCastle = false;
-	m_BlackQueenCastle = false;
-
-	m_EnPassant = N_SQUARES;
-	m_FiftyMoveCount = 0;
-	m_TurnCount = 1;
-
-	m_HasCastledWhite = false;
-	m_HasCastledBlack = false;
+	Init();
 }
 
 
@@ -43,15 +32,27 @@ void BoardParamiters::NextTurn()
 	m_CurrentTurn = !m_CurrentTurn;
 }
 
-bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
+void BoardParamiters::Init()
 {
+	m_CurrentTurn = WHITE;
 	m_WhiteKingCastle = false;
 	m_WhiteQueenCastle = false;
 	m_BlackKingCastle = false;
 	m_BlackQueenCastle = false;
 
+	m_EnPassant = N_SQUARES;
+	m_FiftyMoveCount = 0;
+	m_TurnCount = 1;
+
 	m_HasCastledWhite = false;
 	m_HasCastledBlack = false;
+
+	m_CaptureSquare = -1;
+}
+
+bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
+{
+	Init();
 
 	if (fen[1] == "w")
 		m_CurrentTurn = WHITE;

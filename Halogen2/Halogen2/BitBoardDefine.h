@@ -2,6 +2,7 @@
 #include <string>
 #include <assert.h>
 #include <intrin.h>
+#include <stdexcept>
 
 enum Squares
 {

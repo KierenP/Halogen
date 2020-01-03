@@ -9,12 +9,17 @@ enum Score
 	Draw = 0
 };
 
+struct Killer
+{
+	Move move[2];
+};
+
 const unsigned int MaxDepth = 100;
 const unsigned int SearchIncrement = 2;
 
 TranspositionTable tTable;
 SearchTimeManage timeManage;
-std::vector<Move[2]> KillerMoves(MaxDepth);	//2 moves indexed by distanceFromRoot
+std::vector<Killer> KillerMoves(100);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
@@ -23,7 +28,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 void PrintBestMove(Move& Best);
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position, int distanceFromRoot);
+bool CheckForRep(Position& position);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
 bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position);
 bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha);
@@ -32,7 +37,7 @@ void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
-int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot);
+int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depth);
 void AddKiller(Move move, int distanceFromRoot);
@@ -60,14 +65,16 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 	//give each move a score on how 'good' it is. 
 	for (int i = 0; i < moves.size(); i++)
 	{
+		moves[i].SEE = 0;		//default to zero
+
 		if (moves[i] == TTmove) {
 			moves[i].SEE = 15000;	
 			continue;
 		}
 
-		if (moves[i] == KillerMoves.at(distanceFromRoot)[0])
+		if (moves[i] == KillerMoves.at(distanceFromRoot).move[0])
 			moves[i].SEE = 20;
-		if (moves[i] == KillerMoves.at(distanceFromRoot)[1])
+		if (moves[i] == KillerMoves.at(distanceFromRoot).move[1])
 			moves[i].SEE = 10;
 
 		if (moves[i].IsCapture())
@@ -206,9 +213,14 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		int score = NegaScoutRoot(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 1, returnMove, searchTime.ElapsedMs() > 1000);
 		if (timeManage.AbortSearch()) {	break; }
 
-		if (score <= alpha || score >= beta)
+		if (score <= alpha)
 		{
 			alpha = -30000;
+			continue;
+		}
+
+		if (score >= beta)
+		{
 			beta = 30000;
 			continue;
 		}
@@ -249,7 +261,7 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 	int a = alpha;
 	int b = beta;
 
-	for (int i = 0; i < moves.size(); i++)
+	for (int i = 0; i < moves.size() && !timeManage.AbortSearch(); i++)
 	{
 		if (PrintCurrentMove) {
 			std::cout << "info currmovenumber " << i + 1 << " currmove ";
@@ -296,7 +308,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 
 	//check for draw
 	if (InsufficentMaterial(position)) return 0;
-	if (CheckForRep(position, distanceFromRoot)) return 0;
+	if (CheckForRep(position)) return 0;
 
 	/*Query the transpotition table*/
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
@@ -308,7 +320,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	/*Drop into quiescence search*/
 	if (depth <= 0 && !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{ 
-		return Quiescence(position, alpha, beta, colour, distanceFromRoot);
+		return Quiescence(position, alpha, beta, colour, distanceFromRoot, depth);
 	}
 
 	std::vector<Move> moves;
@@ -344,14 +356,14 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	int a = alpha;
 	int b = beta;
 	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
-	int staticScore = colour * EvaluatePosition(position);	//removed colour * Evaluate position and it seemed to improve
+	int staticScore = EvaluatePosition(position);	//possibly add colour * 
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
 		position.ApplyMove(moves.at(i));
 
 		//futility pruning
-		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//note .GetTurn() has changed
+		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
 			if (staticScore + 200 < a && depth == 2)	
 			{
@@ -359,6 +371,8 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 				continue;	
 			}
 		}
+
+		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
 
 		//late move reductions
 		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
@@ -371,8 +385,6 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 				continue;
 			}
 		}
-
-		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
 
 		int newScore = -NegaScout(position, extendedDepth - SearchIncrement, -b, -a, -colour, distanceFromRoot + 1, true);
 		if (newScore > a && newScore < beta && i >= 1)
@@ -396,7 +408,8 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 				AddKiller(moves.at(i), distanceFromRoot);
 			}
 
-			AddHistory(moves[i], depth);
+			if (!(moves[i].IsCapture() && moves[i].IsPromotion()))
+				AddHistory(moves[i], depth);
 
 			break;
 		}
@@ -425,7 +438,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position, int distanceFromRoot)
+bool CheckForRep(Position& position)
 {
 	int rep = 1;
 	uint64_t current = position.GetZobristKey();
@@ -436,8 +449,7 @@ bool CheckForRep(Position& position, int distanceFromRoot)
 		if (PreviousKeys.at(i) == current)
 			rep++;
 
-		if (rep == 2 && distanceFromRoot > 1) return true;	//don't allow 2 fold rep, unless we are at the root in which case we are permitted it
-		if (rep == 3) return true;
+		if (rep == 2) return true;	//don't allow 2 fold rep instead of permitting it and then disallowing 3 fold rep
 	}
 	
 	return false;
@@ -475,8 +487,8 @@ int extension(Position & position, Move & move, int alpha, int beta)
 
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth)
 {
-	return !moves[i].IsCapture() 
-		&& !moves[i].IsPromotion() 
+	return !moves[i].IsCapture()
+		&& !moves[i].IsPromotion()
 		&& !IsPV(beta, alpha)
 		&& !InCheck 
 		&& !IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn()) 
@@ -546,42 +558,40 @@ int TerminalScore(Position& position, int distanceFromRoot)
 	}
 }
 
-int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot)
+int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth)
 {
 	if (timeManage.AbortSearch()) return 0;	//checking the time is expensive so we only do it every so often
 
 	int staticScore = colour * EvaluatePosition(position);
-	if (staticScore >= beta)
-	{
-		return staticScore;
-	}
+	if (staticScore >= beta) return staticScore;
+	if (staticScore > alpha) alpha = staticScore;
 
-	alpha = max(staticScore, alpha);
 	std::vector<Move> moves;
+	int Score = staticScore;
+
 	QuiescenceMoves(position, moves);
 
 	if (moves.size() == 0)
 		return staticScore;
-
-	int Score = staticScore;
-	OrderMoves(moves, position, 0, distanceFromRoot);
-	std::deque<Move> line;
+		
+	OrderMoves(moves, position, depth, distanceFromRoot);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if (moves[i].SEE <= 0 && position.GetCaptureSquare() != moves[i].GetTo())	//prune bad or equal captures that are not recaptures
-			continue;
-
-		if (moves[i].SEE < 0 && position.GetCaptureSquare() == moves[i].GetTo())	//prune only bad recaptures and allow equal recaptures. Once SEE < 0 we will skip all remaining
+		if (staticScore + moves[i].SEE + 200 < alpha) 								//delta pruning
 			break;
+
+		if (moves[i].SEE < 0)														//prune bad captures
+			break;
+
+		if (moves[i].SEE <= 0 && position.GetCaptureSquare() != moves[i].GetTo())	//prune equal captures that aren't recaptures
+			continue;
 
 		if (moves[i].IsPromotion() && !(moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
 			continue;
 
-		if (staticScore + moves[i].SEE + 200 < alpha) break;																		//delta pruning
-
 		position.ApplyMove(moves.at(i));
-		Score = max(Score, -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1));
+		Score = max(Score, -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, depth - 1));
 		position.RevertMove();
 
 		alpha = max(Score, alpha);
@@ -596,18 +606,18 @@ void AddKiller(Move move, int distanceFromRoot)
 {
 	if (move.IsCapture() || move.IsPromotion()) return;
 
-	if (move == KillerMoves.at(distanceFromRoot)[0]) return;
-	if (move == KillerMoves.at(distanceFromRoot)[1])
+	if (move == KillerMoves.at(distanceFromRoot).move[0]) return;
+	if (move == KillerMoves.at(distanceFromRoot).move[1])
 	{
 		//swap to the front
-		Move temp = KillerMoves.at(distanceFromRoot)[0];
-		KillerMoves.at(distanceFromRoot)[0] = KillerMoves.at(distanceFromRoot)[1];
-		KillerMoves.at(distanceFromRoot)[1] = temp;
+		Move temp = KillerMoves.at(distanceFromRoot).move[0];
+		KillerMoves.at(distanceFromRoot).move[0] = KillerMoves.at(distanceFromRoot).move[1];
+		KillerMoves.at(distanceFromRoot).move[1] = temp;
 
 		return;
 	}
 
-	KillerMoves.at(distanceFromRoot)[1] = move;	//replace the 2nd one
+	KillerMoves.at(distanceFromRoot).move[1] = move;	//replace the 2nd one
 }
 
 void AddHistory(Move& move, int depth)

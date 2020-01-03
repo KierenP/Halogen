@@ -1,5 +1,4 @@
 #include "BitBoardDefine.h"
-#include <stdexcept>
 
 uint64_t EMPTY;
 uint64_t UNIVERCE;
@@ -236,7 +235,13 @@ unsigned int GetAntiDiagonal(unsigned int square)
 
 unsigned int GetBitCount(uint64_t bb)
 {
-	return __popcnt64(bb);
+	//return __popcnt64(bb);
+
+	int c = 0;
+	for (; bb != 0; bb >>= 1)
+		if (bb & 1)
+			c++;
+	return c;
 }
 
 unsigned int AlgebraicToPos(std::string str)

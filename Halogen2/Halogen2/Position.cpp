@@ -103,9 +103,14 @@ void Position::ApplyMove(Move move)
 	ClearSquare(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
-	key = IncrementZobristKey(move);	
+	IncrementZobristKey(move);
 
-	//if debugging a hash issue, try assert(GenerateZobristKey() == Increment...)
+	/*if (GenerateZobristKey() != key)
+	{
+		std::cout << "error";
+		NextTurn();	//just adding something here to really mess things up
+	}*/
+	
 	//In order to see if the key was corrupted at some point
 }
 
@@ -179,7 +184,13 @@ void Position::ApplyNullMove()
 	SetCaptureSquare(-1);
 
 	NextTurn();
-	key = IncrementZobristKey(Move());
+	IncrementZobristKey(Move());
+
+	/*if (GenerateZobristKey() != key)
+	{
+		std::cout << "error";
+		NextTurn();
+	}*/
 }
 
 void Position::RevertNullMove()
@@ -340,11 +351,15 @@ uint64_t Position::IncrementZobristKey(Move move)
 	if (PreviousParamiters.back().GetEnPassant() <= SQ_H8)
 		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(PreviousParamiters.back().GetEnPassant()));		//undo the previous ep square
 
+	if (move.GetFlag() == UNINITIALIZED) return key;	//null move
+
 	if (GetEnPassant() <= SQ_H8)
 		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));									//apply new EP
 
 	if (move.GetFlag() == EN_PASSANT)
 		key ^= ZobristTable.at(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));	//remove the captured piece
+
+	
 
 	//Castling
 	if (CanCastleWhiteKingside() != PreviousParamiters.back().CanCastleWhiteKingside())					//if casteling rights changed, flip that one

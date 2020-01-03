@@ -3,9 +3,9 @@
 
 std::vector<BitBoard> previousBoards;
 
-BitBoard::BitBoard() : m_Bitboard{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+BitBoard::BitBoard()
 {
-
+	Reset();
 }
 
 

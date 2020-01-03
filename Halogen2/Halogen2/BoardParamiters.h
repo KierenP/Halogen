@@ -35,6 +35,8 @@ protected:
 	void NextTurn();
 	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
 
+	void Init();
+
 private:
 	bool m_CurrentTurn;
 	bool m_WhiteKingCastle;
@@ -46,9 +48,9 @@ private:
 	unsigned int m_FiftyMoveCount;
 	unsigned int m_TurnCount;
 
-	bool m_HasCastledWhite = false;
-	bool m_HasCastledBlack = false;
+	bool m_HasCastledWhite;
+	bool m_HasCastledBlack;
 
-	unsigned int m_CaptureSquare = N_SQUARES;
+	unsigned int m_CaptureSquare;
 };
 

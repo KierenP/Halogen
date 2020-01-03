@@ -1,6 +1,6 @@
 #include "TranspositionTable.h"
 
-unsigned int TTSize = 62500;	//default is 1MB hash
+unsigned int TTSize = 1;	
 
 TranspositionTable::TranspositionTable()
 {
@@ -18,7 +18,7 @@ TranspositionTable::~TranspositionTable()
 
 bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 {
-	if ((table.at(key % TTSize).GetKey() == key) && (table.at(key % TTSize).GetDepth() >= depth))
+	if ((table.at(key % TTSize).GetKey() == key) && (table.at(key % TTSize).GetDepth() >= depth) && table.at(key % TTSize).GetCutoff() != EntryType::EMPTY)
 		return true;
 	return false;
 }
@@ -39,7 +39,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	if (Score < -9000)
 		Score -= distanceFromRoot;
 
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()))
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY)
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
 }
 
@@ -72,7 +72,6 @@ int TranspositionTable::GetCapacity()
 
 void TranspositionTable::ResetTable()
 {
-
 	TTHits = 0;
 
 	for (int i = 0; i < TTSize; i++)
