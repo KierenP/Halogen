@@ -1,7 +1,7 @@
 #include "MoveGeneration.h"
 
 void PawnPushes(const Position & position, std::vector<Move>& moves);
-void PawnPromotions(const Position& position, std::vector<Move>& moves);
+void PawnPromotions(const Position & position, std::vector<Move>& moves);
 void PawnDoublePushes(const Position & position, std::vector<Move>& moves);
 void PawnEnPassant(const Position & position, std::vector<Move>& moves);
 void PawnCaptures(const Position & position, std::vector<Move>& moves);

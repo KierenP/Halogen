@@ -112,5 +112,11 @@
     <Text Include="..\..\perftsuite.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="bkt.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="perftsuite.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

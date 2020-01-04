@@ -172,7 +172,7 @@ void Position::RevertMove()
 
 	RestorePreviousBoard();
 	RestorePreviousParamiters();
-	key = PreviousKeys.at(PreviousKeys.size() - 1);
+	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
 }
 
@@ -198,7 +198,7 @@ void Position::RevertNullMove()
 	assert(PreviousKeys.size() > 0);
 
 	RestorePreviousParamiters();
-	key = PreviousKeys.at(PreviousKeys.size() - 1);
+	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
 }
 

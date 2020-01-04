@@ -54,6 +54,8 @@
   <ItemGroup>
     <Text Include="..\..\bkt.txt" />
     <Text Include="..\..\perftsuite.txt" />
+    <Text Include="bkt.txt" />
+    <Text Include="perftsuite.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

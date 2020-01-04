@@ -107,8 +107,8 @@ void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() != 0);
 
-	*this = previousBoards[previousBoards.size() - 1];
-	previousBoards.erase(previousBoards.end() - 1);			//erase the last element
+	*this = previousBoards.back();
+	previousBoards.pop_back();
 }
 
 bool BitBoard::IsEmpty(unsigned int square) const

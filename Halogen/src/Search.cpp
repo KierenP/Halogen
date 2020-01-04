@@ -44,6 +44,14 @@ void AddKiller(Move move, int distanceFromRoot);
 int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, Move& bestMove, bool PrintCurrentMove);
 void AddHistory(Move& move, int depth);
 
+/*
+TODO list:
+1. Adjust the criteria for how killer moves are stored
+2. Consider putting underpromotions ahead of killer moves?
+
+
+*/
+
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot)
 {
 	/*
@@ -256,7 +264,7 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 		return alpha;
 
 	OrderMoves(moves, position, depth, distanceFromRoot);
-	Move hashMove = GetHashMove(position, depth);
+	Move hashMove = GetHashMove(position, depth - SearchIncrement);
 	int Score = LowINF;
 	int a = alpha;
 	int b = beta;
@@ -351,7 +359,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 
 	OrderMoves(moves, position, depth, distanceFromRoot);
 	Move bestMove = Move();	//used for adding to transposition table later
-	Move hashMove = GetHashMove(position, depth);
+	Move hashMove = GetHashMove(position, depth - SearchIncrement);
 	int Score = LowINF;
 	int a = alpha;
 	int b = beta;

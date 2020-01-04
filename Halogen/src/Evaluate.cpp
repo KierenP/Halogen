@@ -9,7 +9,6 @@ const int DoubledPawnPenalty = 10;
 const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
 
 const int CastledBonus = 40;
-const unsigned int Threat[N_PIECES] = { 1, 2, 2, 3, 5, 0, 1, 2, 2, 3, 5, 0 };
 
 unsigned int CalculateGameStage(const Position& position);
 int EvaluateCastleBonus(const Position& position);

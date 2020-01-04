@@ -89,8 +89,8 @@ void BoardParamiters::RestorePreviousParamiters()
 {
 	assert(PreviousParamiters.size() != 0);
 
-	*this = PreviousParamiters[PreviousParamiters.size() - 1];
-	PreviousParamiters.erase(PreviousParamiters.end() - 1);			//erase the last element
+	*this = PreviousParamiters.back();
+	PreviousParamiters.pop_back();			
 }
 
 void BoardParamiters::UpdateCastleRights(Move move)
