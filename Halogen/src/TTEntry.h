@@ -18,7 +18,7 @@ public:
 
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
-	char GetDepth() const { return depth; }
+	int GetDepth() const { return depth; }
 	bool IsAncient() const { return ancient; }
 	EntryType GetCutoff() const { return cutoff; }
 	Move GetMove() const { return bestMove; }
@@ -28,12 +28,12 @@ public:
 	void DrawScoreAdjustment() { score /= 2; }
 
 private:
-	//fits within 16 bytes.
-	uint64_t key;			//8 bytes
-	short int score;		//2 bytes
-	signed char depth;		//1 bytes
-	Move bestMove;			//3 bytes  
-	bool ancient;			//1 byte 
-	EntryType cutoff;		//1 byte  (?) 
+
+	uint64_t key;			
+	int score;		
+	int depth;				
+	Move bestMove;			  
+	bool ancient;			
+	EntryType cutoff;		 
 };
 

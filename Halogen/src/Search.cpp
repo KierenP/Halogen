@@ -1,5 +1,7 @@
 #include "Search.h"
 
+unsigned int MAX_DEPTH = 100;
+
 enum Score
 {
 	HighINF = 30000,
@@ -19,7 +21,7 @@ const unsigned int SearchIncrement = 2;
 
 TranspositionTable tTable;
 SearchTimeManage timeManage;
-std::vector<Killer> KillerMoves(100);					//2 moves indexed by distanceFromRoot
+std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
@@ -214,11 +216,17 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		}
 	}
 
+	for (int i = 0; i < 100; i++)
+	{
+		KillerMoves.at(i).move[0] = Move();
+		KillerMoves.at(i).move[1] = Move();
+	}
+
 	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch() && depth < 100; )
 	{
 		Move returnMove;
 
-		int score = NegaScoutRoot(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 1, returnMove, searchTime.ElapsedMs() > 1000);
+		int score = NegaScoutRoot(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 0, returnMove, searchTime.ElapsedMs() > 1000);
 		if (timeManage.AbortSearch()) {	break; }
 
 		if (score <= alpha)
@@ -306,13 +314,16 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 		b = a + 1;				//Set a new zero width window
 	}
 
-	AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
+	if (!timeManage.AbortSearch())
+		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
+
 	return Score;
 }
 
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
-	if (timeManage.AbortSearch()) return 0;	
+	if (timeManage.AbortSearch()) return 0;		//this is wrong and needs correction!
+	if (distanceFromRoot >= MAX_DEPTH) return 0;	//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
 	if (InsufficentMaterial(position)) return 0;
@@ -425,7 +436,9 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		b = a + 1;				//Set a new zero width window
 	}
 
-	AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
+	if (!timeManage.AbortSearch())
+		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
+
 	return Score;
 }
 
