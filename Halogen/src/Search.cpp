@@ -25,7 +25,7 @@ std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFro
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, Position& position, Move move);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
 void PrintBestMove(Move& Best);
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
@@ -135,7 +135,7 @@ void PrintBestMove(Move& Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, Position& position, Move move)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move)
 {
 	std::vector<Move> pv;
 	pv.push_back(move);
@@ -167,14 +167,19 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	if (isCheckmate)
 	{
 		if (score > 0)
-			std::cout << " score mate " << (-abs(score) -MateScore) / 2;
+			std::cout << " score mate " << ((-abs(score) -MateScore) + 1) / 2;
 		else
-			std::cout << " score mate " << -(-abs(score) - MateScore) / 2;
+			std::cout << " score mate " << -((-abs(score) - MateScore) + 1) / 2;
 	}
 	else
 	{
-		std::cout << " score cp " << score;							//The score in hundreths of a pawn (a 1 pawn advantage is +100)
+		std::cout << " score cp " << score;							//The score in hundreths of a pawn (a 1 pawn advantage is +100)	
 	}
+
+	if (score <= alpha)
+		std::cout << " upperbound";
+	if (score >= beta)
+		std::cout << " lowerbound";
 
 	std::cout
 		<< " time " << Time																						//Time in ms
@@ -216,7 +221,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		}
 	}
 
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < KillerMoves.size(); i++)
 	{
 		KillerMoves.at(i).move[0] = Move();
 		KillerMoves.at(i).move[1] = Move();
@@ -229,20 +234,16 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		int score = NegaScoutRoot(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 0, returnMove, searchTime.ElapsedMs() > 1000);
 		if (timeManage.AbortSearch()) {	break; }
 
-		if (score <= alpha)
+		if (score <= alpha || score >= beta)
 		{
+			//PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, returnMove);
 			alpha = -30000;
-			continue;
-		}
-
-		if (score >= beta)
-		{
 			beta = 30000;
 			continue;
 		}
 
 		move = returnMove;	//this is only hit if the continue before is not hit
-		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, position, move);
+		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
 
 		depth++;
 		alpha = score - 25;
@@ -305,8 +306,7 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 		a = max(Score, a);
 		if (a >= beta) //Fail high cutoff
 		{
-			if (!(moves.at(i) == hashMove))
-				AddKiller(moves.at(i), distanceFromRoot);
+			AddKiller(moves.at(i), distanceFromRoot);
 			AddHistory(moves[i], depth);
 			break;
 		}
@@ -322,7 +322,7 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
-	if (timeManage.AbortSearch()) return 0;		//this is wrong and needs correction!
+	if (timeManage.AbortSearch()) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;	//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
@@ -422,14 +422,8 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		a = max(Score, a);
 		if (a >= beta) //Fail high cutoff
 		{
-			if (!(moves.at(i) == hashMove))
-			{
-				AddKiller(moves.at(i), distanceFromRoot);
-			}
-
-			if (!(moves[i].IsCapture() && moves[i].IsPromotion()))
-				AddHistory(moves[i], depth);
-
+			AddKiller(moves.at(i), distanceFromRoot);
+			AddHistory(moves[i], depth);
 			break;
 		}
 
@@ -588,6 +582,7 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	if (staticScore > alpha) alpha = staticScore;
 
 	std::vector<Move> moves;
+	Move bestmove;
 	int Score = staticScore;
 
 	QuiescenceMoves(position, moves);
@@ -612,13 +607,22 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 			continue;
 
 		position.ApplyMove(moves.at(i));
-		Score = max(Score, -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, depth - 1));
+		int newScore = -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, depth - 1);
 		position.RevertMove();
+
+		if (newScore > Score)
+		{
+			bestmove = moves.at(i);
+			Score = newScore;
+		}
 
 		alpha = max(Score, alpha);
 		if (Score >= beta)
 			return Score;
 	}
+
+	if (!timeManage.AbortSearch() && bestmove.GetFlag() != MoveFlag::UNINITIALIZED)
+		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestmove);
 
 	return Score;
 }

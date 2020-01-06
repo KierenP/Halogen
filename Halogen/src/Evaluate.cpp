@@ -68,13 +68,13 @@ int EvaluatePosition(const Position & position)
 
 bool InsufficentMaterial(const Position& position, int Material)
 {
-	if (GetBitCount(position.GetPieceBB(WHITE_PAWN)) != 0) return false;
-	if (GetBitCount(position.GetPieceBB(WHITE_ROOK)) != 0) return false;
-	if (GetBitCount(position.GetPieceBB(WHITE_QUEEN)) != 0) return false;
+	if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
+	if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
+	if ((position.GetPieceBB(WHITE_QUEEN)) != 0) return false;
 
-	if (GetBitCount(position.GetPieceBB(BLACK_PAWN)) != 0) return false;
-	if (GetBitCount(position.GetPieceBB(BLACK_ROOK)) != 0) return false;
-	if (GetBitCount(position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
+	if ((position.GetPieceBB(BLACK_PAWN)) != 0) return false;
+	if ((position.GetPieceBB(BLACK_ROOK)) != 0) return false;
+	if ((position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
 
 	//in almost all cases, you need to have more than 400 points difference. That equates to 2 or more minor pieces (KNN, KNB, KBB). 
 	//Note KNN is not a forced win and should be counted as a draw, but 
@@ -218,8 +218,8 @@ int EvaluateMaterial(const Position & position)
 
 	for (int i = 0; i < N_PIECE_TYPES; i++)
 	{
-		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceValues[i]) bitScanForwardErase(piece);																		//black piece
-		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceValues[i + N_PIECE_TYPES]) bitScanForwardErase(piece);										//white piece
+		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues[i];																														//black piece
+		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues[i + N_PIECE_TYPES];																						//white piece										
 	}
 
 	return Score;

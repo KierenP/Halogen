@@ -235,13 +235,10 @@ unsigned int GetAntiDiagonal(unsigned int square)
 
 unsigned int GetBitCount(uint64_t bb)
 {
-	//return __popcnt64(bb);
-
-	int c = 0;
-	for (; bb != 0; bb >>= 1)
-		if (bb & 1)
-			c++;
-	return c;
+#if defined(_WIN64)
+	return __popcnt64(bb);
+#endif
+	return std::bitset<std::numeric_limits<uint64_t>::digits>(bb).count();
 }
 
 unsigned int AlgebraicToPos(std::string str)

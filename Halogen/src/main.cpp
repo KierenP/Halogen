@@ -8,7 +8,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "2.8.7";
+string version = "3.0";
 
 int main()
 {
@@ -25,7 +25,7 @@ int main()
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
 	//GameBoard.InitialiseFromFen("r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2");
 	//PerftDivide(2);
