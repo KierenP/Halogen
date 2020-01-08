@@ -1,15 +1,9 @@
 #include "TranspositionTable.h"
 
-unsigned int TTSize = 1;	
-
 TranspositionTable::TranspositionTable()
 {
 	TTHits = 0;
-
-	for (int i = 0; i < TTSize; i++)
-	{
-		table.push_back(TTEntry());
-	}
+	table.push_back(TTEntry());
 }
 
 TranspositionTable::~TranspositionTable()
@@ -18,40 +12,46 @@ TranspositionTable::~TranspositionTable()
 
 bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 {
-	if ((table.at(key % TTSize).GetKey() == key) && (table.at(key % TTSize).GetDepth() >= depth) && table.at(key % TTSize).GetCutoff() != EntryType::EMPTY)
+	if ((table.at(HashFunction(key)).GetKey() == key) && (table.at(HashFunction(key)).GetDepth() >= depth) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }
 
+uint64_t TranspositionTable::HashFunction(const uint64_t& key)
+{
+	return key % table.size();
+	//return key & 0x3FFFFF;
+}
+
 bool TranspositionTable::CheckEntry(uint64_t key)
 {
-	if ((table.at(key % TTSize).GetKey() == key))
+	if ((table.at(HashFunction(key)).GetKey() == key))
 		return true;
 	return false;
 }
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
 {
-	int hash = ZobristKey % TTSize;
+	int hash = HashFunction(ZobristKey);
 
 	if (Score > 9000)	//checkmate node
 		Score += distanceFromRoot;
 	if (Score < -9000)
 		Score -= distanceFromRoot;
 
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY)
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
 {
-	table.at(key % TTSize).SetAncient(false);
-	return table.at(key % TTSize);
+	table.at(HashFunction(key)).SetAncient(false);
+	return table.at(HashFunction(key));
 }
 
 void TranspositionTable::SetAllAncient()
 {
-	for (int i = 0; i < TTSize; i++)
+	for (int i = 0; i < table.size(); i++)
 	{
 		table.at(i).SetAncient(true);
 	}
@@ -61,7 +61,7 @@ int TranspositionTable::GetCapacity()
 {
 	int count = 0;
 
-	for (int i = 0; i < TTSize; i++)
+	for (int i = 0; i < table.size(); i++)
 	{
 		if (!table.at(i).IsAncient())
 			count++;
@@ -74,7 +74,7 @@ void TranspositionTable::ResetTable()
 {
 	TTHits = 0;
 
-	for (int i = 0; i < TTSize; i++)
+	for (int i = 0; i < table.size(); i++)
 	{
 		table.at(i) = TTEntry();
 	}
@@ -84,9 +84,9 @@ void TranspositionTable::SetSize(unsigned int MB)
 {
 	table.clear();
 	unsigned int EntrySize = sizeof(TTEntry);
-	TTSize = MB * 1024 * 1024 / EntrySize;
+	unsigned int entries = MB * 1024 * 1024 / EntrySize;
 	
-	for (int i = 0; i < TTSize; i++)
+	for (int i = 0; i < entries; i++)
 	{
 		table.push_back(TTEntry());
 	}

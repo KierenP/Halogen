@@ -184,10 +184,13 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << NodeCount
-		<< " nps " << int(NodeCount / (Time) * 1000)
-		<< " tbhits " << tTable.GetHitCount()
-		<< " hashfull " << unsigned int(float(tTable.GetCapacity()) / TTSize * 1000)							//thousondths full
+		<< " nps " << int(NodeCount / max(Time, 1) * 1000)
+		<< " hashfull " << unsigned int(float(tTable.GetCapacity()) / tTable.GetSize() * 1000)							//thousondths full
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / max(NodeCount, 1)
+		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / max(pawnHashTable.HashHits + pawnHashTable.HashMisses, 1)
 		<< " pv ";																								//the current best line found
+
+
 
 	for (int i = 0; i < pv.size(); i++)
 	{
@@ -227,12 +230,12 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		KillerMoves.at(i).move[1] = Move();
 	}
 
-	for (int depth = 1; !timeManage.AbortSearch() && timeManage.ContinueSearch() && depth < 100; )
+	for (int depth = 1; !timeManage.AbortSearch(NodeCount) && timeManage.ContinueSearch() && depth < 100; )
 	{
 		Move returnMove;
 
 		int score = NegaScoutRoot(position, depth * SearchIncrement, alpha, beta, position.GetTurn() ? 1 : -1, 0, returnMove, searchTime.ElapsedMs() > 1000);
-		if (timeManage.AbortSearch()) {	break; }
+		if (timeManage.AbortSearch(NodeCount)) {	break; }
 
 		if (score <= alpha || score >= beta)
 		{
@@ -256,7 +259,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, Move& bestMove, bool PrintCurrentMove)
 {
-	if (timeManage.AbortSearch()) return 0;
+	if (timeManage.AbortSearch(NodeCount)) return 0;
 
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
@@ -278,13 +281,13 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 	int a = alpha;
 	int b = beta;
 
-	for (int i = 0; i < moves.size() && !timeManage.AbortSearch(); i++)
+	for (int i = 0; i < moves.size() && !timeManage.AbortSearch(NodeCount); i++)
 	{
-		if (PrintCurrentMove) {
+		/*if (PrintCurrentMove) {
 			std::cout << "info currmovenumber " << i + 1 << " currmove ";
 			moves[i].Print();
 			std::cout << "\n";
-		}
+		}*/
 
 		position.ApplyMove(moves.at(i));
 
@@ -314,7 +317,7 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 		b = a + 1;				//Set a new zero width window
 	}
 
-	if (!timeManage.AbortSearch())
+	if (!timeManage.AbortSearch(NodeCount))
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
 	return Score;
@@ -322,7 +325,9 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
-	if (timeManage.AbortSearch()) return -1;		//we must check later that we don't let this score pollute the transposition table
+	//_mm_prefetch((char *)(&tTable.table[position.GetZobristKey()]), _MM_HINT_T0);
+
+	if (timeManage.AbortSearch(NodeCount)) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;	//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
@@ -430,7 +435,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		b = a + 1;				//Set a new zero width window
 	}
 
-	if (!timeManage.AbortSearch())
+	if (!timeManage.AbortSearch(NodeCount))
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
 	return Score;
@@ -438,6 +443,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 {
+	tTable.AddHit();
 	entry.MateScoreAdjustment(distanceFromRoot);	//this MUST be done
 
 	if (entry.GetCutoff() == EntryType::EXACT) return true;
@@ -575,11 +581,17 @@ int TerminalScore(Position& position, int distanceFromRoot)
 
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth)
 {
-	if (timeManage.AbortSearch()) return 0;	//checking the time is expensive so we only do it every so often
+	if (timeManage.AbortSearch(NodeCount)) return -1;	
 
 	int staticScore = colour * EvaluatePosition(position);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
+
+	/*if (tTable.CheckEntry(position.GetZobristKey(), depth))
+	{
+		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return entry.GetScore();
+	}*/
 
 	std::vector<Move> moves;
 	Move bestmove;
@@ -621,8 +633,8 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 			return Score;
 	}
 
-	if (!timeManage.AbortSearch() && bestmove.GetFlag() != MoveFlag::UNINITIALIZED)
-		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestmove);
+	//if (!timeManage.AbortSearch(NodeCount) && bestmove.GetFlag() != MoveFlag::UNINITIALIZED)
+		//AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestmove);
 
 	return Score;
 }

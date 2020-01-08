@@ -26,6 +26,7 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Move.cpp" />
     <ClCompile Include="..\src\MoveGeneration.cpp" />
+    <ClCompile Include="..\src\PawnHashTable.cpp" />
     <ClCompile Include="..\src\PieceSquareTables.cpp" />
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Random.cpp" />
@@ -42,6 +43,7 @@
     <ClInclude Include="..\src\Evaluate.h" />
     <ClInclude Include="..\src\Move.h" />
     <ClInclude Include="..\src\MoveGeneration.h" />
+    <ClInclude Include="..\src\PawnHashTable.h" />
     <ClInclude Include="..\src\PieceSquareTables.h" />
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Random.h" />
@@ -117,6 +119,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>Halogen x32</TargetName>
+    <IntDir>..\src</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

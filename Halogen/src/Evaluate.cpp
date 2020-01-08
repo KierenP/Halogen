@@ -17,6 +17,9 @@ int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
 int EvaluateMaterial(const Position& position);
 int KingTropism(const Position& pos);
+int EvaluatePawns(const Position& position, unsigned int gameStage);
+
+PawnHashTable pawnHashTable;
 
 int Distance[64][64];
 
@@ -42,7 +45,6 @@ int AntiDiagonals[64] = {
   14,13,12,11,10, 9, 8, 7
 };
 
-
 //DEBUG FUNCTIONS
 void FlipColours(Position& pos);
 void MirrorTopBottom(Position& pos);
@@ -53,15 +55,43 @@ int EvaluatePosition(const Position & position)
 	int Score = 0;
 	unsigned int GameStage = CalculateGameStage(position);
 
-	int Material = EvaluateMaterial(position);
-
-	if (InsufficentMaterial(position, Material)) return 0;
-
+	int Material = EvaluateMaterial(position);	
+	if (InsufficentMaterial(position, Material)) return 0;	//note the Material doesn't include the pawns, but if there were any pawns we return false anyways so that doesn't matter
 	int PieceSquares = EvaluatePieceSquareTables(position, GameStage);
-	int PawnStructure = EvaluatePawnStructure(position);
 	int Castle = EvaluateCastleBonus(position);
 	int Tropism = KingTropism(position);
-	Score += Material + PieceSquares + PawnStructure + Castle + Tropism;
+
+	//int pawns = EvaluatePawns(position, GameStage);
+	int pawns = 0;
+	uint64_t pawnKey = PawnHashKey(position);
+
+	if (pawnHashTable.CheckEntry(pawnKey))
+	{
+		pawnHashTable.HashHits++;
+		pawns = pawnHashTable.GetEntry(pawnKey).eval;
+	}
+	else
+	{
+		pawnHashTable.HashMisses++;
+		pawns = EvaluatePawns(position, GameStage);
+		pawnHashTable.AddEntry(pawnKey, pawns);
+	}
+
+	Score += Material + PieceSquares + Castle + Tropism + pawns;
+	return Score;
+}
+
+int EvaluatePawns(const Position& position, unsigned int gameStage)
+{
+	int Score = 0;
+
+	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues[BLACK_PAWN];		//material																												
+	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues[WHITE_PAWN];	
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_PAWN); piece != 0; Score -= PieceSquareTables[gameStage][BLACK_PAWN][bitScanForwardErase(piece)]);						//piece square tables
+	for (uint64_t piece = position.GetPieceBB(WHITE_PAWN); piece != 0; Score += PieceSquareTables[gameStage][WHITE_PAWN][bitScanForwardErase(piece)]);				
+
+	Score += EvaluatePawnStructure(position);
 
 	return Score;
 }
@@ -203,7 +233,7 @@ int EvaluatePieceSquareTables(const Position & position, unsigned int gameStage)
 {
 	int Score = 0;
 
-	for (int i = 0; i < N_PIECE_TYPES; i++)
+	for (int i = 1; i < N_PIECE_TYPES; i++)	//skip pawn
 	{
 		for (uint64_t piece = position.GetPieceBB(i); piece != 0; Score -= PieceSquareTables[gameStage][i][bitScanForwardErase(piece)]);														//black piece
 		for (uint64_t piece = position.GetPieceBB(i + N_PIECE_TYPES); piece != 0; Score += PieceSquareTables[gameStage][i + N_PIECE_TYPES][bitScanForwardErase(piece)]);						//white piece
@@ -216,7 +246,7 @@ int EvaluateMaterial(const Position & position)
 {
 	int Score = 0;
 
-	for (int i = 0; i < N_PIECE_TYPES; i++)
+	for (int i = 1; i < N_PIECE_TYPES; i++)	//skip pawn
 	{
 		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues[i];																														//black piece
 		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues[i + N_PIECE_TYPES];																						//white piece										
@@ -227,44 +257,49 @@ int EvaluateMaterial(const Position & position)
 
 bool EvaluateDebug()
 {
-	std::ifstream infile("perftsuite.txt");
-	std::string line;
+	pawnHashTable.Init(1);
 
-	while (std::getline(infile, line))
+	for (int i = 0; i <= 1; i++)	//2 pass to check pawn eval hash on 2nd run
 	{
-		std::vector<std::string> arrayTokens;
-		std::istringstream iss(line);
-		arrayTokens.clear();
+		std::ifstream infile("perftsuite.txt");
+		std::string line;
 
-		do
+		while (std::getline(infile, line))
 		{
-			std::string stub;
-			iss >> stub;
-			arrayTokens.push_back(stub);
-		} while (iss);
+			std::vector<std::string> arrayTokens;
+			std::istringstream iss(line);
+			arrayTokens.clear();
 
-		Position testPosition;
-		testPosition.InitialiseFromFen(line);
-		Position copy = testPosition;
-		int score = EvaluatePosition(testPosition);
+			do
+			{
+				std::string stub;
+				iss >> stub;
+				arrayTokens.push_back(stub);
+			} while (iss);
 
-		FlipColours(testPosition);
-		MirrorTopBottom(testPosition);
+			Position testPosition;
+			testPosition.InitialiseFromFen(line);
+			Position copy = testPosition;
+			int score = EvaluatePosition(testPosition);
 
-		assert(score == -EvaluatePosition(testPosition)); 
+			FlipColours(testPosition);
+			MirrorTopBottom(testPosition);
 
-		MirrorLeftRight(testPosition);
-		assert(score == -EvaluatePosition(testPosition));
+			assert(score == -EvaluatePosition(testPosition));
 
-		FlipColours(testPosition);
-		MirrorTopBottom(testPosition);
-		assert(score == EvaluatePosition(testPosition));
+			MirrorLeftRight(testPosition);
+			assert(score == -EvaluatePosition(testPosition));
 
-		MirrorLeftRight(testPosition);
+			FlipColours(testPosition);
+			MirrorTopBottom(testPosition);
+			assert(score == EvaluatePosition(testPosition));
 
-		for (int i = 0; i < N_SQUARES; i++)
-		{
-			assert(testPosition.GetSquare(i) == copy.GetSquare(i));
+			MirrorLeftRight(testPosition);
+
+			for (int i = 0; i < N_SQUARES; i++)
+			{
+				assert(testPosition.GetSquare(i) == copy.GetSquare(i));
+			}
 		}
 	}
 

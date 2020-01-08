@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <utility>
 #include <deque>
+#include <xmmintrin.h>
 
 extern TranspositionTable tTable;
 Move SearchPosition(Position position, int allowedTimeMs);

@@ -46,9 +46,12 @@ bool SearchTimeManage::ContinueSearch()
 	return (timer.ElapsedMs() < AllowedSearchTimeMS / 2);
 }
 
-bool SearchTimeManage::AbortSearch()
+bool SearchTimeManage::AbortSearch(int nodes)
 {
-	return (!KeepSearching || timer.ElapsedMs() > AllowedSearchTimeMS);
+	if ((nodes & 0x3FF) == 0)	//should hit once every 1024 times. & is quicker than (nodes % 1024)
+		CacheShouldStop = timer.ElapsedMs() > AllowedSearchTimeMS;
+
+	return (!KeepSearching || CacheShouldStop);
 }
 
 void SearchTimeManage::StartSearch(int ms)

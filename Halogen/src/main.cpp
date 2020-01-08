@@ -25,13 +25,16 @@ int main()
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
 	//GameBoard.InitialiseFromFen("r3k2r/p1p1qpb1/bn1ppnp1/1B1PN3/1p2P3/P1N2Q1p/1PPB1PPP/R3K2R b KQkq - 1 2");
 	//PerftDivide(2);
 
 	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	//GetThreats(GameBoard, SQ_D5, WHITE);
+
+	tTable.SetSize(1);
+	pawnHashTable.Init(1);
 	
 	while (getline(cin, Line))
 	{
@@ -44,7 +47,7 @@ int main()
 		{
 			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 1 min 1 max 1024" << endl;
+			cout << "option name Hash type spin default 2 min 2 max 1024" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -53,6 +56,7 @@ int main()
 		else if (token == "ucinewgame")
 		{
 			GameBoard.StartingPosition();
+			pawnHashTable.ResetTable();
 			tTable.ResetTable();
 		}
 
@@ -141,7 +145,11 @@ int main()
 			if (token == "Clear") 
 			{
 				iss >> token;
-				if (token == "Hash") tTable.ResetTable();
+				if (token == "Hash") 
+				{
+					pawnHashTable.ResetTable();
+					tTable.ResetTable();
+				}
 			}
 
 			else if (token == "Hash")
@@ -149,7 +157,8 @@ int main()
 				iss >> token; //'value'
 				iss >> token;
 
-				tTable.SetSize(stoi(token));
+				tTable.SetSize(stoi(token) - 1);
+				pawnHashTable.Init(1);
 			}
 		}
 
