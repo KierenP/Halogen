@@ -11,6 +11,7 @@ Move::Move()
 	SetFrom(-1);
 	SetTo(-1);
 	SetFlag(UNINITIALIZED);
+	SEE = -1;
 }
 
 Move::Move(unsigned int from, unsigned int to, unsigned int flag)
@@ -22,6 +23,7 @@ Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 	SetFrom(from);
 	SetTo(to);
 	SetFlag(flag);
+	SEE = -1;
 }
 
 Move::~Move()

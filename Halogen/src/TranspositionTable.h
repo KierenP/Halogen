@@ -25,6 +25,8 @@ public:
 	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 	unsigned int GetSize() { return table.size(); }
 
+	void PreFetch(uint64_t key);
+
 	std::vector<TTEntry> table;
 private:
 

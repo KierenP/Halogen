@@ -54,8 +54,6 @@
     <ClInclude Include="..\src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\bkt.txt" />
-    <Text Include="..\..\perftsuite.txt" />
     <Text Include="bkt.txt" />
     <Text Include="perftsuite.txt" />
   </ItemGroup>

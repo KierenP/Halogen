@@ -91,3 +91,8 @@ void TranspositionTable::SetSize(unsigned int MB)
 		table.push_back(TTEntry());
 	}
 }
+
+void TranspositionTable::PreFetch(uint64_t key)
+{
+	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
+}

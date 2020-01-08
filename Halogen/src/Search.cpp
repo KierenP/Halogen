@@ -54,6 +54,8 @@ TODO list:
 
 */
 
+std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
+
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot)
 {
 	/*
@@ -70,7 +72,6 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 	*/
 
 	Move TTmove = GetHashMove(position, searchDepth - SearchIncrement);
-	std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
 
 	//give each move a score on how 'good' it is. 
 	for (int i = 0; i < moves.size(); i++)
@@ -325,8 +326,6 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 
 int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
-	//_mm_prefetch((char *)(&tTable.table[position.GetZobristKey()]), _MM_HINT_T0);
-
 	if (timeManage.AbortSearch(NodeCount)) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;	//If we are 100 moves from root I think we can assume its a drawn position
 
@@ -385,6 +384,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	for (int i = 0; i < moves.size(); i++)	
 	{
 		position.ApplyMove(moves.at(i));
+		tTable.PreFetch(position.GetZobristKey());
 
 		//futility pruning
 		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
