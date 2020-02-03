@@ -155,9 +155,9 @@ int main()
 				int size = stoi(token);
 
 				if (size < 2)
-					std::cout << "info string Hash size too small";
-				else if (size < 1024)
-					std::cout << "info string Hash size too large";
+					std::cout << "info string Hash size too small" << std::endl;
+				else if (size > 1024)
+					std::cout << "info string Hash size too large" << std::endl;
 				else
 				{
 					tTable.SetSize(stoi(token) - 1);
