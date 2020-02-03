@@ -1,18 +1,24 @@
 #include "MoveGeneration.h"
 
+void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);
+void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);	//captures and/or promotions
+
+//Pawn moves
 void PawnPushes(Position & position, std::vector<Move>& moves, uint64_t pinned);
 void PawnPromotions(Position & position, std::vector<Move>& moves, uint64_t pinned);
 void PawnDoublePushes(Position & position, std::vector<Move>& moves, uint64_t pinned);
-void PawnEnPassant(Position & position, std::vector<Move>& moves);
+void PawnEnPassant(Position & position, std::vector<Move>& moves);	//Ep moves are always checked for legality so no need for pinned mask
 void PawnCaptures(Position & position, std::vector<Move>& moves, uint64_t pinned);
-void CastleMoves(Position & position, std::vector<Move>& moves);
 
-void CalculateQuietMovesBB(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
-void CalculateMovesBBCapture(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
+//All other pieces
+void GenerateQuietMoves(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
+void GenerateCaptureMoves(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
 
+//misc
+void CastleMoves(Position& position, std::vector<Move>& moves);
+
+//utility functions
 bool MovePutsSelfInCheck(Position & position, Move & move);
-
-void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);
 uint64_t PinnedMask(const Position& position);
 
 //special generators for when in check
@@ -29,10 +35,9 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 		moves.reserve(10);
 
 		uint64_t Threats = GetThreats(position, position.GetKing(position.GetTurn()), position.GetTurn());
-
 		assert(Threats != 0);
 
-		if (GetBitCount(Threats) > 1)	//double check
+		if (GetBitCount(Threats) > 1)					//double check
 		{
 			KingEvasions(position, moves);
 		}
@@ -52,7 +57,7 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 	else
 	{
 		moves.reserve(50);
-		GeneratePsudoLegalMoves(position, moves, pinned);
+		GenerateLegalMoves(position, moves, pinned);
 	}
 }
 
@@ -68,18 +73,18 @@ void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t p
 	PawnEnPassant(position, moves);
 	PawnPromotions(position, moves, pinned);
 
-	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateMovesBBCapture(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
 }
 
 uint64_t PinnedMask(const Position& position)
 {
 	bool turn = position.GetTurn();
 	unsigned int king = position.GetKing(turn);
-	if (IsInCheck(position, king, turn)) return UNIVERCE;
+	if (IsSquareThreatened(position, king, turn)) return UNIVERCE;
 
 	uint64_t mask = EMPTY;
 	uint64_t possiblePins = QueenAttacks[king];
@@ -193,17 +198,17 @@ void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 	}
 }
 
-void GeneratePsudoLegalMoves(Position & position, std::vector<Move>& moves, uint64_t pinned)
+void GenerateLegalMoves(Position & position, std::vector<Move>& moves, uint64_t pinned)
 {
 	PawnPushes(position, moves, pinned);
 	PawnDoublePushes(position, moves, pinned);
 	CastleMoves(position, moves);
 
-	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; CalculateQuietMovesBB(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
 
 	AddQuiescenceMoves(position, moves, pinned);
 }
@@ -251,7 +256,7 @@ void PawnPromotions(Position& position, std::vector<Move>& moves, uint64_t pinne
 	if (position.GetTurn() == BLACK)
 	{
 		foward = -8;
-		targets = (pawnSquares >> 8)& position.GetEmptySquares();
+		targets = (pawnSquares >> 8) & position.GetEmptySquares();
 	}
 
 	uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]);			//pushes that are to the back ranks
@@ -404,7 +409,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_H1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_F1, position.GetTurn()) && !IsInCheck(position, SQ_G1, position.GetTurn()))
+			if (!IsSquareThreatened(position, SQ_E1, position.GetTurn()) && !IsSquareThreatened(position, SQ_F1, position.GetTurn()) && !IsSquareThreatened(position, SQ_G1, position.GetTurn()))
 			{
 				moves.push_back(Move(SQ_E1, SQ_G1, KING_CASTLE));
 			}
@@ -415,7 +420,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E1, SQ_A1, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E1, position.GetTurn()) && !IsInCheck(position, SQ_D1, position.GetTurn()) && !IsInCheck(position, SQ_C1, position.GetTurn()))
+			if (!IsSquareThreatened(position, SQ_E1, position.GetTurn()) && !IsSquareThreatened(position, SQ_D1, position.GetTurn()) && !IsSquareThreatened(position, SQ_C1, position.GetTurn()))
 			{
 				moves.push_back(Move(SQ_E1, SQ_C1, QUEEN_CASTLE));
 			}
@@ -426,7 +431,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_H8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_F8, position.GetTurn()) && !IsInCheck(position, SQ_G8, position.GetTurn()))
+			if (!IsSquareThreatened(position, SQ_E8, position.GetTurn()) && !IsSquareThreatened(position, SQ_F8, position.GetTurn()) && !IsSquareThreatened(position, SQ_G8, position.GetTurn()))
 			{
 				moves.push_back(Move(SQ_E8, SQ_G8, KING_CASTLE));
 			}
@@ -437,7 +442,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	{
 		if (mayMove(SQ_E8, SQ_A8, Pieces))
 		{
-			if (!IsInCheck(position, SQ_E8, position.GetTurn()) && !IsInCheck(position, SQ_D8, position.GetTurn()) && !IsInCheck(position, SQ_C8, position.GetTurn()))
+			if (!IsSquareThreatened(position, SQ_E8, position.GetTurn()) && !IsSquareThreatened(position, SQ_D8, position.GetTurn()) && !IsSquareThreatened(position, SQ_C8, position.GetTurn()))
 			{
 				moves.push_back(Move(SQ_E8, SQ_C8, QUEEN_CASTLE));
 			}
@@ -445,7 +450,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	}
 }
 
-void CalculateQuietMovesBB(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
+void GenerateQuietMoves(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
 {
 	assert(square < N_SQUARES);
 
@@ -467,7 +472,7 @@ void CalculateQuietMovesBB(Position & position, std::vector<Move>& moves, unsign
 	}
 }
 
-void CalculateMovesBBCapture(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
+void GenerateCaptureMoves(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
 {
 	assert(square < N_SQUARES);
 
@@ -489,7 +494,7 @@ void CalculateMovesBBCapture(Position& position, std::vector<Move>& moves, unsig
 	}
 }
 
-bool IsInCheck(const Position & position, unsigned int square, bool colour)
+bool IsSquareThreatened(const Position & position, unsigned int square, bool colour)
 {
 	assert(square < N_SQUARES);
 
@@ -542,7 +547,12 @@ bool IsInCheck(const Position & position, unsigned int square, bool colour)
 
 bool IsInCheck(const Position& position, bool colour)
 {
-	return IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());
+	return IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());
+}
+
+bool IsInCheck(const Position& position)
+{
+	return IsInCheck(position, position.GetTurn());
 }
 
 uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
@@ -608,7 +618,7 @@ bool MovePutsSelfInCheck(Position & position, Move & move)
 		position.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 	}
 
-	bool InCheck = IsInCheck(position, position.GetKing(position.GetTurn()), position.GetTurn());							//CANNOT use 'king' in place of GetKing because the king may have moved.
+	bool InCheck = IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());							//CANNOT use 'king' in place of GetKing because the king may have moved.
 
 	if (move.GetFlag() == EN_PASSANT)
 	{

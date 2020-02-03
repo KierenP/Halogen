@@ -32,7 +32,7 @@ bool TranspositionTable::CheckEntry(uint64_t key)
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
 {
-	int hash = HashFunction(ZobristKey);
+	size_t hash = HashFunction(ZobristKey);
 
 	if (Score > 9000)	//checkmate node
 		Score += distanceFromRoot;
@@ -86,7 +86,7 @@ void TranspositionTable::SetSize(unsigned int MB)
 	unsigned int EntrySize = sizeof(TTEntry);
 	unsigned int entries = MB * 1024 * 1024 / EntrySize;
 	
-	for (int i = 0; i < entries; i++)
+	for (size_t i = 0; i < entries; i++)
 	{
 		table.push_back(TTEntry());
 	}

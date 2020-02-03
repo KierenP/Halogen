@@ -8,29 +8,26 @@ public:
 	TranspositionTable();
 	~TranspositionTable();
 
+	size_t GetSize() { return table.size(); }
+	uint64_t GetHitCount() const { return TTHits; }
+	int GetCapacity();
+
+	void SetAllAncient();
+	void ResetHitCount() { TTHits = 0; }
+	void ResetTable();
+	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
+
 	bool CheckEntry(uint64_t key, int depth);
-	uint64_t HashFunction(const uint64_t& key);
 	bool CheckEntry(uint64_t key);
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff);
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 
-	void SetAllAncient();
-	int GetCapacity();
 	void AddHit() { TTHits++; }	//this is called every time we get a position from here. We don't count it if we just used it for move ordering
-
-	void ResetHitCount() { TTHits = 0; }
-	uint64_t GetHitCount() const { return TTHits; } 
-
-	void ResetTable();
-	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
-	unsigned int GetSize() { return table.size(); }
-
+	uint64_t HashFunction(const uint64_t& key);
 	void PreFetch(uint64_t key);
 
-	std::vector<TTEntry> table;
 private:
-
+	std::vector<TTEntry> table;
 	uint64_t TTHits;
-
 };
 

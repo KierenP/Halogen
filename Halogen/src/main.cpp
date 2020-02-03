@@ -8,7 +8,7 @@ void PerftSuite();
 unsigned int PerftDivide(unsigned int depth);
 unsigned int Perft(unsigned int depth);
 
-string version = "3.0";
+string version = "3.1";
 
 int main()
 {
@@ -27,11 +27,6 @@ int main()
 
 	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
-	//GameBoard.InitialiseFromFen("r3k2r/p1pp1pb1/bn1qpnpB/3PN3/1p2P3/2N2Q1p/PPPKBPPP/R6R b kq - 3 2");
-	//PerftDivide(2);
-
-	//GameBoard.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-	//GetThreats(GameBoard, SQ_D5, WHITE);
 
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
@@ -157,8 +152,17 @@ int main()
 				iss >> token; //'value'
 				iss >> token;
 
-				tTable.SetSize(stoi(token) - 1);
-				pawnHashTable.Init(1);
+				int size = stoi(token);
+
+				if (size < 2)
+					std::cout << "info string Hash size too small";
+				else if (size < 1024)
+					std::cout << "info string Hash size too large";
+				else
+				{
+					tTable.SetSize(stoi(token) - 1);
+					pawnHashTable.Init(1);
+				}
 			}
 		}
 

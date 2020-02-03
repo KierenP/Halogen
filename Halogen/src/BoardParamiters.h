@@ -38,12 +38,7 @@ protected:
 	void Init();
 
 private:
-	bool m_CurrentTurn;
-	bool m_WhiteKingCastle;
-	bool m_WhiteQueenCastle;
-	bool m_BlackKingCastle;
-	bool m_BlackQueenCastle;
-
+	unsigned int m_CaptureSquare;
 	unsigned int m_EnPassant;
 	unsigned int m_FiftyMoveCount;
 	unsigned int m_TurnCount;
@@ -51,6 +46,10 @@ private:
 	bool m_HasCastledWhite;
 	bool m_HasCastledBlack;
 
-	unsigned int m_CaptureSquare;
+	bool m_CurrentTurn;
+	bool m_WhiteKingCastle;
+	bool m_WhiteQueenCastle;
+	bool m_BlackKingCastle;
+	bool m_BlackQueenCastle;
 };
 

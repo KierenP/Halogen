@@ -176,9 +176,9 @@ uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
 
 unsigned int BitBoard::GetKing(bool colour) const
 {
-	uint64_t squares = GetPieceBB(KING, colour);
+	assert(GetPieceBB(KING, colour) != 0);	//assert only runs in debug so I don't care about the double call
 
-	assert(squares != 0);
-
-	return bitScanForward(squares);
+	unsigned long index;
+	_BitScanForward64(&index, GetPieceBB(KING, colour));
+	return index;
 }

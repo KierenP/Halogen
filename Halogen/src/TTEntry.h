@@ -2,7 +2,7 @@
 #include "Move.h"
 #include "BitBoardDefine.h"
 
-enum EntryType {
+enum class EntryType {
 	EMPTY_ENTRY,
 	EXACT,
 	LOWERBOUND,
@@ -13,19 +13,18 @@ class TTEntry
 {
 public:
 	TTEntry();
-	TTEntry(Move best, uint64_t ZobristKey, short int Score, short int Depth, char Cutoff);
+	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, EntryType Cutoff);
 	~TTEntry();
 
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
 	int GetDepth() const { return depth; }
 	bool IsAncient() const { return ancient; }
-	char GetCutoff() const { return cutoff; }
+	EntryType GetCutoff() const { return cutoff; }
 	Move GetMove() const { return bestMove; }
 
 	void SetAncient(bool isAncient) { ancient = isAncient; }
 	void MateScoreAdjustment(int distanceFromRoot);
-	void DrawScoreAdjustment() { score /= 2; }
 
 private:
 
@@ -33,8 +32,7 @@ private:
 	Move bestMove;
 	int score;
 	int depth;
-	char cutoff;
+	EntryType cutoff;
 	bool ancient;
-
 };
 
