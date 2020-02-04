@@ -22,9 +22,10 @@ bool MovePutsSelfInCheck(Position & position, Move & move);
 uint64_t PinnedMask(const Position& position);
 
 //special generators for when in check
-void KingEvasions(Position & position, std::vector<Move>& moves);
-void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats);
-void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats);
+void KingEvasions(Position & position, std::vector<Move>& moves);						//move the king out of danger	(single or multi threat)
+void KingCapturesEvade(Position& position, std::vector<Move>& moves);			//use only for multi threat with king evasions
+void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats);		//capture the attacker	(single threat only)
+void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats);		//block the attacker (single threat only)
 
 void LegalMoves(Position & position, std::vector<Move>& moves)
 {
@@ -40,6 +41,7 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 		if (GetBitCount(Threats) > 1)					//double check
 		{
 			KingEvasions(position, moves);
+			KingCapturesEvade(position, moves);
 		}
 		else
 		{
@@ -50,6 +52,7 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 			PawnPromotions(position, moves, pinned);
 
 			KingEvasions(position, moves);
+			KingCapturesEvade(position, moves);
 			CaptureThreat(position, moves, Threats);
 			BlockThreat(position, moves, Threats);
 		}
@@ -87,13 +90,14 @@ uint64_t PinnedMask(const Position& position)
 	if (IsSquareThreatened(position, king, turn)) return UNIVERCE;
 
 	uint64_t mask = EMPTY;
-	uint64_t possiblePins = QueenAttacks[king];
+	uint64_t possiblePins = QueenAttacks[king] & position.GetPiecesColour(turn);
+	uint64_t maskAll = position.GetAllPieces();
 
 	while (possiblePins != 0)
 	{
 		unsigned int sq = bitScanForwardErase(possiblePins);
 
-		if (!mayMove(king, sq, position.GetAllPieces()))	//if you can't move from the square to the king, it can't be pinned
+		if (!mayMove(king, sq, maskAll))	//if you can't move from the square to the king, it can't be pinned
 			continue;
 
 		//If a piece is moving from the same diagonal as the king, and that diagonal contains an enemy bishop or queen
@@ -132,9 +136,7 @@ uint64_t PinnedMask(const Position& position)
 void KingEvasions(Position & position, std::vector<Move>& moves)
 {
 	unsigned int square = position.GetKing(position.GetTurn());
-
 	uint64_t quiet = position.GetEmptySquares() & KingAttacks[square];
-	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & KingAttacks[square];
 
 	while (quiet != 0)
 	{
@@ -144,6 +146,12 @@ void KingEvasions(Position & position, std::vector<Move>& moves)
 		if (!MovePutsSelfInCheck(position, move))
 			moves.push_back(move);
 	}
+}
+
+void KingCapturesEvade(Position& position, std::vector<Move>& moves)
+{
+	unsigned int square = position.GetKing(position.GetTurn());
+	uint64_t captures = (position.GetPiecesColour(!position.GetTurn())) & KingAttacks[square];
 
 	while (captures != 0)
 	{
@@ -160,7 +168,7 @@ void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threat
 	unsigned int threatSquare = bitScanForwardErase(threats);
 
 	uint64_t potentialCaptures = GetThreats(position, threatSquare, !position.GetTurn()) 
-		& ~SquareBB[position.GetKing(position.GetTurn())]									//King captures handelled in KingEvasions()
+		& ~SquareBB[position.GetKing(position.GetTurn())]									//King captures handelled in KingCapturesEvade()
 		& ~position.GetPieceBB(Piece(PAWN, position.GetTurn()));							//Pawn captures handelled elsewhere
 
 	while (potentialCaptures != 0)
@@ -205,10 +213,10 @@ void GenerateLegalMoves(Position & position, std::vector<Move>& moves, uint64_t 
 	CastleMoves(position, moves);
 
 	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
 	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
 	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
 	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
 
 	AddQuiescenceMoves(position, moves, pinned);
 }
@@ -517,8 +525,8 @@ bool IsSquareThreatened(const Position & position, unsigned int square, bool col
 		return true;
 
 	uint64_t Pieces = position.GetAllPieces();
-
-	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];	//could put all sliding threats together
+	
+	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
 	while (queen != 0)
 	{
 		unsigned int start = bitScanForwardErase(queen);

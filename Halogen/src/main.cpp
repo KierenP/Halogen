@@ -1,12 +1,13 @@
 #include "Search.h"
 #include <thread>
+#include <ppl.h>
 
 using namespace::std;
 Position GameBoard;
 
 void PerftSuite();
-unsigned int PerftDivide(unsigned int depth);
-unsigned int Perft(unsigned int depth);
+uint64_t PerftDivide(unsigned int depth);
+uint64_t Perft(unsigned int depth);
 
 string version = "3.1";
 
@@ -166,9 +167,15 @@ int main()
 			}
 		}
 
+		else if (token == "perft")
+		{
+			iss >> token;
+			PerftDivide(stoi(token));
+		}
+
 		else if (token == "stop") KeepSearching = false;
-		else if (token == "quit") return 0;
 		else if (token == "print") GameBoard.Print();
+		else if (token == "quit") return 0;
 		else cout << "Unknown command" << endl;
 	}
 
@@ -232,16 +239,27 @@ void PerftSuite()
 	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
 }
 
-unsigned int PerftDivide(unsigned int depth)
+uint64_t PerftDivide(unsigned int depth)
 {
-	unsigned int nodeCount = 0;
+	uint64_t nodeCount = 0;
 	std::vector<Move> moves;
 	LegalMoves(GameBoard, moves);
 
+	/*concurrency::parallel_for(size_t(0), moves.size(), [&](size_t i)
+	{
+		Position copy = GameBoard;
+		copy.ApplyMove(moves.at(i));
+		uint64_t ChildNodeCount = Perft(depth - 1);
+		copy.RevertMove();
+
+		moves.at(i).Print();
+		std::cout << ": " << ChildNodeCount << std::endl;
+		nodeCount += ChildNodeCount;
+	});*/
 	for (int i = 0; i < moves.size(); i++)
 	{
 		GameBoard.ApplyMove(moves.at(i));
-		unsigned int ChildNodeCount = Perft(depth - 1);
+		uint64_t ChildNodeCount = Perft(depth - 1);
 		GameBoard.RevertMove();
 
 		moves.at(i).Print();
@@ -249,15 +267,16 @@ unsigned int PerftDivide(unsigned int depth)
 		nodeCount += ChildNodeCount;
 	}
 
+	std::cout << "\nTotal nodes: " << nodeCount << std::endl;
 	return nodeCount;
 }
 
-unsigned int Perft(unsigned int depth)
+uint64_t Perft(unsigned int depth)
 {
 	if (depth == 0)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
-	unsigned int nodeCount = 0;
+	uint64_t nodeCount = 0;
 	std::vector<Move> moves;
 	LegalMoves(GameBoard, moves);
 

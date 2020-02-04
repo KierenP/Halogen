@@ -32,7 +32,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 bool CheckForRep(Position& position);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
 bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position);
-bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha);
+bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int depth);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
@@ -354,7 +354,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	}
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha))
+	if (AllowedNull(allowedNull, position, beta, alpha, depth))
 	{
 		position.ApplyNullMove();
 		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false);	
@@ -362,8 +362,9 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 
 		//Verification search
 		if (score >= beta)
-		{
-			score = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, false);		
+		{	
+			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
+			score = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);	
 		}
 
 		if (score >= beta)
@@ -378,7 +379,6 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 
 	OrderMoves(moves, position, depth, distanceFromRoot);
 	Move bestMove = Move();	//used for adding to transposition table later
-	Move hashMove = GetHashMove(position, depth - 1);
 	int Score = LowINF;
 	int a = alpha;
 	int b = beta;
@@ -529,11 +529,13 @@ bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());
 }
 
-bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha)
+bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int depth)
 {
 	return allowedNull
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn())
-		&& !IsPV(beta, alpha);
+		&& !IsPV(beta, alpha)
+		&& depth > 3									//don't drop directly into quiessence search. particularly important in mate searches as quiessence search has no mate detection currently. See 5rk1/2p4p/2p4r/3P4/4p1b1/1Q2NqPp/PP3P1K/R4R2 b - - 0 1 
+		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
 }
 
 bool IsPV(int beta, int alpha)
@@ -587,11 +589,26 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	if (timeManage.AbortSearch(NodeCount)) return -1;	
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
 
+	std::vector<Move> moves;
+
+	/*Check for checkmate*/
+	if (IsInCheck(position))
+	{
+		LegalMoves(position, moves);
+
+		if (moves.size() == 0)
+		{
+			return TerminalScore(position, distanceFromRoot);
+		}
+
+		moves.clear();
+	}
+
 	int staticScore = colour * EvaluatePosition(position);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 
-	std::vector<Move> moves;
+	
 	Move bestmove;
 	int Score = staticScore;
 
