@@ -1,11 +1,9 @@
 #include "Position.h"
 
-std::vector<uint64_t> PreviousKeys;
-uint64_t NodeCount = 0;
-
 Position::Position()
 {
 	key = EMPTY;
+	NodeCount = 0;
 }
 
 Position::Position(std::vector<std::string> moves)
@@ -309,6 +307,22 @@ uint64_t Position::GetZobristKey() const
 	return key;
 }
 
+void Position::Reset()
+{
+	PreviousKeys.clear();
+	key = EMPTY;
+	NodeCount = 0;
+
+	ResetBoard();
+	InitParamiters();
+}
+
+uint64_t Position::GetPreviousKey(size_t index)
+{
+	assert(index < GetPreviousKeysSize());
+	return PreviousKeys.at(index);
+}
+
 uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
@@ -347,8 +361,8 @@ uint64_t Position::IncrementZobristKey(Move move)
 	//Change of turn
 	key ^= ZobristTable.at(12 * 64);	//because who's turn it is changed
 
-	if (PreviousParamiters.back().GetEnPassant() <= SQ_H8)
-		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(PreviousParamiters.back().GetEnPassant()));		//undo the previous ep square
+	if (GetPreviousParamiters().GetEnPassant() <= SQ_H8)
+		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetPreviousParamiters().GetEnPassant()));		//undo the previous ep square
 
 	if (move.GetFlag() == UNINITIALIZED) return key;	//null move
 
@@ -367,16 +381,16 @@ uint64_t Position::IncrementZobristKey(Move move)
 
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-		key ^= ZobristTable.at(previousBoards.back().GetSquare(move.GetTo()) * 64 + move.GetTo());
+		key ^= ZobristTable.at(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo());
 
 	//Castling
-	if (CanCastleWhiteKingside() != PreviousParamiters.back().CanCastleWhiteKingside())					//if casteling rights changed, flip that one
+	if (CanCastleWhiteKingside() != GetPreviousParamiters().CanCastleWhiteKingside())					//if casteling rights changed, flip that one
 		key ^= ZobristTable.at(12 * 64 + 1);
-	if (CanCastleWhiteQueenside() != PreviousParamiters.back().CanCastleWhiteQueenside())
+	if (CanCastleWhiteQueenside() != GetPreviousParamiters().CanCastleWhiteQueenside())
 		key ^= ZobristTable.at(12 * 64 + 2);
-	if (CanCastleBlackKingside() != PreviousParamiters.back().CanCastleBlackKingside())
+	if (CanCastleBlackKingside() != GetPreviousParamiters().CanCastleBlackKingside())
 		key ^= ZobristTable.at(12 * 64 + 3);
-	if (CanCastleBlackQueenside() != PreviousParamiters.back().CanCastleBlackQueenside())
+	if (CanCastleBlackQueenside() != GetPreviousParamiters().CanCastleBlackQueenside())
 		key ^= ZobristTable.at(12 * 64 + 4);
 
 	if (move.GetFlag() == KING_CASTLE)

@@ -3,15 +3,9 @@
 #include "Move.h"
 #include <vector>
 
-class BoardParamiters;
-
-extern std::vector<BoardParamiters> PreviousParamiters;
-
-class BoardParamiters
+struct BoardParamiterData
 {
-public:
-	BoardParamiters();
-	~BoardParamiters();
+	friend class BoardParamiters;
 
 	unsigned int GetTurnCount() const { return m_TurnCount; }
 	bool GetTurn() const { return m_CurrentTurn; }
@@ -23,19 +17,7 @@ public:
 	bool CanCastleBlackQueenside() const { return m_BlackQueenCastle; }
 	unsigned int GetEnPassant() const { return m_EnPassant; }
 	unsigned int GetCaptureSquare() const { return m_CaptureSquare; }
-
-protected:
-	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
-	void SaveParamiters();
-	void RestorePreviousParamiters();
-	void UpdateCastleRights(Move move);
-	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
-	void WhiteCastled();
-	void BlackCastled();
-	void NextTurn();
-	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
-
-	void Init();
+	unsigned int GetFiftyMoveCount() const { return m_FiftyMoveCount; }
 
 private:
 	unsigned int m_CaptureSquare;
@@ -51,5 +33,29 @@ private:
 	bool m_WhiteQueenCastle;
 	bool m_BlackKingCastle;
 	bool m_BlackQueenCastle;
+};
+
+class BoardParamiters : public BoardParamiterData
+{
+public:
+	BoardParamiters();
+	virtual ~BoardParamiters() = 0;
+
+protected:
+	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
+	void SaveParamiters();
+	void RestorePreviousParamiters();
+	void UpdateCastleRights(Move move);
+	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
+	void WhiteCastled();
+	void BlackCastled();
+	void NextTurn();
+	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
+
+	void InitParamiters();
+	BoardParamiterData GetPreviousParamiters();
+
+private:
+	std::vector<BoardParamiterData> PreviousParamiters;
 };
 

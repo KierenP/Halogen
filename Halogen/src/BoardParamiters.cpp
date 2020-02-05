@@ -1,12 +1,9 @@
 #include "BoardParamiters.h"
 
-std::vector<BoardParamiters> PreviousParamiters;
-
 BoardParamiters::BoardParamiters()
 {
-	Init();
+	InitParamiters();
 }
-
 
 BoardParamiters::~BoardParamiters()
 {
@@ -32,8 +29,10 @@ void BoardParamiters::NextTurn()
 	m_CurrentTurn = !m_CurrentTurn;
 }
 
-void BoardParamiters::Init()
+void BoardParamiters::InitParamiters()
 {
+	PreviousParamiters.clear();
+
 	m_CurrentTurn = WHITE;
 	m_WhiteKingCastle = false;
 	m_WhiteQueenCastle = false;
@@ -50,9 +49,15 @@ void BoardParamiters::Init()
 	m_CaptureSquare = -1;
 }
 
+BoardParamiterData BoardParamiters::GetPreviousParamiters()
+{
+	assert(PreviousParamiters.size() != 0);
+	return PreviousParamiters.back();
+}
+
 bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
 {
-	Init();
+	InitParamiters();
 
 	if (fen[1] == "w")
 		m_CurrentTurn = WHITE;
@@ -89,7 +94,20 @@ void BoardParamiters::RestorePreviousParamiters()
 {
 	assert(PreviousParamiters.size() != 0);
 
-	*this = PreviousParamiters.back();
+	m_CaptureSquare = PreviousParamiters.back().GetCaptureSquare();
+	m_EnPassant = PreviousParamiters.back().GetEnPassant();
+	m_FiftyMoveCount = PreviousParamiters.back().GetFiftyMoveCount();
+	m_TurnCount = PreviousParamiters.back().GetTurnCount();
+
+	m_HasCastledWhite = PreviousParamiters.back().HasCastledWhite();
+	m_HasCastledBlack = PreviousParamiters.back().HasCastledBlack();
+
+	m_CurrentTurn = PreviousParamiters.back().GetTurn();
+	m_WhiteKingCastle = PreviousParamiters.back().CanCastleWhiteKingside();
+	m_WhiteQueenCastle = PreviousParamiters.back().CanCastleWhiteQueenside();
+	m_BlackKingCastle = PreviousParamiters.back().CanCastleBlackKingside();
+	m_BlackQueenCastle = PreviousParamiters.back().CanCastleBlackQueenside();
+
 	PreviousParamiters.pop_back();			
 }
 

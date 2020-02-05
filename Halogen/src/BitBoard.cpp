@@ -1,29 +1,13 @@
 #include "BitBoard.h"
 #include <stdexcept>
 
-std::vector<BitBoard> previousBoards;
-
 BitBoard::BitBoard()
 {
-	Reset();
+	ResetBoard();
 }
-
 
 BitBoard::~BitBoard()
 {
-}
-
-unsigned int BitBoard::GetSquare(unsigned int square) const
-{
-	assert(square < N_SQUARES);
-
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		if ((m_Bitboard[i] & SquareBB[square]) != 0)
-			return i;
-	}
-
-	return N_PIECES;
 }
 
 void BitBoard::SetSquare(unsigned int square, unsigned int piece)
@@ -47,8 +31,10 @@ void BitBoard::ClearSquare(unsigned int square)
 	}
 }
 
-void BitBoard::Reset()
+void BitBoard::ResetBoard()
 {
+	previousBoards.clear();
+
 	for (int i = 0; i < N_PIECES; i++)
 	{
 		m_Bitboard[i] = EMPTY;
@@ -57,7 +43,7 @@ void BitBoard::Reset()
 
 bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 {
-	Reset();
+	ResetBoard();
 
 	int FenLetter = 0;													//index within the string
 	int square = 0;														//index within the board
@@ -107,8 +93,19 @@ void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() != 0);
 
-	*this = previousBoards.back();
+
+	for (int i = 0; i < N_PIECES; i++)
+	{
+		m_Bitboard[i] = previousBoards.back().GetPieceBB(i);
+	}
+
 	previousBoards.pop_back();
+}
+
+BitBoardData BitBoard::GetPreviousBoard()
+{
+	assert(previousBoards.size() != 0);
+	return previousBoards.back();
 }
 
 bool BitBoard::IsEmpty(unsigned int square) const
@@ -160,13 +157,6 @@ uint64_t BitBoard::GetPiecesColour(bool colour) const
 		return GetBlackPieces();
 }
 
-uint64_t BitBoard::GetPieceBB(unsigned int piece) const
-{
-	assert(piece < N_PIECES);
-
-	return m_Bitboard[piece];
-}
-
 uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
 {
 	assert(pieceType < N_PIECE_TYPES);
@@ -181,4 +171,24 @@ unsigned int BitBoard::GetKing(bool colour) const
 	unsigned long index;
 	_BitScanForward64(&index, GetPieceBB(KING, colour));
 	return index;
+}
+
+uint64_t BitBoardData::GetPieceBB(unsigned int piece) const
+{
+	assert(piece < N_PIECES);
+
+	return m_Bitboard[piece];
+}
+
+unsigned int BitBoardData::GetSquare(unsigned int square) const
+{
+	assert(square < N_SQUARES);
+
+	for (int i = 0; i < N_PIECES; i++)
+	{
+		if ((m_Bitboard[i] & SquareBB[square]) != 0)
+			return i;
+	}
+
+	return N_PIECES;
 }

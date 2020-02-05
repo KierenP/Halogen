@@ -5,9 +5,6 @@
 #include <sstream>
 #include <Windows.h>
 
-extern std::vector<uint64_t> PreviousKeys;
-extern uint64_t NodeCount;
-
 /*
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.
 */
@@ -37,9 +34,21 @@ public:
 	bool InitialiseFromMoves(std::vector<std::string> moves);
 
 	uint64_t GetZobristKey() const;
+	uint64_t GetNodeCount() { return NodeCount; }
+
+	void ResetNodeCount() { NodeCount = 0; }
+
+	void Reset();
+
+	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
+	uint64_t GetPreviousKey(size_t index);
 
 private:
+	uint64_t NodeCount;
 	uint64_t key;
+	std::vector<uint64_t> PreviousKeys;
+
+	void AddNodeCount() { NodeCount++; }
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
 };

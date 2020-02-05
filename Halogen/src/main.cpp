@@ -6,10 +6,11 @@ using namespace::std;
 Position GameBoard;
 
 void PerftSuite();
-uint64_t PerftDivide(unsigned int depth);
-uint64_t Perft(unsigned int depth);
+uint64_t PerftDivide(unsigned int depth, Position& position);
+uint64_t Perft(unsigned int depth, Position& position);
 
 string version = "3.1";
+std::mutex Mutex;
 
 int main()
 {
@@ -31,7 +32,7 @@ int main()
 
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
-	
+
 	while (getline(cin, Line))
 	{
 		std::istringstream iss(Line);
@@ -58,10 +59,8 @@ int main()
 
 		else if (token == "position")
 		{
+			GameBoard.Reset();
 			GameBoard.StartingPosition();
-			PreviousKeys.clear();
-			previousBoards.clear();
-			PreviousParamiters.clear();
 
 			iss >> token;
 
@@ -170,7 +169,7 @@ int main()
 		else if (token == "perft")
 		{
 			iss >> token;
-			PerftDivide(stoi(token));
+			PerftDivide(stoi(token), GameBoard);
 		}
 
 		else if (token == "stop") KeepSearching = false;
@@ -212,7 +211,7 @@ void PerftSuite()
 
 		GameBoard.InitialiseFromFen(line);
 		
-		unsigned int nodes = Perft((arrayTokens.size() - 7) / 2);
+		unsigned int nodes = Perft((arrayTokens.size() - 7) / 2, GameBoard);
 		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
@@ -239,55 +238,47 @@ void PerftSuite()
 	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
 }
 
-uint64_t PerftDivide(unsigned int depth)
+uint64_t PerftDivide(unsigned int depth, Position& position)
 {
+	clock_t before = clock();
+
 	uint64_t nodeCount = 0;
 	std::vector<Move> moves;
 	LegalMoves(GameBoard, moves);
 
-	/*concurrency::parallel_for(size_t(0), moves.size(), [&](size_t i)
-	{
-		Position copy = GameBoard;
-		copy.ApplyMove(moves.at(i));
-		uint64_t ChildNodeCount = Perft(depth - 1);
-		copy.RevertMove();
-
-		moves.at(i).Print();
-		std::cout << ": " << ChildNodeCount << std::endl;
-		nodeCount += ChildNodeCount;
-	});*/
 	for (int i = 0; i < moves.size(); i++)
 	{
-		GameBoard.ApplyMove(moves.at(i));
-		uint64_t ChildNodeCount = Perft(depth - 1);
-		GameBoard.RevertMove();
+		position.ApplyMove(moves.at(i));
+		uint64_t ChildNodeCount = Perft(depth - 1, position);
+		position.RevertMove();
 
 		moves.at(i).Print();
 		std::cout << ": " << ChildNodeCount << std::endl;
 		nodeCount += ChildNodeCount;
 	}
 
-	std::cout << "\nTotal nodes: " << nodeCount << std::endl;
+	clock_t after = clock();
+	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
+
+	std::cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
+	std::cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
 	return nodeCount;
 }
 
-uint64_t Perft(unsigned int depth)
+uint64_t Perft(unsigned int depth, Position& position)
 {
 	if (depth == 0)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
 	uint64_t nodeCount = 0;
 	std::vector<Move> moves;
-	LegalMoves(GameBoard, moves);
-
-	if (depth == 1)
-		return moves.size();
+	LegalMoves(position, moves);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		GameBoard.ApplyMove(moves.at(i));
-		nodeCount += Perft(depth - 1);
-		GameBoard.RevertMove();
+		position.ApplyMove(moves.at(i));
+		nodeCount += Perft(depth - 1, position);
+		position.RevertMove();
 	}
 
 	return nodeCount;
