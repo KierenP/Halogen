@@ -3,7 +3,7 @@
 
 BitBoard::BitBoard()
 {
-	ResetBoard();
+
 }
 
 BitBoard::~BitBoard()
@@ -171,6 +171,11 @@ unsigned int BitBoard::GetKing(bool colour) const
 	unsigned long index;
 	_BitScanForward64(&index, GetPieceBB(KING, colour));
 	return index;
+}
+
+BitBoardData::BitBoardData() : m_Bitboard {0}
+{
+
 }
 
 uint64_t BitBoardData::GetPieceBB(unsigned int piece) const

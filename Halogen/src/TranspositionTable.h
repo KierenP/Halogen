@@ -23,7 +23,7 @@ public:
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 
 	void AddHit() { TTHits++; }	//this is called every time we get a position from here. We don't count it if we just used it for move ordering
-	uint64_t HashFunction(const uint64_t& key);
+	uint64_t HashFunction(const uint64_t& key) const;
 	void PreFetch(uint64_t key);
 
 private:

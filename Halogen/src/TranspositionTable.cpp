@@ -17,7 +17,7 @@ bool TranspositionTable::CheckEntry(uint64_t key, int depth)
 	return false;
 }
 
-uint64_t TranspositionTable::HashFunction(const uint64_t& key)
+uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 {
 	return key % table.size();
 	//return key & 0x3FFFFF;

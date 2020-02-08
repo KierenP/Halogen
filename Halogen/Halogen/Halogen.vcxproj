@@ -57,6 +57,9 @@
     <Text Include="bkt.txt" />
     <Text Include="perftsuite.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{0E8FED2A-3CE7-46FB-B8AC-7E8786B5937D}</ProjectGuid>

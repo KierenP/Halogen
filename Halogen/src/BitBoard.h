@@ -6,6 +6,8 @@ struct BitBoardData
 {
 	friend class BitBoard;	//so that bitboard can access m_Bitboard directly but the position class cannot 
 
+	BitBoardData();
+
 	uint64_t GetPieceBB(unsigned int piece) const;
 	unsigned int GetSquare(unsigned int square) const;	//returns N_PIECES = 12 if empty
 

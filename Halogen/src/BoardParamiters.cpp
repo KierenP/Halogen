@@ -2,7 +2,7 @@
 
 BoardParamiters::BoardParamiters()
 {
-	InitParamiters();
+	
 }
 
 BoardParamiters::~BoardParamiters()
@@ -144,4 +144,22 @@ void BoardParamiters::UpdateCastleRights(Move move)
 	{
 		m_BlackKingCastle = false;
 	}
+}
+
+BoardParamiterData::BoardParamiterData()
+{
+	m_CurrentTurn = WHITE;
+	m_WhiteKingCastle = false;
+	m_WhiteQueenCastle = false;
+	m_BlackKingCastle = false;
+	m_BlackQueenCastle = false;
+
+	m_EnPassant = N_SQUARES;
+	m_FiftyMoveCount = 0;
+	m_TurnCount = 1;
+
+	m_HasCastledWhite = false;
+	m_HasCastledBlack = false;
+
+	m_CaptureSquare = -1;
 }

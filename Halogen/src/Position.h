@@ -48,7 +48,6 @@ private:
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;
 
-	void AddNodeCount() { NodeCount++; }
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
 };

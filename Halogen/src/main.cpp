@@ -27,7 +27,7 @@ int main()
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
 
 	tTable.SetSize(1);

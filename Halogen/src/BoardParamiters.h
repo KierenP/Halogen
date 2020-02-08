@@ -7,6 +7,8 @@ struct BoardParamiterData
 {
 	friend class BoardParamiters;
 
+	BoardParamiterData();
+
 	unsigned int GetTurnCount() const { return m_TurnCount; }
 	bool GetTurn() const { return m_CurrentTurn; }
 	bool HasCastledWhite() const { return m_HasCastledWhite; }

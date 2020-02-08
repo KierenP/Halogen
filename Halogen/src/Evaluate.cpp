@@ -9,6 +9,7 @@ const int DoubledPawnPenalty = 10;
 const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
 
 const int CastledBonus = 40;
+const int BishopPairBonus = 30;
 
 unsigned int CalculateGameStage(const Position& position);
 int EvaluateCastleBonus(const Position& position);
@@ -77,7 +78,14 @@ int EvaluatePosition(const Position & position)
 		pawnHashTable.AddEntry(pawnKey, pawns);
 	}
 
-	Score += Material + PieceSquares + Castle + Tropism + pawns;
+	int BishopPair = 0;
+	
+	if (GetBitCount(position.GetPieceBB(WHITE_BISHOP)) >= 2)
+		BishopPair += BishopPairBonus;
+	if (GetBitCount(position.GetPieceBB(BLACK_BISHOP)) >= 2)
+		BishopPair -= BishopPairBonus;
+
+	Score += Material + PieceSquares + Castle + Tropism + pawns + BishopPair;
 	return Score;
 }
 
@@ -296,9 +304,9 @@ bool EvaluateDebug()
 
 			MirrorLeftRight(testPosition);
 
-			for (int i = 0; i < N_SQUARES; i++)
+			for (int j = 0; j < N_SQUARES; j++)
 			{
-				assert(testPosition.GetSquare(i) == copy.GetSquare(i));
+				assert(testPosition.GetSquare(j) == copy.GetSquare(j));
 			}
 		}
 	}

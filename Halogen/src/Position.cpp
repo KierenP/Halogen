@@ -319,7 +319,7 @@ void Position::Reset()
 
 uint64_t Position::GetPreviousKey(size_t index)
 {
-	assert(index < GetPreviousKeysSize());
+	assert(index < PreviousKeys.size());
 	return PreviousKeys.at(index);
 }
 
