@@ -49,7 +49,7 @@ void PawnHashTable::AddEntry(uint64_t hashKey, int score)
 	table.at(hashKey % table.size()) = PawnHash(hashKey, score, true);
 }
 
-uint64_t PawnHashKey(const Position& pos)
+uint64_t PawnHashKey(const Position& pos, char gameStage)
 {
 	uint64_t Key = EMPTY;
 
@@ -64,6 +64,11 @@ uint64_t PawnHashKey(const Position& pos)
 	{
 		Key ^= ZobristTable.at(BLACK_PAWN * 64 + bitScanForwardErase(bitboard));
 	}
+
+	if (gameStage == MIDGAME)
+		Key ^= ZobristTable.at(0);
+	if (gameStage == ENDGAME)
+		Key ^= ZobristTable.at(1);
 
 	return Key;
 }
