@@ -2,6 +2,7 @@
 #include <time.h>
 #include <atomic>
 #include <mutex>
+#include <iostream>
 
 extern std::atomic<bool> KeepSearching;
 

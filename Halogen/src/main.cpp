@@ -123,9 +123,9 @@ int main()
 				else
 				{
 					if (GameBoard.GetTurn() == WHITE)
-						movetime = wtime / (movestogo) - 500 * (movestogo == 1);	//half a second buffer for if this is the last turn before extra time: we don't want to run the clock right down to zero!
+						movetime = movestogo <= 1 ? wtime : wtime / (movestogo + 1) * 2;	
 					else
-						movetime = btime / (movestogo) - 500 * (movestogo == 1);
+						movetime = movestogo <= 1 ? btime : btime / (movestogo + 1) * 2;
 				}
 			}
 			std::thread SearchThread(SearchPosition, GameBoard, movetime);
