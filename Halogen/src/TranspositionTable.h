@@ -15,7 +15,7 @@ public:
 	void SetAllAncient();
 	void ResetHitCount() { TTHits = 0; }
 	void ResetTable();
-	void SetSize(unsigned int MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
+	void SetSize(uint64_t MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 
 	bool CheckEntry(uint64_t key, int depth);
 	bool CheckEntry(uint64_t key);

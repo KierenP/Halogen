@@ -9,7 +9,7 @@ void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 
-string version = "3.1";
+string version = "3.3";
 std::mutex Mutex;
 
 int main()
@@ -44,7 +44,7 @@ int main()
 		{
 			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 2 min 2 max 1024" << endl;
+			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -116,9 +116,9 @@ int main()
 				{
 
 					if (GameBoard.GetTurn() == WHITE)
-						movetime = wtime / 20;
+						movetime = wtime / 20 + winc;
 					else
-						movetime = btime / 20;
+						movetime = btime / 20 + binc;
 				}
 				else
 				{
@@ -156,7 +156,7 @@ int main()
 
 				if (size < 2)
 					std::cout << "info string Hash size too small" << std::endl;
-				else if (size > 1024)
+				else if (size > 8192)
 					std::cout << "info string Hash size too large" << std::endl;
 				else
 				{

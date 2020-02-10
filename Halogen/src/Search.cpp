@@ -232,7 +232,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		KillerMoves.at(i).move[1] = Move();
 	}
 
-	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth < 100 && depth > 1; )
+	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth < 100; )
 	{
 		Move returnMove;
 

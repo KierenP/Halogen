@@ -80,11 +80,11 @@ void TranspositionTable::ResetTable()
 	}
 }
 
-void TranspositionTable::SetSize(unsigned int MB)
+void TranspositionTable::SetSize(uint64_t MB)
 {
 	table.clear();
-	unsigned int EntrySize = sizeof(TTEntry);
-	unsigned int entries = MB * 1024 * 1024 / EntrySize;
+	size_t EntrySize = sizeof(TTEntry);
+	size_t entries = MB * 1024 * 1024 / EntrySize;
 	
 	for (size_t i = 0; i < entries; i++)
 	{
