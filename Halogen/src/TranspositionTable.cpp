@@ -25,7 +25,7 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 
 bool TranspositionTable::CheckEntry(uint64_t key)
 {
-	if ((table.at(HashFunction(key)).GetKey() == key))
+	if ((table.at(HashFunction(key)).GetKey() == key) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }

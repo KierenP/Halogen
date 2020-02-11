@@ -41,6 +41,7 @@ int TerminalScore(Position& position, int distanceFromRoot);
 int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depth);
+Move GetHashMove(Position& position);
 void AddKiller(Move move, int distanceFromRoot);
 int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, Move& bestMove, bool PrintCurrentMove);
 void AddHistory(Move& move, int depth);
@@ -70,7 +71,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 
 	*/
 
-	Move TTmove = GetHashMove(position, searchDepth - 1);
+	Move TTmove = GetHashMove(position);
 
 	//give each move a score on how 'good' it is. 
 	for (int i = 0; i < moves.size(); i++)
@@ -679,6 +680,16 @@ void AddHistory(Move& move, int depth)
 Move GetHashMove(Position& position, int depth)
 {
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
+	{
+		return tTable.GetEntry(position.GetZobristKey()).GetMove();
+	}
+
+	return {};
+}
+
+Move GetHashMove(Position& position)
+{
+	if (tTable.CheckEntry(position.GetZobristKey()))
 	{
 		return tTable.GetEntry(position.GetZobristKey()).GetMove();
 	}
