@@ -23,11 +23,10 @@ SearchTimeManage timeManage;
 std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot);
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintBestMove(Move& Best);
-int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
@@ -38,13 +37,15 @@ void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
-int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depth);
 Move GetHashMove(Position& position);
 void AddKiller(Move move, int distanceFromRoot);
-int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, Move& bestMove, bool PrintCurrentMove);
 void AddHistory(Move& move, int depth);
+
+SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove);
+SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
+SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 
 /*
 TODO list:
@@ -56,7 +57,10 @@ TODO list:
 
 std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot)
+int hits = 0;
+int misses = 0;
+
+void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
@@ -72,6 +76,14 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 	*/
 
 	Move TTmove = GetHashMove(position);
+
+	/*Internal iterative deepening*/
+	//basically, if we have no hash move, do a shallow search and make that the hash move
+
+	if (TTmove.GetFlag() == UNINITIALIZED && searchDepth > 3)
+	{
+		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true).GetMove();
+	}
 
 	//give each move a score on how 'good' it is. 
 	for (int i = 0; i < moves.size(); i++)
@@ -235,9 +247,10 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth < 100; )
 	{
-		Move returnMove;
+		SearchResult search = NegaScoutRoot(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, searchTime.ElapsedMs() > 1000);
+		int score = search.GetScore();
+		Move returnMove = search.GetMove();
 
-		int score = NegaScoutRoot(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, returnMove, searchTime.ElapsedMs() > 1000);
 		if (timeManage.AbortSearch(position.GetNodeCount())) {	break; }
 
 		if (score <= alpha || score >= beta)
@@ -260,7 +273,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 	return move;
 }
 
-int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, Move& bestMove, bool PrintCurrentMove)
+SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove)
 {
 	if (timeManage.AbortSearch(position.GetNodeCount())) return 0;
 
@@ -278,8 +291,8 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 	if (alpha >= beta)
 		return alpha;
 
-	OrderMoves(moves, position, depth, distanceFromRoot);
-	Move hashMove = GetHashMove(position, depth - 1);
+	OrderMoves(moves, position, depth, distanceFromRoot, alpha, beta, colour);
+	Move bestMove;
 	int Score = LowINF;
 	int a = alpha;
 	int b = beta;
@@ -295,10 +308,10 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 		position.ApplyMove(moves.at(i));
 
 		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
-		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true);
+		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true).GetScore();
 		if (newScore > a && newScore < beta && i >= 1)
 		{
-			newScore = -NegaScout(position, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true);	//possibly -newScore rather than -alpha
+			newScore = -NegaScout(position, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true).GetScore();	//possibly -newScore rather than -alpha
 		}
 
 		position.RevertMove();
@@ -323,10 +336,10 @@ int NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour
 	if (!timeManage.AbortSearch(position.GetNodeCount()))
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
-	return Score;
+	return SearchResult(Score, bestMove);
 }
 
-int NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
+SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
@@ -339,7 +352,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
 	{
 		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
-		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return entry.GetScore();
+		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
 	}
 
 	/*Drop into quiescence search*/
@@ -360,18 +373,20 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (AllowedNull(allowedNull, position, beta, alpha, depth))
 	{
 		position.ApplyNullMove();
-		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false);	
+		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
 		position.RevertNullMove();
 
 		//Verification search
 		if (score >= beta)
 		{	
 			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
-			score = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);	
+			SearchResult result = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);
+
+			if (result.GetScore() >= beta)
+				return result;
 		}
 
-		if (score >= beta)
-			return score;
+		
 	}
 
 	//mate distance pruning
@@ -380,7 +395,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (alpha >= beta)
 		return alpha;
 
-	OrderMoves(moves, position, depth, distanceFromRoot);
+	OrderMoves(moves, position, depth, distanceFromRoot, alpha, beta, colour);
 	Move bestMove = Move();	//used for adding to transposition table later
 	int Score = LowINF;
 	int a = alpha;
@@ -408,7 +423,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 		//late move reductions
 		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
 		{
-			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true);
+			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true).GetScore();
 
 			if (score < a)
 			{
@@ -417,10 +432,10 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 			}
 		}
 
-		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true);
+		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true).GetScore();
 		if (newScore > a && newScore < beta && i >= 1)
 		{	
-			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true);	
+			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true).GetScore();
 		}
 
 		position.RevertMove();
@@ -445,7 +460,7 @@ int NegaScout(Position& position, int depth, int alpha, int beta, int colour, in
 	if (!timeManage.AbortSearch(position.GetNodeCount()))
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
-	return Score;
+	return SearchResult(Score, bestMove);
 }
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
@@ -587,7 +602,7 @@ int TerminalScore(Position& position, int distanceFromRoot)
 	}
 }
 
-int Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth)
+SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth)
 {
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
@@ -620,7 +635,7 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 	if (moves.size() == 0)
 		return staticScore;
 		
-	OrderMoves(moves, position, depth, distanceFromRoot);
+	OrderMoves(moves, position, depth, distanceFromRoot, alpha, beta, colour);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -637,7 +652,7 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 			continue;
 
 		position.ApplyMove(moves.at(i));
-		int newScore = -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, depth - 1);
+		int newScore = -Quiescence(position, -beta, -alpha, -colour, distanceFromRoot + 1, depth - 1).GetScore();
 		position.RevertMove();
 
 		if (newScore > Score)
@@ -648,10 +663,10 @@ int Quiescence(Position& position, int alpha, int beta, int colour, int distance
 
 		alpha = max(Score, alpha);
 		if (Score >= beta)
-			return Score;
+			break;
 	}
 
-	return Score;
+	return SearchResult(Score, bestmove);
 }
 
 void AddKiller(Move move, int distanceFromRoot)

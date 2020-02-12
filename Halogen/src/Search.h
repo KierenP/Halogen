@@ -12,5 +12,18 @@
 #include <deque>
 #include <xmmintrin.h>
 
+struct SearchResult
+{
+	SearchResult(int score, Move move = Move()) { m_score = score; m_move = move; }
+	~SearchResult() {}
+
+	int GetScore() { return m_score; }
+	Move GetMove() { return m_move; }
+
+private:
+	int m_score;
+	Move m_move;
+};
+
 extern TranspositionTable tTable;
 Move SearchPosition(Position position, int allowedTimeMs);

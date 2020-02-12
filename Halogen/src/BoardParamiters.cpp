@@ -87,7 +87,7 @@ bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
 
 void BoardParamiters::SaveParamiters()
 {
-	PreviousParamiters.push_back(*this);
+	PreviousParamiters.push_back(static_cast<BoardParamiterData>(*this));
 }
 
 void BoardParamiters::RestorePreviousParamiters()

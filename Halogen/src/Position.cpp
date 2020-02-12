@@ -103,11 +103,11 @@ void Position::ApplyMove(Move move)
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
 
-	if (GenerateZobristKey() != key)
+	/*if (GenerateZobristKey() != key)
 	{
 		std::cout << "error";
 		NextTurn();	//just adding something here to really mess things up
-	}
+	}*/
 	
 	//In order to see if the key was corrupted at some point
 }
@@ -157,7 +157,7 @@ void Position::ApplyMove(std::string strmove)
 		if (tolower(strmove[4]) == 'b')
 			flag = BISHOP_PROMOTION;
 
-		if (IsOccupied(next))				//if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag = capture wont work because we just changed the flag!!
+		if (IsOccupied(next))				//if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag = capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
 			flag += 4;
 	}
 
@@ -184,11 +184,11 @@ void Position::ApplyNullMove()
 	NextTurn();
 	IncrementZobristKey(Move());
 
-	if (GenerateZobristKey() != key)
+	/*if (GenerateZobristKey() != key)
 	{
 		std::cout << "error";
 		NextTurn();
-	}
+	}*/
 }
 
 void Position::RevertNullMove()

@@ -86,7 +86,7 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 
 void BitBoard::SaveBoard()
 {
-	previousBoards.push_back(*this);
+	previousBoards.push_back(static_cast<BitBoardData>(*this));
 }
 
 void BitBoard::RestorePreviousBoard()

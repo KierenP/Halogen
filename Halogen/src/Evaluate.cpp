@@ -144,8 +144,8 @@ int CalculateGamePhase(const Position& position)
 
 	phase = (phase * 256 + (TotalPhase / 2)) / TotalPhase;
 
-	assert(phase >= 0);
-	assert(phase <= 256);
+	//assert(phase >= 0);
+	//assert(phase <= 256);	//promotions can cause values outside of this range, but I think thats ok
 
 	return phase;
 }
