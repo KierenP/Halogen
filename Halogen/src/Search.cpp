@@ -22,6 +22,7 @@ TranspositionTable tTable;
 SearchTimeManage timeManage;
 std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
+std::vector<unsigned int> FutilityMargin = { 100, 150, 250 };
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
@@ -402,6 +403,11 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	int b = beta;
 	bool InCheck = IsInCheck(position);
 	int staticScore = colour * EvaluatePosition(position);
+	bool futile = false;
+
+	/*Futility pruning*/
+	if (depth < FutilityMargin.size() && staticScore + FutilityMargin.at(max(0, depth)) < alpha && !IsPV(beta, alpha) && !InCheck && !(alpha < -9000 || beta > 9000))
+		futile = true;
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
@@ -409,13 +415,10 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
-		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (futile && !moves[i].IsCapture() && !moves[i].IsPromotion() && !IsInCheck(position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores. Note the turn has changed and IsInCheck is not the same as `bool InCheck` above
 		{
-			if (staticScore + 200 < a && depth <= 2)	
-			{
-				position.RevertMove();
-				continue;	
-			}
+			position.RevertMove();
+			continue;	
 		}
 
 		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
