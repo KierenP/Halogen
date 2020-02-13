@@ -9,7 +9,7 @@ void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 
-string version = "3.3";
+string version = "3.4";
 std::mutex Mutex;
 
 int main()
@@ -211,7 +211,7 @@ void PerftSuite()
 
 		GameBoard.InitialiseFromFen(line);
 		
-		unsigned int nodes = Perft((arrayTokens.size() - 7) / 2, GameBoard);
+		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, GameBoard);
 		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text

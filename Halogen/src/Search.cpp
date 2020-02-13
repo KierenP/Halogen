@@ -23,6 +23,8 @@ SearchTimeManage timeManage;
 std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
+std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
+
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
@@ -368,8 +370,15 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
 		position.RevertNullMove();
 
+		//Verification search
 		if (score >= beta)
-			return score;
+		{
+			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
+			SearchResult result = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);
+
+			if (result.GetScore() >= beta)
+				return result;
+		}
 	}
 
 	std::vector<Move> moves;
@@ -402,7 +411,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		//futility pruning
 		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
-			if (staticScore + 200 < a && depth <= 2)
+			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a)
 			{
 				position.RevertMove();
 				continue;
