@@ -45,8 +45,8 @@ Move GetHashMove(Position& position);
 void AddKiller(Move move, int distanceFromRoot);
 void AddHistory(Move& move, int depth);
 
-SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove);
-SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
+//SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove);
+SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, bool PrintCurrentMove);
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 
 /*
@@ -84,7 +84,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 
 	if (TTmove.GetFlag() == UNINITIALIZED && searchDepth > 3)
 	{
-		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true).GetMove();
+		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true, false).GetMove();
 	}
 
 	//give each move a score on how 'good' it is. 
@@ -249,7 +249,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth < 100; )
 	{
-		SearchResult search = NegaScoutRoot(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, searchTime.ElapsedMs() > 1000);
+		SearchResult search = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, searchTime.ElapsedMs() > 1000);
 		int score = search.GetScore();
 		Move returnMove = search.GetMove();
 
@@ -275,7 +275,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 	return move;
 }
 
-SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove)
+/*SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove)
 {
 	if (timeManage.AbortSearch(position.GetNodeCount())) return 0;
 
@@ -339,9 +339,9 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
-}
+}*/
 
-SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
+SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, bool PrintCurrentMove)
 {
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
@@ -367,14 +367,14 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	if (AllowedNull(allowedNull, position, beta, alpha, depth))
 	{
 		position.ApplyNullMove();
-		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
+		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, false).GetScore();	
 		position.RevertNullMove();
 
 		//Verification search
 		if (score >= beta)
 		{
 			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
-			SearchResult result = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);
+			SearchResult result = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true, false);
 
 			if (result.GetScore() >= beta)
 				return result;
@@ -391,7 +391,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	//mate distance pruning
 	alpha = max(Score::MateScore + distanceFromRoot, alpha);
-	beta = min(-Score::MateScore - distanceFromRoot, beta);
+	beta = min(-Score::MateScore - distanceFromRoot - 1, beta);
 	if (alpha >= beta)
 		return alpha;
 
@@ -405,6 +405,12 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
+		if (PrintCurrentMove) {
+			std::cout << "info currmovenumber " << i + 1 << " currmove ";
+			moves[i].Print();
+			std::cout << "\n";
+		}
+
 		position.ApplyMove(moves.at(i));
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
@@ -423,7 +429,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		//late move reductions
 		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
 		{
-			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true).GetScore();
+			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true, false).GetScore();
 
 			if (score < a)
 			{
@@ -432,10 +438,10 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 			}
 		}
 
-		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true).GetScore();
+		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, false).GetScore();
 		if (newScore > a && newScore < beta && i >= 1)
 		{	
-			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true).GetScore();
+			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true, false).GetScore();
 		}
 
 		position.RevertMove();
