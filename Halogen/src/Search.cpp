@@ -289,7 +289,7 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 
 	//mate distance pruning
 	alpha = max(Score::MateScore + distanceFromRoot, alpha);
-	beta = min(-Score::MateScore - distanceFromRoot, beta);
+	beta = min(-Score::MateScore - distanceFromRoot - 1, beta);
 	if (alpha >= beta)
 		return alpha;
 
@@ -391,7 +391,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	//mate distance pruning
 	alpha = max(Score::MateScore + distanceFromRoot, alpha);
-	beta = min(-Score::MateScore - distanceFromRoot, beta);
+	beta = min(-Score::MateScore - distanceFromRoot - 1, beta);
 	if (alpha >= beta)
 		return alpha;
 
