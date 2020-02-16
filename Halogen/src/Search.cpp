@@ -1,29 +1,13 @@
 #include "Search.h"
 
-unsigned int MAX_DEPTH = 100;
-
-enum Score
-{
-	HighINF = 30000,
-	LowINF = -30000,
-
-	MateScore = -10000,
-	Draw = 0
-};
-
-struct Killer
-{
-	Move move[2];
-};
-
-const unsigned int MaxDepth = 100;
-
-TranspositionTable tTable;
 SearchTimeManage timeManage;
 std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
 std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
+
+TranspositionTable tTable;
+std::vector<std::vector<Move>> PvTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
@@ -37,13 +21,13 @@ bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int 
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
-void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move);
 int TerminalScore(Position& position, int distanceFromRoot);
 int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depth);
 Move GetHashMove(Position& position);
 void AddKiller(Move move, int distanceFromRoot);
 void AddHistory(Move& move, int depth);
+void UpdatePV(Move move, int distanceFromRoot);
 
 SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove);
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull);
@@ -153,32 +137,10 @@ void PrintBestMove(Move& Best)
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move)
 {
 	uint64_t actualNodeCount = position.GetNodeCount();
-
-	std::vector<Move> pv;
-	pv.push_back(move);
-	position.ApplyMove(move);																					
-
-	bool repeat = false;
-	while (tTable.CheckEntry(position.GetZobristKey()) && !repeat && pv.size() < 100 && pv.size() / 2 < depth)	//see if there are any more moves in the pv we can extract from the transposition table
-	{
-		uint64_t current = position.GetZobristKey();
-		for (int i = 0; i < position.GetPreviousKeysSize(); i++)
-		{
-			if (position.GetPreviousKey(i) == current)
-				repeat = true;
-		}
-
-		pv.push_back(tTable.GetEntry(position.GetZobristKey()).GetMove());
-		position.ApplyMove(pv.back());
-	}
-
-	for (int i = 0; i < pv.size(); i++)
-	{
-		position.RevertMove();
-	}
+	std::vector<Move> pv = PvTable[0];
 
 	std::cout
-		<< "info depth " << depth																				//the depth of search
+		<< "info depth " << depth																//the depth of search
 		<< " seldepth " << pv.size();															//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
@@ -220,12 +182,19 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 
 Move SearchPosition(Position position, int allowedTimeMs)
 {
+	PvTable.clear();
+	for (int i = 0; i < MAX_DEPTH; i++)
+	{
+		PvTable.push_back(std::vector<Move>());
+	}
+
 	Move move;
 	timeManage.StartSearch(allowedTimeMs);
 	tTable.SetAllAncient();
 
 	position.ResetNodeCount();
 	tTable.ResetHitCount();
+	
 
 	Timer searchTime;
 	searchTime.Start();
@@ -257,7 +226,6 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 		if (score <= alpha || score >= beta)
 		{
-			//PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, returnMove);
 			alpha = -30000;
 			beta = 30000;
 			continue;
@@ -277,6 +245,8 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool PrintCurrentMove)
 {
+	PvTable[distanceFromRoot].clear();
+
 	if (timeManage.AbortSearch(position.GetNodeCount())) return 0;
 
 	std::vector<Move> moves;
@@ -322,6 +292,8 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 		{
 			Score = newScore;
 			bestMove = moves.at(i);
+			if (IsPV(beta, alpha))
+				UpdatePV(moves.at(i), distanceFromRoot);
 		}
 
 		a = max(Score, a);
@@ -343,6 +315,8 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull)
 {
+	PvTable[distanceFromRoot].clear();
+
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
 
@@ -444,6 +418,8 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		{
 			Score = newScore;
 			bestMove = moves.at(i);
+			if (IsPV(beta, alpha))
+				UpdatePV(moves.at(i), distanceFromRoot);
 		}
 
 		a = max(Score, a);
@@ -461,6 +437,15 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
+}
+
+void UpdatePV(Move move, int distanceFromRoot)
+{
+	PvTable[distanceFromRoot].clear();
+	PvTable[distanceFromRoot].push_back(move);
+
+	if (distanceFromRoot + 1 < PvTable.size())
+		PvTable[distanceFromRoot].insert(PvTable[distanceFromRoot].end(), PvTable[distanceFromRoot + 1].begin(), PvTable[distanceFromRoot + 1].end());
 }
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
@@ -584,12 +569,6 @@ void UpdateBounds(TTEntry& entry, int& alpha, int& beta)
 	}
 }
 
-void UpdatePV(std::deque<Move>& pv, std::deque<Move>& line, Move move)
-{
-	pv = line;
-	pv.push_front(move);
-}
-
 int TerminalScore(Position& position, int distanceFromRoot)
 {
 	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
@@ -604,6 +583,8 @@ int TerminalScore(Position& position, int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth)
 {
+	PvTable[distanceFromRoot].clear();
+
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
 
@@ -659,6 +640,8 @@ SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int
 		{
 			bestmove = moves.at(i);
 			Score = newScore;
+			if (IsPV(beta, alpha))
+				UpdatePV(moves.at(i), distanceFromRoot);
 		}
 
 		alpha = max(Score, alpha);

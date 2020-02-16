@@ -33,6 +33,9 @@ int main()
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
 
+	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
+	//std::cout << GameBoard.GetZobristKey() << std::endl;
+
 	while (getline(cin, Line))
 	{
 		std::istringstream iss(Line);

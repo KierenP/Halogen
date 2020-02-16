@@ -25,5 +25,21 @@ private:
 	Move m_move;
 };
 
+const unsigned int MAX_DEPTH = 100;
+
+enum Score
+{
+	HighINF = 30000,
+	LowINF = -30000,
+
+	MateScore = -10000,
+	Draw = 0
+};
+
+struct Killer
+{
+	Move move[2];
+};
+
 extern TranspositionTable tTable;
 Move SearchPosition(Position position, int allowedTimeMs);
