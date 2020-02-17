@@ -26,6 +26,8 @@ public:
 	uint64_t HashFunction(const uint64_t& key) const;
 	void PreFetch(uint64_t key);
 
+	void RunAsserts();
+
 private:
 	std::vector<TTEntry> table;
 	uint64_t TTHits;

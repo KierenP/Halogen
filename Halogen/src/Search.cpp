@@ -139,6 +139,9 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	uint64_t actualNodeCount = position.GetNodeCount();
 	std::vector<Move> pv = PvTable[0];
 
+	if (pv.size() == 0)
+		pv.push_back(move);
+
 	std::cout
 		<< "info depth " << depth																//the depth of search
 		<< " seldepth " << pv.size();															//the selective depth (for example searching further for checks and captures)
@@ -194,7 +197,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 	position.ResetNodeCount();
 	tTable.ResetHitCount();
-	
+
 
 	Timer searchTime;
 	searchTime.Start();
@@ -222,7 +225,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		int score = search.GetScore();
 		Move returnMove = search.GetMove();
 
-		if (timeManage.AbortSearch(position.GetNodeCount())) {	break; }
+		if (timeManage.AbortSearch(position.GetNodeCount())) { break; }
 
 		if (score <= alpha || score >= beta)
 		{
@@ -239,6 +242,8 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		beta = score + 25;
 	}
 
+	//tTable.RunAsserts();	//only for testing purposes
+
 	PrintBestMove(move);
 	return move;
 }
@@ -247,7 +252,25 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 {
 	PvTable[distanceFromRoot].clear();
 
-	if (timeManage.AbortSearch(position.GetNodeCount())) return 0;
+	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
+	if (distanceFromRoot >= MAX_DEPTH) return 0;						//If we are 100 moves from root I think we can assume its a drawn position
+
+	//check for draw
+	if (InsufficentMaterial(position)) return 0;
+	if (CheckForRep(position)) return 0;
+
+	/*Query the transpotition table*/
+	if (tTable.CheckEntry(position.GetZobristKey(), depth))
+	{
+		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
+	}
+
+	/*Drop into quiescence search*/
+	if (depth <= 0 && !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	{
+		return Quiescence(position, alpha, beta, colour, distanceFromRoot, depth);
+	}
 
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
@@ -292,11 +315,14 @@ SearchResult NegaScoutRoot(Position& position, int depth, int alpha, int beta, i
 		{
 			Score = newScore;
 			bestMove = moves.at(i);
-			if (IsPV(beta, alpha))
-				UpdatePV(moves.at(i), distanceFromRoot);
 		}
 
-		a = max(Score, a);
+		if (Score > a)
+		{
+			a = Score;
+			UpdatePV(moves.at(i), distanceFromRoot);
+		}
+
 		if (a >= beta) //Fail high cutoff
 		{
 			AddKiller(moves.at(i), distanceFromRoot);
@@ -409,7 +435,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		int newScore = -NegaScout(position, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true).GetScore();
 		if (newScore > a && newScore < beta && i >= 1)
 		{	
-			newScore = -NegaScout(position, extendedDepth - 1, -beta, -alpha, -colour, distanceFromRoot + 1, true).GetScore();
+			newScore = -NegaScout(position, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true).GetScore();
 		}
 
 		position.RevertMove();
@@ -418,11 +444,15 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		{
 			Score = newScore;
 			bestMove = moves.at(i);
-			if (IsPV(beta, alpha))
-				UpdatePV(moves.at(i), distanceFromRoot);
+			
 		}
 
-		a = max(Score, a);
+		if (Score > a)
+		{
+			a = Score;
+			UpdatePV(moves.at(i), distanceFromRoot);
+		}
+
 		if (a >= beta) //Fail high cutoff
 		{
 			AddKiller(moves.at(i), distanceFromRoot);
@@ -640,11 +670,14 @@ SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int
 		{
 			bestmove = moves.at(i);
 			Score = newScore;
-			if (IsPV(beta, alpha))
-				UpdatePV(moves.at(i), distanceFromRoot);
 		}
 
-		alpha = max(Score, alpha);
+		if (Score > alpha)
+		{
+			alpha = Score;
+			UpdatePV(moves.at(i), distanceFromRoot);
+		}
+
 		if (Score >= beta)
 			break;
 	}

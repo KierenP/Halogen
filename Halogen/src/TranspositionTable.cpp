@@ -96,3 +96,12 @@ void TranspositionTable::PreFetch(uint64_t key)
 {
 	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
 }
+
+void TranspositionTable::RunAsserts()
+{
+	for (int i = 0; i < table.size(); i++)
+	{
+		if (table[i].GetScore() == -30000 || table[i].GetScore() == 30000)
+			std::cout << "Bad entry in table!";
+	}
+}
