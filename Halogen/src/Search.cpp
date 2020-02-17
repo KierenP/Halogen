@@ -279,7 +279,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	}
 
 	/*Null move pruning*/
-	if (distanceFromRoot > 0 && AllowedNull(allowedNull, position, beta, alpha, depth))
+	if (AllowedNull(allowedNull, position, beta, alpha, depth))
 	{
 		position.ApplyNullMove();
 		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
@@ -324,7 +324,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
-		if (distanceFromRoot > 0 && IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
 			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a)
 			{
@@ -336,7 +336,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
 
 		//late move reductions
-		if (distanceFromRoot > 0 && LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
+		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
 		{
 			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true).GetScore();
 
