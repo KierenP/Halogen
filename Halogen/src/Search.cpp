@@ -4,7 +4,8 @@ SearchTimeManage timeManage;
 std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFromRoot
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
-std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
+const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
+const unsigned int R = 2;	//Null-move reduction depth
 
 TranspositionTable tTable;
 std::vector<std::vector<Move>> PvTable;
@@ -282,14 +283,14 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	if (AllowedNull(allowedNull, position, beta, alpha, depth))
 	{
 		position.ApplyNullMove();
-		int score = -NegaScout(position, depth - 3, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
+		int score = -NegaScout(position, depth - R - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
 		position.RevertNullMove();
 
 		//Verification search
 		if (score >= beta)
 		{
 			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
-			SearchResult result = NegaScout(position, depth - 3, beta - 1, beta, colour, distanceFromRoot, true);
+			SearchResult result = NegaScout(position, depth - R - 1, beta - 1, beta, colour, distanceFromRoot, true);
 
 			if (result.GetScore() >= beta)
 				return result;
@@ -482,7 +483,7 @@ bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int 
 	return allowedNull
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn())
 		&& !IsPV(beta, alpha)
-		&& depth > 3									//don't drop directly into quiessence search. particularly important in mate searches as quiessence search has no mate detection currently. See 5rk1/2p4p/2p4r/3P4/4p1b1/1Q2NqPp/PP3P1K/R4R2 b - - 0 1 
+		&& depth > R + 1								//don't drop directly into quiessence search. particularly important in mate searches as quiessence search has no mate detection currently. See 5rk1/2p4p/2p4r/3P4/4p1b1/1Q2NqPp/PP3P1K/R4R2 b - - 0 1
 		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
 }
 
@@ -551,7 +552,6 @@ SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int
 	int staticScore = colour * EvaluatePosition(position);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
-
 	
 	Move bestmove;
 	int Score = staticScore;
