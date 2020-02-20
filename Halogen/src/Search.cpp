@@ -231,6 +231,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		{
 			alpha = -30000;
 			beta = 30000;
+			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
 			continue;
 		}
 
