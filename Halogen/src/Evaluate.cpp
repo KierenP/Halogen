@@ -25,6 +25,9 @@ int CalculateGamePhase(const Position& position);
 int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
 
+bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
+bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
+
 PawnHashTable pawnHashTable;
 
 int Distance[64][64];
@@ -59,7 +62,7 @@ void MirrorLeftRight(Position& pos);
 int EvaluatePosition(const Position & position)
 {
 	int Material = EvaluateMaterial(position);	
-	if (InsufficentMaterial(position, Material)) return 0;	//note the Material doesn't include the pawns, but if there were any pawns we return false anyways so that doesn't matter
+	if (InsufficentMaterialEvaluation(position, Material)) return 0;	//note the Material doesn't include the pawns, but if there were any pawns we return false anyways so that doesn't matter
 
 	int MidGame = 0;
 	int EndGame = 0;
@@ -182,7 +185,7 @@ int EvaluatePawns(const Position& position, unsigned int gameStage)
 	return Score;
 }
 
-bool InsufficentMaterial(const Position& position, int Material)
+bool InsufficentMaterialEvaluation(const Position& position, int Material)
 {
 	if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
 	if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
@@ -192,17 +195,50 @@ bool InsufficentMaterial(const Position& position, int Material)
 	if ((position.GetPieceBB(BLACK_ROOK)) != 0) return false;
 	if ((position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
 
-	//in almost all cases, you need to have more than 400 points difference. That equates to 2 or more minor pieces (KNN, KNB, KBB). 
-	//Note KNN is not a forced win and should be counted as a draw, but 
-	if (abs(Material) < 400) return true;	
+	/*
+	From the Chess Programming Wiki:
+
+		According to the rules of a dead position, Article 5.2 b, when there is no possibility of checkmate for either side with any series of legal moves, the position is an immediate draw if
+
+		- both sides have a bare king																																									1.
+		- one side has a king and a minor piece against a bare king																																		1.
+		- both sides have a king and a bishop, the bishops being the same color																															1.
+		
+		The bishops of different colors are not counted as an immediate draw, because of the possibility of a helpmate in the corner. 
+		Since this is unlikely given even a four ply search, we may introduce another class of drawn positions: those that cannot be claimed, but can be evaluated as draws:
+
+		- two knights against the bare king																																								2.
+		- both sides have a king and a minor piece each																																					1.
+		- the weaker side has a minor piece against two knights																																			2.
+		- two bishops draw against a bishop																																								
+		- two minor pieces against one draw, except when the stronger side has a bishop pair																											3.
+
+		Please note that a knight or even two knights against two bishops are not included here, as it is possible to win this ending.
+	*/
+
+	//We know the board must contain just knights, bishops and kings
+	int WhiteBishops = GetBitCount(position.GetPieceBB(WHITE_BISHOP));
+	int BlackBishops = GetBitCount(position.GetPieceBB(BLACK_BISHOP));
+	int WhiteKnights = GetBitCount(position.GetPieceBB(WHITE_KNIGHT));
+	int BlackKnights = GetBitCount(position.GetPieceBB(BLACK_KNIGHT));
+	int WhiteMinor = WhiteBishops + WhiteKnights;
+	int BlackMinor = BlackBishops + BlackKnights;
+
+	if (WhiteMinor <= 1 && BlackMinor <= 1) return true;												//1		
+	if (WhiteMinor <= 1 && BlackKnights <= 2 && BlackBishops == 0) return true;							//2		KNvKNN, KBvKNN, KvKNN or combinations with less nights
+	if (BlackMinor <= 1 && WhiteKnights <= 2 && WhiteBishops == 0) return true;							//2		
+	if (WhiteMinor <= 1 && BlackMinor <= 2 && BlackBishops < 2) return true;							//3		
+	if (BlackMinor <= 1 && WhiteMinor <= 2 && WhiteBishops < 2) return true;							//3
+	if (WhiteBishops == 1 && BlackBishops == 2 && WhiteKnights == 0 && BlackKnights == 0) return true;	//4
+	if (BlackBishops == 1 && WhiteBishops == 2 && BlackKnights == 0 && WhiteKnights == 0) return true;	//4
 
 	return false;
 }
 
-bool InsufficentMaterial(const Position& position)
+bool InsufficentMaterialEvaluation(const Position& position)
 {
 	int Material = EvaluateMaterial(position);
-	return InsufficentMaterial(position, Material);
+	return InsufficentMaterialEvaluation(position, Material);
 }
 
 void InitializeEvaluation()
@@ -214,6 +250,41 @@ void InitializeEvaluation()
 			Distance[i][j] = 14 - (AbsFileDiff(i, j) + AbsRankDiff(i, j));
 		}
 	}
+}
+
+bool DeadPosition(const Position& position)
+{
+	if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
+	if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
+	if ((position.GetPieceBB(WHITE_QUEEN)) != 0) return false;
+
+	if ((position.GetPieceBB(BLACK_PAWN)) != 0) return false;
+	if ((position.GetPieceBB(BLACK_ROOK)) != 0) return false;
+	if ((position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
+
+	/*
+	From the Chess Programming Wiki:
+
+		According to the rules of a dead position, Article 5.2 b, when there is no possibility of checkmate for either side with any series of legal moves, the position is an immediate draw if
+
+		- both sides have a bare king													1.																																						
+		- one side has a king and a minor piece against a bare king						2.																																
+		- both sides have a king and a bishop, the bishops being the same color			Not covered																												
+	*/
+
+	//We know the board must contain just knights, bishops and kings
+	int WhiteBishops = GetBitCount(position.GetPieceBB(WHITE_BISHOP));
+	int BlackBishops = GetBitCount(position.GetPieceBB(BLACK_BISHOP));
+	int WhiteKnights = GetBitCount(position.GetPieceBB(WHITE_KNIGHT));
+	int BlackKnights = GetBitCount(position.GetPieceBB(BLACK_KNIGHT));
+	int WhiteMinor = WhiteBishops + WhiteKnights;
+	int BlackMinor = BlackBishops + BlackKnights;
+
+	if (WhiteMinor == 0 && BlackMinor == 0) return true;	//1
+	if (WhiteMinor == 1 && BlackMinor == 0) return true;	//2
+	if (WhiteMinor == 0 && BlackMinor == 1) return true;	//2
+
+	return false;
 }
 
 int EvaluateCastleBonus(const Position & position)

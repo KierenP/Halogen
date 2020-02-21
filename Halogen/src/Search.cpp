@@ -204,6 +204,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 	int alpha = -30000;
 	int beta = 30000;
+	int prevScore = 0;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -227,11 +228,17 @@ Move SearchPosition(Position position, int allowedTimeMs)
 
 		if (timeManage.AbortSearch(position.GetNodeCount())) { break; }
 
-		if (score <= alpha || score >= beta)
+		if (score <= alpha)
 		{
-			alpha = -30000;
-			beta = 30000;
 			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
+			alpha = max(LowINF, prevScore - abs(prevScore - alpha) * 4);
+			continue;
+		}
+
+		if (score >= beta)
+		{
+			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
+			beta = min(HighINF, prevScore + abs(prevScore - beta) * 4);
 			continue;
 		}
 
@@ -239,8 +246,9 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
 
 		depth++;
-		alpha = score - 25;
-		beta = score + 25;
+		//alpha = score - 25;
+		//beta = score + 25;
+		prevScore = score;
 	}
 
 	//tTable.RunAsserts();	//only for testing purposes
@@ -264,7 +272,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
-	if (InsufficentMaterial(position)) return 0;
+	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position)) return 0;
 
 	/*Query the transpotition table*/
@@ -279,6 +287,8 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	{ 
 		return Quiescence(position, alpha, beta, colour, distanceFromRoot, depth);
 	}
+
+	//if (AllowedNull)
 
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha, depth))
@@ -322,13 +332,19 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
+		if (printMoves) {
+			std::cout << "info currmovenumber " << i + 1 << " currmove ";
+			moves[i].Print();
+			std::cout << "\n";
+		}
+
 		position.ApplyMove(moves.at(i));
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
 		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
-			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a)
+			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a && abs(a) < 9000)
 			{
 				position.RevertMove();
 				continue;
@@ -338,9 +354,9 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		int extendedDepth = depth + extension(position, moves[i], alpha, beta);
 
 		//late move reductions
-		if (LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
+		if (extendedDepth == depth && LMR(moves, i, beta, alpha, InCheck, position, depth) && i > 3)
 		{
-			int score = -NegaScout(position, depth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true).GetScore();
+			int score = -NegaScout(position, extendedDepth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true).GetScore();
 
 			if (score < a)
 			{
@@ -464,7 +480,7 @@ bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Pos
 {
 	return !moves[i].IsCapture()
 		&& !moves[i].IsPromotion()
-		&& !IsPV(beta, alpha)
+		//&& !IsPV(beta, alpha)
 		&& !InCheck 
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()) 
 		&& depth > 3;

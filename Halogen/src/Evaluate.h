@@ -9,8 +9,8 @@ extern PawnHashTable pawnHashTable;
 int EvaluatePosition(const Position& position);
 void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameStage);
 void InitializeEvaluation();
-bool InsufficentMaterial(const Position& position, int Material);	//if you already have the material score -> faster!
-bool InsufficentMaterial(const Position& position); //will count the material for you
+
+bool DeadPosition(const Position& position);
 
 bool EvaluateDebug();
 
