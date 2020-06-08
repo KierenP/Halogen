@@ -32,6 +32,7 @@ void Position::ApplyMove(Move move)
 	SaveParamiters();
 	SaveBoard();
 	SetEnPassant(-1);
+	Increment50Move();
 	NodeCount += 1;
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
@@ -97,6 +98,9 @@ void Position::ApplyMove(Move move)
 		SetCaptureSquare(move.GetTo());
 	else
 		SetCaptureSquare(-1);
+
+	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()))
+		Reset50Move();
 
 	ClearSquare(move.GetFrom());
 	NextTurn();
@@ -180,6 +184,7 @@ void Position::ApplyNullMove()
 	SaveParamiters();
 	SetEnPassant(-1);
 	SetCaptureSquare(-1);
+	Increment50Move();
 
 	NextTurn();
 	IncrementZobristKey(Move());

@@ -15,10 +15,11 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintBestMove(Move& Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position);
+bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
 bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position);
 bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int depth);
+bool IsEndGame(Position& const position);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
@@ -269,17 +270,29 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	PvTable[distanceFromRoot].clear();
 
 	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
-	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
+	if (distanceFromRoot >= MAX_DEPTH) return 0;						//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
-	if (CheckForRep(position)) return 0;
+	if (CheckForRep(position, distanceFromRoot)) return 0;
 
 	/*Query the transpotition table*/
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
 	{
-		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
-		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
+		int rep = 1;
+		uint64_t current = position.GetZobristKey();
+		
+		for (int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
+		{
+			if (position.GetPreviousKey(i) == current)
+				rep++;
+		}
+
+		if (rep < 2)												//don't use the transposition if we have been at this position in the past
+		{
+			TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+			if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
+		}
 	}
 
 	/*Drop into quiescence search*/
@@ -287,8 +300,6 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	{ 
 		return Quiescence(position, alpha, beta, colour, distanceFromRoot, depth);
 	}
-
-	//if (AllowedNull)
 
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha, depth))
@@ -315,6 +326,8 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	{
 		return TerminalScore(position, distanceFromRoot);
 	}
+
+	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 
 	//mate distance pruning
 	alpha = max(Score::MateScore + distanceFromRoot, alpha);
@@ -344,7 +357,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		//futility pruning
 		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
-			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a && abs(a) < 9000)
+			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a)
 			{
 				position.RevertMove();
 				continue;
@@ -377,7 +390,6 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		{
 			Score = newScore;
 			bestMove = moves.at(i);
-			
 		}
 
 		if (Score > a)
@@ -429,18 +441,20 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position)
+bool CheckForRep(Position& position, int distanceFromRoot)
 {
-	int rep = 1;
+	int totalRep = 1;
 	uint64_t current = position.GetZobristKey();
 
 	//note Previous keys will not contain the current key, hence rep starts at one
 	for (int i = 0; i < position.GetPreviousKeysSize(); i++)
 	{
 		if (position.GetPreviousKey(i) == current)
-			rep++;
+		{
+			totalRep++;
+		}
 
-		if (rep == 2) return true;	//don't allow 2 fold rep instead of permitting it and then disallowing 3 fold rep
+		if (totalRep == 3) return true;	
 	}
 	
 	return false;
@@ -500,8 +514,14 @@ bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int 
 	return allowedNull
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn())
 		&& !IsPV(beta, alpha)
+		&& !IsEndGame(position)
 		&& depth > R + 1								//don't drop directly into quiessence search. particularly important in mate searches as quiessence search has no mate detection currently. See 5rk1/2p4p/2p4r/3P4/4p1b1/1Q2NqPp/PP3P1K/R4R2 b - - 0 1
 		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
+}
+
+bool IsEndGame(Position& const position)
+{
+	return (position.GetAllPieces() == (position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING) | position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN)));
 }
 
 bool IsPV(int beta, int alpha)
