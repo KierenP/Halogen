@@ -15,11 +15,11 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintBestMove(Move& Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position, int distanceFromRoot);
+bool CheckForRep(Position& position);
 bool LMR(std::vector<Move>& moves, int i, int beta, int alpha, bool InCheck, Position& position, int depth);
 bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck, Position& position);
 bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int depth);
-bool IsEndGame(Position& const position);
+bool IsEndGame(const Position& position);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
@@ -274,7 +274,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
-	if (CheckForRep(position, distanceFromRoot)) return 0;
+	if (CheckForRep(position)) return 0;
 
 	/*Query the transpotition table*/
 	if (tTable.CheckEntry(position.GetZobristKey(), depth))
@@ -441,7 +441,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position, int distanceFromRoot)
+bool CheckForRep(Position& position)
 {
 	int totalRep = 1;
 	uint64_t current = position.GetZobristKey();
@@ -519,7 +519,7 @@ bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int 
 		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
 }
 
-bool IsEndGame(Position& const position)
+bool IsEndGame(const Position& position)
 {
 	return (position.GetAllPieces() == (position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING) | position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN)));
 }
