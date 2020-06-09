@@ -99,7 +99,7 @@ void Position::ApplyMove(Move move)
 	else
 		SetCaptureSquare(-1);
 
-	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()))
+	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
 		Reset50Move();
 
 	ClearSquare(move.GetFrom());
