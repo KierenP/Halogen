@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
-string version = "3.8.1";
+string version = "3.8.4";
 std::mutex Mutex;
 
 int main()
