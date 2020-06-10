@@ -1,0 +1,3 @@
+C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/Halogen.dir
+C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/edit_cache.dir
+C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/rebuild_cache.dir
