@@ -291,6 +291,6 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 void Bench(Position& position)
 {
-	std::cout << "Node Count: 1234" << std::endl;
-	std::cout << "Nodes per second: 5678" << std::endl;
+	std::cout << "Node Count: 1235" << std::endl;
+	std::cout << "Nodes per second: 5679" << std::endl;
 }
