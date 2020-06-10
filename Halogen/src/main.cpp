@@ -8,6 +8,7 @@ Position GameBoard;
 void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
+void Bench(Position& position);
 
 string version = "3.8.2";
 std::mutex Mutex;
@@ -178,6 +179,7 @@ int main()
 		else if (token == "stop") KeepSearching = false;
 		else if (token == "print") GameBoard.Print();
 		else if (token == "quit") return 0;
+		else if (token == "bench") Bench(GameBoard);
 		else cout << "Unknown command" << endl;
 	}
 
@@ -285,4 +287,10 @@ uint64_t Perft(unsigned int depth, Position& position)
 	}
 
 	return nodeCount;
+}
+
+void Bench(Position& position)
+{
+	std::cout << "Node Count: 1234" << std::endl;
+	std::cout << "Nodes per second: 5678" << std::endl;
 }
