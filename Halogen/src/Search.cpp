@@ -312,7 +312,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		if (score >= beta)
 		{
 			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
-			SearchResult result = NegaScout(position, depth - R - 1, beta - 1, beta, colour, distanceFromRoot, true);
+			SearchResult result = NegaScout(position, depth - R - 1, beta - 1, beta, colour, distanceFromRoot, false);
 
 			if (result.GetScore() >= beta)
 				return result;
