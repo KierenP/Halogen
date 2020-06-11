@@ -94,7 +94,9 @@ void TranspositionTable::SetSize(uint64_t MB)
 
 void TranspositionTable::PreFetch(uint64_t key)
 {
+#ifdef _MSC_VER
 	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
+#endif
 }
 
 void TranspositionTable::RunAsserts()

@@ -1,3 +1,8 @@
+set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD_REQUIRED ON) 
+set (CMAKE_CXX_EXTENSIONS OFF) 
+
+add_compile_options(-m64)
 cmake_minimum_required(VERSION "3.18.0-rc1")
 
 project("Halogen")

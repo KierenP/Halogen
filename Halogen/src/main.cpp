@@ -1,7 +1,6 @@
 #include "Benchmark.h"
 #include "Search.h"
 #include <thread>
-#include <ppl.h>
 
 using namespace::std;
 Position GameBoard;
@@ -12,7 +11,6 @@ uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
 string version = "3.8.5";
-std::mutex Mutex;
 
 int main(int argc, char* argv[])
 {
@@ -34,6 +32,9 @@ int main(int argc, char* argv[])
 
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
+
+	std::cout << GameBoard.GetKing(WHITE) << std::endl;
+	std::cout << GameBoard.GetKing(BLACK) << std::endl;
 
 	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
 	//std::cout << GameBoard.GetZobristKey() << std::endl;
@@ -304,6 +305,8 @@ void Bench(Position& position)
 			std::cout << "BAD FEN!" << std::endl;
 			break;
 		}
+
+		position.Print();
 
 		SearchPosition(position, 2147483647, 8);
 		std::cout << std::endl;
