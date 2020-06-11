@@ -1,8 +1,14 @@
 #pragma once
+
 #include "BoardParamiters.h"
 #include "BitBoard.h"
 #include "Zobrist.h"
 #include <sstream>
+
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif 
+
 #include <Windows.h>
 
 /*

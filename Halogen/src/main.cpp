@@ -1,7 +1,7 @@
 #include "Benchmark.h"
 #include "Search.h"
 #include <thread>
-#include <ppl.h>
+//#include "mingw.thread.h"
 
 using namespace::std;
 Position GameBoard;
@@ -12,7 +12,6 @@ uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
 string version = "3.8.5";
-std::mutex Mutex;
 
 int main(int argc, char* argv[])
 {

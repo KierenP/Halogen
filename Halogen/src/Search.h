@@ -1,4 +1,5 @@
 #pragma once
+
 #include "TranspositionTable.h"
 #include "Position.h"
 #include "MoveGeneration.h"

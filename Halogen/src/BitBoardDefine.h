@@ -1,9 +1,13 @@
 #pragma once
 #include <string>
 #include <assert.h>
-#include <intrin.h>
 #include <bitset>
 #include <stdexcept>
+#include <limits>
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 
 enum Squares
 {

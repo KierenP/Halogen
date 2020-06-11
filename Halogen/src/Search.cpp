@@ -167,10 +167,10 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << actualNodeCount
-		<< " nps " << int(actualNodeCount / max(Time, 1) * 1000)
-		<< " hashfull " << unsigned int(float(tTable.GetCapacity()) / tTable.GetSize() * 1000)							//thousondths full
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / max(actualNodeCount, 1)
-		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / max(pawnHashTable.HashHits + pawnHashTable.HashMisses, 1)
+		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
+		<< " hashfull " << int(float(tTable.GetCapacity()) / tTable.GetSize() * 1000)							//thousondths full
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
+		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1))
 		<< " pv ";																								//the current best line found
 
 
@@ -234,14 +234,14 @@ Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth)
 		if (score <= alpha)
 		{
 			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
-			alpha = max(LowINF, prevScore - abs(prevScore - alpha) * 4);
+			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
 			continue;
 		}
 
 		if (score >= beta)
 		{
 			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
-			beta = min(HighINF, prevScore + abs(prevScore - beta) * 4);
+			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
 			continue;
 		}
 
@@ -332,8 +332,8 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 
 	//mate distance pruning
-	alpha = max(Score::MateScore + distanceFromRoot, alpha);
-	beta = min(-Score::MateScore - distanceFromRoot - 1, beta);
+	alpha = std::max<int>(Score::MateScore + distanceFromRoot, alpha);
+	beta = std::min<int>(-Score::MateScore - distanceFromRoot - 1, beta);
 	if (alpha >= beta)
 		return alpha;
 
@@ -359,7 +359,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		//futility pruning
 		if (IsFutile(beta, alpha, moves, i, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
-			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(max(0, depth)) < a)
+			if (depth < FutilityMargins.size() && staticScore + FutilityMargins.at(std::max<int>(0, depth)) < a)
 			{
 				position.RevertMove();
 				continue;
@@ -545,12 +545,12 @@ void UpdateBounds(TTEntry& entry, int& alpha, int& beta)
 {
 	if (entry.GetCutoff() == EntryType::LOWERBOUND)
 	{
-		alpha = max(alpha, entry.GetScore());
+		alpha = std::max<int>(alpha, entry.GetScore());
 	}
 
 	if (entry.GetCutoff() == EntryType::UPPERBOUND)
 	{
-		beta = min(beta, entry.GetScore());
+		beta = std::min<int>(beta, entry.GetScore());
 	}
 }
 
