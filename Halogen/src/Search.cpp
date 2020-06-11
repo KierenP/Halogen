@@ -223,7 +223,7 @@ Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth)
 		KillerMoves.at(i).move[1] = Move();
 	}
 
-	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth <= maxSearchDepth; )
+	for (int depth = 1; (!timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
 	{
 		SearchResult search = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, searchTime.ElapsedMs() > 1000);
 		int score = search.GetScore();
