@@ -184,8 +184,10 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout << std::endl;
 }
 
-Move SearchPosition(Position position, int allowedTimeMs)
+Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth)
 {
+	KeepSearching = true;
+
 	PvTable.clear();
 	for (int i = 0; i < MAX_DEPTH; i++)
 	{
@@ -221,7 +223,7 @@ Move SearchPosition(Position position, int allowedTimeMs)
 		KillerMoves.at(i).move[1] = Move();
 	}
 
-	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth < 100; )
+	for (int depth = 1; !timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth <= maxSearchDepth; )
 	{
 		SearchResult search = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, searchTime.ElapsedMs() > 1000);
 		int score = search.GetScore();

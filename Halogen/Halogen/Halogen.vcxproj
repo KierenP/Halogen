@@ -37,6 +37,7 @@
     <ClCompile Include="..\src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\Benchmark.h" />
     <ClInclude Include="..\src\BitBoard.h" />
     <ClInclude Include="..\src\BitBoardDefine.h" />
     <ClInclude Include="..\src\BoardParamiters.h" />

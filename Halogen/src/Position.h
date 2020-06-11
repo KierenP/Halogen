@@ -37,7 +37,6 @@ public:
 	uint64_t GetNodeCount() { return NodeCount; }
 
 	void ResetNodeCount() { NodeCount = 0; }
-
 	void Reset();
 
 	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }

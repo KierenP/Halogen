@@ -1,3 +1,4 @@
+#include "Benchmark.h"
 #include "Search.h"
 #include <thread>
 #include <ppl.h>
@@ -90,8 +91,6 @@ int main()
 
 		else if (token == "go")
 		{
-			KeepSearching = true;
-
 			int wtime = 0;
 			int btime = 0;
 			int winc = 0;
@@ -132,7 +131,7 @@ int main()
 						movetime = movestogo <= 1 ? btime : btime / (movestogo + 1) * 2;
 				}
 			}
-			std::thread SearchThread(SearchPosition, GameBoard, movetime);
+			std::thread SearchThread([&] {SearchPosition(GameBoard, movetime); });	//lambda allows us to 
 			SearchThread.detach();
 		}
 
@@ -291,6 +290,24 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 void Bench(Position& position)
 {
-	std::cout << "Node Count: 1235" << std::endl;
-	std::cout << "Nodes per second: 5679" << std::endl;
+	Timer timer;
+	timer.Start();
+
+	uint64_t nodeCount = 0;
+
+	for (int i = 0; i < benchMarkPositions.size(); i++)
+	{
+		if (!position.InitialiseFromFen(benchMarkPositions[i]))
+		{
+			std::cout << "BAD FEN!" << std::endl;
+			break;
+		}
+
+		SearchPosition(position, 2147483647, 8);
+		std::cout << std::endl;
+
+		nodeCount += position.GetNodeCount();
+	}
+
+	std::cout << "OVERALL: " << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
 }

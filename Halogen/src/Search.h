@@ -42,4 +42,4 @@ struct Killer
 };
 
 extern TranspositionTable tTable;
-Move SearchPosition(Position position, int allowedTimeMs);
+Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth = MAX_DEPTH);
