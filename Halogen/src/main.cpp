@@ -290,7 +290,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 void Bench(Position& position)
 {
-	/*Timer timer;
+	Timer timer;
 	timer.Start();
 
 	uint64_t nodeCount = 0;
@@ -311,7 +311,5 @@ void Bench(Position& position)
 		nodeCount += position.GetNodeCount();
 	}
 
-	std::cout << "OVERALL: " << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;*/
-
-	std::cout << "nodes " << 1234 << " nps " << int(1234 / max(1, 1) * 1000) << std::endl;
+	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
 }
