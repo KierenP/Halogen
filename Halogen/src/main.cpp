@@ -14,7 +14,7 @@ void Bench(Position& position);
 string version = "3.8.5";
 std::mutex Mutex;
 
-int main()
+int main(int argc, char* argv[])
 {
 	std::cout << version << std::endl;
 
@@ -37,6 +37,8 @@ int main()
 
 	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
 	//std::cout << GameBoard.GetZobristKey() << std::endl;
+
+	if (argc == 2 && strcmp(argv[1], "bench") == 0) Bench(GameBoard);	//currently only supports bench from command line for openBench integration
 
 	while (getline(cin, Line))
 	{
