@@ -1,5 +1,10 @@
 #include "BitBoardDefine.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcountll __popcnt64
+#endif
+
 uint64_t EMPTY;
 uint64_t UNIVERCE;
 
@@ -223,7 +228,7 @@ unsigned int GetAntiDiagonal(unsigned int square)
 unsigned int GetBitCount(uint64_t bb)
 {
 #if defined(_WIN64)
-	return __popcnt64(bb);
+	return __builtin_popcountll(bb);
 #endif
 	return std::bitset<std::numeric_limits<uint64_t>::digits>(bb).count();
 }
