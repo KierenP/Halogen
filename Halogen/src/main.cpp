@@ -33,13 +33,10 @@ int main(int argc, char* argv[])
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
 
-	std::cout << GameBoard.GetKing(WHITE) << std::endl;
-	std::cout << GameBoard.GetKing(BLACK) << std::endl;
-
 	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
 	//std::cout << GameBoard.GetZobristKey() << std::endl;
 
-	if (argc == 2 && strcmp(argv[1], "bench") == 0) Bench(GameBoard);	//currently only supports bench from command line for openBench integration
+	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(GameBoard); return 0; }	//currently only supports bench from command line for openBench integration
 
 	while (getline(cin, Line))
 	{
@@ -314,5 +311,5 @@ void Bench(Position& position)
 		nodeCount += position.GetNodeCount();
 	}
 
-	std::cout << "OVERALL: " << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
+	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
 }
