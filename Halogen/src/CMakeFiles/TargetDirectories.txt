@@ -1,3 +1,0 @@
-C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/Halogen.dir
-C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/ALL_BUILD.dir
-C:/Users/kiere/source/repos/Halogen/Halogen/src/CMakeFiles/ZERO_CHECK.dir
