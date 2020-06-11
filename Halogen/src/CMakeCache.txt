@@ -231,7 +231,7 @@ CMAKE_STRIP:FILEPATH=C:/mingw64/bin/strip.exe
 // .SILENT directive, and all commands will be echoed to the console
 // during the make.  This is useful for debugging only. With Visual
 // Studio IDE projects all commands are done without /nologo.
-CMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+CMAKE_VERBOSE_MAKEFILE:BOOL=ON
 
 //Value Computed by CMake
 Halogen_BINARY_DIR:STATIC=C:/Users/kiere/source/repos/Halogen/Halogen/src
