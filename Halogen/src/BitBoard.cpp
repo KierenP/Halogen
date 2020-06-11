@@ -175,7 +175,7 @@ unsigned int BitBoard::GetKing(bool colour) const
 #endif 
 
 #ifndef _MSC_VER
-	return __builtin_ffsll(GetPieceBB(KING, colour));
+	return __builtin_ffsll(GetPieceBB(KING, colour)) - 1;
 #endif 
 }
 

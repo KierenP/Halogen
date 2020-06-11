@@ -1,7 +1,6 @@
 #include "Benchmark.h"
 #include "Search.h"
 #include <thread>
-//#include "mingw.thread.h"
 
 using namespace::std;
 Position GameBoard;
@@ -33,6 +32,9 @@ int main(int argc, char* argv[])
 
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
+
+	std::cout << GameBoard.GetKing(WHITE) << std::endl;
+	std::cout << GameBoard.GetKing(BLACK) << std::endl;
 
 	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
 	//std::cout << GameBoard.GetZobristKey() << std::endl;
@@ -303,6 +305,8 @@ void Bench(Position& position)
 			std::cout << "BAD FEN!" << std::endl;
 			break;
 		}
+
+		position.Print();
 
 		SearchPosition(position, 2147483647, 8);
 		std::cout << std::endl;

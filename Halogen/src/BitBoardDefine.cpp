@@ -260,7 +260,7 @@ int bitScanForwardErase(uint64_t &bb)
 #endif 
 
 #ifndef _MSC_VER
-	unsigned long index = __builtin_ffsll(bb);
+	unsigned long index = __builtin_ffsll(bb) - 1;
 #endif 
 
 	bb &= bb - 1;
