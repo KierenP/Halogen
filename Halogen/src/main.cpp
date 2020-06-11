@@ -313,5 +313,5 @@ void Bench(Position& position)
 
 	std::cout << "OVERALL: " << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;*/
 
-	std::cout << "nodes " << 1234 << " nps" << int(1234 / max(1, 1) * 1000) << std::endl;
+	std::cout << "nodes " << 1234 << " nps " << int(1234 / max(1, 1) * 1000) << std::endl;
 }
