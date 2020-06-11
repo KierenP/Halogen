@@ -5,7 +5,7 @@ std::vector<Killer> KillerMoves(MAX_DEPTH);					//2 moves indexed by distanceFro
 unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];	//first index is from square and 2nd index is to square
 
 const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
-const unsigned int R = 2;	//Null-move reduction depth
+const unsigned int R = 3;	//Null-move reduction depth
 
 TranspositionTable tTable;
 std::vector<std::vector<Move>> PvTable;
