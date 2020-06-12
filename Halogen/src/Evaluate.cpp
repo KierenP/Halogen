@@ -1,7 +1,5 @@
 #include "Evaluate.h"
 
-const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 5000, 100, 320, 330, 500, 900, 5000 };
-
 const int knightAdj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };	//adjustment of piece value based on the number of own pawns
 const int rookAdj[9] = { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
 
