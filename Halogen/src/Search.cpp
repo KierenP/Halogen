@@ -34,19 +34,6 @@ void UpdatePV(Move move, int distanceFromRoot);
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, bool printMoves = false);
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 
-/*
-TODO list:
-1. Adjust the criteria for how killer moves are stored
-2. Consider putting underpromotions ahead of killer moves?
-
-
-*/
-
-std::vector<int> RelativePieceValues = { 100, 300, 300, 500, 900, 10000, 100, 300, 300, 500, 900, 10000 };	//technically, there is no way we can be capturing a king as the game would already be over.
-
-int hits = 0;
-int misses = 0;
-
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour)
 {
 	/*
@@ -89,15 +76,15 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 
 		if (moves[i].IsCapture())
 		{
-			int PieceValue = RelativePieceValues.at(position.GetSquare(moves[i].GetFrom()));
+			int PieceValue = PieceValues[(position.GetSquare(moves[i].GetFrom()))];
 			int CaptureValue = 0;
 
 			if (moves[i].GetFlag() == EN_PASSANT)
-				CaptureValue = RelativePieceValues[WHITE_PAWN];	
+				CaptureValue = PieceValues[WHITE_PAWN];
 
 			if (moves[i].IsCapture() && moves[i].GetFlag() != EN_PASSANT)
 			{
-				CaptureValue = RelativePieceValues.at(position.GetSquare(moves[i].GetTo()));	//if enpassant then the .GetTo() square is empty
+				CaptureValue = PieceValues[position.GetSquare(moves[i].GetTo())];	//if enpassant then the .GetTo() square is empty
 			}
 
 			moves[i].SEE += CaptureValue;
@@ -115,7 +102,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 			if (moves[i].GetFlag() == BISHOP_PROMOTION || moves[i].GetFlag() == BISHOP_PROMOTION_CAPTURE)
 				moves[i].SEE = 1;
 			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
-				moves[i].SEE += RelativePieceValues[WHITE_QUEEN];
+				moves[i].SEE += PieceValues[WHITE_QUEEN];
 		}
 	}
 
