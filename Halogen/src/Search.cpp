@@ -95,14 +95,21 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 
 		if (moves[i].IsPromotion())
 		{
-			if (moves[i].GetFlag() == KNIGHT_PROMOTION || moves[i].GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-				moves[i].SEE = 1;
-			if (moves[i].GetFlag() == ROOK_PROMOTION || moves[i].GetFlag() == ROOK_PROMOTION_CAPTURE)
-				moves[i].SEE = 1;
-			if (moves[i].GetFlag() == BISHOP_PROMOTION || moves[i].GetFlag() == BISHOP_PROMOTION_CAPTURE)
-				moves[i].SEE = 1;
-			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
-				moves[i].SEE += PieceValues[WHITE_QUEEN];
+			if (!IsSquareThreatened(position, moves[i].GetTo(), position.GetTurn()))
+			{
+				if (moves[i].GetFlag() == KNIGHT_PROMOTION || moves[i].GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+					moves[i].SEE += PieceValues[WHITE_KNIGHT] - PieceValues[WHITE_PAWN];
+				if (moves[i].GetFlag() == ROOK_PROMOTION || moves[i].GetFlag() == ROOK_PROMOTION_CAPTURE)
+					moves[i].SEE += PieceValues[WHITE_ROOK] - PieceValues[WHITE_PAWN];
+				if (moves[i].GetFlag() == BISHOP_PROMOTION || moves[i].GetFlag() == BISHOP_PROMOTION_CAPTURE)
+					moves[i].SEE += PieceValues[WHITE_BISHOP] - PieceValues[WHITE_PAWN];
+				if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
+					moves[i].SEE += PieceValues[WHITE_QUEEN] - PieceValues[WHITE_PAWN];
+			}
+			else
+			{
+				moves[i].SEE -= PieceValues[WHITE_PAWN];	//if its defended then end result is we are just going to lose my pawn
+			}
 		}
 	}
 
