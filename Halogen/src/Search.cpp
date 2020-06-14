@@ -281,7 +281,10 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		for (int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
 		{
 			if (position.GetPreviousKey(i) == current)
+			{
 				rep++;
+				break;
+			}
 		}
 
 		if (rep < 2)												//don't use the transposition if we have been at this position in the past
@@ -292,7 +295,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 	}
 
 	/*Drop into quiescence search*/
-	if (depth <= 0 && !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	if (depth <= 0 && !IsInCheck(position))
 	{ 
 		return Quiescence(position, alpha, beta, colour, distanceFromRoot, depth);
 	}
@@ -304,10 +307,9 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		int score = -NegaScout(position, depth - R - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false).GetScore();	
 		position.RevertNullMove();
 
-		//Verification search
+		//Verification search worth about ~5 elo. 
 		if (score >= beta)
 		{
-			//why true? I can't justify but analysis improved in WAC to 297/300. Possibly recursive null calls produces rare speedups where significant work is skipped
 			SearchResult result = NegaScout(position, depth - R - 1, beta - 1, beta, colour, distanceFromRoot, false);
 
 			if (result.GetScore() >= beta)
