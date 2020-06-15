@@ -227,14 +227,14 @@ Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth)
 
 		if (score <= alpha)
 		{
-			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
+			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(alpha) > 9000, alpha, alpha, beta, position, move);
 			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
 			continue;
 		}
 
 		if (score >= beta)
 		{
-			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
+			PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(beta) > 9000, beta, alpha, beta, position, move);
 			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
 			continue;
 		}
@@ -243,8 +243,8 @@ Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth)
 		PrintSearchInfo(depth, searchTime.ElapsedMs(), abs(score) > 9000, score, alpha, beta, position, move);
 
 		depth++;
-		//alpha = score - 25;
-		//beta = score + 25;
+		alpha = score - 25;
+		beta = score + 25;
 		prevScore = score;
 	}
 
