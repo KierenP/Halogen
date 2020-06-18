@@ -613,35 +613,63 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 
 Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool colour)
 {
-	uint64_t threats = GetThreats(position, square, !colour); //if we pass WHITE, we will be getting threats from BLACK pieces so we invert it
-	unsigned int LowestAttacker = N_PIECES;
-	unsigned int fromSquare = N_SQUARES;
+	assert(square < N_SQUARES);
 
-	while (threats != 0)
+	uint64_t pawnmask = 0;
+	if (colour == BLACK)
 	{
-		unsigned sq = bitScanForwardErase(threats);
-		unsigned piece = position.GetSquare(sq);
-
-		assert(piece < N_PIECES);
-
-		if (LowestAttacker == N_PIECES || PieceValues[piece] < PieceValues[LowestAttacker])
-		{
-			LowestAttacker = piece;
-			fromSquare = sq;
-		}
-
-		if (LowestAttacker == WHITE_PAWN || LowestAttacker == BLACK_PAWN)
-			break;
+		pawnmask = (WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN));
 	}
 
-	if (LowestAttacker == N_PIECES) //no attackers found
+	if (colour == WHITE)
 	{
-		return(Move());
+		pawnmask = (BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN));
 	}
-	else
+
+	if (pawnmask != 0)
 	{
-		return Move(fromSquare, square, CAPTURE);
+		return(Move(bitScanForwardErase(pawnmask), square, CAPTURE));
 	}
+
+	uint64_t knightmask = (KnightAttacks[square] & position.GetPieceBB(KNIGHT, colour));
+	if (knightmask != 0)
+	{
+		return(Move(bitScanForwardErase(knightmask), square, CAPTURE));
+	}
+
+	uint64_t Pieces = position.GetAllPieces();
+
+	uint64_t bishops = position.GetPieceBB(BISHOP, colour) & BishopAttacks[square];
+	while (bishops != 0)
+	{
+		unsigned int start = bitScanForwardErase(bishops);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t rook = position.GetPieceBB(ROOK, colour) & RookAttacks[square];
+	while (rook != 0)
+	{
+		unsigned int start = bitScanForwardErase(rook);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t queen = position.GetPieceBB(QUEEN, colour) & QueenAttacks[square];
+	while (queen != 0)
+	{
+		unsigned int start = bitScanForwardErase(queen);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t kingmask = (KingAttacks[square] & position.GetPieceBB(KING, colour));
+	if (kingmask != 0)
+	{
+		return(Move(bitScanForwardErase(kingmask), square, CAPTURE));
+	}
+
+	return Move();
 }
 
 bool MovePutsSelfInCheck(Position & position, Move & move)

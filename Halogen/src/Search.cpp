@@ -11,6 +11,8 @@ TranspositionTable tTable;
 std::vector<std::vector<Move>> PvTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
+void InternalIterativeDeepening(Move& TTmove, int searchDepth, Position& position, int alpha, int beta, int colour, int distanceFromRoot);
+void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintBestMove(Move& Best);
@@ -53,19 +55,14 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 	7. Underpromotions											= -1
 
 	Note that typically the maximum value of the history matrix does not exceed 1,000,000 after a minute
+	and as such we choose 1m to be the maximum allowed value
 
 	*/
 
 	Move TTmove = GetHashMove(position);
 
-	/*
-	Internal iterative deepening
-	basically, if we have no hash move, do a shallow search and make that the hash move
-	*/
-	if (TTmove.GetFlag() == UNINITIALIZED && searchDepth > 3)
-	{
-		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true).GetMove();
-	}
+	//basically, if we have no hash move, do a shallow search and make that the hash move
+	InternalIterativeDeepening(TTmove, searchDepth, position, alpha, beta, colour, distanceFromRoot);
 
 	std::vector<int> orderScores(moves.size(), 0);
 
@@ -138,6 +135,19 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 		}
 	}
 
+	SortMovesByScore(moves, orderScores);
+}
+
+void InternalIterativeDeepening(Move& TTmove, int searchDepth, Position& position, int alpha, int beta, int colour, int distanceFromRoot)
+{
+	if (TTmove.GetFlag() == UNINITIALIZED && searchDepth > 3)
+	{
+		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true).GetMove();
+	}
+}
+
+void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores)
+{
 	//selection sort
 	for (int i = 0; i < moves.size() - 1; i++)
 	{
@@ -168,10 +178,9 @@ int see(Position& position, int square, bool side)
 	{
 		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
 
-		position.ApplyMove(capture);
+		position.ApplySEECapture(capture);
 		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
-		position.RevertMove();
-		position.RemoveOneFromNodeCount();
+		position.RevertSEECapture();
 	}
 
 	return value;
@@ -184,10 +193,9 @@ int seeCapture(Position& position, const Move& move, bool side)
 	int value = 0;
 	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
 
-	position.ApplyMove(move);
+	position.ApplySEECapture(move);
 	value = captureValue - see(position, move.GetTo(), !side);
-	position.RevertMove();
-	position.RemoveOneFromNodeCount();
+	position.RevertSEECapture();
 
 	return value;
 }
