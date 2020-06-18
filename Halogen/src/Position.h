@@ -48,6 +48,8 @@ public:
 	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
 
+	void RemoveOneFromNodeCount() { NodeCount--; }
+
 private:
 	uint64_t NodeCount;
 	uint64_t key;
