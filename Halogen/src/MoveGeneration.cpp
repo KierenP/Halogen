@@ -611,6 +611,39 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 	return threats;
 }
 
+Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool colour)
+{
+	uint64_t threats = GetThreats(position, square, !colour); //if we pass WHITE, we will be getting threats from BLACK pieces so we invert it
+	unsigned int LowestAttacker = N_PIECES;
+	unsigned int fromSquare = N_SQUARES;
+
+	while (threats != 0)
+	{
+		unsigned sq = bitScanForwardErase(threats);
+		unsigned piece = position.GetSquare(sq);
+
+		assert(piece < N_PIECES);
+
+		if (LowestAttacker == N_PIECES || PieceValues[piece] < PieceValues[LowestAttacker])
+		{
+			LowestAttacker = piece;
+			fromSquare = sq;
+		}
+
+		if (LowestAttacker == WHITE_PAWN || LowestAttacker == BLACK_PAWN)
+			break;
+	}
+
+	if (LowestAttacker == N_PIECES) //no attackers found
+	{
+		return(Move());
+	}
+	else
+	{
+		return Move(fromSquare, square, CAPTURE);
+	}
+}
+
 bool MovePutsSelfInCheck(Position & position, Move & move)
 {
 	unsigned int fromPiece = position.GetSquare(move.GetFrom());

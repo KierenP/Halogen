@@ -34,6 +34,9 @@ void UpdatePV(Move move, int distanceFromRoot);
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, bool printMoves = false);
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 
+int see(Position& position, int square, bool side);
+int seeCapture(Position& position, const Move& move, bool side); //Don't send this an en passant move!
+
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour)
 {
 	/*
@@ -121,6 +124,38 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 			return lhs.SEE > rhs.SEE;
 		});
 }
+
+int see(Position& position, int square, bool side)
+{
+	int value = 0;
+	Move capture = GetSmallestAttackerMove(position, square, side);
+	
+	if (capture.GetFlag() != UNINITIALIZED)
+	{
+		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
+
+		position.ApplyMove(capture);
+		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
+		position.RevertMove();
+	}
+
+	return value;
+}
+
+int seeCapture(Position& position, const Move& move, bool side)
+{
+	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
+
+	int value = 0;
+	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
+
+	position.ApplyMove(move);
+	value = captureValue - see(position, move.GetTo(), !side);
+	position.RevertMove();
+
+	return value;
+}
+
 
 void PrintBestMove(Move& Best)
 {
