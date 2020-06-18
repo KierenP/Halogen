@@ -66,7 +66,7 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 
 void QuiescenceMoves(Position& position, std::vector<Move>& moves)
 {
-	moves.reserve(10);
+	moves.reserve(15);
 	AddQuiescenceMoves(position, moves, PinnedMask(position));
 }
 
