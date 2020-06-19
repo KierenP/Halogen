@@ -38,8 +38,6 @@ public:
 	void Print() const;
 
 	bool operator==(const Move& rhs) const;
-	
-	int SEE;
 
 private:
 

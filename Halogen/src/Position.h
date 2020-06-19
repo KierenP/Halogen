@@ -48,6 +48,10 @@ public:
 	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
 
+	/*Seriously, don't use these functions outside of static exchange evaluation*/
+	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
+	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()
+
 private:
 	uint64_t NodeCount;
 	uint64_t key;
@@ -55,5 +59,7 @@ private:
 
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
+
+	
 };
 

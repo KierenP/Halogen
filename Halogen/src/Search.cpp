@@ -11,6 +11,8 @@ TranspositionTable tTable;
 std::vector<std::vector<Move>> PvTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
+void InternalIterativeDeepening(Move& TTmove, int searchDepth, Position& position, int alpha, int beta, int colour, int distanceFromRoot);
+void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move);
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour);
 void PrintBestMove(Move& Best);
@@ -34,6 +36,9 @@ void UpdatePV(Move move, int distanceFromRoot);
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, bool printMoves = false);
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth);
 
+int see(Position& position, int square, bool side);
+int seeCapture(Position& position, const Move& move, bool side); //Don't send this an en passant move!
+
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour)
 {
 	/*
@@ -41,86 +46,160 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, i
 
 	The order is as follows:
 
-	1. Hash move
-	2. Winning captures and queen promotions (SEE > 0)
-	3. Killer moves
-	4. Quiet moves (further sorted by history matrix values)
-	5. Losing captures
+	1. Hash move												= 10m
+	2. Queen Promotions											= 9m
+	3. Winning captures											= +8m
+	4. Killer moves												= ~7m
+	5. Losing captures											= -6m
+	6. Quiet moves (further sorted by history matrix values)	= 0-1m
+	7. Underpromotions											= -1
+
+	Note that typically the maximum value of the history matrix does not exceed 1,000,000 after a minute
+	and as such we choose 1m to be the maximum allowed value
 
 	*/
 
 	Move TTmove = GetHashMove(position);
 
-	/*Internal iterative deepening*/
 	//basically, if we have no hash move, do a shallow search and make that the hash move
+	InternalIterativeDeepening(TTmove, searchDepth, position, alpha, beta, colour, distanceFromRoot);
 
+	std::vector<int> orderScores(moves.size(), 0);
+
+	for (int i = 0; i < moves.size(); i++)
+	{
+		//Hash move
+		if (moves[i] == TTmove)
+		{
+			orderScores[i] = 10000000;
+			continue;
+		}
+
+		//Promotions
+		if (moves[i].IsPromotion()) 
+		{
+			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
+			{
+				orderScores[i] = 9000000;
+			}
+			else
+			{
+				orderScores[i] = -1;	
+			}
+
+			continue;
+		}
+
+		//Captures
+		if (moves[i].IsCapture())
+		{
+			int SEE = 0;
+
+			if (moves[i].GetFlag() != EN_PASSANT)
+			{
+				SEE = seeCapture(position, moves[i], colour);
+			}
+
+			if (SEE >= 0)
+			{
+				orderScores[i] = 8000000 + SEE;
+			}
+
+			if (SEE < 0)
+			{
+				orderScores[i] = 6000000 + SEE;
+			}
+
+			continue;
+		}
+
+		//Killers
+		if (moves[i] == KillerMoves.at(distanceFromRoot).move[0])
+		{
+			orderScores[i] = 7500000;
+			continue;
+		}
+
+		if (moves[i] == KillerMoves.at(distanceFromRoot).move[1])
+		{
+			orderScores[i] = 6500000;
+			continue;
+		}
+
+		//Quiet
+		orderScores[i] = HistoryMatrix[moves[i].GetFrom()][moves[i].GetTo()];
+
+		if (orderScores[i] > 1000000)
+		{
+			orderScores[i] = 1000000;
+		}
+	}
+
+	SortMovesByScore(moves, orderScores);
+}
+
+void InternalIterativeDeepening(Move& TTmove, int searchDepth, Position& position, int alpha, int beta, int colour, int distanceFromRoot)
+{
 	if (TTmove.GetFlag() == UNINITIALIZED && searchDepth > 3)
 	{
 		TTmove = NegaScout(position, searchDepth - 2, alpha, beta, colour, distanceFromRoot, true).GetMove();
 	}
+}
 
-	//give each move a score on how 'good' it is. 
-	for (int i = 0; i < moves.size(); i++)
+void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores)
+{
+	//selection sort
+	for (int i = 0; i < moves.size() - 1; i++)
 	{
-		moves[i].SEE = 0;		//default to zero
+		int max = i;
 
-		if (moves[i] == TTmove) {
-			moves[i].SEE = 15000;	
-			continue;
+		for (int j = i + 1; j < moves.size(); j++)
+		{
+			if (orderScores[j] > orderScores[max])
+			{
+				max = j;
+			}
 		}
 
-		if (moves[i] == KillerMoves.at(distanceFromRoot).move[0])
-			moves[i].SEE = 20;
-		if (moves[i] == KillerMoves.at(distanceFromRoot).move[1])
-			moves[i].SEE = 10;
-
-		if (moves[i].IsCapture())
+		if (max != i)
 		{
-			int PieceValue = PieceValues[(position.GetSquare(moves[i].GetFrom()))];
-			int CaptureValue = 0;
-
-			if (moves[i].GetFlag() == EN_PASSANT)
-				CaptureValue = PieceValues[WHITE_PAWN];
-
-			if (moves[i].IsCapture() && moves[i].GetFlag() != EN_PASSANT)
-			{
-				CaptureValue = PieceValues[position.GetSquare(moves[i].GetTo())];	//if enpassant then the .GetTo() square is empty
-			}
-
-			moves[i].SEE += CaptureValue;
-
-			if (IsSquareThreatened(position, moves[i].GetTo(), position.GetTurn()) && !moves[i].IsPromotion())
-				moves[i].SEE -= PieceValue;
-		}
-
-		if (moves[i].IsPromotion())
-		{
-			if (!IsSquareThreatened(position, moves[i].GetTo(), position.GetTurn()))
-			{
-				if (moves[i].GetFlag() == KNIGHT_PROMOTION || moves[i].GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-					moves[i].SEE += PieceValues[WHITE_KNIGHT] - PieceValues[WHITE_PAWN];
-				if (moves[i].GetFlag() == ROOK_PROMOTION || moves[i].GetFlag() == ROOK_PROMOTION_CAPTURE)
-					moves[i].SEE += PieceValues[WHITE_ROOK] - PieceValues[WHITE_PAWN];
-				if (moves[i].GetFlag() == BISHOP_PROMOTION || moves[i].GetFlag() == BISHOP_PROMOTION_CAPTURE)
-					moves[i].SEE += PieceValues[WHITE_BISHOP] - PieceValues[WHITE_PAWN];
-				if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
-					moves[i].SEE += PieceValues[WHITE_QUEEN] - PieceValues[WHITE_PAWN];
-			}
-			else
-			{
-				moves[i].SEE -= PieceValues[WHITE_PAWN];	//if its defended then end result is we are just going to lose my pawn
-			}
+			std::swap(moves[i], moves[max]);
+			std::swap(orderScores[i], orderScores[max]);
 		}
 	}
-
-	std::stable_sort(moves.begin(), moves.end(), [](const Move& lhs, const Move& rhs)
-		{
-			if (lhs.SEE == 0 && rhs.SEE == 0)	//comparing quiet moves
-				return HistoryMatrix[lhs.GetFrom()][lhs.GetTo()] > HistoryMatrix[rhs.GetFrom()][rhs.GetTo()];
-
-			return lhs.SEE > rhs.SEE;
-		});
 }
+
+int see(Position& position, int square, bool side)
+{
+	int value = 0;
+	Move capture = GetSmallestAttackerMove(position, square, side);
+	
+	if (capture.GetFlag() != UNINITIALIZED)
+	{
+		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
+
+		position.ApplySEECapture(capture);
+		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
+		position.RevertSEECapture();
+	}
+
+	return value;
+}
+
+int seeCapture(Position& position, const Move& move, bool side)
+{
+	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
+
+	int value = 0;
+	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
+
+	position.ApplySEECapture(move);
+	value = captureValue - see(position, move.GetTo(), !side);
+	position.RevertSEECapture();
+
+	return value;
+}
+
 
 void PrintBestMove(Move& Best)
 {
@@ -475,7 +554,9 @@ int extension(Position & position, Move & move, int alpha, int beta)
 	}
 	else
 	{
-		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()) && move.SEE >= 0)
+		int SEE = see(position, move.GetTo(), position.GetTurn());
+
+		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()) && SEE == 0)	//move already applied so positive SEE bad
 			extension += 1;
 
 		if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
@@ -600,13 +681,24 @@ SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int
 
 	for (int i = 0; i < moves.size(); i++)
 	{
-		if (staticScore + moves[i].SEE + 200 < alpha) 								//delta pruning
+		int SEE = 0;
+		if (moves[i].GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
+		{
+			SEE = seeCapture(position, moves[i], colour);
+		}
+
+		if (moves[i].IsPromotion())
+		{
+			SEE += PieceValues[WHITE_QUEEN];
+		}
+
+		if (staticScore + SEE + 200 < alpha) 								//delta pruning
 			break;
 
-		if (moves[i].SEE < 0)														//prune bad captures
+		if (SEE < 0)														//prune bad captures
 			break;
 
-		if (moves[i].SEE <= 0 && position.GetCaptureSquare() != moves[i].GetTo())	//prune equal captures that aren't recaptures
+		if (SEE <= 0 && position.GetCaptureSquare() != moves[i].GetTo())	//prune equal captures that aren't recaptures
 			continue;
 
 		if (moves[i].IsPromotion() && !(moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions

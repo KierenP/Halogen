@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
-string version = "3.8.5";
+string version = "3.8.5"; 
 
 int main(int argc, char* argv[])
 {
@@ -32,9 +32,6 @@ int main(int argc, char* argv[])
 
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
-
-	//GameBoard.InitialiseFromFen("6k1/8/8/4QK2/8/8/8/8 w - - 10 6 ");
-	//std::cout << GameBoard.GetZobristKey() << std::endl;
 
 	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(GameBoard); return 0; }	//currently only supports bench from command line for openBench integration
 
