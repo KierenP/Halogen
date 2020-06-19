@@ -51,4 +51,4 @@ struct ThreadData
 };
 
 extern TranspositionTable tTable;
-Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
+Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());

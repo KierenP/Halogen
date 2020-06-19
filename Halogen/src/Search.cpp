@@ -252,7 +252,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout << std::endl;
 }
 
-Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth, ThreadData locals)
+Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, int maxSearchDepth, ThreadData locals)
 {
 	KeepSearching = true;
 	Move move;
@@ -306,6 +306,7 @@ Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth, T
 	//tTable.RunAsserts();	//only for testing purposes
 
 	PrintBestMove(move);
+	totalNodes = position.GetNodeCount();
 	return move;
 }
 

@@ -128,7 +128,8 @@ int main(int argc, char* argv[])
 						movetime = movestogo <= 1 ? btime : btime / (movestogo + 1) * 2;
 				}
 			}
-			std::thread SearchThread([&] {SearchPosition(GameBoard, movetime); });	//lambda allows us to 
+			uint64_t nodes = 0;
+			std::thread SearchThread([&] {SearchPosition(GameBoard, movetime, nodes); });	//lambda allows us to 
 			SearchThread.detach();
 		}
 
@@ -302,10 +303,11 @@ void Bench(Position& position)
 
 		position.Print();
 
-		SearchPosition(position, 2147483647, 8);
+		uint64_t nodes = 0;
+		SearchPosition(position, 2147483647, nodes, 8);
 		std::cout << std::endl;
 
-		nodeCount += position.GetNodeCount();
+		nodeCount += nodes;
 	}
 
 	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
