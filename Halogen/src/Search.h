@@ -41,5 +41,14 @@ struct Killer
 	Move move[2];
 };
 
+struct ThreadData
+{
+	ThreadData();
+
+	std::vector<std::vector<Move>> PvTable;
+	std::vector<Killer> KillerMoves;							//2 moves indexed by distanceFromRoot
+	unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
+};
+
 extern TranspositionTable tTable;
-Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth = MAX_DEPTH);
+Move SearchPosition(Position& position, int allowedTimeMs, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
