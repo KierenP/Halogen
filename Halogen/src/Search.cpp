@@ -4,7 +4,6 @@ const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
 const unsigned int R = 2;	//Null-move reduction depth
 
 TranspositionTable tTable;
-SearchTimeManage timeManage;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour, ThreadData& locals);
 void InternalIterativeDeepening(Move& TTmove, int searchDepth, Position& position, int alpha, int beta, int colour, int distanceFromRoot, ThreadData& locals);
@@ -28,11 +27,43 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves
 void AddHistory(Move& move, int depth, unsigned int (&HistoryMatrix)[N_SQUARES][N_SQUARES]);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 
+Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
 SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool printMoves = false);
 SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int distanceFromRoot, int depth, ThreadData& locals);
 
 int see(Position& position, int square, bool side);
 int seeCapture(Position& position, const Move& move, bool side); //Don't send this an en passant move!
+
+void InitSearch();
+
+
+Move BeginSearch(Position position, int allowedTimeMs, int maxSearchDepth)
+{
+	InitSearch();
+
+	uint64_t nodesSearched = 0;
+
+	std::thread SearchThread([&] {SearchPosition(position, allowedTimeMs, nodesSearched); });
+	SearchThread.detach();
+}
+
+uint64_t BenchSearch(Position position, int maxSearchDepth)
+{
+	InitSearch();
+
+	uint64_t nodesSearched = 0;
+	SearchPosition(position, 2147483647, nodesSearched, maxSearchDepth);
+	return nodesSearched;
+}
+
+void InitSearch()
+{
+	KeepSearching = true;
+	tTable.SetAllAncient();
+	tTable.ResetHitCount();
+	pawnHashTable.HashHits = 0;
+	pawnHashTable.HashMisses = 0;
+}
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int searchDepth, int distanceFromRoot, int alpha, int beta, int colour, ThreadData& locals)
 {
@@ -254,16 +285,10 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, int maxSearchDepth, ThreadData locals)
 {
-	KeepSearching = true;
 	Move move;
 
-	timeManage.StartSearch(allowedTimeMs);
-	tTable.SetAllAncient();
-
+	locals.timeManage.StartSearch(allowedTimeMs);
 	position.ResetNodeCount();
-	tTable.ResetHitCount();
-	pawnHashTable.HashHits = 0;
-	pawnHashTable.HashMisses = 0;
 
 	Timer searchTime;
 	searchTime.Start();
@@ -272,13 +297,15 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	int beta = 30000;
 	int prevScore = 0;
 
-	for (int depth = 1; (!timeManage.AbortSearch(position.GetNodeCount()) && timeManage.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
+	for (int depth = 1; (!locals.timeManage.AbortSearch(position.GetNodeCount()) && locals.timeManage.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
 	{
+		position.IncreaseNodeCount();	//make the root node count. Otherwise when re-searching a position and getting an immediant hash hit the nodes searched is zero
+
 		SearchResult search = NegaScout(position, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, searchTime.ElapsedMs() > 1000);
 		int score = search.GetScore();
 		Move returnMove = search.GetMove();
 
-		if (timeManage.AbortSearch(position.GetNodeCount())) { break; }
+		if (locals.timeManage.AbortSearch(position.GetNodeCount())) { break; }
 
 		if (score <= alpha)
 		{
@@ -321,7 +348,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
+	if (locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (distanceFromRoot >= MAX_DEPTH) return 0;						//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
@@ -462,7 +489,7 @@ SearchResult NegaScout(Position& position, int depth, int alpha, int beta, int c
 		b = a + 1;				//Set a new zero width window
 	}
 
-	if (!timeManage.AbortSearch(position.GetNodeCount()))
+	if (!locals.timeManage.AbortSearch(position.GetNodeCount()))
 		AddScoreToTable(Score, alpha, position, depth, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
@@ -624,7 +651,7 @@ SearchResult Quiescence(Position& position, int alpha, int beta, int colour, int
 {
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (timeManage.AbortSearch(position.GetNodeCount())) return -1;
+	if (locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;
 	if (distanceFromRoot >= MAX_DEPTH) return 0;			//If we are 100 moves from root I think we can assume its a drawn position
 
 	std::vector<Move> moves;
@@ -760,3 +787,4 @@ ThreadData::ThreadData() : HistoryMatrix{{0}}
 		KillerMoves.push_back(Killer());
 	}
 }
+

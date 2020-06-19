@@ -10,7 +10,7 @@ TranspositionTable::~TranspositionTable()
 {
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key, int depth)
+bool TranspositionTable::CheckEntry(uint64_t key, int depth) const
 {
 	if ((table.at(HashFunction(key)).GetKey() == key) && (table.at(HashFunction(key)).GetDepth() >= depth) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
@@ -23,7 +23,7 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 	//return key & 0x3FFFFF;
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key)
+bool TranspositionTable::CheckEntry(uint64_t key) const
 {
 	if ((table.at(HashFunction(key)).GetKey() == key) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
@@ -57,7 +57,7 @@ void TranspositionTable::SetAllAncient()
 	}
 }
 
-int TranspositionTable::GetCapacity()
+int TranspositionTable::GetCapacity() const
 {
 	int count = 0;
 
@@ -92,14 +92,14 @@ void TranspositionTable::SetSize(uint64_t MB)
 	}
 }
 
-void TranspositionTable::PreFetch(uint64_t key)
+void TranspositionTable::PreFetch(uint64_t key) const
 {
 #ifdef _MSC_VER
 	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
 #endif
 }
 
-void TranspositionTable::RunAsserts()
+void TranspositionTable::RunAsserts() const
 {
 	for (int i = 0; i < table.size(); i++)
 	{

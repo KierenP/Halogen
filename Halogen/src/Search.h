@@ -48,7 +48,10 @@ struct ThreadData
 	std::vector<std::vector<Move>> PvTable;
 	std::vector<Killer> KillerMoves;							//2 moves indexed by distanceFromRoot
 	unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
+	SearchTimeManage timeManage;
 };
 
 extern TranspositionTable tTable;
-Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
+
+Move BeginSearch(Position position, int allowedTimeMs, int maxSearchDepth = MAX_DEPTH);
+uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
