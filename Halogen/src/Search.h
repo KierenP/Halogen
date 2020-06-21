@@ -11,6 +11,7 @@
 #include <utility>
 #include <deque>
 #include <xmmintrin.h>
+#include <thread>
 
 struct SearchResult
 {
