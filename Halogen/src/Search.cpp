@@ -45,6 +45,8 @@ Move BeginSearch(Position position, int allowedTimeMs, int maxSearchDepth)
 
 	std::thread SearchThread([&] {SearchPosition(position, allowedTimeMs, nodesSearched); });
 	SearchThread.detach();
+
+	return Move();
 }
 
 uint64_t BenchSearch(Position position, int maxSearchDepth)
