@@ -2,6 +2,7 @@
 #include <vector>
 #include <mutex>
 #include <deque>
+#include <memory>
 #include "TTEntry.h"
 
 const unsigned int mutex_frequency = 1024;					//how many entries per mutex
