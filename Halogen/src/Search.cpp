@@ -769,6 +769,9 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			break;
 	}
 
+	if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !(initialDepth <= threadDepthCompleted))
+		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestmove);
+
 	return SearchResult(Score, bestmove);
 }
 
