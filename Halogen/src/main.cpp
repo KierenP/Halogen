@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
 			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
+			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -129,7 +130,8 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			BeginSearch(GameBoard, movetime);
+			std::thread searchThread([&] {MultithreadedSearch(GameBoard, movetime, ThreadCount); });
+			searchThread.detach();
 			
 		}
 
@@ -163,6 +165,23 @@ int main(int argc, char* argv[])
 				{
 					tTable.SetSize(stoi(token) - 1);
 					pawnHashTable.Init(1);
+				}
+			}
+
+			else if (token == "Threads")
+			{
+				iss >> token; //'value'
+				iss >> token;
+
+				int size = stoi(token);
+
+				if (size < 1)
+					std::cout << "info string thread count too small" << std::endl;
+				else if (size > 8)
+					std::cout << "info string thread count too large" << std::endl;
+				else
+				{
+					ThreadCount = size;
 				}
 			}
 		}
@@ -288,6 +307,9 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 void Bench(Position& position)
 {
+	unsigned int prev = ThreadCount;
+	ThreadCount = 1;
+
 	Timer timer;
 	timer.Start();
 
@@ -310,4 +332,5 @@ void Bench(Position& position)
 	}
 
 	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
+	ThreadCount = prev;
 }
