@@ -10,8 +10,10 @@ TranspositionTable::~TranspositionTable()
 {
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key, int depth) const
+bool TranspositionTable::CheckEntry(uint64_t key, int depth) 
 {
+	std::lock_guard<std::mutex> lock(*locks.at(key % locks.size()));
+
 	if ((table.at(HashFunction(key)).GetKey() == key) && (table.at(HashFunction(key)).GetDepth() >= depth) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
@@ -23,8 +25,10 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 	//return key & 0x3FFFFF;
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key) const
+bool TranspositionTable::CheckEntry(uint64_t key)
 {
+	std::lock_guard<std::mutex> lock(*locks.at(key % locks.size()));
+
 	if ((table.at(HashFunction(key)).GetKey() == key) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
@@ -38,6 +42,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 		Score += distanceFromRoot;
 	if (Score < -9000)
 		Score -= distanceFromRoot;
+
+	std::lock_guard<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
 
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
@@ -83,12 +89,23 @@ void TranspositionTable::ResetTable()
 void TranspositionTable::SetSize(uint64_t MB)
 {
 	table.clear();
+	locks.clear();
 	size_t EntrySize = sizeof(TTEntry);
-	size_t entries = MB * 1024 * 1024 / EntrySize;
+	size_t MutexSize = sizeof(std::mutex);	//80 bytes
+
+	size_t entries = (MB * 1024 * 1024 / EntrySize);
+	size_t mutexCount = (entries / mutex_frequency);
+
+	entries -= mutexCount * MutexSize / EntrySize;
 	
 	for (size_t i = 0; i < entries; i++)
 	{
 		table.push_back(TTEntry());
+	}
+
+	for (size_t i = 0; i < mutexCount; i++)
+	{
+		locks.push_back(std::make_unique<std::mutex>());
 	}
 }
 
