@@ -1,6 +1,11 @@
 #pragma once
 #include <vector>
+#include <mutex>
+#include <deque>
+#include <memory>
 #include "TTEntry.h"
+
+const unsigned int mutex_frequency = 1024;					//how many entries per mutex
 
 class TranspositionTable
 {
@@ -17,8 +22,8 @@ public:
 	void ResetTable();
 	void SetSize(uint64_t MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 
-	bool CheckEntry(uint64_t key, int depth) const;
-	bool CheckEntry(uint64_t key) const;
+	bool CheckEntry(uint64_t key, int depth);
+	bool CheckEntry(uint64_t key);
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff);
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 
@@ -30,6 +35,7 @@ public:
 
 private:
 	std::vector<TTEntry> table;
+	std::vector<std::unique_ptr<std::mutex>> locks;
 	uint64_t TTHits;
 };
 
