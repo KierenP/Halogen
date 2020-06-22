@@ -10,11 +10,11 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
-string version = "3.10"; 
+string version = "4.0"; 
 
 int main(int argc, char* argv[])
 {
-	std::cout << version << std::endl;
+	std::cout << "Halogen " << version << std::endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
