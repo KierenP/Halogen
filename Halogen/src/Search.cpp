@@ -396,6 +396,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 	{
+		tTable.SetNonAncient(position.GetZobristKey());
+
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
 		
@@ -804,6 +806,7 @@ Move GetHashMove(Position& position, int depthRemaining)
 
 	if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
 	{
+		tTable.SetNonAncient(position.GetZobristKey());
 		return hash.GetMove();
 	}
 
@@ -816,6 +819,7 @@ Move GetHashMove(Position& position)
 
 	if (CheckEntry(hash, position.GetZobristKey()))
 	{
+		tTable.SetNonAncient(position.GetZobristKey());
 		return hash.GetMove();
 	}
 

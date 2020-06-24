@@ -47,8 +47,12 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
 {
-	table.at(HashFunction(key)).SetAncient(false);
 	return table.at(HashFunction(key));
+}
+
+void TranspositionTable::SetNonAncient(uint64_t key)
+{
+	table.at(HashFunction(key)).SetAncient(false);
 }
 
 void TranspositionTable::SetAllAncient()

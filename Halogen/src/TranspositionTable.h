@@ -24,6 +24,8 @@ public:
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff);
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 
+	void SetNonAncient(uint64_t key);
+
 	void AddHit() { TTHits++; }	//this is called every time we get a position from here. We don't count it if we just used it for move ordering
 	uint64_t HashFunction(const uint64_t& key) const;
 	void PreFetch(uint64_t key) const;
