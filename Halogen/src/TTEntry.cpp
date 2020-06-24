@@ -5,7 +5,7 @@ TTEntry::TTEntry() : bestMove(0, 0, 0)
 	key = EMPTY;
 	score = -1;
 	depth = -1;
-	cutoff = EntryType::EMPTY_ENTRY;
+	cutoff = static_cast<char>(EntryType::EMPTY_ENTRY);
 	ancient = true;
 }
 
@@ -14,7 +14,7 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, EntryType
 	key = ZobristKey;
 	score = Score;
 	depth = Depth;
-	cutoff = Cutoff;
+	cutoff = static_cast<char>(Cutoff);
 	ancient = false;
 }
 
