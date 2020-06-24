@@ -10,11 +10,9 @@ TranspositionTable::~TranspositionTable()
 {
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key, int depth) 
+bool CheckEntry(const TTEntry& entry, uint64_t key, int depth)
 {
-	std::lock_guard<std::mutex> lock(*locks.at(key % locks.size()));
-
-	if ((table.at(HashFunction(key)).GetKey() == key) && (table.at(HashFunction(key)).GetDepth() >= depth) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
+	if (entry.GetKey() == key && (entry.GetDepth() >= depth) && entry.GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }
@@ -25,11 +23,9 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 	//return key & 0x3FFFFF;
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key)
+bool CheckEntry(const TTEntry& entry, uint64_t key)
 {
-	std::lock_guard<std::mutex> lock(*locks.at(key % locks.size()));
-
-	if ((table.at(HashFunction(key)).GetKey() == key) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
+	if (entry.GetKey() == key && entry.GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }
