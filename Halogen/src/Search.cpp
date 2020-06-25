@@ -437,6 +437,53 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
+	//mate distance pruning
+	alpha = std::max<int>(Score::MateScore + distanceFromRoot, alpha);
+	beta = std::min<int>(-Score::MateScore - distanceFromRoot - 1, beta);
+	if (alpha >= beta)
+		return alpha;
+
+	Move bestMove = Move();	//used for adding to transposition table later
+	int Score = LowINF;
+	int a = alpha;
+	int b = beta;
+
+	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
+	Move hashMove = GetHashMove(position);
+	if (hashMove.GetFlag() != UNINITIALIZED && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	{
+		position.ApplyMove(hashMove);
+		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
+		int extendedDepth = depthRemaining + extension(position, hashMove, alpha, beta);
+		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals).GetScore();
+		position.RevertMove();
+
+		if (newScore > Score)
+		{
+			Score = newScore;
+			bestMove = hashMove;
+		}
+
+		if (Score > a)
+		{
+			a = Score;
+			UpdatePV(hashMove, distanceFromRoot, locals.PvTable);
+		}
+
+		if (a >= beta) //Fail high cutoff
+		{
+			AddKiller(hashMove, distanceFromRoot, locals.KillerMoves);
+			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix);
+
+			if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !(initialDepth <= threadDepthCompleted))
+				AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
+
+			return SearchResult(Score, bestMove);
+		}
+
+		b = a + 1;				//Set a new zero width window
+	}
+
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
 
@@ -446,23 +493,16 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
-
-	//mate distance pruning
-	alpha = std::max<int>(Score::MateScore + distanceFromRoot, alpha);
-	beta = std::min<int>(-Score::MateScore - distanceFromRoot - 1, beta);
-	if (alpha >= beta)
-		return alpha;
-
+	
 	OrderMoves(moves, position, initialDepth, depthRemaining, distanceFromRoot, alpha, beta, colour, locals);
-	Move bestMove = Move();	//used for adding to transposition table later
-	int Score = LowINF;
-	int a = alpha;
-	int b = beta;
 	bool InCheck = IsInCheck(position);
 	int staticScore = colour * EvaluatePosition(position);
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
+		if (moves[i] == hashMove)
+			continue;
+
 		if (printMoves) {
 			//Until I get a good idea how to do this with multithreading I'm not going to have it
 
