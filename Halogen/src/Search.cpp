@@ -393,8 +393,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (CheckForRep(position)) return 0;
 
 	/*Query the transpotition table*/
-	if (tTable.CheckEntry(position.GetZobristKey(), depthRemaining))
+	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 	{
+		tTable.SetNonAncient(position.GetZobristKey());
+
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
 		
@@ -409,7 +412,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		if (rep < 2)												//don't use the transposition if we have been at this position in the past
 		{
-			TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 			if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
 		}
 	}
@@ -840,9 +842,12 @@ void AddHistory(Move& move, int depthRemaining, unsigned int(&HistoryMatrix)[N_S
 
 Move GetHashMove(Position& position, int depthRemaining)
 {
-	if (tTable.CheckEntry(position.GetZobristKey(), depthRemaining))
+	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
+
+	if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
 	{
-		return tTable.GetEntry(position.GetZobristKey()).GetMove();
+		tTable.SetNonAncient(position.GetZobristKey());
+		return hash.GetMove();
 	}
 
 	return {};
@@ -850,9 +855,12 @@ Move GetHashMove(Position& position, int depthRemaining)
 
 Move GetHashMove(Position& position)
 {
-	if (tTable.CheckEntry(position.GetZobristKey()))
+	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
+
+	if (CheckEntry(hash, position.GetZobristKey()))
 	{
-		return tTable.GetEntry(position.GetZobristKey()).GetMove();
+		tTable.SetNonAncient(position.GetZobristKey());
+		return hash.GetMove();
 	}
 
 	return {};
