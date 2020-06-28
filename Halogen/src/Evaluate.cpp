@@ -14,6 +14,8 @@ const int BishopPairBonus = 30;
 const int RookOpenFileBonus = 15;
 const int RookSemiOpenFileBonus = RookOpenFileBonus / 2;
 
+const int TempoBonus = 10;
+
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
@@ -94,8 +96,15 @@ int EvaluatePosition(const Position & position)
 	QueryPawnHashTable(position, pawnsMid, MIDGAME);
 	QueryPawnHashTable(position, pawnsEnd, ENDGAME);
 
-	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles;
-	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles;
+	int tempo = 0;
+
+	if (position.GetTurn() == WHITE)
+		tempo = TempoBonus;
+	else
+		tempo = -TempoBonus;
+
+	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
 }
@@ -496,6 +505,8 @@ bool EvaluateDebug()
 
 void FlipColours(Position& pos)
 {
+	pos.ApplyNullMove();
+
 	for (int i = 0; i < N_SQUARES; i++)
 	{
 		if (pos.IsOccupied(i))
