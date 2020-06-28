@@ -11,6 +11,8 @@ const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
 
 const int CastledBonus = 40;
 const int BishopPairBonus = 30;
+const int RookOpenFileBonus = 15;
+const int RookSemiOpenFileBonus = RookOpenFileBonus / 2;
 
 const int TempoBonus = 10;
 
@@ -24,6 +26,7 @@ int EvaluatePawns(const Position& position, unsigned int gameStage);
 int CalculateGamePhase(const Position& position);
 int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
+int RookFileAdjustment(const Position& position);
 
 bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
 bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
@@ -81,6 +84,7 @@ int EvaluatePosition(const Position & position)
 
 	int KnightAdj = AdjustKnightScore(position);
 	int RookAdj = AdjustRookScore(position);
+	int RookFiles = RookFileAdjustment(position);
 
 	//stuff dependant on the game stage is calculated once for each
 
@@ -99,10 +103,52 @@ int EvaluatePosition(const Position & position)
 	else
 		tempo = -TempoBonus;
 
-	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + tempo;
-	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + tempo;
+	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
+}
+
+int RookFileAdjustment(const Position& position)
+{
+	int Score = 0;
+	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
+	{
+		int sq = bitScanForwardErase(piece);	
+		int file = GetFile(sq);
+
+		if ((GetBitCount(position.GetPieceBB(WHITE_PAWN) & FileBB[file])) == 0)
+		{
+			if ((GetBitCount(position.GetPieceBB(BLACK_PAWN) & FileBB[file])) == 0)	
+			{
+				Score += RookOpenFileBonus;
+			}
+			else 
+			{
+				Score += RookSemiOpenFileBonus;
+			}
+		}
+	}
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_ROOK); piece != 0; )
+	{
+		int sq = bitScanForwardErase(piece);
+		int file = GetFile(sq);
+
+		if ((GetBitCount(position.GetPieceBB(BLACK_PAWN) & FileBB[file])) == 0)
+		{
+			if ((GetBitCount(position.GetPieceBB(WHITE_PAWN) & FileBB[file])) == 0)
+			{
+				Score -= RookOpenFileBonus;
+			}
+			else
+			{
+				Score -= RookSemiOpenFileBonus;
+			}
+		}
+	}
+
+	return Score;
 }
 
 int AdjustKnightScore(const Position& position)
