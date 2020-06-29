@@ -32,7 +32,7 @@ private:
 
 	uint64_t key;			//8 bytes
 
-	Move bestMove;			//3 bytes 
+	Move bestMove;			//2 bytes 
 	bool ancient;			//1 bytes
 
 	short int score;		//2 bytes

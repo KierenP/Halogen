@@ -4,14 +4,13 @@
 
 enum MoveFlag
 {
-	UNINITIALIZED,
 	QUIET,							
 	PAWN_DOUBLE_MOVE,				
 	KING_CASTLE,					
 	QUEEN_CASTLE,					
 	CAPTURE,						
 	EN_PASSANT,						
-	KNIGHT_PROMOTION = 8,	//no real reason, if you change this also change IsPromotion and IsCapture!		
+	KNIGHT_PROMOTION = 8,			
 	BISHOP_PROMOTION,				
 	ROOK_PROMOTION,					
 	QUEEN_PROMOTION,				
@@ -39,15 +38,16 @@ public:
 
 	bool operator==(const Move& rhs) const;
 
+	bool IsUninitialized() const;
+
 private:
 
 	void SetFrom(unsigned int from);
 	void SetTo(unsigned int to);
 	void SetFlag(unsigned int flag);
 
-	char m_from;
-	char m_to;
-	char m_flag;
+	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
+	unsigned short data;
 };
 
 

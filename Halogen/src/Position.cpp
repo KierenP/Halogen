@@ -371,7 +371,7 @@ uint64_t Position::IncrementZobristKey(Move move)
 	if (prev.GetEnPassant() <= SQ_H8)
 		key ^= ZobristTable[(12 * 64 + 5 + GetFile(prev.GetEnPassant()))];		//undo the previous ep square
 
-	if (move.GetFlag() == UNINITIALIZED) return key;	//null move
+	if (move.IsUninitialized()) return key;	//null move
 
 	if (!move.IsPromotion())
 	{

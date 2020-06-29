@@ -189,7 +189,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initi
 
 void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, ThreadData& locals)
 {
-	if (TTmove.GetFlag() == UNINITIALIZED && depthRemaining > 3)
+	if (TTmove.IsUninitialized() && depthRemaining > 3)
 	{
 		TTmove = NegaScout(position, initialDepth, depthRemaining - 2, alpha, beta, colour, distanceFromRoot, true, locals).GetMove();
 	}
@@ -223,7 +223,7 @@ int see(Position& position, int square, bool side)
 	int value = 0;
 	Move capture = GetSmallestAttackerMove(position, square, side);
 	
-	if (capture.GetFlag() != UNINITIALIZED)
+	if (!capture.IsUninitialized())
 	{
 		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
 
@@ -452,7 +452,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
 	Move hashMove = GetHashMove(position);
-	if (hashMove.GetFlag() != UNINITIALIZED && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
