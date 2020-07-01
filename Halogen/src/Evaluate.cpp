@@ -370,6 +370,9 @@ bool BlackBlockade(uint64_t wPawns, uint64_t bPawns)
 	uint64_t flood = RankBB[RANK_1] | allBitsBelow[bitScanForward(fence)];
 	uint64_t above = allBitsAbove[bitScanReverse(fence)];
 
+	if ((wPawns & ~fence) != 0)
+		return false;
+
 	while (true) {
 		uint64_t temp = flood;
 		flood |= ((flood & ~(FileBB[FILE_A])) >> 1) | ((flood & ~(FileBB[FILE_H])) << 1);	//Add left and right 
@@ -405,6 +408,9 @@ bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns)
 
 	uint64_t flood = RankBB[RANK_8] | allBitsAbove[bitScanReverse(fence)];
 	uint64_t above = allBitsBelow[bitScanForward(fence)];
+
+	if ((bPawns & ~fence) != 0)
+		return false;
 
 	while (true) {
 		uint64_t temp = flood;
