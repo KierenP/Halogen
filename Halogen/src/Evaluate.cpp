@@ -27,9 +27,12 @@ int CalculateGamePhase(const Position& position);
 int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
 int RookFileAdjustment(const Position& position);
+int CalculateTempo(const Position& position);
 
 bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
 bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
+
+bool PawnBlockade(const Position& position);
 
 PawnHashTable pawnHashTable;
 
@@ -86,8 +89,9 @@ int EvaluatePosition(const Position & position)
 	int RookAdj = AdjustRookScore(position);
 	int RookFiles = RookFileAdjustment(position);
 
-	//stuff dependant on the game stage is calculated once for each
+	int tempo = CalculateTempo(position);
 
+	//stuff dependant on the game stage is calculated once for each
 	int PieceSquaresMid = EvaluatePieceSquareTables(position, MIDGAME);
 	int PieceSquaresEnd = EvaluatePieceSquareTables(position, ENDGAME);
 
@@ -96,17 +100,18 @@ int EvaluatePosition(const Position & position)
 	QueryPawnHashTable(position, pawnsMid, MIDGAME);
 	QueryPawnHashTable(position, pawnsEnd, ENDGAME);
 
-	int tempo = 0;
-
-	if (position.GetTurn() == WHITE)
-		tempo = TempoBonus;
-	else
-		tempo = -TempoBonus;
-
 	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
+}
+
+int CalculateTempo(const Position& position)
+{
+	if (position.GetTurn() == WHITE)
+		return TempoBonus;
+	else
+		return -TempoBonus;
 }
 
 int RookFileAdjustment(const Position& position)
@@ -263,7 +268,7 @@ bool InsufficentMaterialEvaluation(const Position& position, int Material)
 		- two knights against the bare king																																								2.
 		- both sides have a king and a minor piece each																																					1.
 		- the weaker side has a minor piece against two knights																																			2.
-		- two bishops draw against a bishop																																								
+		- two bishops draw against a bishop																																								4.
 		- two minor pieces against one draw, except when the stronger side has a bishop pair																											3.
 
 		Please note that a knight or even two knights against two bishops are not included here, as it is possible to win this ending.
@@ -292,6 +297,11 @@ bool InsufficentMaterialEvaluation(const Position& position)
 {
 	int Material = EvaluateMaterial(position);
 	return InsufficentMaterialEvaluation(position, Material);
+}
+
+bool PawnBlockade(const Position& position)
+{
+	return false;
 }
 
 void InitializeEvaluation()
