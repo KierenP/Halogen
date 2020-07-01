@@ -32,7 +32,8 @@ int CalculateTempo(const Position& position);
 bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
 bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
 
-bool PawnBlockade(const Position& position);
+bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
+bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
 
 PawnHashTable pawnHashTable;
 
@@ -299,11 +300,6 @@ bool InsufficentMaterialEvaluation(const Position& position)
 	return InsufficentMaterialEvaluation(position, Material);
 }
 
-bool PawnBlockade(const Position& position)
-{
-	return false;
-}
-
 void InitializeEvaluation()
 {
 	InitializePieceSquareTable();
@@ -348,6 +344,89 @@ bool DeadPosition(const Position& position)
 	if (WhiteMinor == 0 && BlackMinor == 1) return true;	//2
 
 	return false;
+}
+
+bool IsBlockade(const Position& position)
+{
+	if (position.GetAllPieces() != (position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING) | position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN)))
+		return false;
+
+	if (position.GetTurn() == WHITE)
+		return BlackBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
+	if (position.GetTurn() == BLACK)
+		return WhiteBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
+}
+
+/*addapted from chess programming wiki code example*/
+bool BlackBlockade(uint64_t wPawns, uint64_t bPawns) 
+{
+	uint64_t fence = wPawns & (bPawns >> 8);					//blocked white pawns
+	if (GetBitCount(fence) < 3)
+		return false;
+
+	fence |= ((bPawns & ~(FileBB[FILE_A])) >> 9);				//black pawn attacks
+	fence |= ((bPawns & ~(FileBB[FILE_H])) >> 7);
+
+	uint64_t flood = RankBB[RANK_1] | allBitsBelow[bitScanForward(fence)];
+	uint64_t above = allBitsAbove[bitScanReverse(fence)];
+
+	while (true) {
+		uint64_t temp = flood;
+		flood |= ((flood & ~(FileBB[FILE_A])) >> 1) | ((flood & ~(FileBB[FILE_H])) << 1);	//Add left and right 
+		flood |= (flood << 8) | (flood >> 8);												//up and down
+		flood &= ~fence;
+
+		if (flood == temp)
+			break; /* Fill has stopped, blockage? */
+		if (flood & above) /* break through? */
+			return false; /* yes, no blockage */
+		if (flood & bPawns) {
+			bPawns &= ~flood;  /* "capture" undefended black pawns */
+			fence = wPawns & (bPawns >> 8);
+			if (GetBitCount(fence) < 3)
+				return false;
+
+			fence |= ((bPawns & ~(FileBB[FILE_A])) >> 9);				
+			fence |= ((bPawns & ~(FileBB[FILE_H])) >> 7);
+		}
+	}
+
+	return true;
+}
+
+bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns)
+{
+	uint64_t fence = bPawns & (wPawns << 8);					
+	if (GetBitCount(fence) < 3)
+		return false;
+
+	fence |= ((wPawns & ~(FileBB[FILE_A])) << 7);
+	fence |= ((wPawns & ~(FileBB[FILE_H])) << 9);
+
+	uint64_t flood = RankBB[RANK_8] | allBitsAbove[bitScanReverse(fence)];
+	uint64_t above = allBitsBelow[bitScanForward(fence)];
+
+	while (true) {
+		uint64_t temp = flood;
+		flood |= ((flood & ~(FileBB[FILE_A])) >> 1) | ((flood & ~(FileBB[FILE_H])) << 1);	//Add left and right 
+		flood |= (flood << 8) | (flood >> 8);												//up and down
+		flood &= ~fence;
+
+		if (flood == temp)
+			break; /* Fill has stopped, blockage? */
+		if (flood & above) /* break through? */
+			return false; /* yes, no blockage */
+		if (flood & bPawns) {
+			bPawns &= ~flood;  /* "capture" undefended black pawns */
+			fence = bPawns & (wPawns << 8);
+			if (GetBitCount(fence) < 3)
+				return false;
+
+			fence |= ((wPawns & ~(FileBB[FILE_A])) << 7);
+			fence |= ((wPawns & ~(FileBB[FILE_H])) << 9);
+		}
+	}
+	return true;
 }
 
 int EvaluateCastleBonus(const Position & position)

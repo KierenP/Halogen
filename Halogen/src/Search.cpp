@@ -36,7 +36,7 @@ void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool printMoves = false);
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool blockade = false, bool printMoves = false);
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, ThreadData& locals);
 
 int see(Position& position, int square, bool side);
@@ -330,7 +330,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	{
 		position.IncreaseNodeCount();	//make the root node count. Otherwise when re-searching a position and getting an immediant hash hit the nodes searched is zero
 
-		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, searchTime.ElapsedMs() > 1000);
+		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, false, searchTime.ElapsedMs() > 1000);
 		int score = search.GetScore();
 		Move returnMove = search.GetMove();
 
@@ -373,7 +373,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	return move;
 }
 
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool printMoves)
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool blockade, bool printMoves)
 {
 #ifdef _DEBUG
 	/*Add any code in here that tests the position for validity*/
@@ -391,6 +391,20 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	//check for draw
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position)) return 0;
+
+	/* blockade detection */
+	//Its possible one side has a blockade, but if winning will break it up.
+	if (!blockade && beta > Draw) 
+	{
+		if (IsBlockade(position))	//Am I blockaded against?
+		{
+			SearchResult result = NegaScout(position, initialDepth, depthRemaining, alpha, beta, colour, distanceFromRoot, true, locals, true);	//do a search where I can't move my king and see what is the best I can achieve
+
+			if (alpha >= result.GetScore())
+				return result.GetScore();
+			beta = result.GetScore();
+		}
+	}
 
 	/*Query the transpotition table*/
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
@@ -452,7 +466,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
 	Move hashMove = GetHashMove(position);
-	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	if (!blockade && !hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
@@ -502,17 +516,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	for (int i = 0; i < moves.size(); i++)	
 	{
-		if (moves[i] == hashMove)
+		if (i != 0 && blockade && position.GetSquare(moves[i].GetFrom()) == Piece(KING, position.GetTurn()))
 			continue;
 
-		if (printMoves) {
-			//Until I get a good idea how to do this with multithreading I'm not going to have it
-
-			/*const std::lock_guard<std::mutex> lock(ioMutex);
-			std::cout << "info currmovenumber " << i + 1 << " currmove ";
-			moves[i].Print();
-			std::cout << "\n";*/
-		}
+		if (moves[i] == hashMove && !blockade)
+			continue;
 
 		position.ApplyMove(moves.at(i));
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
