@@ -44,7 +44,8 @@ int main(int argc, char* argv[])
 
 		if (token == "uci")
 		{
-			cout << "id name Halogen" << version << " author Kieren Pearson" << endl;
+			cout << "id name Halogen " << version << endl;
+			cout << "id author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
 			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
