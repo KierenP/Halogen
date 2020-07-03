@@ -179,7 +179,12 @@ extern uint64_t KingAttacks[N_SQUARES];
 extern uint64_t WhitePawnAttacks[N_SQUARES];
 extern uint64_t BlackPawnAttacks[N_SQUARES];
 
+extern uint64_t allBitsBelow[N_SQUARES];
+extern uint64_t allBitsAbove[N_SQUARES];
+
 int bitScanForwardErase(uint64_t &bb);
+int bitScanForward(uint64_t bb);
+int bitScanReverse(uint64_t bb);
 
 uint64_t inBetween(unsigned int sq1, unsigned int sq2);	//return the bb of the squares in between (exclusive) the two squares
 uint64_t inBetweenCache(unsigned int from, unsigned int to);

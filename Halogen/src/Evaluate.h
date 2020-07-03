@@ -13,6 +13,7 @@ void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameS
 void InitializeEvaluation();
 
 bool DeadPosition(const Position& position);
+bool IsBlockade(const Position& position);
 
 bool EvaluateDebug();
 

@@ -392,6 +392,18 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position)) return 0;
 
+	/* blockade detection */
+	//Its possible one side has a blockade, but if winning will break it up.
+	if (beta > Draw) 
+	{
+		if (IsBlockade(position))	//Am I blockaded against?
+		{
+			if (alpha >= Draw)
+				return Draw;
+			beta = Draw;
+		}
+	}
+
 	/*Query the transpotition table*/
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
@@ -504,15 +516,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	{
 		if (moves[i] == hashMove)
 			continue;
-
-		if (printMoves) {
-			//Until I get a good idea how to do this with multithreading I'm not going to have it
-
-			/*const std::lock_guard<std::mutex> lock(ioMutex);
-			std::cout << "info currmovenumber " << i + 1 << " currmove ";
-			moves[i].Print();
-			std::cout << "\n";*/
-		}
 
 		position.ApplyMove(moves.at(i));
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
