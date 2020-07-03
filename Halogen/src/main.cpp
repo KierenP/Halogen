@@ -23,11 +23,14 @@ int main(int argc, char* argv[])
 	BBInit();
 	InitializeEvaluation();
 
+	GameBoard.InitialiseFromFen("k7/2p5/1p3p1p/8/3pNp2/4p3/8/K7 w - - 0 1");
+	EvaluatePosition(GameBoard);
+
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 	GameBoard.StartingPosition();
 
-	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
 
 	tTable.SetSize(1);

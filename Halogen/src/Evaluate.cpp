@@ -16,6 +16,9 @@ const int RookSemiOpenFileBonus = RookOpenFileBonus / 2;
 
 const int TempoBonus = 10;
 
+const int KnightMobility = 5;
+const int KnightAverageMobility = 4;
+
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
@@ -28,6 +31,7 @@ int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
 int RookFileAdjustment(const Position& position);
 int CalculateTempo(const Position& position);
+int Mobility(const Position& position);
 
 bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
 bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
@@ -91,6 +95,7 @@ int EvaluatePosition(const Position & position)
 	int RookFiles = RookFileAdjustment(position);
 
 	int tempo = CalculateTempo(position);
+	int mobility = Mobility(position);
 
 	//stuff dependant on the game stage is calculated once for each
 	int PieceSquaresMid = EvaluatePieceSquareTables(position, MIDGAME);
@@ -101,10 +106,39 @@ int EvaluatePosition(const Position & position)
 	QueryPawnHashTable(position, pawnsMid, MIDGAME);
 	QueryPawnHashTable(position, pawnsEnd, ENDGAME);
 
-	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
-	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo + mobility;
+	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo + mobility;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
+}
+
+int Mobility(const Position& position)
+{
+	int Score = 0;
+	uint64_t WhitePawnThreats = 0;
+	uint64_t BlackPawnThreats = 0;
+
+	WhitePawnThreats |= ((position.GetPieceBB(WHITE_PAWN) & ~(FileBB[FILE_A])) << 7);
+	WhitePawnThreats |= ((position.GetPieceBB(WHITE_PAWN) & ~(FileBB[FILE_H])) << 9);
+
+	BlackPawnThreats |= ((position.GetPieceBB(BLACK_PAWN) & ~(FileBB[FILE_A])) >> 9);				
+	BlackPawnThreats |= ((position.GetPieceBB(BLACK_PAWN) & ~(FileBB[FILE_H])) >> 7);
+
+	for (uint64_t piece = position.GetPieceBB(WHITE_KNIGHT); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		unsigned int threats = GetBitCount(KnightAttacks[sq] & ~(BlackPawnThreats));
+		Score += (threats - KnightAverageMobility) * KnightMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_KNIGHT); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		unsigned int threats = GetBitCount(KnightAttacks[sq] & ~(WhitePawnThreats));
+		Score -= (threats - KnightAverageMobility) * KnightMobility;
+	}
+
+	return Score;
 }
 
 int CalculateTempo(const Position& position)
