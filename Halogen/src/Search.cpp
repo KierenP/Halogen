@@ -32,7 +32,7 @@ int extension(Position & position, Move & move, int alpha, int beta);
 Move GetHashMove(Position& position, int depthRemaining);
 Move GetHashMove(Position& position);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
-void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_SQUARES][N_SQUARES]);
+void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
@@ -176,7 +176,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initi
 		}
 
 		//Quiet
-		orderScores[i] = locals.HistoryMatrix[moves[i].GetFrom()][moves[i].GetTo()];
+		orderScores[i] = locals.HistoryMatrix[position.GetTurn()][moves[i].GetFrom()][moves[i].GetTo()];
 
 		if (orderScores[i] > 1000000)
 		{
@@ -487,7 +487,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (a >= beta) //Fail high cutoff
 		{
 			AddKiller(hashMove, distanceFromRoot, locals.KillerMoves);
-			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix);
+			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix, position.GetTurn());
 
 			if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !(initialDepth <= threadDepthCompleted))
 				AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
@@ -567,7 +567,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (a >= beta) //Fail high cutoff
 		{
 			AddKiller(moves.at(i), distanceFromRoot, locals.KillerMoves);
-			AddHistory(moves[i], depthRemaining, locals.HistoryMatrix);
+			AddHistory(moves[i], depthRemaining, locals.HistoryMatrix, position.GetTurn());
 			break;
 		}
 
@@ -838,9 +838,9 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves
 	KillerMoves.at(distanceFromRoot).move[1] = move;	//replace the 2nd one
 }
 
-void AddHistory(Move& move, int depthRemaining, unsigned int(&HistoryMatrix)[N_SQUARES][N_SQUARES])
+void AddHistory(Move& move, int depthRemaining, unsigned int(&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove)
 {
-	HistoryMatrix[move.GetFrom()][move.GetTo()] += depthRemaining * depthRemaining;
+	HistoryMatrix[sideToMove][move.GetFrom()][move.GetTo()] += depthRemaining * depthRemaining;
 }
 
 Move GetHashMove(Position& position, int depthRemaining)
