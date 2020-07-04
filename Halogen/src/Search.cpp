@@ -840,6 +840,7 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves
 
 void AddHistory(Move& move, int depthRemaining, unsigned int(&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove)
 {
+	if (move.IsCapture() || move.IsPromotion()) return;
 	HistoryMatrix[sideToMove][move.GetFrom()][move.GetTo()] += depthRemaining * depthRemaining;
 }
 
