@@ -77,6 +77,16 @@ uint64_t BenchSearch(Position position, int maxSearchDepth)
 	return nodesSearched;
 }
 
+int TexelSearch(Position& position, ThreadData& data)
+{
+	KeepSearching = true;
+
+	data.timeManage.StartSearch(2147483647);
+
+	//initial depth needs to be higher than zero
+	return Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, data).GetScore();
+}
+
 void InitSearch()
 {
 	threadDepthCompleted = 0;
@@ -225,7 +235,7 @@ int see(Position& position, int square, bool side)
 	
 	if (!capture.IsUninitialized())
 	{
-		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
+		int captureValue = PieceValues(position.GetSquare(capture.GetTo()));
 
 		position.ApplySEECapture(capture);
 		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
@@ -240,7 +250,7 @@ int seeCapture(Position& position, const Move& move, bool side)
 	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
 
 	int value = 0;
-	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
+	int captureValue = PieceValues(position.GetSquare(move.GetTo()));
 
 	position.ApplySEECapture(move);
 	value = captureValue - see(position, move.GetTo(), !side);
@@ -779,7 +789,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 		if (moves[i].IsPromotion())
 		{
-			SEE += PieceValues[WHITE_QUEEN];
+			SEE += PieceValues(WHITE_QUEEN);
 		}
 
 		if (staticScore + SEE + 200 < alpha) 								//delta pruning

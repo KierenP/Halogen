@@ -1,20 +1,22 @@
 #include "Evaluate.h"
 
-const int knightAdj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };	//adjustment of piece value based on the number of own pawns
-const int rookAdj[9] = { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
+int pieceValueVector[N_PIECE_TYPES] = { 100, 320, 330, 500, 900, 5000 };
 
-const int WeakPawnPenalty = 10;
-const int WeakOpenPawnPenalty = 20;
-const int DoubledPawnPenalty = 10;
+int knightAdj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] =    { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
 
-const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
+int WeakPawnPenalty = 10;
+int WeakOpenPawnPenalty = 20;
+int DoubledPawnPenalty = 10;
 
-const int CastledBonus = 40;
-const int BishopPairBonus = 30;
-const int RookOpenFileBonus = 15;
-const int RookSemiOpenFileBonus = RookOpenFileBonus / 2;
+int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
 
-const int TempoBonus = 10;
+int CastledBonus = 40;
+int BishopPairBonus = 30;
+int RookOpenFileBonus = 15;
+int RookSemiOpenFileBonus = 7;
+
+int TempoBonus = 10;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
@@ -65,6 +67,14 @@ int AntiDiagonals[64] = {
 void FlipColours(Position& pos);
 void MirrorTopBottom(Position& pos);
 void MirrorLeftRight(Position& pos);
+
+int PieceValues(unsigned int Piece)
+{
+	if (Piece < N_PIECE_TYPES)
+		return pieceValueVector[Piece];
+	else
+		return pieceValueVector[Piece - N_PIECE_TYPES];
+}
 
 int EvaluatePosition(const Position & position)
 {
@@ -233,8 +243,8 @@ int EvaluatePawns(const Position& position, unsigned int gameStage)
 {
 	int Score = 0;
 
-	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues[BLACK_PAWN];		//material																												
-	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues[WHITE_PAWN];	
+	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues(BLACK_PAWN);		//material																												
+	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues(WHITE_PAWN);	
 
 	for (uint64_t piece = position.GetPieceBB(BLACK_PAWN); piece != 0; Score -= PieceSquareTables[gameStage][BLACK_PAWN][bitScanForwardErase(piece)]);						//piece square tables
 	for (uint64_t piece = position.GetPieceBB(WHITE_PAWN); piece != 0; Score += PieceSquareTables[gameStage][WHITE_PAWN][bitScanForwardErase(piece)]);				
@@ -540,8 +550,8 @@ int EvaluateMaterial(const Position & position)
 
 	for (int i = 1; i < N_PIECE_TYPES; i++)	//skip pawn
 	{
-		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues[i];																														//black piece
-		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues[i + N_PIECE_TYPES];																						//white piece										
+		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues(i);																														//black piece
+		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues(i + N_PIECE_TYPES);																						//white piece										
 	}
 
 	return Score;
@@ -596,6 +606,42 @@ bool EvaluateDebug()
 	}
 
 	return true;
+}
+
+std::vector<int*> TexelParamiters()
+{
+	std::vector<int*> params { 
+			&pieceValueVector[0], 
+			&pieceValueVector[1], 
+			&pieceValueVector[2], 
+			&pieceValueVector[3], 
+			&pieceValueVector[4], 
+			/*&WeakPawnPenalty,
+			&WeakOpenPawnPenalty,
+			&DoubledPawnPenalty,
+			&BishopPairBonus,
+			&RookOpenFileBonus,
+			&RookSemiOpenFileBonus,
+			&TempoBonus*/	};
+
+	/*for (int i = 0; i < 9; i++)
+	{
+		if (i != 5)
+			params.push_back(&knightAdj[i]);
+	}
+
+	for (int i = 0; i < 9; i++)
+	{
+		if (i != 5)
+			params.push_back(&rookAdj[i]);
+	}
+
+	for (int i = 1; i <= 6; i++)
+	{
+		params.push_back(&PassedPawnBonus[i]);
+	}*/
+
+	return params;
 }
 
 void FlipColours(Position& pos)

@@ -57,3 +57,6 @@ extern unsigned int ThreadCount;
 
 Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int threads = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
+
+int TexelSearch(Position& position, ThreadData& data);
+

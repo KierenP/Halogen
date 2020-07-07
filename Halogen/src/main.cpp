@@ -1,6 +1,8 @@
 #include "Benchmark.h"
 #include "Search.h"
 #include <thread>
+#include <algorithm>
+#include <random>
 
 using namespace::std;
 Position GameBoard;
@@ -9,6 +11,13 @@ void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
+void Texel(std::vector<int*> params);
+
+void PrintIteration(double error, std::vector<int*>& params, double step_size);
+
+double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset);
+
+double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults);
 
 string version = "4.3"; 
 
@@ -193,10 +202,16 @@ int main(int argc, char* argv[])
 			PerftDivide(stoi(token), GameBoard);
 		}
 
+		else if (token == "texel")
+		{
+			Texel(TexelParamiters());
+		}
+
 		else if (token == "stop") KeepSearching = false;
 		else if (token == "print") GameBoard.Print();
 		else if (token == "quit") return 0;
 		else if (token == "bench") Bench(GameBoard);
+		
 		else cout << "Unknown command" << endl;
 	}
 
@@ -334,4 +349,220 @@ void Bench(Position& position)
 
 	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
 	ThreadCount = prev;
+}
+
+void Texel(std::vector<int*> params)
+{
+	/*
+	Make sure you disable pawn hash tables and transposition tables!
+	*/
+	
+	std::ifstream infile("quiet-labeled.epd");
+
+	if (!infile) 
+	{
+		cout << "Cannot open position file!" << endl;
+		return;
+	}
+
+	std::string line;
+	int lineCount = 0;
+
+	cout << "Beginning to read in positions..." << endl;
+
+	std::vector<std::pair<Position, double>> positions;
+
+	while (std::getline(infile, line))
+	{
+		if (lineCount % 10000 == 0)
+			cout << "Reading line: " << lineCount << "\r";
+
+		vector<string> arrayTokens;
+		std::istringstream iss(line);
+		arrayTokens.clear();
+
+		do
+		{
+			std::string stub;
+			iss >> stub;
+
+			if (stub == "c9")
+			{
+				arrayTokens.push_back("0");
+				arrayTokens.push_back("1");
+				break;
+			}
+
+			arrayTokens.push_back(stub);
+		} while (iss);
+
+		if (!GameBoard.InitialiseFromFen(arrayTokens))
+		{
+			std::cout << "line " << lineCount + 1 << ": BAD FEN" << endl;
+		}
+
+		std::string result;
+		iss >> result;
+		
+		if (result == "\"0-1\";") 
+		{
+			positions.push_back({ GameBoard, 0 });
+		}
+		else if (result == "\"1-0\";")
+		{
+			positions.push_back({ GameBoard, 1 });
+		}
+		else if (result == "\"1/2-1/2\";")
+		{
+			positions.push_back({ GameBoard, 0.5 });
+		}
+		else
+		{
+			std::cout << "line " << lineCount + 1 << ": Could not read result" << endl;
+		}
+
+		lineCount++;
+	}
+
+	cout << "All positions loaded successfully" << endl;
+	cout << "\nEvaluating positions..." << endl;
+
+	ThreadData data;
+	uint64_t totalScore = 0;
+
+	for (int i = 0; i < positions.size(); i++)
+	{
+		int score = TexelSearch(positions[i].first, data);
+		totalScore += score;
+	}
+
+	cout << "All positions evaluated successfully" << endl;
+	cout << "Eval hash: " << totalScore << endl;
+	cout << "\nBeginning Texel tuning..." << endl;
+
+	//CalculateK(positionList, positionScore, positionResults);
+	double k = 1.51;
+	double prevError = 0;
+	double step_size = 1000;
+
+	auto rng = std::default_random_engine{};
+
+	while (true)
+	{
+		std::shuffle(std::begin(positions), std::end(positions), rng);
+
+		double error = CalculateError(positions, data, k, positions.size() / params.size());
+		PrintIteration(error, params, step_size);
+
+		vector<double> gradient;
+
+		for (int i = 0; i < params.size(); i++)
+		{		
+			(*params[i])++;
+			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
+			(*params[i])--;
+			double firstDerivitive = (abs(*params[i]) + 1) * (error_plus_epsilon - error);					//we only change paramiters by one at a time, so larger paramiters should move more
+
+			gradient.push_back(firstDerivitive);
+		}
+
+		for (int i = 0; i < params.size(); i++)
+		{
+			double delta = step_size * gradient[i];
+			delta = (delta < 0) ? floor(delta) : ceil(delta);		//round away from zero
+
+			if (int(delta) == -1)	//error_plus_epsilon was worse, so we are going to go back by one. To prevent oscelations, check going back is strictly better
+			{
+				(*params[i])--;
+				double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
+				(*params[i])++;
+
+				if (error_minus_epsilon > error)
+					delta = 0;
+			}
+
+			(*params[i]) -= int(delta);
+		}
+
+		step_size *= 0.999;
+	}
+
+	cout << "Texel complete" << endl;
+
+	return;
+}
+
+void PrintIteration(double error, std::vector<int*>& params, double step_size)
+{
+	cout << "Error: " << error << endl;
+	cout << "Step size: " << step_size << endl;
+
+	for (int i = 0; i < params.size(); i++)
+	{
+		cout << "Paramiter " << i << ": " << *(params[i]) << endl;
+	}
+
+	cout << endl;
+}
+
+double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset)
+{
+	double error = 0;
+	for (int i = 0; i < subset; i++)
+	{
+		double sigmoid = 1 / (1 + pow(10, -TexelSearch(positions[i].first, data) * k / 400));
+		error += pow(positions[i].second - sigmoid, 2);
+	}
+	error /= subset;
+	return error;
+}
+
+void TexelOptimise()
+{
+
+}
+
+double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults)
+{
+	double k = 0;
+	double epsilon = 0.0001;
+
+	for (int rep = 0; rep < 100; rep++)
+	{
+		double error_k = 0;
+		double error_k_minus_epsilon = 0;
+		double error_k_plus_epsilon = 0;
+		double sigmoid = 0;
+
+		for (int i = 0; i < positionList.size(); i++)
+		{
+			sigmoid = 1 / (1 + pow(10, -positionScore[i] * k / 400));
+			error_k += pow(positionResults[i] - sigmoid, 2);
+
+			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k + epsilon) / 400));
+			error_k_plus_epsilon += pow(positionResults[i] - sigmoid, 2);
+
+			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k - epsilon) / 400));
+			error_k_minus_epsilon += pow(positionResults[i] - sigmoid, 2);
+		}
+
+		error_k /= positionList.size();
+		error_k_minus_epsilon /= positionList.size();
+		error_k_plus_epsilon /= positionList.size();
+
+		cout << "evaluation error: " << error_k << " K: " << k << endl;
+
+		double firstDerivitive = (error_k_plus_epsilon - error_k) / epsilon;
+		double secondDerivitive = (error_k_plus_epsilon - 2 * error_k + error_k_minus_epsilon) / (epsilon * epsilon);
+
+		double newk = k - firstDerivitive / secondDerivitive;
+
+		if (abs(newk - k) < epsilon)
+			return k;
+
+		k = newk;
+	}
+
+	cout << "Failed to converge after 100 iterations" << endl;
+	return k;
 }

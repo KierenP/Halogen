@@ -4,7 +4,7 @@
 #include "PawnHashTable.h"
 #include "PieceSquareTables.h"
 
-const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 5000, 100, 320, 330, 500, 900, 5000 };
+int PieceValues(unsigned int Piece);
 
 extern PawnHashTable pawnHashTable;
 
@@ -16,5 +16,7 @@ bool DeadPosition(const Position& position);
 bool IsBlockade(const Position& position);
 
 bool EvaluateDebug();
+
+std::vector<int*> TexelParamiters();
 
 
