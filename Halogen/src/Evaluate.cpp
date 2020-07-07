@@ -1,22 +1,22 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_PIECE_TYPES] = { 100, 320, 330, 500, 900, 5000 };
+int pieceValueVector[N_PIECE_TYPES] = {95, 337, 330, 545, 1024, 5000};
 
-int knightAdj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] =    { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
+int knightAdj[9] = {-129, -53, -38, -31, -25, -20, -16, -9, 2};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-39, -33, -29, -30, -35, -38, -43, -49, -54};
 
-int WeakPawnPenalty = 10;
-int WeakOpenPawnPenalty = 20;
-int DoubledPawnPenalty = 10;
+int WeakPawnPenalty = 5;
+int WeakOpenPawnPenalty = 15;
+int DoubledPawnPenalty = 9;
 
-int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
+int PassedPawnBonus[N_RANKS] = {0, 1, -2, 9, 32, 88, 143, 0};
 
 int CastledBonus = 40;
-int BishopPairBonus = 30;
-int RookOpenFileBonus = 15;
-int RookSemiOpenFileBonus = 7;
+int BishopPairBonus = 32;
+int RookOpenFileBonus = 30;
+int RookSemiOpenFileBonus = 23;
 
-int TempoBonus = 10;
+int TempoBonus = 17;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
@@ -186,6 +186,9 @@ int AdjustKnightScore(const Position& position)
 
 int AdjustRookScore(const Position& position)
 {
+	assert(GetBitCount(position.GetPieceBB(WHITE_PAWN)) <= 8);
+	assert(GetBitCount(position.GetPieceBB(BLACK_PAWN)) <= 8);
+
 	int Score = 0;
 	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
 	{
@@ -616,30 +619,28 @@ std::vector<int*> TexelParamiters()
 			&pieceValueVector[2], 
 			&pieceValueVector[3], 
 			&pieceValueVector[4], 
-			/*&WeakPawnPenalty,
+			&WeakPawnPenalty,
 			&WeakOpenPawnPenalty,
 			&DoubledPawnPenalty,
 			&BishopPairBonus,
 			&RookOpenFileBonus,
 			&RookSemiOpenFileBonus,
-			&TempoBonus*/	};
+			&TempoBonus	};
 
-	/*for (int i = 0; i < 9; i++)
+	for (int i = 0; i < 9; i++)
 	{
-		if (i != 5)
-			params.push_back(&knightAdj[i]);
+		params.push_back(&knightAdj[i]);
 	}
 
 	for (int i = 0; i < 9; i++)
 	{
-		if (i != 5)
-			params.push_back(&rookAdj[i]);
+		params.push_back(&rookAdj[i]);
 	}
 
 	for (int i = 1; i <= 6; i++)
 	{
 		params.push_back(&PassedPawnBonus[i]);
-	}*/
+	}
 
 	return params;
 }
