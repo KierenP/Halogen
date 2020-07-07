@@ -13,7 +13,7 @@ uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 void Texel(std::vector<int*> params);
 
-void PrintIteration(double error, std::vector<int*>& params, double step_size);
+void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration);
 
 double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset);
 
@@ -443,16 +443,24 @@ void Texel(std::vector<int*> params)
 	//CalculateK(positionList, positionScore, positionResults);
 	double k = 1.51;
 	double prevError = 0;
-	double step_size = 1000;
+	double step_size = 100000;
+	int iteration = 1;
 
 	auto rng = std::default_random_engine{};
+
+	std::vector<double> paramiterValues;
+
+	for (int i = 0; i < params.size(); i++)
+	{
+		paramiterValues.push_back(*params[i]);
+	}
 
 	while (true)
 	{
 		std::shuffle(std::begin(positions), std::end(positions), rng);
 
 		double error = CalculateError(positions, data, k, positions.size() / params.size());
-		PrintIteration(error, params, step_size);
+		PrintIteration(error, params, paramiterValues, step_size, iteration);
 
 		vector<double> gradient;
 
@@ -461,7 +469,7 @@ void Texel(std::vector<int*> params)
 			(*params[i])++;
 			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
 			(*params[i])--;
-			double firstDerivitive = (abs(*params[i]) + 1) * (error_plus_epsilon - error);					//we only change paramiters by one at a time, so larger paramiters should move more
+			double firstDerivitive = (error_plus_epsilon - error);			
 
 			gradient.push_back(firstDerivitive);
 		}
@@ -469,9 +477,12 @@ void Texel(std::vector<int*> params)
 		for (int i = 0; i < params.size(); i++)
 		{
 			double delta = step_size * gradient[i];
-			delta = (delta < 0) ? floor(delta) : ceil(delta);		//round away from zero
+			paramiterValues[i] -= delta;
+			(*params[i]) = round(paramiterValues[i]);
 
-			if (int(delta) == -1)	//error_plus_epsilon was worse, so we are going to go back by one. To prevent oscelations, check going back is strictly better
+			//delta = (delta < 0) ? floor(delta) : ceil(delta);		//round away from zero
+
+			/*if (int(delta) == -1)	//error_plus_epsilon was worse, so we are going to go back by one. To prevent oscelations, check going back is strictly better
 			{
 				(*params[i])--;
 				double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
@@ -479,12 +490,11 @@ void Texel(std::vector<int*> params)
 
 				if (error_minus_epsilon > error)
 					delta = 0;
-			}
-
-			(*params[i]) -= int(delta);
+			}*/
 		}
 
-		step_size *= 0.999;
+		step_size *= 1 / (1 + 0.001 * iteration);
+		iteration++;
 	}
 
 	cout << "Texel complete" << endl;
@@ -492,14 +502,15 @@ void Texel(std::vector<int*> params)
 	return;
 }
 
-void PrintIteration(double error, std::vector<int*>& params, double step_size)
+void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration)
 {
 	cout << "Error: " << error << endl;
 	cout << "Step size: " << step_size << endl;
+	cout << "Iteration: " << iteration << endl;
 
 	for (int i = 0; i < params.size(); i++)
 	{
-		cout << "Paramiter " << i << ": " << *(params[i]) << endl;
+		cout << "Paramiter " << i << ": " << *(params[i]) << " exact value: " << paramiterValues[i] << endl;
 	}
 
 	cout << endl;
