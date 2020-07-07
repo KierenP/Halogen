@@ -169,18 +169,12 @@ int RookFileAdjustment(const Position& position)
 
 int AdjustKnightScore(const Position& position)
 {
-	int Score = 0;
-	for (uint64_t piece = position.GetPieceBB(WHITE_KNIGHT); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score += knightAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))];
-	}
+	assert(GetBitCount(position.GetPieceBB(WHITE_PAWN)) <= 8);
+	assert(GetBitCount(position.GetPieceBB(BLACK_PAWN)) <= 8);
 
-	for (uint64_t piece = position.GetPieceBB(BLACK_KNIGHT); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score -= knightAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))];
-	}
+	int Score = 0;
+	Score += knightAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_KNIGHT));
+	Score -= knightAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_KNIGHT));
 	return Score;
 }
 
@@ -190,17 +184,8 @@ int AdjustRookScore(const Position& position)
 	assert(GetBitCount(position.GetPieceBB(BLACK_PAWN)) <= 8);
 
 	int Score = 0;
-	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))];
-	}
-
-	for (uint64_t piece = position.GetPieceBB(BLACK_ROOK); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))];
-	}
+	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
+	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
 	return Score;
 }
 
@@ -640,6 +625,18 @@ std::vector<int*> TexelParamiters()
 	for (int i = 1; i <= 6; i++)
 	{
 		params.push_back(&PassedPawnBonus[i]);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		params.push_back(&PawnSquareValuesMid[i]);
+		params.push_back(&PawnSquareValuesEndGame[i]);
+		params.push_back(&KnightSquareValues[i]);
+		params.push_back(&RookSquareValues[i]);
+		params.push_back(&BishopSquareValues[i]);
+		params.push_back(&QueenSquareValues[i]);
+		params.push_back(&KingSquareMid[i]);
+		params.push_back(&KingSquareEndGame[i]);
 	}
 
 	return params;

@@ -2,9 +2,9 @@
 #include <iostream>
 
 int PieceSquareTables[N_STAGES][N_PIECES][N_SQUARES];
-void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, const int layer[64]);			
+void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, int layer[64]);			
 
-const int PawnSquareValuesOpeningMid[64] = {
+int PawnSquareValuesMid[64] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 	5, 10, 10,-20,-20, 10, 10,  5,
 	5, -5,-10,  0,  0,-10, -5,  5,
@@ -14,7 +14,7 @@ const int PawnSquareValuesOpeningMid[64] = {
 	50, 50, 50, 50, 50, 50, 50, 50,
 	0,  0,  0,  0,  0,  0,  0,  0
 };
-const int PawnSquareValuesEndGame[64] = {
+int PawnSquareValuesEndGame[64] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 	5,  5,  5,  5,  5,  5,  5,  5,
 	10, 10, 10, 10, 10, 10, 10, 10,
@@ -24,7 +24,7 @@ const int PawnSquareValuesEndGame[64] = {
 	30, 30, 30, 30, 30, 30, 30, 30,
 	35, 35, 35, 35, 35, 35, 35, 35,
 };
-const int KnightSquareValues[64] = {
+int KnightSquareValues[64] = {
 	-50,-40,-30,-30,-30,-30,-40,-50,	//1
 	-40,-20,  0,  5,  5,  0,-20,-40,	//2
 	-30,  5, 10, 15, 15, 10,  5,-30,	//3
@@ -34,7 +34,7 @@ const int KnightSquareValues[64] = {
 	-40,-20,  0,  0,  0,  0,-20,-40,	//7
 	-50,-40,-30,-30,-30,-30,-40,-50	    //8
 };
-const int BishopSquareValues[64] = {
+int BishopSquareValues[64] = {
 	-20,-10,-10,-10,-10,-10,-10,-20,
 	-10,  20,  0,  0,  0,  0,  20,-10,
 	-10, 10, 10, 10, 10, 10, 10,-10,
@@ -44,7 +44,7 @@ const int BishopSquareValues[64] = {
 	-10,  0,  0,  0,  0,  0,  0,-10,
 	-20,-10,-10,-10,-10,-10,-10,-20
 };
-const int RookSquareValues[64] = {
+int RookSquareValues[64] = {
 	0,  0,  0,  0,  0,  0,  0,  0,
 	-5,  0,  0,  0,  0,  0,  0, -5,
 	-5,  0,  0,  0,  0,  0,  0, -5,
@@ -54,7 +54,7 @@ const int RookSquareValues[64] = {
 	5, 20, 20, 20, 20, 20, 20,  5,
 	0,  0,  0,  0,  0,  0,  0,  0,
 };
-const int QueenSquareValues[64] = {
+int QueenSquareValues[64] = {
 	-20,-10,-10, -5, -5,-10,-10,-20,
 	-10,  0,  0,  0,  0,  0,  0,-10,
 	-10,  5,  5,  5,  5,  5,  5,-10,
@@ -64,7 +64,7 @@ const int QueenSquareValues[64] = {
 	-10,  0,  0,  0,  0,  0,  0,-10,
 	-20,-10,-10, -5, -5,-10,-10,-20
 };
-const int KingSquareOpeningMid[64] = {
+int KingSquareMid[64] = {
 	20, 30, 10,  0,  0, 10, 30, 20,
 	20, 20,  0,  0,  0,  0, 20, 20,
 	-10,-20,-20,-20,-20,-20,-20,-10,
@@ -74,7 +74,7 @@ const int KingSquareOpeningMid[64] = {
 	-30,-40,-40,-50,-50,-40,-40,-30,
 	-30,-40,-40,-50,-50,-40,-40,-30,
 };
-const int KingSquareEndGame[64] = {
+int KingSquareEndGame[64] = {
 	-50,-40,-30,-20,-20,-30,-40,-50,
 	-30,-20,-10,  0,  0,-10,-20,-30,
 	-30,-10, 20, 30, 30, 20,-10,-30,
@@ -87,7 +87,7 @@ const int KingSquareEndGame[64] = {
 
 void InitializePieceSquareTable()
 {
-	for (int i = OPENING; i < N_STAGES; i++)
+	for (int i = 0; i < N_STAGES; i++)
 	{
 		AddPieceSquareTableLayer(i, WHITE_KNIGHT, KnightSquareValues);
 		AddPieceSquareTableLayer(i, BLACK_KNIGHT, KnightSquareValues);
@@ -99,36 +99,18 @@ void InitializePieceSquareTable()
 		AddPieceSquareTableLayer(i, BLACK_ROOK, RookSquareValues);
 	}
 
-	AddPieceSquareTableLayer(OPENING, WHITE_KING, KingSquareOpeningMid);
-	AddPieceSquareTableLayer(OPENING, BLACK_KING, KingSquareOpeningMid);
-	AddPieceSquareTableLayer(MIDGAME, WHITE_KING, KingSquareOpeningMid);
-	AddPieceSquareTableLayer(MIDGAME, BLACK_KING, KingSquareOpeningMid);
+	AddPieceSquareTableLayer(MIDGAME, WHITE_KING, KingSquareMid);
+	AddPieceSquareTableLayer(MIDGAME, BLACK_KING, KingSquareMid);
 	AddPieceSquareTableLayer(ENDGAME, WHITE_KING, KingSquareEndGame);
 	AddPieceSquareTableLayer(ENDGAME, BLACK_KING, KingSquareEndGame);
 
-	AddPieceSquareTableLayer(OPENING, WHITE_PAWN, PawnSquareValuesOpeningMid);
-	AddPieceSquareTableLayer(OPENING, BLACK_PAWN, PawnSquareValuesOpeningMid);
-	AddPieceSquareTableLayer(MIDGAME, WHITE_PAWN, PawnSquareValuesOpeningMid);
-	AddPieceSquareTableLayer(MIDGAME, BLACK_PAWN, PawnSquareValuesOpeningMid);
+	AddPieceSquareTableLayer(MIDGAME, WHITE_PAWN, PawnSquareValuesMid);
+	AddPieceSquareTableLayer(MIDGAME, BLACK_PAWN, PawnSquareValuesMid);
 	AddPieceSquareTableLayer(ENDGAME, WHITE_PAWN, PawnSquareValuesEndGame);
 	AddPieceSquareTableLayer(ENDGAME, BLACK_PAWN, PawnSquareValuesEndGame);
-
-	//if (PieceSquareTables[OPENING][WHITE_PAWN][SQ_B2] != PieceSquareTables[OPENING][BLACK_PAWN][SQ_B7]) std::cout << "YEET";
-
-	for (int i = 0; i < N_STAGES; i++)
-	{
-		for (int j = 0; j < N_PIECES; j++)
-		{
-			for (int k = 0; k < N_SQUARES; k++)
-			{
-				if (PieceSquareTables[i][j][k] != PieceSquareTables[i][j][GetPosition(N_FILES - GetFile(k) - 1, GetRank(k))])
-					std::cout << "Yeetus";
-			}
-		}
-	}
 }
 
-void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, const int layer[64])
+void AddPieceSquareTableLayer(unsigned int stage, unsigned int piece, int layer[64])
 {
 	if (ColourOfPiece(piece) == WHITE)
 	{

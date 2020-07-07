@@ -479,21 +479,9 @@ void Texel(std::vector<int*> params)
 			double delta = step_size * gradient[i];
 			paramiterValues[i] -= delta;
 			(*params[i]) = round(paramiterValues[i]);
-
-			//delta = (delta < 0) ? floor(delta) : ceil(delta);		//round away from zero
-
-			/*if (int(delta) == -1)	//error_plus_epsilon was worse, so we are going to go back by one. To prevent oscelations, check going back is strictly better
-			{
-				(*params[i])--;
-				double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
-				(*params[i])++;
-
-				if (error_minus_epsilon > error)
-					delta = 0;
-			}*/
 		}
 
-		step_size *= 1 / (1 + 0.001 * iteration);
+		step_size *= 1 / (1 + 0.00001 * iteration);
 		iteration++;
 	}
 
@@ -504,20 +492,22 @@ void Texel(std::vector<int*> params)
 
 void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration)
 {
-	cout << "Error: " << error << endl;
-	cout << "Step size: " << step_size << endl;
-	cout << "Iteration: " << iteration << endl;
 
 	for (int i = 0; i < params.size(); i++)
 	{
 		cout << "Paramiter " << i << ": " << *(params[i]) << " exact value: " << paramiterValues[i] << endl;
 	}
 
+	cout << "Error: " << error << endl;
+	cout << "Step size: " << step_size << endl;
+	cout << "Iteration: " << iteration << endl;
 	cout << endl;
 }
 
 double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset)
 {
+	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
+
 	double error = 0;
 	for (int i = 0; i < subset; i++)
 	{

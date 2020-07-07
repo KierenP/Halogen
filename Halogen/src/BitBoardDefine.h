@@ -134,7 +134,6 @@ enum AnitDiagonal
 
 enum GameStages
 {
-	OPENING,		
 	MIDGAME,		
 	ENDGAME,
 	N_STAGES
