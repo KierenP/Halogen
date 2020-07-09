@@ -351,7 +351,7 @@ bool IsBlockade(const Position& position)
 
 	if (position.GetTurn() == WHITE)
 		return BlackBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
-	if (position.GetTurn() == BLACK)
+	else
 		return WhiteBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
 }
 

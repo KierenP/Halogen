@@ -1,7 +1,6 @@
 #include "Benchmark.h"
 #include "texel.h"
 #include <thread>
-#include <algorithm>
 
 using namespace::std;
 

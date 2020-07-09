@@ -1,8 +1,7 @@
 #pragma once
 #include <vector>
 #include <mutex>
-#include <deque>
-#include <memory>
+#include <memory>		//required to compile with g++
 #include "TTEntry.h"
 
 const unsigned int mutex_frequency = 1024;					//how many entries per mutex

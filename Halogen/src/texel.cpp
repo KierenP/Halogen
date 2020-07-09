@@ -38,6 +38,7 @@ void Texel(std::vector<int*> params)
 
 	std::vector<std::pair<Position, double>> positions;
 	Position position;
+	ThreadData data;
 
 	while (std::getline(infile, line))
 	{
@@ -45,8 +46,7 @@ void Texel(std::vector<int*> params)
 			std::cout << "Reading line: " << lineCount << " quiet positions: " << quietCount << "\r";
 
 		Loadquietlabeled(positions, line, lineCount, position);
-
-		ThreadData data;
+		
 		if (EvaluatePosition(position) == TexelSearch(position, data))
 			quietCount++;
 		else
@@ -58,7 +58,6 @@ void Texel(std::vector<int*> params)
 	std::cout << "\nAll positions loaded successfully" << std::endl;
 	std::cout << "\nEvaluating positions..." << std::endl;
 
-	ThreadData data;
 	uint64_t totalScore = 0;
 
 	for (int i = 0; i < positions.size(); i++)
