@@ -19,7 +19,7 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<double>
 double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset);
 double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults);
 
-string version = "4.3"; 
+string version = "4.4"; 
 
 int main(int argc, char* argv[])
 {
