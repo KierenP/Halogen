@@ -1,19 +1,19 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_PIECE_TYPES] = {95, 337, 330, 545, 1024, 5000};
+int pieceValueVector[N_PIECE_TYPES] = {91, 351, 336, 565, 1032, 5000};
 
-int knightAdj[9] = {-129, -53, -38, -31, -25, -20, -16, -9, 2};	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = {-39, -33, -29, -30, -35, -38, -43, -49, -54};
+int knightAdj[9] = {-128, -55, -44, -36, -30, -22, -13, -3, 10};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-37, -38, -36, -36, -40, -42, -46, -47, -47};
 
 int WeakPawnPenalty = 5;
-int WeakOpenPawnPenalty = 15;
-int DoubledPawnPenalty = 9;
+int WeakOpenPawnPenalty = 14;
+int DoubledPawnPenalty = 10;
 
-int PassedPawnBonus[N_RANKS] = {0, 1, -2, 9, 32, 88, 143, 0};
+int PassedPawnBonus[N_RANKS] = {0, 0, -1, 14, 37, 87, 154, 0};
 
 int CastledBonus = 40;
-int BishopPairBonus = 32;
-int RookOpenFileBonus = 30;
+int BishopPairBonus = 50;
+int RookOpenFileBonus = 28;
 int RookSemiOpenFileBonus = 23;
 
 int TempoBonus = 17;
@@ -629,8 +629,12 @@ std::vector<int*> TexelParamiters()
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		params.push_back(&PawnSquareValuesMid[i]);
-		params.push_back(&PawnSquareValuesEndGame[i]);
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+		{
+			params.push_back(&PawnSquareValuesMid[i]);
+			params.push_back(&PawnSquareValuesEndGame[i]);
+		}
+		
 		params.push_back(&KnightSquareValues[i]);
 		params.push_back(&RookSquareValues[i]);
 		params.push_back(&BishopSquareValues[i]);

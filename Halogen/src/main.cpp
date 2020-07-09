@@ -13,10 +13,10 @@ uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 void Texel(std::vector<int*> params);
 
+void LoadBench4Per(std::vector<std::pair<Position, double>>& positions, std::string& line, int lineCount);
+void Loadquietlabeled(std::vector<std::pair<Position, double>>& positions, std::string& line, int lineCount);
 void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration);
-
 double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset);
-
 double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults);
 
 string version = "4.3"; 
@@ -356,10 +356,26 @@ void Texel(std::vector<int*> params)
 	/*
 	Make sure you disable pawn hash tables and transposition tables!
 	*/
-	
-	std::ifstream infile("quiet-labeled.epd");
 
-	if (!infile) 
+	tTable.AddEntry(Move(), 1234, 0, 0, 0, EntryType::EXACT);
+	if (CheckEntry(tTable.GetEntry(1234), 1234))
+	{
+		cout << "Transposition table has been left on!" << endl;
+		return;
+	}
+
+	pawnHashTable.AddEntry(1234, 0);
+	if (pawnHashTable.CheckEntry(1234))
+	{
+		cout << "Pawn hash table has been left on!" << endl;
+		return;
+	}
+
+
+	std::ifstream infile("C:\\quiet-labeled.epd");
+	//std::ifstream infile("C:\\OpenBench4Per.txt");
+
+	if (!infile)
 	{
 		cout << "Cannot open position file!" << endl;
 		return;
@@ -367,6 +383,7 @@ void Texel(std::vector<int*> params)
 
 	std::string line;
 	int lineCount = 0;
+	int quietCount = 0;
 
 	cout << "Beginning to read in positions..." << endl;
 
@@ -375,56 +392,20 @@ void Texel(std::vector<int*> params)
 	while (std::getline(infile, line))
 	{
 		if (lineCount % 10000 == 0)
-			cout << "Reading line: " << lineCount << "\r";
+			cout << "Reading line: " << lineCount << " quiet positions: " << quietCount << "\r";
 
-		vector<string> arrayTokens;
-		std::istringstream iss(line);
-		arrayTokens.clear();
+		Loadquietlabeled(positions, line, lineCount);
 
-		do
-		{
-			std::string stub;
-			iss >> stub;
-
-			if (stub == "c9")
-			{
-				arrayTokens.push_back("0");
-				arrayTokens.push_back("1");
-				break;
-			}
-
-			arrayTokens.push_back(stub);
-		} while (iss);
-
-		if (!GameBoard.InitialiseFromFen(arrayTokens))
-		{
-			std::cout << "line " << lineCount + 1 << ": BAD FEN" << endl;
-		}
-
-		std::string result;
-		iss >> result;
-		
-		if (result == "\"0-1\";") 
-		{
-			positions.push_back({ GameBoard, 0 });
-		}
-		else if (result == "\"1-0\";")
-		{
-			positions.push_back({ GameBoard, 1 });
-		}
-		else if (result == "\"1/2-1/2\";")
-		{
-			positions.push_back({ GameBoard, 0.5 });
-		}
+		ThreadData data;
+		if (EvaluatePosition(GameBoard) == TexelSearch(GameBoard, data))
+			quietCount++;
 		else
-		{
-			std::cout << "line " << lineCount + 1 << ": Could not read result" << endl;
-		}
+			positions.pop_back();
 
 		lineCount++;
 	}
 
-	cout << "All positions loaded successfully" << endl;
+	cout << "\nAll positions loaded successfully" << endl;
 	cout << "\nEvaluating positions..." << endl;
 
 	ThreadData data;
@@ -465,11 +446,11 @@ void Texel(std::vector<int*> params)
 		vector<double> gradient;
 
 		for (int i = 0; i < params.size(); i++)
-		{		
+		{
 			(*params[i])++;
 			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
 			(*params[i])--;
-			double firstDerivitive = (error_plus_epsilon - error);			
+			double firstDerivitive = (error_plus_epsilon - error);
 
 			gradient.push_back(firstDerivitive);
 		}
@@ -481,13 +462,98 @@ void Texel(std::vector<int*> params)
 			(*params[i]) = round(paramiterValues[i]);
 		}
 
-		step_size *= 1 / (1 + 0.00001 * iteration);
+		step_size *= 1 / (1 + 0.0001 * iteration);
 		iteration++;
 	}
 
 	cout << "Texel complete" << endl;
 
 	return;
+}
+
+void LoadBench4Per(std::vector<std::pair<Position, double>>& positions, std::string& line, int lineCount)
+{
+	vector<string> arrayTokens;
+	std::istringstream iss(line);
+	arrayTokens.clear();
+
+	do
+	{
+		std::string stub;
+		iss >> stub;
+		arrayTokens.push_back(stub);
+	} while (iss);
+
+	if (!GameBoard.InitialiseFromFen(line))
+	{
+		std::cout << "line " << lineCount + 1 << ": BAD FEN" << endl;
+	}
+
+	std::string result = arrayTokens[arrayTokens.size() - 2];
+
+	if (result == "0-1")
+	{
+		positions.push_back({ GameBoard, 0 });
+	}
+	else if (result == "1-0")
+	{
+		positions.push_back({ GameBoard, 1 });
+	}
+	else if (result == "1/2-1/2")
+	{
+		positions.push_back({ GameBoard, 0.5 });
+	}
+	else
+	{
+		std::cout << "line " << lineCount + 1 << ": Could not read result" << endl;
+	}
+}
+
+void Loadquietlabeled(std::vector<std::pair<Position, double>>& positions, std::string& line, int lineCount)
+{
+	vector<string> arrayTokens;
+	std::istringstream iss(line);
+	arrayTokens.clear();
+
+	do
+	{
+		std::string stub;
+		iss >> stub;
+
+		if (stub == "c9")
+		{
+			arrayTokens.push_back("0");
+			arrayTokens.push_back("1");
+			break;
+		}
+
+		arrayTokens.push_back(stub);
+	} while (iss);
+
+	if (!GameBoard.InitialiseFromFen(arrayTokens))
+	{
+		std::cout << "line " << lineCount + 1 << ": BAD FEN" << endl;
+	}
+
+	std::string result;
+	iss >> result;
+
+	if (result == "\"0-1\";")
+	{
+		positions.push_back({ GameBoard, 0 });
+	}
+	else if (result == "\"1-0\";")
+	{
+		positions.push_back({ GameBoard, 1 });
+	}
+	else if (result == "\"1/2-1/2\";")
+	{
+		positions.push_back({ GameBoard, 0.5 });
+	}
+	else
+	{
+		std::cout << "line " << lineCount + 1 << ": Could not read result" << endl;
+	}
 }
 
 void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration)
