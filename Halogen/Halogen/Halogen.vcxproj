@@ -31,6 +31,7 @@
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Random.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
+    <ClCompile Include="..\src\texel.cpp" />
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
     <ClCompile Include="..\src\TTEntry.cpp" />
@@ -49,13 +50,13 @@
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Random.h" />
     <ClInclude Include="..\src\Search.h" />
+    <ClInclude Include="..\src\texel.h" />
     <ClInclude Include="..\src\TimeManage.h" />
     <ClInclude Include="..\src\TranspositionTable.h" />
     <ClInclude Include="..\src\TTEntry.h" />
     <ClInclude Include="..\src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="bkt.txt" />
     <Text Include="perftsuite.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
