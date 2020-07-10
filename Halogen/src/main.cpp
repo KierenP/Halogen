@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 
-	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
+	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
 
 	tTable.SetSize(1);
