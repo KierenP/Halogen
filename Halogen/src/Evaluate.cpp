@@ -15,6 +15,7 @@ int CastledBonus = 40;
 int BishopPairBonus = 50;
 int RookOpenFileBonus = 28;
 int RookSemiOpenFileBonus = 23;
+int Rook7thRankBonus = 17;
 
 int TempoBonus = 17;
 
@@ -186,6 +187,9 @@ int AdjustRookScore(const Position& position)
 	int Score = 0;
 	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
 	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
+
+	Score += Rook7thRankBonus * GetBitCount(position.GetPieceBB(WHITE_ROOK) & RankBB[RANK_7]);
+	Score -= Rook7thRankBonus * GetBitCount(position.GetPieceBB(BLACK_ROOK) & RankBB[RANK_2]);
 	return Score;
 }
 
@@ -610,6 +614,7 @@ std::vector<int*> TexelParamiters()
 			&BishopPairBonus,
 			&RookOpenFileBonus,
 			&RookSemiOpenFileBonus,
+			&Rook7thRankBonus,
 			&TempoBonus	};
 
 	for (int i = 0; i < 9; i++)
