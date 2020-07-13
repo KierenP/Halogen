@@ -302,7 +302,7 @@ bool InsufficentMaterialEvaluation(const Position& position)
 	return InsufficentMaterialEvaluation(position, Material);
 }
 
-void InitializeEvaluation()
+void EvalInit()
 {
 	InitializePieceSquareTable();
 

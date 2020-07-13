@@ -1,5 +1,5 @@
 #include "Benchmark.h"
-#include "texel.h"
+#include "Texel.h"
 #include <thread>
 
 using namespace::std;
@@ -13,14 +13,14 @@ string version = "4.4";
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Halogen " << version << std::endl;
+	cout << "Halogen " << version << endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
 
 	ZobristInit();
 	BBInit();
-	InitializeEvaluation();
+	EvalInit();
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
 	while (getline(cin, Line))
 	{
-		std::istringstream iss(Line);
+		istringstream iss(Line);
 		string token;
 
 		iss >> token;
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			std::thread searchThread([&] {MultithreadedSearch(position, movetime, ThreadCount); });
+			thread searchThread([&] {MultithreadedSearch(position, movetime, ThreadCount); });
 			searchThread.detach();
 			
 		}
@@ -160,9 +160,9 @@ int main(int argc, char* argv[])
 				int size = stoi(token);
 
 				if (size < 2)
-					std::cout << "info string Hash size too small" << std::endl;
+					cout << "info string Hash size too small" << endl;
 				else if (size > 8192)
-					std::cout << "info string Hash size too large" << std::endl;
+					cout << "info string Hash size too large" << endl;
 				else
 				{
 					tTable.SetSize(stoi(token) - 1);
@@ -178,9 +178,9 @@ int main(int argc, char* argv[])
 				int size = stoi(token);
 
 				if (size < 1)
-					std::cout << "info string thread count too small" << std::endl;
+					cout << "info string thread count too small" << endl;
 				else if (size > 8)
-					std::cout << "info string thread count too large" << std::endl;
+					cout << "info string thread count too large" << endl;
 				else
 				{
 					ThreadCount = size;
@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
 
 void PerftSuite()
 {
-	std::ifstream infile("perftsuite.txt");
+	ifstream infile("perftsuite.txt");
 
 	//multi-coloured text in concole 
 	HANDLE  hConsole;
@@ -222,18 +222,18 @@ void PerftSuite()
 	unsigned int Correct = 0;
 	double Totalnodes = 0;
 	Position position;
-	std::string line;
+	string line;
 
 	clock_t before = clock();
-	while (std::getline(infile, line))
+	while (getline(infile, line))
 	{
 		vector<string> arrayTokens;
-		std::istringstream iss(line);
+		istringstream iss(line);
 		arrayTokens.clear();
 
 		do
 		{
-			std::string stub;
+			string stub;
 			iss >> stub;
 			arrayTokens.push_back(stub);
 		} while (iss);
@@ -244,14 +244,14 @@ void PerftSuite()
 		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
-			std::cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 			Correct++;
 		}
 		else
 		{
 			SetConsoleTextAttribute(hConsole, 4);	//red text
-			std::cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+			cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 		}
 
@@ -262,9 +262,9 @@ void PerftSuite()
 
 	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
-	std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
+	cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
+	cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
+	cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
 }
 
 uint64_t PerftDivide(unsigned int depth, Position& position)
@@ -272,7 +272,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	clock_t before = clock();
 
 	uint64_t nodeCount = 0;
-	std::vector<Move> moves;
+	vector<Move> moves;
 	LegalMoves(position, moves);
 
 	for (int i = 0; i < moves.size(); i++)
@@ -282,15 +282,15 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 		position.RevertMove();
 
 		moves.at(i).Print();
-		std::cout << ": " << ChildNodeCount << std::endl;
+		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
 
 	clock_t after = clock();
 	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-	std::cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
+	cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
+	cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
 	return nodeCount;
 }
 
@@ -300,7 +300,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
 	uint64_t nodeCount = 0;
-	std::vector<Move> moves;
+	vector<Move> moves;
 	LegalMoves(position, moves);
 
 	for (int i = 0; i < moves.size(); i++)
@@ -327,18 +327,18 @@ void Bench(Position& position)
 	{
 		if (!position.InitialiseFromFen(benchMarkPositions[i]))
 		{
-			std::cout << "BAD FEN!" << std::endl;
+			cout << "BAD FEN!" << endl;
 			break;
 		}
 
 		position.Print();
 
 		uint64_t nodes = BenchSearch(position, 8);
-		std::cout << std::endl;
+		cout << endl;
 
 		nodeCount += nodes;
 	}
 
-	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
+	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
 	ThreadCount = prev;
 }

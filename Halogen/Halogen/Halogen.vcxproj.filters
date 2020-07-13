@@ -63,7 +63,7 @@
     <ClCompile Include="..\src\PawnHashTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\texel.cpp">
+    <ClCompile Include="..\src\Texel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -116,7 +116,7 @@
     <ClInclude Include="..\src\Benchmark.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\texel.h">
+    <ClInclude Include="..\src\Texel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

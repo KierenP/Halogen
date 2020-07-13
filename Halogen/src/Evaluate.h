@@ -10,7 +10,7 @@ extern PawnHashTable pawnHashTable;
 
 int EvaluatePosition(const Position& position);
 void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameStage);
-void InitializeEvaluation();
+void EvalInit();
 
 bool DeadPosition(const Position& position);
 bool IsBlockade(const Position& position);
