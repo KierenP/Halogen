@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(Position& position);
 
-string version = "4.5"; 
+string version = "5"; 
 
 int main(int argc, char* argv[])
 {
