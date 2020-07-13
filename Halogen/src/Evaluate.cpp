@@ -1,21 +1,22 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_PIECE_TYPES] = {91, 351, 336, 565, 1032, 5000};
+int pieceValueVector[N_PIECE_TYPES] = {93, 355, 339, 575, 1041, 5000};
 
-int knightAdj[9] = {-128, -55, -44, -36, -30, -22, -13, -3, 10};	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = {-37, -38, -36, -36, -40, -42, -46, -47, -47};
+int knightAdj[9] = {-129, -58, -45, -38, -30, -22, -14, -5, 8};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-43, -43, -40, -41, -44, -44, -48, -49, -50};
 
 int WeakPawnPenalty = 5;
-int WeakOpenPawnPenalty = 14;
+int WeakOpenPawnPenalty = 15;
 int DoubledPawnPenalty = 10;
 
-int PassedPawnBonus[N_RANKS] = {0, 0, -1, 14, 37, 87, 154, 0};
+int PassedPawnBonus[N_RANKS] = {0, -2, -1, 14, 37, 91, 156, 0};
 
-int CastledBonus = 40;
-int BishopPairBonus = 50;
+int CanCastleBonus = 8;
+int CastledBonus = CanCastleBonus * 2;
+int BishopPairBonus = 53;
 int RookOpenFileBonus = 28;
 int RookSemiOpenFileBonus = 23;
-int Rook7thRankBonus = 17;
+int Rook7thRankBonus = 15;
 
 int TempoBonus = 17;
 
@@ -63,11 +64,6 @@ int AntiDiagonals[64] = {
   13,12,11,10, 9, 8, 7, 6,
   14,13,12,11,10, 9, 8, 7
 };
-
-//DEBUG FUNCTIONS
-void FlipColours(Position& pos);
-void MirrorTopBottom(Position& pos);
-void MirrorLeftRight(Position& pos);
 
 int PieceValues(unsigned int Piece)
 {
@@ -447,6 +443,12 @@ int EvaluateCastleBonus(const Position & position)
 	if (position.HasCastledBlack())
 		score -= CastledBonus;
 
+	if (position.CanCastleWhiteKingside() || position.CanCastleWhiteQueenside())
+		score += CanCastleBonus;
+
+	if (position.CanCastleBlackKingside() || position.CanCastleBlackQueenside())
+		score -= CanCastleBonus;
+
 	return score;
 }
 
@@ -576,19 +578,12 @@ bool EvaluateDebug()
 			Position copy = testPosition;
 			int score = EvaluatePosition(testPosition);
 
-			FlipColours(testPosition);
-			MirrorTopBottom(testPosition);
-
+			testPosition.FlipColours();
+			testPosition.MirrorTopBottom();
 			assert(score == -EvaluatePosition(testPosition));
-
-			MirrorLeftRight(testPosition);
-			assert(score == -EvaluatePosition(testPosition));
-
-			FlipColours(testPosition);
-			MirrorTopBottom(testPosition);
-			assert(score == EvaluatePosition(testPosition));
-
-			MirrorLeftRight(testPosition);
+			testPosition.FlipColours();
+			testPosition.MirrorTopBottom();
+			
 
 			for (int j = 0; j < N_SQUARES; j++)
 			{
@@ -632,7 +627,7 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&PassedPawnBonus[i]);
 	}
 
-	for (int i = 0; i < N_SQUARES; i++)
+	/*for (int i = 0; i < N_SQUARES; i++)
 	{
 		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
 		{
@@ -646,52 +641,11 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&QueenSquareValues[i]);
 		params.push_back(&KingSquareMid[i]);
 		params.push_back(&KingSquareEndGame[i]);
-	}
+	}*/
+
+	params.push_back(&CanCastleBonus);
 
 	return params;
-}
-
-void FlipColours(Position& pos)
-{
-	pos.ApplyNullMove();
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		if (pos.IsOccupied(i))
-			pos.SetSquare(i, Piece(pos.GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(pos.GetSquare(i))));
-	}
-}
-
-void MirrorLeftRight(Position& pos)
-{
-	Position copy = pos;
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		pos.ClearSquare(i);
-	}
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		if (copy.IsOccupied(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))))
-			pos.SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
-	}
-}
-
-void MirrorTopBottom(Position& pos)
-{
-	Position copy = pos;
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		pos.ClearSquare(i);
-	}
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
-			pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
-	}
 }
 
 //gives a score based on how close the pieces are to an opponents king

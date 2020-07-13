@@ -328,6 +328,50 @@ uint64_t Position::GetPreviousKey(size_t index)
 	return PreviousKeys.at(index);
 }
 
+void Position::FlipColours()
+{
+	ApplyNullMove();
+	SwapCastelingRights();
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (IsOccupied(i))
+			SetSquare(i, Piece(GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(GetSquare(i))));
+	}
+}
+
+void Position::MirrorLeftRight()
+{
+	Position copy = *this;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))))
+			SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
+	}
+}
+
+void Position::MirrorTopBottom()
+{
+	Position copy = *this;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
+			SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
+	}
+}
+
 uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
