@@ -7,7 +7,7 @@ using namespace::std;
 void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
-void Bench(Position& position);
+void Bench();
 
 string version = "5"; 
 
@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 	Position position;
 	position.StartingPosition();
 
-	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(position); return 0; }	//currently only supports bench from command line for openBench integration
+	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
 
 	while (getline(cin, Line))
 	{
@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
 		else if (token == "stop") KeepSearching = false;
 		else if (token == "print") position.Print();
 		else if (token == "quit") return 0;
-		else if (token == "bench") Bench(position);
+		else if (token == "bench") Bench();
 		
 		else cout << "Unknown command" << endl;
 	}
@@ -313,7 +313,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 	return nodeCount;
 }
 
-void Bench(Position& position)
+void Bench()
 {
 	unsigned int prev = ThreadCount;
 	ThreadCount = 1;
@@ -322,6 +322,7 @@ void Bench(Position& position)
 	timer.Start();
 
 	uint64_t nodeCount = 0;
+	Position position;
 
 	for (int i = 0; i < benchMarkPositions.size(); i++)
 	{

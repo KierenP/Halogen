@@ -69,7 +69,8 @@ Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int thre
 uint64_t BenchSearch(Position position, int maxSearchDepth)
 {
 	InitSearch();
-
+	tTable.ResetTable();
+	
 	uint64_t nodesSearched = 0;
 	Move move = SearchPosition(position, 2147483647, nodesSearched, 0, maxSearchDepth);
 
