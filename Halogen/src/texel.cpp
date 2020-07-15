@@ -38,7 +38,7 @@ void Texel(std::vector<int*> params)
 
 	std::vector<std::pair<Position, double>> positions;
 	Position position;
-	ThreadData data;
+	SearchData data;
 
 	while (std::getline(infile, line))
 	{
@@ -219,7 +219,7 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<double>
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, ThreadData& data, double k, unsigned int subset)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, unsigned int subset)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 

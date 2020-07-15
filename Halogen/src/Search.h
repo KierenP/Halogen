@@ -39,9 +39,9 @@ struct Killer
 	Move move[2];
 };
 
-struct ThreadData
+struct SearchData
 {
-	ThreadData();
+	SearchData();
 
 	std::vector<std::vector<Move>> PvTable;
 	std::vector<Killer> KillerMoves;							//2 moves indexed by distanceFromRoot
@@ -55,5 +55,5 @@ extern unsigned int ThreadCount;
 Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int threads = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
 
-int TexelSearch(Position& position, ThreadData& data);
+int TexelSearch(Position& position, SearchData& data);
 

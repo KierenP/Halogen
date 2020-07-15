@@ -13,10 +13,10 @@ std::mutex ioMutex;
 unsigned int threadDepthCompleted = 0;			//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
 Move bestMoveThread;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
 
-void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, ThreadData& locals);
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, ThreadData& locals);
+void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, SearchData& locals);
+void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move, ThreadData& locals);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move, SearchData& locals);
 void PrintBestMove(Move& Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position);
@@ -35,9 +35,9 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves
 void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 
-Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, ThreadData locals = ThreadData());
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool printMoves = false);
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, ThreadData& locals);
+Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, SearchData& locals, bool printMoves = false);
+SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, SearchData& locals);
 
 int see(Position& position, int square, bool side);
 int seeCapture(Position& position, const Move& move, bool side); //Don't send this an en passant move!
@@ -78,7 +78,7 @@ uint64_t BenchSearch(Position position, int maxSearchDepth)
 	return nodesSearched;
 }
 
-int TexelSearch(Position& position, ThreadData& data)
+int TexelSearch(Position& position, SearchData& data)
 {
 	KeepSearching = true;
 
@@ -99,7 +99,7 @@ void InitSearch()
 	pawnHashTable.HashMisses = 0;
 }
 
-void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, ThreadData& locals)
+void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, SearchData& locals)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
@@ -198,7 +198,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initi
 	SortMovesByScore(moves, orderScores);
 }
 
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, ThreadData& locals)
+void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals)
 {
 	if (TTmove.IsUninitialized() && depthRemaining > 3)
 	{
@@ -269,7 +269,7 @@ void PrintBestMove(Move& Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move, ThreadData& locals)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, Position& position, Move move, SearchData& locals)
 {
 	//const std::lock_guard<std::mutex> lock(ioMutex);
 
@@ -322,7 +322,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout << std::endl;
 }
 
-Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth, ThreadData locals)
+Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, unsigned int threadID, int maxSearchDepth, SearchData locals)
 {
 	Move move;
 
@@ -384,7 +384,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	return move;
 }
 
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, ThreadData& locals, bool printMoves)
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, SearchData& locals, bool printMoves)
 {
 #ifdef _DEBUG
 	/*Add any code in here that tests the position for validity*/
@@ -743,7 +743,7 @@ int TerminalScore(Position& position, int distanceFromRoot)
 	}
 }
 
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, ThreadData& locals)
+SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, SearchData& locals)
 {
 	locals.PvTable[distanceFromRoot].clear();
 
@@ -881,7 +881,7 @@ Move GetHashMove(Position& position)
 	return {};
 }
 
-ThreadData::ThreadData() : HistoryMatrix{{0}}
+SearchData::SearchData() : HistoryMatrix{{0}}
 {
 	PvTable.clear();
 	for (int i = 0; i < MAX_DEPTH; i++)
