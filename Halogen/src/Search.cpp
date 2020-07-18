@@ -296,18 +296,20 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
 		<< " hashfull " << int(float(tTable.GetCapacity()) / tTable.GetSize() * 1000)							//thousondths full
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
-		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1))
-		<< " pv ";																								//the current best line found
+		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1));
 
-
-
-	for (int i = 0; i < pv.size(); i++)
+	if (!move.IsUninitialized())
 	{
-		pv[i].Print();
-		std::cout << " ";
+		std::cout << " pv ";																								//the current best line found
+
+		for (int i = 0; i < pv.size(); i++)
+		{
+			pv[i].Print();
+			std::cout << " ";
+		}
 	}
 
-	std::cout << " string thread " << std::this_thread::get_id();
+	//std::cout << " string thread " << std::this_thread::get_id();
 
 	std::cout << std::endl;
 }
