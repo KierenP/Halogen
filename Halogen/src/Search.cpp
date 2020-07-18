@@ -308,8 +308,12 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 			std::cout << " ";
 		}
 	}
+	else
+	{
+		std::cout << " ";
+	}
 
-	//std::cout << " string thread " << std::this_thread::get_id();
+	std::cout << "string thread " << std::this_thread::get_id();
 
 	std::cout << std::endl;
 }
