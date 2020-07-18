@@ -339,14 +339,18 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		if (score <= alpha)
 		{
-			sharedData.ReportResult(depth, searchTime.ElapsedMs(), alpha, alpha, beta, position, move, locals);
+			if (searchTime.ElapsedMs() > 1000)
+				sharedData.ReportResult(depth, searchTime.ElapsedMs(), alpha, alpha, beta, position, move, locals);
+
 			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
 			continue;
 		}
 
 		if (score >= beta)
 		{
-			sharedData.ReportResult(depth, searchTime.ElapsedMs(), beta, alpha, beta, position, move, locals);
+			if (searchTime.ElapsedMs() > 1000)
+				sharedData.ReportResult(depth, searchTime.ElapsedMs(), beta, alpha, beta, position, move, locals);
+
 			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
 			continue;
 		}
