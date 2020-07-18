@@ -58,6 +58,8 @@ public:
 	Move GetBestMove();
 	bool ThreadAbort(unsigned int initialDepth);
 	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, Position& position, Move move, SearchData& locals);
+	void ReportDepth(unsigned int depth, unsigned int threadID);
+	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
 
 private:
@@ -68,6 +70,8 @@ private:
 	int prevAlpha;
 	int prevBeta;
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+
+	std::vector<int> searchDepth;					//what depth is each thread currently searching?
 };
 
 extern TranspositionTable tTable;
