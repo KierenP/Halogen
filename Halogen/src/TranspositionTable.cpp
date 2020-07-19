@@ -42,7 +42,11 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	std::lock_guard<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
 
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
+	{
+		occupancy[table.at(hash).GetHalfMove()]--;
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
+		occupancy[table.at(hash).GetHalfMove()]++;
+	}
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
@@ -52,21 +56,14 @@ TTEntry TranspositionTable::GetEntry(uint64_t key)
 
 void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
+	occupancy[table.at(HashFunction(key)).GetHalfMove()]--;
 	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
+	occupancy[table.at(HashFunction(key)).GetHalfMove()]++;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
 {
-	return 0;
-	int count = 0;
-
-	for (int i = 0; i < table.size(); i++)
-	{
-		if (!table.at(i).IsAncient(halfmove, 0))
-			count++;
-	}
-
-	return count;
+	return occupancy[halfmove % ((unsigned char)(-1) + 1)];
 }
 
 void TranspositionTable::ResetTable()
@@ -76,6 +73,11 @@ void TranspositionTable::ResetTable()
 	for (int i = 0; i < table.size(); i++)
 	{
 		table.at(i).Reset();
+	}
+
+	for (int i = 0; i <= (unsigned char)(-1); i++)
+	{
+		occupancy[i] = 0;
 	}
 }
 

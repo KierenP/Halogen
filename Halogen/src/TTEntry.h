@@ -23,6 +23,7 @@ public:
 	bool IsAncient(int currenthalfmove, int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % 256; }
 	EntryType GetCutoff() const { return static_cast<EntryType>(cutoff); }
 	Move GetMove() const { return bestMove; }
+	char GetHalfMove() const { return halfmove; }
 
 	void SetHalfMove(int currenthalfmove, int distanceFromRoot) { halfmove = (currenthalfmove - distanceFromRoot) % 256; }	//halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of the search
 	void MateScoreAdjustment(int distanceFromRoot);
