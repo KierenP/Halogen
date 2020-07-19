@@ -934,11 +934,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
 void ThreadSharedData::ReportDepth(unsigned int depth, unsigned int threadID)
 {
+	std::lock_guard<std::mutex> lg(ioMutex);
 	searchDepth[threadID] = depth;
 }
 
 bool ThreadSharedData::ShouldSkipDepth(unsigned int depth)
 {
+	std::lock_guard<std::mutex> lg(ioMutex);
 	int count = 0;
 
 	for (int i = 0; i < searchDepth.size(); i++)
@@ -952,5 +954,6 @@ bool ThreadSharedData::ShouldSkipDepth(unsigned int depth)
 
 int ThreadSharedData::GetAspirationScore()
 {
+	std::lock_guard<std::mutex> lg(ioMutex);
 	return prevScore;
 }
