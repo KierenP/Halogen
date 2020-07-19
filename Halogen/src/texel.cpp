@@ -6,7 +6,7 @@ void Texel(std::vector<int*> params)
 	Make sure you disable pawn hash tables and transposition tables!
 	*/
 
-	tTable.AddEntry(Move(), 1234, 0, 0, 0, EntryType::EXACT);
+	tTable.AddEntry(Move(), 1234, 0, 0, 0, 0, EntryType::EXACT);
 	if (CheckEntry(tTable.GetEntry(1234), 1234))
 	{
 		std::cout << "Transposition table has been left on!" << std::endl;

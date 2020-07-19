@@ -30,7 +30,7 @@ bool CheckEntry(const TTEntry& entry, uint64_t key)
 	return false;
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int halfmove, int distanceFromRoot, EntryType Cutoff)
 {
 	size_t hash = HashFunction(ZobristKey);
 
@@ -41,8 +41,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 
 	std::lock_guard<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
 
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
-		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
+		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
@@ -50,26 +50,19 @@ TTEntry TranspositionTable::GetEntry(uint64_t key)
 	return table.at(HashFunction(key));
 }
 
-void TranspositionTable::SetNonAncient(uint64_t key)
+void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
-	table.at(HashFunction(key)).SetAncient(false);
+	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
 }
 
-void TranspositionTable::SetAllAncient()
+int TranspositionTable::GetCapacity(int halfmove) const
 {
-	for (int i = 0; i < table.size(); i++)
-	{
-		table.at(i).SetAncient(true);
-	}
-}
-
-int TranspositionTable::GetCapacity() const
-{
+	return 0;
 	int count = 0;
 
 	for (int i = 0; i < table.size(); i++)
 	{
-		if (!table.at(i).IsAncient())
+		if (!table.at(i).IsAncient(halfmove, 0))
 			count++;
 	}
 
@@ -82,7 +75,7 @@ void TranspositionTable::ResetTable()
 
 	for (int i = 0; i < table.size(); i++)
 	{
-		table.at(i) = TTEntry();
+		table.at(i).Reset();
 	}
 }
 

@@ -9,9 +9,6 @@ const unsigned int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
 Move::Move()
 {
 	data = 0;
-	SetFrom(0);
-	SetTo(0);
-	SetFlag(0);
 }
 
 Move::Move(unsigned int from, unsigned int to, unsigned int flag)
@@ -83,6 +80,11 @@ bool Move::operator==(const Move & rhs) const
 bool Move::IsUninitialized() const
 {
 	return (data == 0);
+}
+
+void Move::Reset()
+{
+	data = 0;
 }
 
 void Move::SetFrom(unsigned int from)

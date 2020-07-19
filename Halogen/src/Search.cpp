@@ -29,8 +29,8 @@ void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depth
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(Position& position, int distanceFromRoot);
 int extension(Position & position, Move & move, int alpha, int beta);
-Move GetHashMove(Position& position, int depthRemaining);
-Move GetHashMove(Position& position);
+Move GetHashMove(Position& position, int depthRemaining, int distanceFromRoot);
+Move GetHashMove(Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
 void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
@@ -93,7 +93,6 @@ void InitSearch()
 	threadDepthCompleted = 0;
 	bestMoveThread = Move();
 	KeepSearching = true;
-	tTable.SetAllAncient();
 	tTable.ResetHitCount();
 	pawnHashTable.HashHits = 0;
 	pawnHashTable.HashMisses = 0;
@@ -119,7 +118,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initi
 
 	*/
 
-	Move TTmove = GetHashMove(position);
+	Move TTmove = GetHashMove(position, distanceFromRoot);
 
 	//basically, if we have no hash move, do a shallow search and make that the hash move
 	InternalIterativeDeepening(TTmove, initialDepth, depthRemaining, position, alpha, beta, colour, distanceFromRoot, locals);
@@ -304,7 +303,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << actualNodeCount
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
-		<< " hashfull " << int(float(tTable.GetCapacity()) / tTable.GetSize() * 1000)							//thousondths full
+		<< " hashfull " << int(float(tTable.GetCapacity(position.GetTurnCount())) / tTable.GetSize() * 1000)							//thousondths full
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
 		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1))
 		<< " pv ";																								//the current best line found
@@ -419,7 +418,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 	{
-		tTable.SetNonAncient(position.GetZobristKey());
+		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
@@ -474,7 +473,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int b = beta;
 
 	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
-	Move hashMove = GetHashMove(position);
+	Move hashMove = GetHashMove(position, distanceFromRoot);
 	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
@@ -711,11 +710,11 @@ bool IsPV(int beta, int alpha)
 void AddScoreToTable(int Score, int alphaOriginal, Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove)
 {
 	if (Score <= alphaOriginal)
-		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, distanceFromRoot, EntryType::UPPERBOUND);	//mate score adjustent is done inside this function
+		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::UPPERBOUND);	//mate score adjustent is done inside this function
 	else if (Score >= beta)
-		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, distanceFromRoot, EntryType::LOWERBOUND);
+		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::LOWERBOUND);
 	else
-		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, distanceFromRoot, EntryType::EXACT);
+		tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::EXACT);
 }
 
 void UpdateBounds(TTEntry& entry, int& alpha, int& beta)
@@ -855,26 +854,26 @@ void AddHistory(Move& move, int depthRemaining, unsigned int(&HistoryMatrix)[N_P
 	HistoryMatrix[sideToMove][move.GetFrom()][move.GetTo()] += depthRemaining * depthRemaining;
 }
 
-Move GetHashMove(Position& position, int depthRemaining)
+Move GetHashMove(Position& position, int depthRemaining, int distanceFromRoot)
 {
 	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
 
 	if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
 	{
-		tTable.SetNonAncient(position.GetZobristKey());
+		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 		return hash.GetMove();
 	}
 
 	return {};
 }
 
-Move GetHashMove(Position& position)
+Move GetHashMove(Position& position, int distanceFromRoot)
 {
 	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
 
 	if (CheckEntry(hash, position.GetZobristKey()))
 	{
-		tTable.SetNonAncient(position.GetZobristKey());
+		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 		return hash.GetMove();
 	}
 
