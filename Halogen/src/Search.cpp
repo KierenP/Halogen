@@ -923,7 +923,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 
-	if (alpha < score && score < beta)
+	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
 		threadDepthCompleted = depth;
