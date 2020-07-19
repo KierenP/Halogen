@@ -354,9 +354,6 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		if (score <= alpha)
 		{
-			if (searchTime.ElapsedMs() > 1000)
-				sharedData.ReportResult(depth, searchTime.ElapsedMs(), alpha, alpha, beta, position, move, locals);
-
 			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
 			aspirationReSearch = true;
 			continue;
@@ -364,9 +361,6 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		if (score >= beta)
 		{
-			if (searchTime.ElapsedMs() > 1000)
-				sharedData.ReportResult(depth, searchTime.ElapsedMs(), beta, alpha, beta, position, move, locals);
-
 			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
 			aspirationReSearch = true;
 			continue;
@@ -903,8 +897,6 @@ ThreadSharedData::ThreadSharedData(unsigned int threads)
 	threadCount = threads;
 	threadDepthCompleted = 0;
 	currentBestMove = Move();
-	prevAlpha = 0;
-	prevBeta = 0;
 	prevScore = 0;
 
 	for (int i = 0; i < threads; i++)
@@ -931,21 +923,12 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 
-	if (alpha < score && score < beta && threadDepthCompleted < depth)
+	if (alpha < score && score < beta)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
 		threadDepthCompleted = depth;
 		currentBestMove = move;
-		prevAlpha = score;			//not =alpha because alpha will be different next iteration
-		prevBeta = score;			//Also we dont set these to be score-25, score+25 because below we use < not <=.
 		prevScore = score;
-	}
-
-	if (((score <= alpha && score < prevAlpha) || (score >= beta && score > prevBeta)) && threadDepthCompleted < depth)
-	{
-		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
-		prevAlpha = alpha;
-		prevBeta = beta;
 	}
 }
 

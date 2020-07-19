@@ -67,8 +67,6 @@ private:
 	unsigned int threadCount;
 	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
 	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
-	int prevAlpha;
-	int prevBeta;
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
 
 	std::vector<int> searchDepth;					//what depth is each thread currently searching?
