@@ -1,6 +1,6 @@
 #include "TranspositionTable.h"
 
-TranspositionTable::TranspositionTable() : occupancy{0}
+TranspositionTable::TranspositionTable() : occupancy(HALF_MOVE_MODULO)
 {
 	TTHits = 0;
 	table.push_back(TTEntry());
@@ -43,9 +43,13 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 	{
-		occupancy[table.at(hash).GetHalfMove()]--;
+		if (table.at(hash).GetCutoff() != EntryType::EMPTY_ENTRY)
+		{
+			occupancy.at(table.at(hash).GetHalfMove())--;
+		}
+
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
-		occupancy[table.at(hash).GetHalfMove()]++;
+		occupancy.at(table.at(hash).GetHalfMove())++;
 	}
 }
 
@@ -56,14 +60,17 @@ TTEntry TranspositionTable::GetEntry(uint64_t key)
 
 void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
-	occupancy[table.at(HashFunction(key)).GetHalfMove()]--;
+	if (table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
+	{
+		occupancy.at(table.at(HashFunction(key)).GetHalfMove())--;
+	}
 	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
-	occupancy[table.at(HashFunction(key)).GetHalfMove()]++;
+	occupancy.at(table.at(HashFunction(key)).GetHalfMove())++;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
 {
-	return occupancy[halfmove % ((unsigned char)(-1) + 1)];
+	return occupancy.at(halfmove % HALF_MOVE_MODULO);
 }
 
 void TranspositionTable::ResetTable()
@@ -75,9 +82,9 @@ void TranspositionTable::ResetTable()
 		table.at(i).Reset();
 	}
 
-	for (int i = 0; i <= (unsigned char)(-1); i++)
+	for (int i = 0; i < occupancy.size(); i++)
 	{
-		occupancy[i] = 0;
+		occupancy.at(i) = 0;
 	}
 }
 

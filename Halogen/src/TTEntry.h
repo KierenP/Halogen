@@ -2,6 +2,8 @@
 #include "Move.h"
 #include "BitBoardDefine.h"
 
+const unsigned int HALF_MOVE_MODULO = 16;
+
 enum class EntryType {
 	EMPTY_ENTRY,
 	EXACT,
@@ -20,12 +22,12 @@ public:
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
 	int GetDepth() const { return depth; }
-	bool IsAncient(int currenthalfmove, int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % 256; }
+	bool IsAncient(int currenthalfmove, int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
 	EntryType GetCutoff() const { return static_cast<EntryType>(cutoff); }
 	Move GetMove() const { return bestMove; }
 	char GetHalfMove() const { return halfmove; }
 
-	void SetHalfMove(int currenthalfmove, int distanceFromRoot) { halfmove = (currenthalfmove - distanceFromRoot) % 256; }	//halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of the search
+	void SetHalfMove(int currenthalfmove, int distanceFromRoot) { halfmove = (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }	//halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of the search
 	void MateScoreAdjustment(int distanceFromRoot);
 
 	void Reset();
@@ -36,7 +38,7 @@ private:
 	uint64_t key;			//8 bytes
 
 	Move bestMove;			//2 bytes 
-	char halfmove;			//1 bytes		(is stored as the halfmove at the ROOT of this current search, modulo 256)
+	char halfmove;	//1 bytes		(is stored as the halfmove at the ROOT of this current search, modulo 256)
 
 	short int score;		//2 bytes
 	char depth;				//1 bytes

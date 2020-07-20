@@ -35,7 +35,7 @@ private:
 	std::vector<std::unique_ptr<std::mutex>> locks;
 	uint64_t TTHits;
 
-	uint64_t occupancy[256];	//keep track of how many entires are at each different half move
+	std::vector<uint64_t> occupancy;	//keep track of how many entires are at each different half move
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
