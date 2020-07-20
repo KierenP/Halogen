@@ -1,6 +1,6 @@
 #include "TranspositionTable.h"
 
-TranspositionTable::TranspositionTable()
+TranspositionTable::TranspositionTable() : occupancy{0}
 {
 	TTHits = 0;
 	table.push_back(TTEntry());
