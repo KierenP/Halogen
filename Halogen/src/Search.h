@@ -49,8 +49,30 @@ struct SearchData
 	SearchTimeManage timeManage;
 };
 
+class ThreadSharedData
+{
+public:
+	ThreadSharedData(unsigned int threads = 1);
+	~ThreadSharedData();
+
+	Move GetBestMove();
+	bool ThreadAbort(unsigned int initialDepth);
+	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, Position& position, Move move, SearchData& locals);
+	void ReportDepth(unsigned int depth, unsigned int threadID);
+	bool ShouldSkipDepth(unsigned int depth);
+	int GetAspirationScore();
+
+private:
+	std::mutex ioMutex;
+	unsigned int threadCount;
+	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
+	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
+	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+
+	std::vector<int> searchDepth;					//what depth is each thread currently searching?
+};
+
 extern TranspositionTable tTable;
-extern unsigned int ThreadCount;
 
 Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int threads = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
