@@ -34,6 +34,8 @@ int main(int argc, char* argv[])
 	Position position;
 	position.StartingPosition();
 
+	unsigned int ThreadCount = 1;
+
 	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
 
 	while (getline(cin, Line))
@@ -315,9 +317,6 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 void Bench()
 {
-	unsigned int prev = ThreadCount;
-	ThreadCount = 1;
-
 	Timer timer;
 	timer.Start();
 
@@ -341,5 +340,4 @@ void Bench()
 	}
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
-	ThreadCount = prev;
 }
