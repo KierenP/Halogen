@@ -40,6 +40,8 @@ public:
 
 	bool IsUninitialized() const;
 
+	void Reset();
+
 private:
 
 	void SetFrom(unsigned int from);
