@@ -39,33 +39,33 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	if (Score < -9000)
 		Score -= distanceFromRoot;
 
-	std::lock_guard<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
-
+	std::unique_lock<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
+	unsigned int before = table.at(hash).GetHalfMove();
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 	{
-		if (table.at(hash).GetCutoff() != EntryType::EMPTY_ENTRY)
-		{
-			occupancy.at(table.at(hash).GetHalfMove())--;
-		}
-
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
-		occupancy.at(table.at(hash).GetHalfMove())++;
 	}
+	unsigned int after = table.at(hash).GetHalfMove();
+	lock.unlock();
+
+	UpdateOccupancy(before, after);	//has own internal mutexes
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
 {
+	std::lock_guard<std::mutex> lock(*locks.at(key % locks.size()));
 	return table.at(HashFunction(key));
 }
 
 void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
-	if (table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
-	{
-		occupancy.at(table.at(HashFunction(key)).GetHalfMove())--;
-	}
+	std::unique_lock<std::mutex> lock(*locks.at(key % locks.size()));
+	unsigned int before = table.at(HashFunction(key)).GetHalfMove();
 	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
-	occupancy.at(table.at(HashFunction(key)).GetHalfMove())++;
+	unsigned int after = table.at(HashFunction(key)).GetHalfMove();
+	lock.unlock();
+
+	UpdateOccupancy(before, after);	//has own internal mutexes
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
@@ -126,4 +126,16 @@ void TranspositionTable::RunAsserts() const
 		if (table[i].GetScore() == -30000 || table[i].GetScore() == 30000)
 			std::cout << "Bad entry in table!";
 	}
+}
+
+void TranspositionTable::UpdateOccupancy(unsigned int before, unsigned int after)
+{
+	if (before == after) return;
+
+	std::lock_guard<std::mutex> lock(occupancyLock);
+
+	if (before >= 0 && before < HALF_MOVE_MODULO)
+		occupancy.at(before)--;
+	if (after >= 0 && after < HALF_MOVE_MODULO)
+		occupancy.at(after)++;
 }
