@@ -293,7 +293,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << actualNodeCount
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
-		<< " hashfull " << int(float(tTable.GetCapacity(position.GetTurnCount())) / tTable.GetSize() * 1000)							//thousondths full
+		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
 		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1));
 

@@ -31,14 +31,8 @@ public:
 	void RunAsserts() const;
 
 private:
-	void UpdateOccupancy(unsigned int before, unsigned int after);
-	
 	std::vector<TTEntry> table;
-	std::vector<std::unique_ptr<std::mutex>> locks;
 	uint64_t TTHits;
-
-	std::mutex occupancyLock;
-	std::vector<uint64_t> occupancy;	//keep track of how many entires are at each different half move
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
