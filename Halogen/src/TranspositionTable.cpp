@@ -117,6 +117,10 @@ void TranspositionTable::PreFetch(uint64_t key) const
 #ifdef _MSC_VER
 	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
 #endif
+
+#ifndef _MSC_VER
+	__builtin_prefetch(&table[HashFunction(key)]);
+#endif 
 }
 
 void TranspositionTable::RunAsserts() const
