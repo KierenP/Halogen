@@ -1,6 +1,6 @@
 #include "TranspositionTable.h"
 
-TranspositionTable::TranspositionTable() : occupancy(HALF_MOVE_MODULO)
+TranspositionTable::TranspositionTable()
 {
 	TTHits = 0;
 	table.push_back(TTEntry());
@@ -39,17 +39,10 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	if (Score < -9000)
 		Score -= distanceFromRoot;
 
-	std::lock_guard<std::mutex> lock(*locks.at(ZobristKey % locks.size()));
 
 	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 	{
-		if (table.at(hash).GetCutoff() != EntryType::EMPTY_ENTRY)
-		{
-			occupancy.at(table.at(hash).GetHalfMove())--;
-		}
-
 		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
-		occupancy.at(table.at(hash).GetHalfMove())++;
 	}
 }
 
@@ -60,17 +53,20 @@ TTEntry TranspositionTable::GetEntry(uint64_t key)
 
 void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
-	if (table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
-	{
-		occupancy.at(table.at(HashFunction(key)).GetHalfMove())--;
-	}
 	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
-	occupancy.at(table.at(HashFunction(key)).GetHalfMove())++;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
 {
-	return occupancy.at(halfmove % HALF_MOVE_MODULO);
+	int count = 0;
+
+	for (int i = 0; i < 1000; i++)	//1000 chosen specifically, because result needs to be 'per mill'
+	{
+		if (table.at(i).GetHalfMove() == halfmove % HALF_MOVE_MODULO)
+			count++;
+	}
+
+	return count;
 }
 
 void TranspositionTable::ResetTable()
@@ -81,11 +77,6 @@ void TranspositionTable::ResetTable()
 	{
 		table.at(i).Reset();
 	}
-
-	for (int i = 0; i < occupancy.size(); i++)
-	{
-		occupancy.at(i) = 0;
-	}
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
@@ -95,7 +86,6 @@ void TranspositionTable::SetSize(uint64_t MB)
 	*/
 
 	table.clear();
-	locks.clear();
 	size_t EntrySize = sizeof(TTEntry);
 
 	size_t entries = (MB * 1024 * 1024 / EntrySize);
@@ -104,11 +94,6 @@ void TranspositionTable::SetSize(uint64_t MB)
 	for (size_t i = 0; i < entries; i++)
 	{
 		table.push_back(TTEntry());
-	}
-
-	for (size_t i = 0; i < mutexCount; i++)
-	{
-		locks.push_back(std::make_unique<std::mutex>());
 	}
 }
 
