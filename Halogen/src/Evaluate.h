@@ -4,12 +4,12 @@
 #include "PawnHashTable.h"
 #include "PieceSquareTables.h"
 
-int PieceValues(unsigned int Piece);
+int PieceValues(unsigned int Piece, GameStages GameStage = MIDGAME);
 
 extern PawnHashTable pawnHashTable;
 
 int EvaluatePosition(const Position& position);
-void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameStage);
+void QueryPawnHashTable(const Position& position, int& pawns, GameStages GameStage);
 void EvalInit();
 
 bool DeadPosition(const Position& position);
