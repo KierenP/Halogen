@@ -9,6 +9,7 @@
 #include <ctime>
 #include <algorithm>
 #include <thread>
+#include <cmath>
 
 struct SearchResult
 {
@@ -52,7 +53,7 @@ struct SearchData
 class ThreadSharedData
 {
 public:
-	ThreadSharedData(unsigned int threads = 1);
+	ThreadSharedData(unsigned int threads = 1, bool NoOutput = false);
 	~ThreadSharedData();
 
 	Move GetBestMove();
@@ -68,6 +69,7 @@ private:
 	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
 	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+	bool noOutput;									//Do not write anything to the concole
 
 	std::vector<int> searchDepth;					//what depth is each thread currently searching?
 };

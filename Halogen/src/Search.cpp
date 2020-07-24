@@ -26,6 +26,7 @@ Move GetHashMove(Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
 void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
+int Reduction(int depth, int i, int alpha, int beta);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -62,12 +63,11 @@ uint64_t BenchSearch(Position position, int maxSearchDepth)
 {
 	InitSearch();
 	tTable.ResetTable();
-	ThreadSharedData sharedData;
+	ThreadSharedData sharedData(1, true);
 	
 	uint64_t nodesSearched = 0;
 	Move move = SearchPosition(position, 2147483647, nodesSearched, sharedData, 0, maxSearchDepth);
 
-	PrintBestMove(move);
 	return nodesSearched;
 }
 
@@ -543,7 +543,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		//late move reductions
 		if (extendedDepth == depthRemaining && LMR(moves, i, InCheck, position, depthRemaining) && i > 3)
 		{
-			int score = -NegaScout(position, initialDepth, extendedDepth - 2, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+			int reduction = Reduction(depthRemaining, i, alpha, beta);
+			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 
 			if (score < a)
 			{
@@ -586,6 +587,14 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
+}
+
+int Reduction(int depth, int i, int alpha, int beta)
+{
+	if (IsPV(beta, alpha))
+		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (2.f/3.f));
+	else
+		return int(sqrt(double(depth - 1)) + sqrt(double(i - 1)));
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
@@ -891,12 +900,13 @@ SearchData::SearchData() : HistoryMatrix{{0}}
 	}
 }
 
-ThreadSharedData::ThreadSharedData(unsigned int threads)
+ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput)
 {
 	threadCount = threads;
 	threadDepthCompleted = 0;
 	currentBestMove = Move();
 	prevScore = 0;
+	noOutput = NoOutput;
 
 	for (int i = 0; i < threads; i++)
 		searchDepth.push_back(0);
@@ -924,7 +934,9 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
-		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
+		if (!noOutput)
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
+
 		threadDepthCompleted = depth;
 		currentBestMove = move;
 		prevScore = score;

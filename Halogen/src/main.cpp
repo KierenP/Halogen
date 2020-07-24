@@ -331,11 +331,7 @@ void Bench()
 			break;
 		}
 
-		position.Print();
-
 		uint64_t nodes = BenchSearch(position, 8);
-		cout << endl;
-
 		nodeCount += nodes;
 	}
 
