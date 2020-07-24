@@ -1,40 +1,40 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_PIECE_TYPES] = {93, 355, 339, 575, 1041, 5000};
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {77, 398, 383, 545, 1051, 5000},
+												  {101, 343, 325, 614, 1055, 5000} };
 
-int knightAdj[9] = {-129, -58, -45, -38, -30, -22, -14, -5, 8};	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = {-43, -43, -40, -41, -44, -44, -48, -49, -50};
+int knightAdj[9] = {-127, -59, -48, -37, -34, -25, -20, -9, 4};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-57, -58, -58, -57, -55, -53, -48, -45, -37};
 
 int WeakPawnPenalty = 5;
 int WeakOpenPawnPenalty = 15;
 int DoubledPawnPenalty = 10;
 
-int PassedPawnBonus[N_RANKS] = {0, -2, -1, 14, 37, 91, 156, 0};
+int PassedPawnBonus[N_RANKS] = {0, 1, 0, 13, 35, 91, 162, 0};
 
-int CanCastleBonus = 8;
+int CanCastleBonus = 16;
 int CastledBonus = CanCastleBonus * 2;
-int BishopPairBonus = 53;
+int BishopPairBonus = 47;
 int RookOpenFileBonus = 28;
-int RookSemiOpenFileBonus = 23;
+int RookSemiOpenFileBonus = 22;
 int Rook7thRankBonus = 15;
 
-int TempoBonus = 17;
+int TempoBonus = 18;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
-int EvaluateMaterial(const Position& position);
+int EvaluateMaterial(const Position& position, GameStages GameStage);
 int KingTropism(const Position& pos);
-int EvaluatePawns(const Position& position, unsigned int gameStage);
+int EvaluatePawns(const Position& position, GameStages gameStage);
 int CalculateGamePhase(const Position& position);
 int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
 int RookFileAdjustment(const Position& position);
 int CalculateTempo(const Position& position);
 
-bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
-bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
+bool InsufficentMaterialEvaluation(const Position& position);
 
 bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
 bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
@@ -65,18 +65,17 @@ int AntiDiagonals[64] = {
   14,13,12,11,10, 9, 8, 7
 };
 
-int PieceValues(unsigned int Piece)
+int PieceValues(unsigned int Piece, GameStages GameStage)
 {
 	if (Piece < N_PIECE_TYPES)
-		return pieceValueVector[Piece];
+		return pieceValueVector[GameStage][Piece];
 	else
-		return pieceValueVector[Piece - N_PIECE_TYPES];
+		return pieceValueVector[GameStage][Piece - N_PIECE_TYPES];
 }
 
 int EvaluatePosition(const Position & position)
 {
-	int Material = EvaluateMaterial(position);	
-	if (InsufficentMaterialEvaluation(position, Material)) return 0;	//note the Material doesn't include the pawns, but if there were any pawns we return false anyways so that doesn't matter
+	if (InsufficentMaterialEvaluation(position)) return 0;	
 
 	int MidGame = 0;
 	int EndGame = 0;
@@ -108,8 +107,11 @@ int EvaluatePosition(const Position & position)
 	QueryPawnHashTable(position, pawnsMid, MIDGAME);
 	QueryPawnHashTable(position, pawnsEnd, ENDGAME);
 
-	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
-	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	int MaterialMid = EvaluateMaterial(position, MIDGAME);
+	int MaterialEnd = EvaluateMaterial(position, ENDGAME);
+
+	MidGame = MaterialMid + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	EndGame = MaterialEnd + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
 }
@@ -210,7 +212,7 @@ int CalculateGamePhase(const Position& position)
 	return phase;
 }
 
-void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameStage)
+void QueryPawnHashTable(const Position& position, int& pawns, GameStages GameStage)
 {
 	uint64_t pawnKey = PawnHashKey(position, GameStage);
 
@@ -227,12 +229,12 @@ void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameS
 	}
 }
 
-int EvaluatePawns(const Position& position, unsigned int gameStage)
+int EvaluatePawns(const Position& position, GameStages gameStage)
 {
 	int Score = 0;
 
-	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues(BLACK_PAWN);		//material																												
-	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues(WHITE_PAWN);	
+	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues(BLACK_PAWN, gameStage);		//material																												
+	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues(WHITE_PAWN, gameStage);
 
 	for (uint64_t piece = position.GetPieceBB(BLACK_PAWN); piece != 0; Score -= PieceSquareTables[gameStage][BLACK_PAWN][bitScanForwardErase(piece)]);						//piece square tables
 	for (uint64_t piece = position.GetPieceBB(WHITE_PAWN); piece != 0; Score += PieceSquareTables[gameStage][WHITE_PAWN][bitScanForwardErase(piece)]);				
@@ -242,7 +244,7 @@ int EvaluatePawns(const Position& position, unsigned int gameStage)
 	return Score;
 }
 
-bool InsufficentMaterialEvaluation(const Position& position, int Material)
+bool InsufficentMaterialEvaluation(const Position& position)
 {
 	if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
 	if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
@@ -290,12 +292,6 @@ bool InsufficentMaterialEvaluation(const Position& position, int Material)
 	if (BlackBishops == 1 && WhiteBishops == 2 && BlackKnights == 0 && WhiteKnights == 0) return true;	//4
 
 	return false;
-}
-
-bool InsufficentMaterialEvaluation(const Position& position)
-{
-	int Material = EvaluateMaterial(position);
-	return InsufficentMaterialEvaluation(position, Material);
 }
 
 void EvalInit()
@@ -538,14 +534,14 @@ int EvaluatePieceSquareTables(const Position & position, unsigned int gameStage)
 	return Score;
 }
 
-int EvaluateMaterial(const Position & position)
+int EvaluateMaterial(const Position & position, GameStages GameStage)
 {
 	int Score = 0;
 
 	for (int i = 1; i < N_PIECE_TYPES; i++)	//skip pawn
 	{
-		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues(i);																														//black piece
-		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues(i + N_PIECE_TYPES);																						//white piece										
+		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues(i, GameStage);																														//black piece
+		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues(i + N_PIECE_TYPES, GameStage);																						//white piece										
 	}
 
 	return Score;
@@ -598,11 +594,16 @@ bool EvaluateDebug()
 std::vector<int*> TexelParamiters()
 {
 	std::vector<int*> params { 
-			&pieceValueVector[0], 
-			&pieceValueVector[1], 
-			&pieceValueVector[2], 
-			&pieceValueVector[3], 
-			&pieceValueVector[4], 
+			&pieceValueVector[MIDGAME][0], 
+			&pieceValueVector[MIDGAME][1],
+			&pieceValueVector[MIDGAME][2],
+			&pieceValueVector[MIDGAME][3],
+			&pieceValueVector[MIDGAME][4],
+			&pieceValueVector[ENDGAME][0],
+			&pieceValueVector[ENDGAME][1],
+			&pieceValueVector[ENDGAME][2],
+			&pieceValueVector[ENDGAME][3],
+			&pieceValueVector[ENDGAME][4],
 			&WeakPawnPenalty,
 			&WeakOpenPawnPenalty,
 			&DoubledPawnPenalty,
@@ -627,7 +628,7 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&PassedPawnBonus[i]);
 	}
 
-	/*for (int i = 0; i < N_SQUARES; i++)
+	for (int i = 0; i < N_SQUARES; i++)
 	{
 		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
 		{
@@ -641,7 +642,7 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&QueenSquareValues[i]);
 		params.push_back(&KingSquareMid[i]);
 		params.push_back(&KingSquareEndGame[i]);
-	}*/
+	}
 
 	params.push_back(&CanCastleBonus);
 

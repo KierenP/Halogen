@@ -24,6 +24,8 @@ uint64_t BlackPawnAttacks[N_SQUARES];
 uint64_t allBitsBelow[N_SQUARES];
 uint64_t allBitsAbove[N_SQUARES];
 
+bool HASH_ENABLE = true;
+
 void BBInit()
 {
 	UNIVERCE = 0xffffffffffffffff;

@@ -2,9 +2,7 @@
 
 void Texel(std::vector<int*> params)
 {
-	/*
-	Make sure you disable pawn hash tables and transposition tables!
-	*/
+	HASH_ENABLE = false;
 
 	tTable.AddEntry(Move(), 1234, 0, 0, 0, 0, EntryType::EXACT);
 	if (CheckEntry(tTable.GetEntry(1234), 1234))
@@ -19,7 +17,6 @@ void Texel(std::vector<int*> params)
 		std::cout << "Pawn hash table has been left on!" << std::endl;
 		return;
 	}
-
 
 	std::ifstream infile("C:\\quiet-labeled.epd");
 	//std::ifstream infile("C:\\OpenBench4Per.txt");
