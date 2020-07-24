@@ -9,6 +9,7 @@
 #include <ctime>
 #include <algorithm>
 #include <thread>
+#include <cmath>
 
 struct SearchResult
 {
