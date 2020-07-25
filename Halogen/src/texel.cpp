@@ -69,7 +69,6 @@ void Texel(std::vector<int*> params)
 
 	//CalculateK(positionList, positionScore, positionResults);
 	double k = 1.51;
-	double prevError = 0;
 	double step_size = 100000;
 	int iteration = 1;
 
