@@ -260,8 +260,6 @@ void PrintBestMove(Move Best)
 
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, Position& position, Move move, SearchData& locals)
 {
-	//const std::lock_guard<std::mutex> lock(ioMutex);
-
 	uint64_t actualNodeCount = position.GetNodeCount() * threadCount;
 	std::vector<Move> pv = locals.PvTable[0];
 
@@ -546,7 +544,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			int reduction = Reduction(depthRemaining, i, alpha, beta);
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 
-			if (score < a)
+			if (score <= a)
 			{
 				position.RevertMove();
 				continue;
