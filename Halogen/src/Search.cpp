@@ -680,7 +680,7 @@ bool LMR(std::vector<Move>& moves, int i, bool InCheck, Position& position, int 
 	return !moves[i].IsCapture()
 		&& !moves[i].IsPromotion()
 		&& !InCheck 
-		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()) 
+		&& !IsInCheck(position)
 		&& depthRemaining > 3;
 }
 
@@ -690,7 +690,7 @@ bool IsFutile(int beta, int alpha, std::vector<Move>& moves, int i, bool InCheck
 		&& !moves[i].IsCapture() 
 		&& !moves[i].IsPromotion() 
 		&& !InCheck 
-		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());
+		&& !IsInCheck(position);
 }
 
 bool AllowedNull(bool allowedNull, Position& position, int beta, int alpha, int depthRemaining)
