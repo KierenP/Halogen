@@ -27,6 +27,8 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves
 void AddHistory(Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 int Reduction(int depth, int i, int alpha, int beta);
+int matedIn(int distanceFromRoot);
+int mateIn(int distanceFromRoot);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -458,8 +460,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	//mate distance pruning
-	alpha = std::max<int>(Score::MateScore + distanceFromRoot, alpha);
-	beta = std::min<int>(-Score::MateScore - distanceFromRoot, beta);
+	alpha = std::max<int>(matedIn(distanceFromRoot), alpha);
+	beta = std::min<int>(mateIn(distanceFromRoot), beta);
 	if (alpha >= beta)
 		return alpha;
 
@@ -732,12 +734,22 @@ int TerminalScore(Position& position, int distanceFromRoot)
 {
 	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
 	{
-		return (MateScore) + (distanceFromRoot);
+		return matedIn(distanceFromRoot);
 	}
 	else
 	{
 		return (Draw);
 	}
+}
+
+int matedIn(int distanceFromRoot)
+{
+	return (MateScore) + (distanceFromRoot);
+}
+
+int mateIn(int distanceFromRoot)
+{
+	return -(MateScore) - (distanceFromRoot);
 }
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
