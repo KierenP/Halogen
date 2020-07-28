@@ -520,6 +520,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	bool InCheck = IsInCheck(position);
 	int staticScore = colour * EvaluatePosition(position);
 
+	bool FutileNode = (depthRemaining < FutilityMargins.size() && staticScore + FutilityMargins.at(std::max<int>(0, depthRemaining)) < a);
+
 	for (int i = 0; i < moves.size(); i++)	
 	{
 		if (moves[i] == hashMove)
@@ -529,13 +531,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
-		if (IsFutile(moves[i], beta, alpha, InCheck, position) && i > 0)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (IsFutile(moves[i], beta, alpha, InCheck, position) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 		{
-			if (depthRemaining < FutilityMargins.size() && staticScore + FutilityMargins.at(std::max<int>(0, depthRemaining)) < a)
-			{
-				position.RevertMove();
-				continue;
-			}
+			position.RevertMove();
+			continue;
 		}
 
 		int extendedDepth = depthRemaining + extension(position, moves[i], alpha, beta);
