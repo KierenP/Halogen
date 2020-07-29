@@ -1,7 +1,7 @@
 #include "Search.h"
 
 const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
-const unsigned int R = 2;	//Null-move reduction depth
+const unsigned int R = 3;	//Null-move reduction depth
 
 TranspositionTable tTable;
 
