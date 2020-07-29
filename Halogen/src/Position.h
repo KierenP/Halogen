@@ -43,10 +43,19 @@ public:
 	uint64_t GetNodeCount() { return NodeCount; }
 
 	void ResetNodeCount() { NodeCount = 0; }
+	void IncreaseNodeCount() { NodeCount++; }
 	void Reset();
 
 	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
+
+	void FlipColours();
+	void MirrorLeftRight();
+	void MirrorTopBottom();
+
+	/*Seriously, don't use these functions outside of static exchange evaluation*/
+	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
+	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()
 
 private:
 	uint64_t NodeCount;
@@ -55,5 +64,7 @@ private:
 
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
+
+	
 };
 

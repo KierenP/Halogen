@@ -8,10 +8,7 @@ const unsigned int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
 
 Move::Move()
 {
-	SetFrom(-1);
-	SetTo(-1);
-	SetFlag(UNINITIALIZED);
-	SEE = -1;
+	data = 0;
 }
 
 Move::Move(unsigned int from, unsigned int to, unsigned int flag)
@@ -20,10 +17,10 @@ Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 	assert(to < 64);
 	assert(flag < 16);
 
+	data = 0;
 	SetFrom(from);
 	SetTo(to);
 	SetFlag(flag);
-	SEE = -1;
 }
 
 Move::~Move()
@@ -32,31 +29,27 @@ Move::~Move()
 
 unsigned int Move::GetFrom() const
 {
-	return m_from;
+	return (data & FROM_MASK);
 }
 
 unsigned int Move::GetTo() const
 {
-	return m_to;
+	return (data & TO_MASK) >> 6;
 }
 
 unsigned int Move::GetFlag() const
 {
-	return m_flag;
+	return (data & FLAG_MASK) >> 12;
 }
 
 bool Move::IsPromotion() const
 {
-	if (GetFlag() >= 8)
-		return true;
-	return false;
+	return ((data & PROMOTION_MASK) != 0);
 }
 
 bool Move::IsCapture() const
 {
-	if (m_flag == CAPTURE || m_flag == EN_PASSANT || m_flag >= 12)
-		return true;
-	return false;
+	return ((data & CAPTURE_MASK) != 0);
 }
 
 void Move::Print() const
@@ -81,22 +74,33 @@ void Move::Print() const
 
 bool Move::operator==(const Move & rhs) const
 {
-	if (m_from == rhs.GetFrom() && m_to == rhs.GetTo() && m_flag == rhs.GetFlag())
-		return true;
-	return false;
+	return (data == rhs.data);
+}
+
+bool Move::IsUninitialized() const
+{
+	return (data == 0);
+}
+
+void Move::Reset()
+{
+	data = 0;
 }
 
 void Move::SetFrom(unsigned int from)
 {
-	m_from = from;
+	data &= ~FROM_MASK;
+	data |= from;
 }
 
 void Move::SetTo(unsigned int to)
 {
-	m_to = to;
+	data &= ~TO_MASK;
+	data |= to << 6;
 }
 
 void Move::SetFlag(unsigned int flag)
 {
-	m_flag = flag;
+	data &= ~FLAG_MASK;
+	data |= flag << 12;
 }

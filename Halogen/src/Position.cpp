@@ -328,6 +328,50 @@ uint64_t Position::GetPreviousKey(size_t index)
 	return PreviousKeys.at(index);
 }
 
+void Position::FlipColours()
+{
+	ApplyNullMove();
+	SwapCastelingRights();
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (IsOccupied(i))
+			SetSquare(i, Piece(GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(GetSquare(i))));
+	}
+}
+
+void Position::MirrorLeftRight()
+{
+	Position copy = *this;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))))
+			SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
+	}
+}
+
+void Position::MirrorTopBottom()
+{
+	Position copy = *this;
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		ClearSquare(i);
+	}
+
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
+			SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
+	}
+}
+
 uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
@@ -363,67 +407,82 @@ uint64_t Position::GenerateZobristKey() const
 
 uint64_t Position::IncrementZobristKey(Move move) 
 {
+	const BoardParamiterData prev = GetPreviousParamiters();
+
 	//Change of turn
-	key ^= ZobristTable.at(12 * 64);	//because who's turn it is changed
+	key ^= ZobristTable[12 * 64];	//because who's turn it is changed
 
-	if (GetPreviousParamiters().GetEnPassant() <= SQ_H8)
-		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetPreviousParamiters().GetEnPassant()));		//undo the previous ep square
+	if (prev.GetEnPassant() <= SQ_H8)
+		key ^= ZobristTable[(12 * 64 + 5 + GetFile(prev.GetEnPassant()))];		//undo the previous ep square
 
-	if (move.GetFlag() == UNINITIALIZED) return key;	//null move
+	if (move.IsUninitialized()) return key;	//null move
 
 	if (!move.IsPromotion())
 	{
-		key ^= ZobristTable.at(GetSquare(move.GetTo()) * 64 + move.GetFrom());	//toggle the square we left
-		key ^= ZobristTable.at(GetSquare(move.GetTo()) * 64 + move.GetTo());	//toggle the arriving square
+		key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetFrom()];	//toggle the square we left
+		key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetTo()];	//toggle the arriving square
 	}
 
 	//En Passant
 	if (move.GetFlag() == EN_PASSANT)
-		key ^= ZobristTable.at(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));	//remove the captured piece
+		key ^= ZobristTable[Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];	//remove the captured piece
 
 	if (GetEnPassant() <= SQ_H8)
-		key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));									//apply new EP
+		key ^= ZobristTable[12 * 64 + 5 + GetFile(GetEnPassant())];									//apply new EP
 
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-		key ^= ZobristTable.at(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo());
+		key ^= ZobristTable[GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo()];
 
 	//Castling
-	if (CanCastleWhiteKingside() != GetPreviousParamiters().CanCastleWhiteKingside())					//if casteling rights changed, flip that one
-		key ^= ZobristTable.at(12 * 64 + 1);
-	if (CanCastleWhiteQueenside() != GetPreviousParamiters().CanCastleWhiteQueenside())
-		key ^= ZobristTable.at(12 * 64 + 2);
-	if (CanCastleBlackKingside() != GetPreviousParamiters().CanCastleBlackKingside())
-		key ^= ZobristTable.at(12 * 64 + 3);
-	if (CanCastleBlackQueenside() != GetPreviousParamiters().CanCastleBlackQueenside())
-		key ^= ZobristTable.at(12 * 64 + 4);
+	if (CanCastleWhiteKingside() != prev.CanCastleWhiteKingside())					//if casteling rights changed, flip that one
+		key ^= ZobristTable[12 * 64 + 1];
+	if (CanCastleWhiteQueenside() != prev.CanCastleWhiteQueenside())
+		key ^= ZobristTable[12 * 64 + 2];
+	if (CanCastleBlackKingside() != prev.CanCastleBlackKingside())
+		key ^= ZobristTable[12 * 64 + 3];
+	if (CanCastleBlackQueenside() != prev.CanCastleBlackQueenside())
+		key ^= ZobristTable[12 * 64 + 4];
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
-		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom())));
-		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom())));
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()))];
 	}
 
 	if (move.GetFlag() == QUEEN_CASTLE)
 	{
-		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom())));
-		key ^= ZobristTable.at(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom())));
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()))];
 	}
 
 	//Promotions
 	if (move.IsPromotion())
 	{
-		key ^= ZobristTable.at(Piece(PAWN, !GetTurn()) * 64 + move.GetFrom());
+		key ^= ZobristTable[Piece(PAWN, !GetTurn()) * 64 + move.GetFrom()];
 
 		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			key ^= ZobristTable.at(Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo());
+			key ^= ZobristTable[Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo()];
 		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			key ^= ZobristTable.at(Piece(BISHOP, !GetTurn()) * 64 + move.GetTo());
+			key ^= ZobristTable[Piece(BISHOP, !GetTurn()) * 64 + move.GetTo()];
 		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			key ^= ZobristTable.at(Piece(ROOK, !GetTurn()) * 64 + move.GetTo());
+			key ^= ZobristTable[Piece(ROOK, !GetTurn()) * 64 + move.GetTo()];
 		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			key ^= ZobristTable.at(Piece(QUEEN, !GetTurn()) * 64 + move.GetTo());
+			key ^= ZobristTable[Piece(QUEEN, !GetTurn()) * 64 + move.GetTo()];
 	}
 
 	return key;
+}
+
+void Position::ApplySEECapture(Move move)
+{
+	SaveBoard();
+
+	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	ClearSquare(move.GetFrom());
+}
+
+void Position::RevertSEECapture()
+{
+	RestorePreviousBoard();
 }

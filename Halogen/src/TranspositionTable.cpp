@@ -10,9 +10,9 @@ TranspositionTable::~TranspositionTable()
 {
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key, int depth)
+bool CheckEntry(const TTEntry& entry, uint64_t key, int depth)
 {
-	if ((table.at(HashFunction(key)).GetKey() == key) && (table.at(HashFunction(key)).GetDepth() >= depth) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
+	if (entry.GetKey() == key && (entry.GetDepth() >= depth) && entry.GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }
@@ -23,15 +23,18 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 	//return key & 0x3FFFFF;
 }
 
-bool TranspositionTable::CheckEntry(uint64_t key)
+bool CheckEntry(const TTEntry& entry, uint64_t key)
 {
-	if ((table.at(HashFunction(key)).GetKey() == key) && table.at(HashFunction(key)).GetCutoff() != EntryType::EMPTY_ENTRY)
+	if (entry.GetKey() == key && entry.GetCutoff() != EntryType::EMPTY_ENTRY)
 		return true;
 	return false;
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int halfmove, int distanceFromRoot, EntryType Cutoff)
 {
+	if (!HASH_ENABLE)
+		return;
+
 	size_t hash = HashFunction(ZobristKey);
 
 	if (Score > 9000)	//checkmate node
@@ -39,31 +42,30 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	if (Score < -9000)
 		Score -= distanceFromRoot;
 
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient()) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
-		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Cutoff);
+
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
+	{
+		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
+	}
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key)
 {
-	table.at(HashFunction(key)).SetAncient(false);
 	return table.at(HashFunction(key));
 }
 
-void TranspositionTable::SetAllAncient()
+void TranspositionTable::SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot)
 {
-	for (int i = 0; i < table.size(); i++)
-	{
-		table.at(i).SetAncient(true);
-	}
+	table.at(HashFunction(key)).SetHalfMove(halfmove, distanceFromRoot);
 }
 
-int TranspositionTable::GetCapacity()
+int TranspositionTable::GetCapacity(int halfmove) const
 {
 	int count = 0;
 
-	for (int i = 0; i < table.size(); i++)
+	for (int i = 0; i < 1000; i++)	//1000 chosen specifically, because result needs to be 'per mill'
 	{
-		if (!table.at(i).IsAncient())
+		if (table.at(i).GetHalfMove() == halfmove % HALF_MOVE_MODULO)
 			count++;
 	}
 
@@ -76,15 +78,21 @@ void TranspositionTable::ResetTable()
 
 	for (int i = 0; i < table.size(); i++)
 	{
-		table.at(i) = TTEntry();
+		table.at(i).Reset();
 	}
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
+	/*
+	We can't adjust the number of entries based on the size of a mutex because this size is different under msvc (80 bytes) and g++ (8 bytes)
+	*/
+
 	table.clear();
 	size_t EntrySize = sizeof(TTEntry);
-	size_t entries = MB * 1024 * 1024 / EntrySize;
+
+	size_t entries = (MB * 1024 * 1024 / EntrySize);
+	size_t mutexCount = (entries / mutex_frequency);
 	
 	for (size_t i = 0; i < entries; i++)
 	{
@@ -92,14 +100,18 @@ void TranspositionTable::SetSize(uint64_t MB)
 	}
 }
 
-void TranspositionTable::PreFetch(uint64_t key)
+void TranspositionTable::PreFetch(uint64_t key) const
 {
 #ifdef _MSC_VER
 	_mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
 #endif
+
+#ifndef _MSC_VER
+	__builtin_prefetch(&table[HashFunction(key)]);
+#endif 
 }
 
-void TranspositionTable::RunAsserts()
+void TranspositionTable::RunAsserts() const
 {
 	for (int i = 0; i < table.size(); i++)
 	{

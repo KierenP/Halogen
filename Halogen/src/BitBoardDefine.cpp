@@ -21,6 +21,11 @@ uint64_t KingAttacks[N_SQUARES];
 uint64_t WhitePawnAttacks[N_SQUARES];
 uint64_t BlackPawnAttacks[N_SQUARES];
 
+uint64_t allBitsBelow[N_SQUARES];
+uint64_t allBitsAbove[N_SQUARES];
+
+bool HASH_ENABLE = true;
+
 void BBInit()
 {
 	UNIVERCE = 0xffffffffffffffff;
@@ -88,6 +93,22 @@ void BBInit()
 		for (int j = 0; j < 64; j++)
 		{
 			betweenArray[i][j] = inBetween(i, j);
+		}
+	}
+
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 0; j < i; j++)
+		{
+			allBitsBelow[i] |= SquareBB[j];
+		}
+	}
+
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 63; j > i; j--)
+		{
+			allBitsAbove[i] |= SquareBB[j];
 		}
 	}
 
@@ -254,17 +275,36 @@ int bitScanForwardErase(uint64_t &bb)
 {
 	assert(bb != 0);
 
-#ifdef _MSC_VER
-	unsigned long index;
-	_BitScanForward64(&index, bb);
-#endif 
-
-#ifndef _MSC_VER
-	unsigned long index = __builtin_ffsll(bb) - 1;
-#endif 
+	int index = bitScanForward(bb);
 
 	bb &= bb - 1;
 	return index;
+}
+
+int bitScanForward(uint64_t bb)
+{
+#ifdef _MSC_VER
+	unsigned long index;
+	_BitScanForward64(&index, bb);
+	return index;
+#endif 
+
+#ifndef _MSC_VER
+	return __builtin_ffsll(bb) - 1;
+#endif 
+}
+
+int bitScanReverse(uint64_t bb)
+{
+#ifdef _MSC_VER
+	unsigned long index;
+	_BitScanReverse64(&index, bb);
+	return index;
+#endif 
+
+#ifndef _MSC_VER
+	return 63 - __builtin_clzll(bb);
+#endif 
 }
 
 //Not my code

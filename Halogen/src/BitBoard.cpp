@@ -93,7 +93,6 @@ void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() != 0);
 
-
 	for (int i = 0; i < N_PIECES; i++)
 	{
 		m_Bitboard[i] = previousBoards.back().GetPieceBB(i);

@@ -50,7 +50,7 @@ bool SearchTimeManage::ContinueSearch()
 bool SearchTimeManage::AbortSearch(uint64_t nodes)
 {
 	if ((nodes & 0x3FF) == 0 || nodes <= 0x3FFF)	//should hit once every 1024 times. & is quicker than (nodes % 1024). EDIT: will hit once every 1024, but every time its called initially to help with very fast time controls
-		CacheShouldStop = timer.ElapsedMs() > AllowedSearchTimeMS;
+		CacheShouldStop = timer.ElapsedMs() > (AllowedSearchTimeMS - 10);
 
 	return (!KeepSearching || CacheShouldStop);
 }

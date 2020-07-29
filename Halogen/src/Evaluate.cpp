@@ -1,32 +1,43 @@
 #include "Evaluate.h"
 
-const unsigned int PieceValues[N_PIECES] = { 100, 320, 330, 500, 900, 5000, 100, 320, 330, 500, 900, 5000 };
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {77, 398, 383, 545, 1051, 5000},
+												  {101, 343, 325, 614, 1055, 5000} };
 
-const int knightAdj[9] = { -20, -16, -12, -8, -4,  0,  4,  8, 12 };	//adjustment of piece value based on the number of own pawns
-const int rookAdj[9] = { 15,  12,   9,  6,  3,  0, -3, -6, -9 };
+int knightAdj[9] = {-127, -59, -48, -37, -34, -25, -20, -9, 4};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-57, -58, -58, -57, -55, -53, -48, -45, -37};
 
-const int WeakPawnPenalty = 10;
-const int WeakOpenPawnPenalty = 20;
-const int DoubledPawnPenalty = 10;
+int WeakPawnPenalty = 5;
+int WeakOpenPawnPenalty = 15;
+int DoubledPawnPenalty = 10;
 
-const int PassedPawnBonus[N_RANKS] = { 0, 10, 20, 30, 60, 120, 150, 0 };
+int PassedPawnBonus[N_RANKS] = {0, 1, 0, 13, 35, 91, 162, 0};
 
-const int CastledBonus = 40;
-const int BishopPairBonus = 30;
+int CanCastleBonus = 16;
+int CastledBonus = CanCastleBonus * 2;
+int BishopPairBonus = 47;
+int RookOpenFileBonus = 28;
+int RookSemiOpenFileBonus = 22;
+int Rook7thRankBonus = 15;
+
+int TempoBonus = 18;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
 int EvaluatePieceSquareTables(const Position& position, unsigned int gameStage);
-int EvaluateMaterial(const Position& position);
+int EvaluateMaterial(const Position& position, GameStages GameStage);
 int KingTropism(const Position& pos);
-int EvaluatePawns(const Position& position, unsigned int gameStage);
+int EvaluatePawns(const Position& position, GameStages gameStage);
 int CalculateGamePhase(const Position& position);
 int AdjustKnightScore(const Position& position);
 int AdjustRookScore(const Position& position);
+int RookFileAdjustment(const Position& position);
+int CalculateTempo(const Position& position);
 
-bool InsufficentMaterialEvaluation(const Position& position, int Material);		//if you already have the material score -> faster!
-bool InsufficentMaterialEvaluation(const Position& position);					//will count the material for you
+bool InsufficentMaterialEvaluation(const Position& position);
+
+bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
+bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
 
 PawnHashTable pawnHashTable;
 
@@ -54,15 +65,17 @@ int AntiDiagonals[64] = {
   14,13,12,11,10, 9, 8, 7
 };
 
-//DEBUG FUNCTIONS
-void FlipColours(Position& pos);
-void MirrorTopBottom(Position& pos);
-void MirrorLeftRight(Position& pos);
+int PieceValues(unsigned int Piece, GameStages GameStage)
+{
+	if (Piece < N_PIECE_TYPES)
+		return pieceValueVector[GameStage][Piece];
+	else
+		return pieceValueVector[GameStage][Piece - N_PIECE_TYPES];
+}
 
 int EvaluatePosition(const Position & position)
 {
-	int Material = EvaluateMaterial(position);	
-	if (InsufficentMaterialEvaluation(position, Material)) return 0;	//note the Material doesn't include the pawns, but if there were any pawns we return false anyways so that doesn't matter
+	if (InsufficentMaterialEvaluation(position)) return 0;	
 
 	int MidGame = 0;
 	int EndGame = 0;
@@ -81,9 +94,11 @@ int EvaluatePosition(const Position & position)
 
 	int KnightAdj = AdjustKnightScore(position);
 	int RookAdj = AdjustRookScore(position);
+	int RookFiles = RookFileAdjustment(position);
+
+	int tempo = CalculateTempo(position);
 
 	//stuff dependant on the game stage is calculated once for each
-
 	int PieceSquaresMid = EvaluatePieceSquareTables(position, MIDGAME);
 	int PieceSquaresEnd = EvaluatePieceSquareTables(position, ENDGAME);
 
@@ -92,43 +107,87 @@ int EvaluatePosition(const Position & position)
 	QueryPawnHashTable(position, pawnsMid, MIDGAME);
 	QueryPawnHashTable(position, pawnsEnd, ENDGAME);
 
-	MidGame = Material + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj;
-	EndGame = Material + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj;
+	int MaterialMid = EvaluateMaterial(position, MIDGAME);
+	int MaterialEnd = EvaluateMaterial(position, ENDGAME);
+
+	MidGame = MaterialMid + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	EndGame = MaterialEnd + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
 }
 
-int AdjustKnightScore(const Position& position)
+int CalculateTempo(const Position& position)
+{
+	if (position.GetTurn() == WHITE)
+		return TempoBonus;
+	else
+		return -TempoBonus;
+}
+
+int RookFileAdjustment(const Position& position)
 {
 	int Score = 0;
-	for (uint64_t piece = position.GetPieceBB(WHITE_KNIGHT); piece != 0; )
+	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
 	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score += knightAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))];
+		int sq = bitScanForwardErase(piece);	
+		int file = GetFile(sq);
+
+		if ((GetBitCount(position.GetPieceBB(WHITE_PAWN) & FileBB[file])) == 0)
+		{
+			if ((GetBitCount(position.GetPieceBB(BLACK_PAWN) & FileBB[file])) == 0)	
+			{
+				Score += RookOpenFileBonus;
+			}
+			else 
+			{
+				Score += RookSemiOpenFileBonus;
+			}
+		}
 	}
 
-	for (uint64_t piece = position.GetPieceBB(BLACK_KNIGHT); piece != 0; )
+	for (uint64_t piece = position.GetPieceBB(BLACK_ROOK); piece != 0; )
 	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score -= knightAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))];
+		int sq = bitScanForwardErase(piece);
+		int file = GetFile(sq);
+
+		if ((GetBitCount(position.GetPieceBB(BLACK_PAWN) & FileBB[file])) == 0)
+		{
+			if ((GetBitCount(position.GetPieceBB(WHITE_PAWN) & FileBB[file])) == 0)
+			{
+				Score -= RookOpenFileBonus;
+			}
+			else
+			{
+				Score -= RookSemiOpenFileBonus;
+			}
+		}
 	}
+
+	return Score;
+}
+
+int AdjustKnightScore(const Position& position)
+{
+	assert(GetBitCount(position.GetPieceBB(WHITE_PAWN)) <= 8);
+	assert(GetBitCount(position.GetPieceBB(BLACK_PAWN)) <= 8);
+
+	int Score = 0;
+	Score += knightAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_KNIGHT));
+	Score -= knightAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_KNIGHT));
 	return Score;
 }
 
 int AdjustRookScore(const Position& position)
 {
-	int Score = 0;
-	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))];
-	}
+	assert(GetBitCount(position.GetPieceBB(WHITE_PAWN)) <= 8);
+	assert(GetBitCount(position.GetPieceBB(BLACK_PAWN)) <= 8);
 
-	for (uint64_t piece = position.GetPieceBB(BLACK_ROOK); piece != 0; )
-	{
-		bitScanForwardErase(piece);	//clear the LSB
-		Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))];
-	}
+	int Score = 0;
+	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
+	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
+
+	Score += Rook7thRankBonus * GetBitCount(position.GetPieceBB(WHITE_ROOK) & RankBB[RANK_7]);
+	Score -= Rook7thRankBonus * GetBitCount(position.GetPieceBB(BLACK_ROOK) & RankBB[RANK_2]);
 	return Score;
 }
 
@@ -153,7 +212,7 @@ int CalculateGamePhase(const Position& position)
 	return phase;
 }
 
-void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameStage)
+void QueryPawnHashTable(const Position& position, int& pawns, GameStages GameStage)
 {
 	uint64_t pawnKey = PawnHashKey(position, GameStage);
 
@@ -170,12 +229,12 @@ void QueryPawnHashTable(const Position& position, int& pawns, unsigned int GameS
 	}
 }
 
-int EvaluatePawns(const Position& position, unsigned int gameStage)
+int EvaluatePawns(const Position& position, GameStages gameStage)
 {
 	int Score = 0;
 
-	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues[BLACK_PAWN];		//material																												
-	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues[WHITE_PAWN];	
+	Score -= GetBitCount(position.GetPieceBB(BLACK_PAWN)) * PieceValues(BLACK_PAWN, gameStage);		//material																												
+	Score += GetBitCount(position.GetPieceBB(WHITE_PAWN)) * PieceValues(WHITE_PAWN, gameStage);
 
 	for (uint64_t piece = position.GetPieceBB(BLACK_PAWN); piece != 0; Score -= PieceSquareTables[gameStage][BLACK_PAWN][bitScanForwardErase(piece)]);						//piece square tables
 	for (uint64_t piece = position.GetPieceBB(WHITE_PAWN); piece != 0; Score += PieceSquareTables[gameStage][WHITE_PAWN][bitScanForwardErase(piece)]);				
@@ -185,7 +244,7 @@ int EvaluatePawns(const Position& position, unsigned int gameStage)
 	return Score;
 }
 
-bool InsufficentMaterialEvaluation(const Position& position, int Material)
+bool InsufficentMaterialEvaluation(const Position& position)
 {
 	if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
 	if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
@@ -210,7 +269,7 @@ bool InsufficentMaterialEvaluation(const Position& position, int Material)
 		- two knights against the bare king																																								2.
 		- both sides have a king and a minor piece each																																					1.
 		- the weaker side has a minor piece against two knights																																			2.
-		- two bishops draw against a bishop																																								
+		- two bishops draw against a bishop																																								4.
 		- two minor pieces against one draw, except when the stronger side has a bishop pair																											3.
 
 		Please note that a knight or even two knights against two bishops are not included here, as it is possible to win this ending.
@@ -235,13 +294,7 @@ bool InsufficentMaterialEvaluation(const Position& position, int Material)
 	return false;
 }
 
-bool InsufficentMaterialEvaluation(const Position& position)
-{
-	int Material = EvaluateMaterial(position);
-	return InsufficentMaterialEvaluation(position, Material);
-}
-
-void InitializeEvaluation()
+void EvalInit()
 {
 	InitializePieceSquareTable();
 
@@ -287,6 +340,95 @@ bool DeadPosition(const Position& position)
 	return false;
 }
 
+bool IsBlockade(const Position& position)
+{
+	if (position.GetAllPieces() != (position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING) | position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN)))
+		return false;
+
+	if (position.GetTurn() == WHITE)
+		return BlackBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
+	else
+		return WhiteBlockade(position.GetPieceBB(WHITE_PAWN), position.GetPieceBB(BLACK_PAWN));
+}
+
+/*addapted from chess programming wiki code example*/
+bool BlackBlockade(uint64_t wPawns, uint64_t bPawns) 
+{
+	uint64_t fence = wPawns & (bPawns >> 8);					//blocked white pawns
+	if (GetBitCount(fence) < 3)
+		return false;
+
+	fence |= ((bPawns & ~(FileBB[FILE_A])) >> 9);				//black pawn attacks
+	fence |= ((bPawns & ~(FileBB[FILE_H])) >> 7);
+
+	uint64_t flood = RankBB[RANK_1] | allBitsBelow[bitScanForward(fence)];
+	uint64_t above = allBitsAbove[bitScanReverse(fence)];
+
+	if ((wPawns & ~fence) != 0)
+		return false;
+
+	while (true) {
+		uint64_t temp = flood;
+		flood |= ((flood & ~(FileBB[FILE_A])) >> 1) | ((flood & ~(FileBB[FILE_H])) << 1);	//Add left and right 
+		flood |= (flood << 8) | (flood >> 8);												//up and down
+		flood &= ~fence;
+
+		if (flood == temp)
+			break; /* Fill has stopped, blockage? */
+		if (flood & above) /* break through? */
+			return false; /* yes, no blockage */
+		if (flood & bPawns) {
+			bPawns &= ~flood;  /* "capture" undefended black pawns */
+			fence = wPawns & (bPawns >> 8);
+			if (GetBitCount(fence) < 3)
+				return false;
+
+			fence |= ((bPawns & ~(FileBB[FILE_A])) >> 9);				
+			fence |= ((bPawns & ~(FileBB[FILE_H])) >> 7);
+		}
+	}
+
+	return true;
+}
+
+bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns)
+{
+	uint64_t fence = bPawns & (wPawns << 8);					
+	if (GetBitCount(fence) < 3)
+		return false;
+
+	fence |= ((wPawns & ~(FileBB[FILE_A])) << 7);
+	fence |= ((wPawns & ~(FileBB[FILE_H])) << 9);
+
+	uint64_t flood = RankBB[RANK_8] | allBitsAbove[bitScanReverse(fence)];
+	uint64_t above = allBitsBelow[bitScanForward(fence)];
+
+	if ((bPawns & ~fence) != 0)
+		return false;
+
+	while (true) {
+		uint64_t temp = flood;
+		flood |= ((flood & ~(FileBB[FILE_A])) >> 1) | ((flood & ~(FileBB[FILE_H])) << 1);	//Add left and right 
+		flood |= (flood << 8) | (flood >> 8);												//up and down
+		flood &= ~fence;
+
+		if (flood == temp)
+			break; /* Fill has stopped, blockage? */
+		if (flood & above) /* break through? */
+			return false; /* yes, no blockage */
+		if (flood & bPawns) {
+			bPawns &= ~flood;  /* "capture" undefended black pawns */
+			fence = bPawns & (wPawns << 8);
+			if (GetBitCount(fence) < 3)
+				return false;
+
+			fence |= ((wPawns & ~(FileBB[FILE_A])) << 7);
+			fence |= ((wPawns & ~(FileBB[FILE_H])) << 9);
+		}
+	}
+	return true;
+}
+
 int EvaluateCastleBonus(const Position & position)
 {
 	int score = 0;
@@ -296,6 +438,12 @@ int EvaluateCastleBonus(const Position & position)
 
 	if (position.HasCastledBlack())
 		score -= CastledBonus;
+
+	if (position.CanCastleWhiteKingside() || position.CanCastleWhiteQueenside())
+		score += CanCastleBonus;
+
+	if (position.CanCastleBlackKingside() || position.CanCastleBlackQueenside())
+		score -= CanCastleBonus;
 
 	return score;
 }
@@ -386,14 +534,14 @@ int EvaluatePieceSquareTables(const Position & position, unsigned int gameStage)
 	return Score;
 }
 
-int EvaluateMaterial(const Position & position)
+int EvaluateMaterial(const Position & position, GameStages GameStage)
 {
 	int Score = 0;
 
 	for (int i = 1; i < N_PIECE_TYPES; i++)	//skip pawn
 	{
-		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues[i];																														//black piece
-		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues[i + N_PIECE_TYPES];																						//white piece										
+		Score -= GetBitCount(position.GetPieceBB(i)) * PieceValues(i, GameStage);																														//black piece
+		Score += GetBitCount(position.GetPieceBB(i + N_PIECE_TYPES)) * PieceValues(i + N_PIECE_TYPES, GameStage);																						//white piece										
 	}
 
 	return Score;
@@ -426,19 +574,12 @@ bool EvaluateDebug()
 			Position copy = testPosition;
 			int score = EvaluatePosition(testPosition);
 
-			FlipColours(testPosition);
-			MirrorTopBottom(testPosition);
-
+			testPosition.FlipColours();
+			testPosition.MirrorTopBottom();
 			assert(score == -EvaluatePosition(testPosition));
-
-			MirrorLeftRight(testPosition);
-			assert(score == -EvaluatePosition(testPosition));
-
-			FlipColours(testPosition);
-			MirrorTopBottom(testPosition);
-			assert(score == EvaluatePosition(testPosition));
-
-			MirrorLeftRight(testPosition);
+			testPosition.FlipColours();
+			testPosition.MirrorTopBottom();
+			
 
 			for (int j = 0; j < N_SQUARES; j++)
 			{
@@ -450,45 +591,62 @@ bool EvaluateDebug()
 	return true;
 }
 
-void FlipColours(Position& pos)
+std::vector<int*> TexelParamiters()
 {
-	for (int i = 0; i < N_SQUARES; i++)
+	std::vector<int*> params { 
+			&pieceValueVector[MIDGAME][0], 
+			&pieceValueVector[MIDGAME][1],
+			&pieceValueVector[MIDGAME][2],
+			&pieceValueVector[MIDGAME][3],
+			&pieceValueVector[MIDGAME][4],
+			&pieceValueVector[ENDGAME][0],
+			&pieceValueVector[ENDGAME][1],
+			&pieceValueVector[ENDGAME][2],
+			&pieceValueVector[ENDGAME][3],
+			&pieceValueVector[ENDGAME][4],
+			&WeakPawnPenalty,
+			&WeakOpenPawnPenalty,
+			&DoubledPawnPenalty,
+			&BishopPairBonus,
+			&RookOpenFileBonus,
+			&RookSemiOpenFileBonus,
+			&Rook7thRankBonus,
+			&TempoBonus	};
+
+	for (int i = 0; i < 9; i++)
 	{
-		if (pos.IsOccupied(i))
-			pos.SetSquare(i, Piece(pos.GetSquare(i) % N_PIECE_TYPES, !ColourOfPiece(pos.GetSquare(i))));
-	}
-}
-
-void MirrorLeftRight(Position& pos)
-{
-	Position copy = pos;
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		pos.ClearSquare(i);
-	}
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		if (copy.IsOccupied(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))))
-			pos.SetSquare(i, copy.GetSquare(GetPosition(N_FILES - GetFile(i) - 1, GetRank(i))));
-	}
-}
-
-void MirrorTopBottom(Position& pos)
-{
-	Position copy = pos;
-
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		pos.ClearSquare(i);
+		params.push_back(&knightAdj[i]);
 	}
 
+	for (int i = 0; i < 9; i++)
+	{
+		params.push_back(&rookAdj[i]);
+	}
+
+	for (int i = 1; i <= 6; i++)
+	{
+		params.push_back(&PassedPawnBonus[i]);
+	}
+
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		if (copy.IsOccupied(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)))
-			pos.SetSquare(i, copy.GetSquare(GetPosition(GetFile(i), N_RANKS - GetRank(i) - 1)));
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+		{
+			params.push_back(&PawnSquareValuesMid[i]);
+			params.push_back(&PawnSquareValuesEndGame[i]);
+		}
+		
+		params.push_back(&KnightSquareValues[i]);
+		params.push_back(&RookSquareValues[i]);
+		params.push_back(&BishopSquareValues[i]);
+		params.push_back(&QueenSquareValues[i]);
+		params.push_back(&KingSquareMid[i]);
+		params.push_back(&KingSquareEndGame[i]);
 	}
+
+	params.push_back(&CanCastleBonus);
+
+	return params;
 }
 
 //gives a score based on how close the pieces are to an opponents king

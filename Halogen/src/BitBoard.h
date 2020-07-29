@@ -8,6 +8,7 @@ struct BitBoardData
 
 	BitBoardData();
 
+	//we need these functions because Zobrist increment will access the previous BitBoardData from previousBoards and it then needs to extract this information
 	uint64_t GetPieceBB(unsigned int piece) const;
 	unsigned int GetSquare(unsigned int square) const;	//returns N_PIECES = 12 if empty
 

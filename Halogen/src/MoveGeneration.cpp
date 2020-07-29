@@ -66,7 +66,7 @@ void LegalMoves(Position & position, std::vector<Move>& moves)
 
 void QuiescenceMoves(Position& position, std::vector<Move>& moves)
 {
-	moves.reserve(10);
+	moves.reserve(15);
 	AddQuiescenceMoves(position, moves, PinnedMask(position));
 }
 
@@ -609,6 +609,67 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 	}
 
 	return threats;
+}
+
+Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool colour)
+{
+	assert(square < N_SQUARES);
+
+	uint64_t pawnmask = 0;
+	if (colour == BLACK)
+	{
+		pawnmask = (WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN));
+	}
+
+	if (colour == WHITE)
+	{
+		pawnmask = (BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN));
+	}
+
+	if (pawnmask != 0)
+	{
+		return(Move(bitScanForwardErase(pawnmask), square, CAPTURE));
+	}
+
+	uint64_t knightmask = (KnightAttacks[square] & position.GetPieceBB(KNIGHT, colour));
+	if (knightmask != 0)
+	{
+		return(Move(bitScanForwardErase(knightmask), square, CAPTURE));
+	}
+
+	uint64_t Pieces = position.GetAllPieces();
+
+	uint64_t bishops = position.GetPieceBB(BISHOP, colour) & BishopAttacks[square];
+	while (bishops != 0)
+	{
+		unsigned int start = bitScanForwardErase(bishops);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t rook = position.GetPieceBB(ROOK, colour) & RookAttacks[square];
+	while (rook != 0)
+	{
+		unsigned int start = bitScanForwardErase(rook);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t queen = position.GetPieceBB(QUEEN, colour) & QueenAttacks[square];
+	while (queen != 0)
+	{
+		unsigned int start = bitScanForwardErase(queen);
+		if (mayMove(start, square, Pieces))
+			return Move(start, square, CAPTURE);
+	}
+
+	uint64_t kingmask = (KingAttacks[square] & position.GetPieceBB(KING, colour));
+	if (kingmask != 0)
+	{
+		return(Move(bitScanForwardErase(kingmask), square, CAPTURE));
+	}
+
+	return Move();
 }
 
 bool MovePutsSelfInCheck(Position & position, Move & move)
