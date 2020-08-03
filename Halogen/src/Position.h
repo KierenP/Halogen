@@ -49,6 +49,10 @@ public:
 	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
 
+	void FlipColours();
+	void MirrorLeftRight();
+	void MirrorTopBottom();
+
 	/*Seriously, don't use these functions outside of static exchange evaluation*/
 	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
 	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()

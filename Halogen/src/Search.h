@@ -8,10 +8,8 @@
 #include "TimeManage.h"
 #include <ctime>
 #include <algorithm>
-#include <utility>
-#include <deque>
-#include <xmmintrin.h>
 #include <thread>
+#include <cmath>
 
 struct SearchResult
 {
@@ -42,18 +40,44 @@ struct Killer
 	Move move[2];
 };
 
-struct ThreadData
+struct SearchData
 {
-	ThreadData();
+	SearchData();
 
 	std::vector<std::vector<Move>> PvTable;
 	std::vector<Killer> KillerMoves;							//2 moves indexed by distanceFromRoot
-	unsigned int HistoryMatrix[N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
+	unsigned int HistoryMatrix[N_PLAYERS][N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
 	SearchTimeManage timeManage;
 };
 
+class ThreadSharedData
+{
+public:
+	ThreadSharedData(unsigned int threads = 1, bool NoOutput = false);
+	~ThreadSharedData();
+
+	Move GetBestMove();
+	bool ThreadAbort(unsigned int initialDepth);
+	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, Position& position, Move move, SearchData& locals);
+	void ReportDepth(unsigned int depth, unsigned int threadID);
+	bool ShouldSkipDepth(unsigned int depth);
+	int GetAspirationScore();
+
+private:
+	std::mutex ioMutex;
+	unsigned int threadCount;
+	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
+	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
+	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+	bool noOutput;									//Do not write anything to the concole
+
+	std::vector<int> searchDepth;					//what depth is each thread currently searching?
+};
+
 extern TranspositionTable tTable;
-extern unsigned int ThreadCount;
 
 Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int threads = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
+
+int TexelSearch(Position& position, SearchData& data);
+

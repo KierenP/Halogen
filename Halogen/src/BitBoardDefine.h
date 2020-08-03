@@ -9,6 +9,8 @@
 #include <intrin.h>
 #endif
 
+extern bool HASH_ENABLE;
+
 enum Squares
 {
 	SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -134,7 +136,6 @@ enum AnitDiagonal
 
 enum GameStages
 {
-	OPENING,		
 	MIDGAME,		
 	ENDGAME,
 	N_STAGES

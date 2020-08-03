@@ -1,34 +1,32 @@
 #include "Benchmark.h"
-#include "Search.h"
+#include "Texel.h"
 #include <thread>
 
 using namespace::std;
-Position GameBoard;
 
 void PerftSuite();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
-void Bench(Position& position);
+void Bench();
 
-string version = "4.2.1"; 
+string version = "5.3"; 
 
 int main(int argc, char* argv[])
 {
-	std::cout << "Halogen " << version << std::endl;
+	cout << "Halogen " << version << endl;
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
 
 	ZobristInit();
 	BBInit();
-	InitializeEvaluation();
+	EvalInit();
 
 	GameBoard.InitialiseFromFen("k7/2p5/1p3p1p/8/3pNp2/4p3/8/K7 w - - 0 1");
 	EvaluatePosition(GameBoard);
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
-	GameBoard.StartingPosition();
 
 	EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
@@ -36,11 +34,16 @@ int main(int argc, char* argv[])
 	tTable.SetSize(1);
 	pawnHashTable.Init(1);
 
-	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(GameBoard); return 0; }	//currently only supports bench from command line for openBench integration
+	Position position;
+	position.StartingPosition();
+
+	unsigned int ThreadCount = 1;
+
+	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
 
 	while (getline(cin, Line))
 	{
-		std::istringstream iss(Line);
+		istringstream iss(Line);
 		string token;
 
 		iss >> token;
@@ -59,15 +62,15 @@ int main(int argc, char* argv[])
 
 		else if (token == "ucinewgame")
 		{
-			GameBoard.StartingPosition();
+			position.StartingPosition();
 			pawnHashTable.ResetTable();
 			tTable.ResetTable();
 		}
 
 		else if (token == "position")
 		{
-			GameBoard.Reset();
-			GameBoard.StartingPosition();
+			position.Reset();
+			position.StartingPosition();
 
 			iss >> token;
 
@@ -80,14 +83,14 @@ int main(int argc, char* argv[])
 					fen.push_back(token);
 				}
 
-				if (!GameBoard.InitialiseFromFen(fen)) cout << "BAD FEN";
-				if (token == "moves") while (iss >> token) GameBoard.ApplyMove(token);
+				if (!position.InitialiseFromFen(fen)) cout << "BAD FEN";
+				if (token == "moves") while (iss >> token) position.ApplyMove(token);
 			}
 
 			if (token == "startpos")
 			{
 				iss >> token;
-				if (token == "moves") while (iss >> token) GameBoard.ApplyMove(token);
+				if (token == "moves") while (iss >> token) position.ApplyMove(token);
 			}
 		}
 
@@ -120,21 +123,21 @@ int main(int argc, char* argv[])
 				if (movestogo == 0)
 				{
 
-					if (GameBoard.GetTurn() == WHITE)
+					if (position.GetTurn() == WHITE)
 						movetime = wtime / 20 + winc;
 					else
 						movetime = btime / 20 + binc;
 				}
 				else
 				{
-					if (GameBoard.GetTurn() == WHITE)
+					if (position.GetTurn() == WHITE)
 						movetime = movestogo <= 1 ? wtime : wtime / (movestogo + 1) * 2;	
 					else
 						movetime = movestogo <= 1 ? btime : btime / (movestogo + 1) * 2;
 				}
 			}
 
-			std::thread searchThread([&] {MultithreadedSearch(GameBoard, movetime, ThreadCount); });
+			thread searchThread([&] {MultithreadedSearch(position, movetime, ThreadCount); });
 			searchThread.detach();
 			
 		}
@@ -162,9 +165,9 @@ int main(int argc, char* argv[])
 				int size = stoi(token);
 
 				if (size < 2)
-					std::cout << "info string Hash size too small" << std::endl;
+					cout << "info string Hash size too small" << endl;
 				else if (size > 8192)
-					std::cout << "info string Hash size too large" << std::endl;
+					cout << "info string Hash size too large" << endl;
 				else
 				{
 					tTable.SetSize(stoi(token) - 1);
@@ -180,9 +183,9 @@ int main(int argc, char* argv[])
 				int size = stoi(token);
 
 				if (size < 1)
-					std::cout << "info string thread count too small" << std::endl;
+					cout << "info string thread count too small" << endl;
 				else if (size > 8)
-					std::cout << "info string thread count too large" << std::endl;
+					cout << "info string thread count too large" << endl;
 				else
 				{
 					ThreadCount = size;
@@ -193,13 +196,19 @@ int main(int argc, char* argv[])
 		else if (token == "perft")
 		{
 			iss >> token;
-			PerftDivide(stoi(token), GameBoard);
+			PerftDivide(stoi(token), position);
+		}
+
+		else if (token == "texel")
+		{
+			Texel(TexelParamiters());
 		}
 
 		else if (token == "stop") KeepSearching = false;
-		else if (token == "print") GameBoard.Print();
+		else if (token == "print") position.Print();
 		else if (token == "quit") return 0;
-		else if (token == "bench") Bench(GameBoard);
+		else if (token == "bench") Bench();
+		
 		else cout << "Unknown command" << endl;
 	}
 
@@ -208,7 +217,7 @@ int main(int argc, char* argv[])
 
 void PerftSuite()
 {
-	std::ifstream infile("perftsuite.txt");
+	ifstream infile("perftsuite.txt");
 
 	//multi-coloured text in concole 
 	HANDLE  hConsole;
@@ -217,37 +226,37 @@ void PerftSuite()
 	unsigned int Perfts = 0;
 	unsigned int Correct = 0;
 	double Totalnodes = 0;
-
-	std::string line;
+	Position position;
+	string line;
 
 	clock_t before = clock();
-	while (std::getline(infile, line))
+	while (getline(infile, line))
 	{
 		vector<string> arrayTokens;
-		std::istringstream iss(line);
+		istringstream iss(line);
 		arrayTokens.clear();
 
 		do
 		{
-			std::string stub;
+			string stub;
 			iss >> stub;
 			arrayTokens.push_back(stub);
 		} while (iss);
 
-		GameBoard.InitialiseFromFen(line);
+		position.InitialiseFromFen(line);
 		
-		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, GameBoard);
+		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
 		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
-			std::cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 			Correct++;
 		}
 		else
 		{
 			SetConsoleTextAttribute(hConsole, 4);	//red text
-			std::cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+			cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
 			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 		}
 
@@ -258,9 +267,9 @@ void PerftSuite()
 
 	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-	std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
-	std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
+	cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
+	cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
+	cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
 }
 
 uint64_t PerftDivide(unsigned int depth, Position& position)
@@ -268,8 +277,8 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	clock_t before = clock();
 
 	uint64_t nodeCount = 0;
-	std::vector<Move> moves;
-	LegalMoves(GameBoard, moves);
+	vector<Move> moves;
+	LegalMoves(position, moves);
 
 	for (int i = 0; i < moves.size(); i++)
 	{
@@ -278,15 +287,15 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 		position.RevertMove();
 
 		moves.at(i).Print();
-		std::cout << ": " << ChildNodeCount << std::endl;
+		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
 
 	clock_t after = clock();
 	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-	std::cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
-	std::cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
+	cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
+	cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
 	return nodeCount;
 }
 
@@ -296,7 +305,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
 	uint64_t nodeCount = 0;
-	std::vector<Move> moves;
+	vector<Move> moves;
 	LegalMoves(position, moves);
 
 	for (int i = 0; i < moves.size(); i++)
@@ -309,32 +318,25 @@ uint64_t Perft(unsigned int depth, Position& position)
 	return nodeCount;
 }
 
-void Bench(Position& position)
+void Bench()
 {
-	unsigned int prev = ThreadCount;
-	ThreadCount = 1;
-
 	Timer timer;
 	timer.Start();
 
 	uint64_t nodeCount = 0;
+	Position position;
 
 	for (int i = 0; i < benchMarkPositions.size(); i++)
 	{
 		if (!position.InitialiseFromFen(benchMarkPositions[i]))
 		{
-			std::cout << "BAD FEN!" << std::endl;
+			cout << "BAD FEN!" << endl;
 			break;
 		}
 
-		position.Print();
-
 		uint64_t nodes = BenchSearch(position, 8);
-		std::cout << std::endl;
-
 		nodeCount += nodes;
 	}
 
-	std::cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << std::endl;
-	ThreadCount = prev;
+	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
 }

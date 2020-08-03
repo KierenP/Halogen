@@ -63,6 +63,9 @@
     <ClCompile Include="..\src\PawnHashTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Texel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\BitBoard.h">
@@ -113,11 +116,11 @@
     <ClInclude Include="..\src\Benchmark.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Texel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="bkt.txt">
-      <Filter>Resource Files</Filter>
-    </Text>
     <Text Include="perftsuite.txt">
       <Filter>Resource Files</Filter>
     </Text>

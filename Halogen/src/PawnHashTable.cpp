@@ -46,6 +46,9 @@ PawnHash PawnHashTable::GetEntry(uint64_t key)
 
 void PawnHashTable::AddEntry(uint64_t hashKey, int score)
 {
+	if (!HASH_ENABLE)
+		return;
+
 	table.at(hashKey % table.size()) = PawnHash(hashKey, score, true);
 }
 
