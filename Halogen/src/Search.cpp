@@ -1,7 +1,8 @@
 #include "Search.h"
 
 const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
-const unsigned int R = 3;	//Null-move reduction depth
+const unsigned int R = 3;					//Null-move reduction depth
+const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
 TranspositionTable tTable;
 
@@ -445,14 +446,16 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining))
 	{
+		int reduction = R + (depthRemaining >= VariableNullDepth);
+
 		position.ApplyNullMove();
-		int score = -NegaScout(position, initialDepth, depthRemaining - R - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();	
+		int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
 		position.RevertNullMove();
 
 		//Verification search worth about ~5 elo. 
 		if (score >= beta)
 		{
-			SearchResult result = NegaScout(position, initialDepth, depthRemaining - R - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
+			SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
 
 			if (result.GetScore() >= beta)
 				return result;
