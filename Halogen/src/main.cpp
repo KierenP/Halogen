@@ -22,9 +22,6 @@ int main(int argc, char* argv[])
 	BBInit();
 	EvalInit();
 
-	GameBoard.InitialiseFromFen("k7/2p5/1p3p1p/8/3pNp2/4p3/8/K7 w - - 0 1");
-	EvaluatePosition(GameBoard);
-
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 

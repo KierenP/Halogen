@@ -115,8 +115,8 @@ int EvaluatePosition(const Position & position)
 	int MaterialMid = EvaluateMaterial(position, MIDGAME);
 	int MaterialEnd = EvaluateMaterial(position, ENDGAME);
 
-	MidGame = MaterialMid + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
-	EndGame = MaterialEnd + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo;
+	MidGame = MaterialMid + PieceSquaresMid + Castle + Tropism + pawnsMid + BishopPair + KnightAdj + RookAdj + RookFiles + tempo + mobility;
+	EndGame = MaterialEnd + PieceSquaresEnd + Castle + Tropism + pawnsEnd + BishopPair + KnightAdj + RookAdj + RookFiles + tempo + mobility;
 
 	return ((MidGame * (256 - GamePhase)) + (EndGame * GamePhase)) / 256;
 }
