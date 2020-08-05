@@ -92,7 +92,6 @@ void TranspositionTable::SetSize(uint64_t MB)
 	size_t EntrySize = sizeof(TTEntry);
 
 	size_t entries = (MB * 1024 * 1024 / EntrySize);
-	size_t mutexCount = (entries / mutex_frequency);
 	
 	for (size_t i = 0; i < entries; i++)
 	{
