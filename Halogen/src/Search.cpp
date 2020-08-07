@@ -676,6 +676,7 @@ bool LMR(Move move, bool InCheck, Position& position, int depthRemaining)
 	return !move.IsCapture()
 		&& !move.IsPromotion()
 		&& !InCheck 
+		&& !IsEndGame(position)
 		&& !IsInCheck(position)
 		&& depthRemaining > 3;
 }
