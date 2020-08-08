@@ -595,9 +595,9 @@ int Reduction(int depth, int i, int alpha, int beta)
 {
 	/*Formula adapted from Fruit Reloaded, sourced from chess programming wiki*/
 	if (IsPV(beta, alpha))
-		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (1.f / 3.f));
+		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) / 3);
 	else
-		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (1.f / 2.f));
+		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) / 2);
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
