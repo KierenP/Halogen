@@ -594,9 +594,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 int Reduction(int depth, int i, int alpha, int beta)
 {
 	if (IsPV(beta, alpha))
-		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (2.f/3.f));
+		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (1.f / 3.f));
 	else
-		return int(sqrt(double(depth - 1)) + sqrt(double(i - 1)));
+		return int((sqrt(double(depth - 1)) + sqrt(double(i - 1))) * (1.f / 2.f));
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
