@@ -5,6 +5,7 @@
 using namespace::std;
 
 void PerftSuite();
+void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
@@ -13,7 +14,7 @@ string version = "5-20200808-2310";
 
 int main(int argc, char* argv[])
 {
-	cout << "Halogen " << version << endl;
+	PrintVersion();
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -210,6 +211,19 @@ int main(int argc, char* argv[])
 	}
 
 	return 0;
+}
+
+void PrintVersion()
+{
+#if defined(_WIN64)
+	#if defined(_MSC_VER) || defined(USE_POPCNT)
+		cout << "Halogen " << version << " x64 POPCNT" << endl;
+	#else
+		cout << "Halogen " << version << " x64" << endl;
+	#endif 
+#else
+	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
+#endif
 }
 
 void PerftSuite()
