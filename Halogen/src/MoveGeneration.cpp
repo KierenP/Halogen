@@ -555,7 +555,7 @@ bool IsSquareThreatened(const Position & position, unsigned int square, bool col
 
 bool IsInCheck(const Position& position, bool colour)
 {
-	return IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());
+	return IsSquareThreatened(position, position.GetKing(colour), colour);
 }
 
 bool IsInCheck(const Position& position)
@@ -676,7 +676,7 @@ bool MovePutsSelfInCheck(Position & position, Move & move)
 {
 	unsigned int fromPiece = position.GetSquare(move.GetFrom());
 	unsigned int toPiece = position.GetSquare(move.GetTo());
-	unsigned int epPiece = -1;
+	unsigned int epPiece = static_cast<unsigned int>(-1);
 
 	position.SetSquare(move.GetTo(), fromPiece);
 	position.ClearSquare(move.GetFrom());

@@ -4,7 +4,7 @@
 
 const unsigned int HALF_MOVE_MODULO = 16;
 
-enum class EntryType {
+enum class EntryType : char {
 	EMPTY_ENTRY,
 	EXACT,
 	LOWERBOUND,
@@ -22,7 +22,7 @@ public:
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
 	int GetDepth() const { return depth; }
-	bool IsAncient(unsigned int currenthalfmove, unsigned int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
+	bool IsAncient(unsigned int currenthalfmove, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO)); }
 	EntryType GetCutoff() const { return static_cast<EntryType>(cutoff); }
 	Move GetMove() const { return bestMove; }
 	char GetHalfMove() const { return halfmove; }
@@ -38,7 +38,7 @@ private:
 	uint64_t key;			//8 bytes
 
 	Move bestMove;			//2 bytes 
-	char halfmove;	//1 bytes		(is stored as the halfmove at the ROOT of this current search, modulo 256)
+	char halfmove;			//1 bytes		(is stored as the halfmove at the ROOT of this current search, modulo 16)
 
 	short int score;		//2 bytes
 	char depth;				//1 bytes

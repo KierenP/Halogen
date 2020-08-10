@@ -10,6 +10,7 @@ OUTPUT = ..\..\..\$(EXE)$(VER)
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
 RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
+DFLAGS = -O0 $(WFLAGS)
 
 POPCNTFLAGS = -DUSE_POPCNT
 
@@ -20,3 +21,6 @@ release:
 	mkdir $(OUTPUT)
 	$(CC) $(RFLAGS) $(SRC) -o $(OUTPUT)\$(EXE)$(VER)-x64-nopopcnt.exe
 	$(CC) $(RFLAGS) $(SRC) $(POPCNTFLAGS) -o $(OUTPUT)\$(EXE)$(VER)-x64-popcnt.exe
+	
+debug:
+	$(CC) $(DFLAGS) $(SRC) $(POPCNTFLAGS) -o $(EXE)

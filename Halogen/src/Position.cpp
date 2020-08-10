@@ -31,7 +31,7 @@ void Position::ApplyMove(Move move)
 	PreviousKeys.push_back(key);
 	SaveParamiters();
 	SaveBoard();
-	SetEnPassant(-1);
+	SetEnPassant(static_cast<unsigned int>(-1));
 	Increment50Move();
 	NodeCount += 1;
 
@@ -97,7 +97,7 @@ void Position::ApplyMove(Move move)
 	if (move.IsCapture())
 		SetCaptureSquare(move.GetTo());
 	else
-		SetCaptureSquare(-1);
+		SetCaptureSquare(static_cast<unsigned int>(-1));
 
 	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
 		Reset50Move();
@@ -182,8 +182,8 @@ void Position::ApplyNullMove()
 {
 	PreviousKeys.push_back(key);
 	SaveParamiters();
-	SetEnPassant(-1);
-	SetCaptureSquare(-1);
+	SetEnPassant(static_cast<unsigned int>(-1));
+	SetCaptureSquare(static_cast<unsigned int>(-1));
 	Increment50Move();
 
 	NextTurn();
@@ -215,7 +215,7 @@ void Position::Print() const
 	SetConsoleTextAttribute(hConsole, 7);	//back to gray
 
 	char Letter[N_SQUARES];
-	unsigned int colour[N_SQUARES];
+	unsigned short colour[N_SQUARES];
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
@@ -299,7 +299,7 @@ bool Position::InitialiseFromMoves(std::vector<std::string> moves)
 {
 	StartingPosition();
 
-	for (int i = 0; i < moves.size(); i++)
+	for (size_t i = 0; i < moves.size(); i++)
 	{
 		ApplyMove(moves[i]);
 	}

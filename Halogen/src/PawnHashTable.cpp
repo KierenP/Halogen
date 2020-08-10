@@ -14,7 +14,7 @@ void PawnHashTable::ResetTable()
 	HashHits = 0;
 	HashMisses = 0;
 
-	for (int i = 0; i < table.size(); i++)
+	for (size_t i = 0; i < table.size(); i++)
 	{
 		table[i] = PawnHash();
 	}
@@ -26,7 +26,7 @@ void PawnHashTable::Init(unsigned int size)
 	unsigned int EntrySize = sizeof(PawnHash);
 	unsigned int entires = size * 1024 * 1024 / EntrySize;
 
-	for (int i = 0; i < entires; i++)
+	for (size_t i = 0; i < entires; i++)
 	{
 		table.push_back(PawnHash());
 	}

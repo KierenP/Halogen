@@ -57,7 +57,7 @@ void Texel(std::vector<int*> params)
 
 	uint64_t totalScore = 0;
 
-	for (int i = 0; i < positions.size(); i++)
+	for (size_t i = 0; i < positions.size(); i++)
 	{
 		int score = TexelSearch(positions[i].first, data);
 		totalScore += score;
@@ -76,7 +76,7 @@ void Texel(std::vector<int*> params)
 
 	std::vector<double> paramiterValues;
 
-	for (int i = 0; i < params.size(); i++)
+	for (size_t i = 0; i < params.size(); i++)
 	{
 		paramiterValues.push_back(*params[i]);
 	}
@@ -90,7 +90,7 @@ void Texel(std::vector<int*> params)
 
 		std::vector<double> gradient;
 
-		for (int i = 0; i < params.size(); i++)
+		for (size_t i = 0; i < params.size(); i++)
 		{
 			(*params[i])++;
 			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
@@ -100,11 +100,11 @@ void Texel(std::vector<int*> params)
 			gradient.push_back(firstDerivitive);
 		}
 
-		for (int i = 0; i < params.size(); i++)
+		for (size_t i = 0; i < params.size(); i++)
 		{
 			double delta = step_size * gradient[i];
 			paramiterValues[i] -= delta;
-			(*params[i]) = round(paramiterValues[i]);
+			(*params[i]) = static_cast<int>(round(paramiterValues[i]));
 		}
 
 		step_size *= 1 / (1 + 0.0001 * iteration);
@@ -204,7 +204,7 @@ void Loadquietlabeled(std::vector<std::pair<Position, double>>& positions, std::
 void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration)
 {
 
-	for (int i = 0; i < params.size(); i++)
+	for (size_t i = 0; i < params.size(); i++)
 	{
 		std::cout << "Paramiter " << i << ": " << *(params[i]) << " exact value: " << paramiterValues[i] << std::endl;
 	}
@@ -215,12 +215,12 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<double>
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, unsigned int subset)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, size_t subset)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
 	double error = 0;
-	for (int i = 0; i < subset; i++)
+	for (size_t i = 0; i < subset; i++)
 	{
 		double sigmoid = 1 / (1 + pow(10, -TexelSearch(positions[i].first, data) * k / 400));
 		error += pow(positions[i].second - sigmoid, 2);
@@ -246,7 +246,7 @@ double CalculateK(std::vector<Position>& positionList, std::vector<double>& posi
 		double error_k_plus_epsilon = 0;
 		double sigmoid = 0;
 
-		for (int i = 0; i < positionList.size(); i++)
+		for (size_t i = 0; i < positionList.size(); i++)
 		{
 			sigmoid = 1 / (1 + pow(10, -positionScore[i] * k / 400));
 			error_k += pow(positionResults[i] - sigmoid, 2);

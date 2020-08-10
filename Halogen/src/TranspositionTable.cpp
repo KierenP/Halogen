@@ -30,7 +30,7 @@ bool CheckEntry(const TTEntry& entry, uint64_t key)
 	return false;
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int halfmove, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
 {
 	if (!HASH_ENABLE)
 		return;
@@ -43,9 +43,9 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 		Score -= distanceFromRoot;
 
 
-	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(halfmove, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
+	if ((table.at(hash).GetKey() == EMPTY) || (table.at(hash).GetDepth() <= Depth) || (table.at(hash).IsAncient(Turncount, distanceFromRoot)) || table.at(hash).GetCutoff() == EntryType::EMPTY_ENTRY)
 	{
-		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, halfmove, distanceFromRoot, Cutoff);
+		table.at(hash) = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
 	}
 }
 
@@ -65,7 +65,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 	for (int i = 0; i < 1000; i++)	//1000 chosen specifically, because result needs to be 'per mill'
 	{
-		if (table.at(i).GetHalfMove() == halfmove % HALF_MOVE_MODULO)
+		if (table.at(i).GetHalfMove() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
 			count++;
 	}
 
@@ -76,7 +76,7 @@ void TranspositionTable::ResetTable()
 {
 	TTHits = 0;
 
-	for (int i = 0; i < table.size(); i++)
+	for (size_t i = 0; i < table.size(); i++)
 	{
 		table.at(i).Reset();
 	}
@@ -112,7 +112,7 @@ void TranspositionTable::PreFetch(uint64_t key) const
 
 void TranspositionTable::RunAsserts() const
 {
-	for (int i = 0; i < table.size(); i++)
+	for (size_t i = 0; i < table.size(); i++)
 	{
 		if (table[i].GetScore() == -30000 || table[i].GetScore() == 30000)
 			std::cout << "Bad entry in table!";

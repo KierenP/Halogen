@@ -45,7 +45,7 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 {
 	ResetBoard();
 
-	int FenLetter = 0;													//index within the string
+	size_t FenLetter = 0;													//index within the string
 	int square = 0;														//index within the board
 	while ((square < 64) && (FenLetter < fen[0].length()))
 	{

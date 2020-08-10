@@ -257,7 +257,7 @@ void PerftSuite()
 		position.InitialiseFromFen(line);
 		
 		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
-		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
+		if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
 			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
@@ -291,7 +291,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	vector<Move> moves;
 	LegalMoves(position, moves);
 
-	for (int i = 0; i < moves.size(); i++)
+	for (size_t i = 0; i < moves.size(); i++)
 	{
 		position.ApplyMove(moves.at(i));
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
@@ -319,7 +319,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 	vector<Move> moves;
 	LegalMoves(position, moves);
 
-	for (int i = 0; i < moves.size(); i++)
+	for (size_t i = 0; i < moves.size(); i++)
 	{
 		position.ApplyMove(moves.at(i));
 		nodeCount += Perft(depth - 1, position);
@@ -337,7 +337,7 @@ void Bench()
 	uint64_t nodeCount = 0;
 	Position position;
 
-	for (int i = 0; i < benchMarkPositions.size(); i++)
+	for (size_t i = 0; i < benchMarkPositions.size(); i++)
 	{
 		if (!position.InitialiseFromFen(benchMarkPositions[i]))
 		{
