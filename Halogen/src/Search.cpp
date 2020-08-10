@@ -47,7 +47,7 @@ Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int thre
 	std::vector<std::thread> threads;
 	ThreadSharedData sharedData(threadCount);
 
-	for (int i = 0; i < threadCount; i++)
+	for (unsigned int i = 0; i < threadCount; i++)
 	{
 		uint64_t nodesSearched = 0;
 		threads.emplace_back(std::thread([=, &nodesSearched, &sharedData] {SearchPosition(position, allowedTimeMs, nodesSearched, sharedData, i, maxSearchDepth); }));
@@ -912,7 +912,7 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput)
 	prevScore = 0;
 	noOutput = NoOutput;
 
-	for (int i = 0; i < threads; i++)
+	for (unsigned int i = 0; i < threads; i++)
 		searchDepth.push_back(0);
 }
 

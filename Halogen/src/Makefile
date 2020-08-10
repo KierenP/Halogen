@@ -8,8 +8,8 @@ SRC = *.cpp
 OUTPUT = ..\..\..\$(EXE)$(VER)
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
-RFLAGS = -O3 -DNDEBUG -flto
-CFLAGS = -O3 -DNDEBUG -flto -march=native
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto
+CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 
 POPCNTFLAGS = -DUSE_POPCNT
 

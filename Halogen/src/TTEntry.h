@@ -22,7 +22,7 @@ public:
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; } 	
 	int GetDepth() const { return depth; }
-	bool IsAncient(int currenthalfmove, int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
+	bool IsAncient(unsigned int currenthalfmove, unsigned int distanceFromRoot) const { return halfmove != (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
 	EntryType GetCutoff() const { return static_cast<EntryType>(cutoff); }
 	Move GetMove() const { return bestMove; }
 	char GetHalfMove() const { return halfmove; }
