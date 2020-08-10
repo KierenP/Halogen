@@ -14,7 +14,7 @@ CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 POPCNTFLAGS = -DUSE_POPCNT
 
 default:
-	$(CC) $(CFLAGS) $(SRC) $(POPCNTFLAGS) -o $(EXE)
+	$(CC) $(CFLAGS) $(SRC) -o $(EXE)
 
 release: 
 	mkdir $(OUTPUT)
