@@ -4,7 +4,7 @@
 #include "PawnHashTable.h"
 #include "PieceSquareTables.h"
 
-int PieceValues(unsigned int Piece, GameStages GameStage = MIDGAME);
+int PieceValues(unsigned int Piece, GameStages GameStage = GameStages::MIDGAME);
 
 extern PawnHashTable pawnHashTable;
 

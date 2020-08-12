@@ -5,15 +5,16 @@
 using namespace::std;
 
 void PerftSuite();
+void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
-string version = "5-20200808-2310"; 
+string version = "5-20200810-2330"; 
 
 int main(int argc, char* argv[])
 {
-	cout << "Halogen " << version << endl;
+	PrintVersion();
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -212,6 +213,19 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+void PrintVersion()
+{
+#if defined(_WIN64)
+	#if defined(_MSC_VER) || defined(USE_POPCNT)
+		cout << "Halogen " << version << " x64 POPCNT" << endl;
+	#else
+		cout << "Halogen " << version << " x64" << endl;
+	#endif 
+#else
+	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
+#endif
+}
+
 void PerftSuite()
 {
 	ifstream infile("perftsuite.txt");
@@ -243,7 +257,7 @@ void PerftSuite()
 		position.InitialiseFromFen(line);
 		
 		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
-		if (nodes == stoi(arrayTokens.at(arrayTokens.size() - 2)))
+		if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
 		{
 			SetConsoleTextAttribute(hConsole, 2);	//green text
 			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
@@ -277,7 +291,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	vector<Move> moves;
 	LegalMoves(position, moves);
 
-	for (int i = 0; i < moves.size(); i++)
+	for (size_t i = 0; i < moves.size(); i++)
 	{
 		position.ApplyMove(moves.at(i));
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
@@ -305,7 +319,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 	vector<Move> moves;
 	LegalMoves(position, moves);
 
-	for (int i = 0; i < moves.size(); i++)
+	for (size_t i = 0; i < moves.size(); i++)
 	{
 		position.ApplyMove(moves.at(i));
 		nodeCount += Perft(depth - 1, position);
@@ -323,7 +337,7 @@ void Bench()
 	uint64_t nodeCount = 0;
 	Position position;
 
-	for (int i = 0; i < benchMarkPositions.size(); i++)
+	for (size_t i = 0; i < benchMarkPositions.size(); i++)
 	{
 		if (!position.InitialiseFromFen(benchMarkPositions[i]))
 		{

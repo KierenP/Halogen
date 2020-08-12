@@ -19,7 +19,7 @@ public:
 	void ResetHitCount() { TTHits = 0; }
 	void ResetTable();
 	void SetSize(uint64_t MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
-	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int halfmove, int distanceFromRoot, EntryType Cutoff);
+	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff);
 	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
 
 	void SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot);

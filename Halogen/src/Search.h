@@ -71,7 +71,7 @@ private:
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
 	bool noOutput;									//Do not write anything to the concole
 
-	std::vector<int> searchDepth;					//what depth is each thread currently searching?
+	std::vector<unsigned int> searchDepth;					//what depth is each thread currently searching?
 };
 
 extern TranspositionTable tTable;
