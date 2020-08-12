@@ -8,7 +8,7 @@ SRC = *.cpp
 OUTPUT = ..\..\..\$(EXE)$(VER)
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-use-linker-plugin
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 DFLAGS = -O0 $(WFLAGS)
 

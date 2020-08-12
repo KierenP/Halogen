@@ -11,8 +11,8 @@ TTEntry::TTEntry() : bestMove(0, 0, 0)
 
 TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff) : bestMove(best)
 {
-	assert(Score < SHRT_MAX && Score < SHRT_MIN);
-	assert(Depth < CHAR_MAX&& Depth < CHAR_MIN);
+	assert(Score < SHRT_MAX && Score > SHRT_MIN);
+	assert(Depth < CHAR_MAX && Depth > CHAR_MIN);
 
 	key = ZobristKey;
 	score = static_cast<short>(Score);
