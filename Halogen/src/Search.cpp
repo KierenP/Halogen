@@ -343,7 +343,6 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		int score = search.GetScore();
-		Move returnMove = search.GetMove();
 
 		if (locals.timeManage.AbortSearch(position.GetNodeCount())) { break; }
 		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
@@ -364,7 +363,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		aspirationReSearch = false;
 
-		move = returnMove;	//this is only hit if the continue before is not hit
+		move = search.GetMove();	//this is only hit if the continue before is not hit
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
 
 		depth++;
