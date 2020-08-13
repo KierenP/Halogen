@@ -294,26 +294,22 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << actualNodeCount
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
-		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
+		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount());						//thousondths full
+
+#ifdef _MSC_VER
+	std::cout	//these lines are for debug and not part of official uci protocol
+		<< " string thread " << std::this_thread::get_id()
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
 		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1));
+#endif
 
-	if (!move.IsUninitialized())
-	{
-		std::cout << " pv ";																								//the current best line found
+	std::cout << " pv ";																								//the current best line found
 
-		for (size_t i = 0; i < pv.size(); i++)
-		{
-			pv[i].Print();
-			std::cout << " ";
-		}
-	}
-	else
+	for (size_t i = 0; i < pv.size(); i++)
 	{
+		pv[i].Print();
 		std::cout << " ";
 	}
-
-	std::cout << "string thread " << std::this_thread::get_id();
 
 	std::cout << std::endl;
 }
