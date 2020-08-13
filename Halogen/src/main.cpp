@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
 					fen.push_back(token);
 				}
 
-				if (!position.InitialiseFromFen(fen)) cout << "BAD FEN";
+				if (!position.InitialiseFromFen(fen)) cout << "BAD FEN" << endl;
 				if (token == "moves") while (iss >> token) position.ApplyMove(token);
 			}
 
