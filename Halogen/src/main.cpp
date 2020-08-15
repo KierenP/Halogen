@@ -221,6 +221,8 @@ void PrintVersion()
 	#else
 		cout << "Halogen " << version << " x64" << endl;
 	#endif 
+#elif defined(_WIN32)
+	cout << "Halogen " << version << " x86" << endl;
 #else
 	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
 #endif

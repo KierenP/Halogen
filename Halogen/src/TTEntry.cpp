@@ -5,7 +5,7 @@ TTEntry::TTEntry() : bestMove(0, 0, 0)
 	key = EMPTY;
 	score = -1;
 	depth = -1;
-	cutoff = static_cast<char>(EntryType::EMPTY_ENTRY);
+	cutoff = EntryType::EMPTY_ENTRY;
 	halfmove = -1;
 }
 
@@ -17,7 +17,7 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int curre
 	key = ZobristKey;
 	score = static_cast<short>(Score);
 	depth = static_cast<char>(Depth);
-	cutoff = static_cast<char>(Cutoff);
+	cutoff = Cutoff;
 	SetHalfMove(currentTurnCount, distanceFromRoot);
 }
 
@@ -40,6 +40,6 @@ void TTEntry::Reset()
 	key = EMPTY;
 	score = -1;
 	depth = -1;
-	cutoff = static_cast<char>(EntryType::EMPTY_ENTRY);
+	cutoff = EntryType::EMPTY_ENTRY;
 	halfmove = -1;
 }

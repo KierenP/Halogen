@@ -12,7 +12,7 @@ RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-use-linker-plugin
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 DFLAGS = -O0 $(WFLAGS)
 
-POPCNTFLAGS = -DUSE_POPCNT
+POPCNTFLAGS = -DGCC_USE_POPCNT
 
 default:
 	$(CC) $(CFLAGS) $(SRC) $(POPCNTFLAGS) -o $(EXE)

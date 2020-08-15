@@ -23,7 +23,7 @@ public:
 	int GetScore() const { return score; } 	
 	int GetDepth() const { return depth; }
 	bool IsAncient(unsigned int currenthalfmove, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO)); }
-	EntryType GetCutoff() const { return static_cast<EntryType>(cutoff); }
+	EntryType GetCutoff() const { return cutoff; }
 	Move GetMove() const { return bestMove; }
 	char GetHalfMove() const { return halfmove; }
 
@@ -42,6 +42,6 @@ private:
 
 	short int score;		//2 bytes
 	char depth;				//1 bytes
-	char cutoff;			//1 bytes
+	EntryType cutoff;		//1 bytes
 };
 
