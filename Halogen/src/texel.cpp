@@ -1,25 +1,19 @@
 #include "texel.h"
 
-void Texel(std::vector<int*> params)
+void Texel(std::vector<int*> params, std::vector<int*> PST)
 {
+	//Extract the PST pointers into the params list
+	for (size_t piece = 0; piece < PST.size(); piece++)
+	{
+		for (int square = 0; square < N_SQUARES; square++)
+		{
+			params.push_back(&PST[piece][square]);
+		}
+	}
+
 	HASH_ENABLE = false;
 
-	tTable.AddEntry(Move(), 1234, 0, 0, 0, 0, EntryType::EXACT);
-	if (CheckEntry(tTable.GetEntry(1234), 1234))
-	{
-		std::cout << "Transposition table has been left on!" << std::endl;
-		return;
-	}
-
-	pawnHashTable.AddEntry(1234, 0);
-	if (pawnHashTable.CheckEntry(1234))
-	{
-		std::cout << "Pawn hash table has been left on!" << std::endl;
-		return;
-	}
-
 	std::ifstream infile("C:\\quiet-labeled.epd");
-	//std::ifstream infile("C:\\OpenBench4Per.txt");
 
 	if (!infile)
 	{
@@ -69,8 +63,9 @@ void Texel(std::vector<int*> params)
 
 	//CalculateK(positionList, positionScore, positionResults);
 	double k = 1.51;
-	double step_size = 100000;
+	double step_size = 10000;
 	int iteration = 1;
+	int speedup = 10;
 
 	auto rng = std::default_random_engine{};
 
@@ -83,19 +78,34 @@ void Texel(std::vector<int*> params)
 
 	while (true)
 	{
-		std::shuffle(std::begin(positions), std::end(positions), rng);
+		if (iteration % 10 == 0)
+			std::shuffle(std::begin(positions), std::end(positions), rng);
 
-		double error = CalculateError(positions, data, k, positions.size() / params.size());
-		PrintIteration(error, params, paramiterValues, step_size, iteration);
+		double error = CalculateError(positions, data, k, positions.size() / params.size() / speedup, (positions.size() / params.size() / speedup) * (iteration % speedup));
+
+		if (iteration % 10 == 0)
+			PrintIteration(error, params, PST, paramiterValues, step_size, iteration);
 
 		std::vector<double> gradient;
 
 		for (size_t i = 0; i < params.size(); i++)
 		{
 			(*params[i])++;
-			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size());
+			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / speedup, (positions.size() / params.size() / speedup) * (iteration % speedup));
 			(*params[i])--;
-			double firstDerivitive = (error_plus_epsilon - error);
+			double firstDerivitivePositive = (error_plus_epsilon - error);
+
+			(*params[i])--;
+			double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / speedup, (positions.size() / params.size() / speedup) * (iteration % speedup));
+			(*params[i])++;
+			double firstDerivitiveNegative = (error_minus_epsilon - error);
+
+			double firstDerivitive;
+
+			if (firstDerivitivePositive > 0 && firstDerivitiveNegative > 0)
+				firstDerivitive = 0; //making the param higher by one made it worse and making it one lower also made it worse so we shouldn't change it.
+			else 
+				firstDerivitive = firstDerivitivePositive;
 
 			gradient.push_back(firstDerivitive);
 		}
@@ -107,8 +117,11 @@ void Texel(std::vector<int*> params)
 			(*params[i]) = static_cast<int>(round(paramiterValues[i]));
 		}
 
-		step_size *= 1 / (1 + 0.0001 * iteration);
+		step_size *= 1 / (1 + 0.000001 * iteration);
 		iteration++;
+
+		if (step_size < 1)
+			break;
 	}
 
 	std::cout << "Texel complete" << std::endl;
@@ -201,12 +214,36 @@ void Loadquietlabeled(std::vector<std::pair<Position, double>>& positions, std::
 	}
 }
 
-void PrintIteration(double error, std::vector<int*>& params, std::vector<double> paramiterValues, double step_size, int iteration)
+void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> PST, std::vector<double> paramiterValues, double step_size, int iteration)
 {
-
-	for (size_t i = 0; i < params.size(); i++)
+	for (size_t i = 0; i < params.size() - PST.size() * 64; i++)
 	{
 		std::cout << "Paramiter " << i << ": " << *(params[i]) << " exact value: " << paramiterValues[i] << std::endl;
+	}
+	std::cout << std::endl;
+
+	//print PST
+	for (size_t piece = 0; piece < PST.size(); piece++)
+	{
+		std::cout << "PST " << piece << ": " << std::endl;
+
+		for (int i = 0; i < N_SQUARES; i++)
+		{
+			if (0 <= PST[piece][i] && PST[piece][i] <= 9)
+				std::cout << "  " << PST[piece][i] << ",";
+			else if (-9 <= PST[piece][i] && PST[piece][i] <= -1)
+				std::cout << " " << PST[piece][i] << ",";
+			else if (10 <= PST[piece][i] && PST[piece][i] <= 99)
+				std::cout << " " << PST[piece][i] << ",";
+			else if (-99 <= PST[piece][i] && PST[piece][i] <= -11)
+				std::cout << "" << PST[piece][i] << ",";
+			else
+				std::cout << "" << PST[piece][i] << ",";
+
+			if (i % N_FILES == 7 && i > 0)
+				std::cout << std::endl;
+		}
+		std::cout << std::endl;
 	}
 
 	std::cout << "Error: " << error << std::endl;
@@ -215,15 +252,16 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<double>
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, size_t subset)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, size_t subset, size_t start)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
 	double error = 0;
-	for (size_t i = 0; i < subset; i++)
+	for (size_t i = start; i < start + subset; i++)
 	{
-		double sigmoid = 1 / (1 + pow(10, -TexelSearch(positions[i].first, data) * k / 400));
-		error += pow(positions[i].second - sigmoid, 2);
+		//double sigmoid = 1 / (1 + pow(10, -TexelSearch(positions[i].first, data) * k / 400));
+		double sigmoid = 1 / (1 + pow(10, -EvaluatePosition(positions.at(i).first) * k / 400));
+		error += pow(positions.at(i).second - sigmoid, 2);
 	}
 	error /= subset;
 	return error;

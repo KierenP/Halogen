@@ -627,25 +627,29 @@ bool EvaluateDebug()
 
 std::vector<int*> TexelParamiters()
 {
-	std::vector<int*> params { 
-			&pieceValueVector[MIDGAME][0], 
-			&pieceValueVector[MIDGAME][1],
-			&pieceValueVector[MIDGAME][2],
-			&pieceValueVector[MIDGAME][3],
-			&pieceValueVector[MIDGAME][4],
-			&pieceValueVector[ENDGAME][0],
-			&pieceValueVector[ENDGAME][1],
-			&pieceValueVector[ENDGAME][2],
-			&pieceValueVector[ENDGAME][3],
-			&pieceValueVector[ENDGAME][4],
-			&WeakPawnPenalty,
-			&WeakOpenPawnPenalty,
-			&DoubledPawnPenalty,
-			&BishopPairBonus,
-			&RookOpenFileBonus,
-			&RookSemiOpenFileBonus,
-			&Rook7thRankBonus,
-			&TempoBonus	};
+	std::vector<int*> params;
+
+	params.push_back(&pieceValueVector[MIDGAME][0]);
+	params.push_back(&pieceValueVector[MIDGAME][1]);
+	params.push_back(&pieceValueVector[MIDGAME][2]);
+	params.push_back(&pieceValueVector[MIDGAME][3]);
+	params.push_back(&pieceValueVector[MIDGAME][4]);
+	params.push_back(&pieceValueVector[ENDGAME][0]);
+	params.push_back(&pieceValueVector[ENDGAME][1]);
+	params.push_back(&pieceValueVector[ENDGAME][2]);
+	params.push_back(&pieceValueVector[ENDGAME][3]);
+	params.push_back(&pieceValueVector[ENDGAME][4]);
+	params.push_back(&WeakPawnPenalty);
+	params.push_back(&WeakOpenPawnPenalty);
+	params.push_back(&DoubledPawnPenalty);
+	params.push_back(&BishopPairBonus);
+	params.push_back(&RookOpenFileBonus);
+	params.push_back(&RookSemiOpenFileBonus);
+	params.push_back(&Rook7thRankBonus);
+	params.push_back(&TempoBonus);
+	params.push_back(&CanCastleBonus);
+	params.push_back(&KnightAverageMobility);
+	params.push_back(&KnightMobility);
 
 	for (int i = 0; i < 9; i++)
 	{
@@ -662,28 +666,23 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&PassedPawnBonus[i]);
 	}
 
-	for (int i = 0; i < N_SQUARES; i++)
-	{
-		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
-		{
-			params.push_back(&PawnSquareValuesMid[i]);
-			params.push_back(&PawnSquareValuesEndGame[i]);
-		}
-		
-		params.push_back(&KnightSquareValues[i]);
-		params.push_back(&RookSquareValues[i]);
-		params.push_back(&BishopSquareValues[i]);
-		params.push_back(&QueenSquareValues[i]);
-		params.push_back(&KingSquareMid[i]);
-		params.push_back(&KingSquareEndGame[i]);
-	}
-
-	params.push_back(&CanCastleBonus);
-
-	params.push_back(&KnightAverageMobility);
-	params.push_back(&KnightMobility);
-
 	return params;
+}
+
+std::vector<int*> TexelPST()
+{
+	std::vector<int*> PST;
+
+	PST.push_back(PawnSquareValuesMid);
+	PST.push_back(PawnSquareValuesEndGame);
+	PST.push_back(KnightSquareValues);
+	PST.push_back(BishopSquareValues);
+	PST.push_back(RookSquareValues);
+	PST.push_back(QueenSquareValues);
+	PST.push_back(KingSquareMid);
+	PST.push_back(KingSquareEndGame);
+
+	return PST;
 }
 
 //gives a score based on how close the pieces are to an opponents king

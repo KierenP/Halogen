@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 
 		else if (token == "texel")
 		{
-			Texel(TexelParamiters());
+			Texel(TexelParamiters(), TexelPST());
 		}
 
 		else if (token == "stop") KeepSearching = false;
