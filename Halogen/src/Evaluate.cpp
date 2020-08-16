@@ -24,6 +24,15 @@ int TempoBonus = 20;
 int KnightMobility = 4;
 int KnightAverageMobility = 6;
 
+int BishopMobility = 3;
+int BishopAverageMobility = 7;
+
+int RookMobility = 2;
+int RookAverageMobility = 7;
+
+int QueenMobility = 1;
+int QueenAverageMobility = -11;
+
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
 int EvaluatePawnStructure(const Position& position);
@@ -130,6 +139,8 @@ int Mobility(const Position& position)
 	BlackPawnThreats |= ((position.GetPieceBB(BLACK_PAWN) & ~(FileBB[FILE_A])) >> 9);				
 	BlackPawnThreats |= ((position.GetPieceBB(BLACK_PAWN) & ~(FileBB[FILE_H])) >> 7);
 
+	uint64_t pieces = position.GetAllPieces();
+
 	for (uint64_t piece = position.GetPieceBB(WHITE_KNIGHT); piece != 0; )
 	{
 		unsigned int sq = bitScanForwardErase(piece);
@@ -142,6 +153,102 @@ int Mobility(const Position& position)
 		unsigned int sq = bitScanForwardErase(piece);
 		unsigned int threats = GetBitCount(KnightAttacks[sq] & ~(WhitePawnThreats));
 		Score -= (threats - KnightAverageMobility) * KnightMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(WHITE_BISHOP); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = BishopAttacks[sq] & ~(BlackPawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score += (count - BishopAverageMobility) * BishopMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_BISHOP); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = BishopAttacks[sq] & ~(WhitePawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score -= (count - BishopAverageMobility) * BishopMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(WHITE_ROOK); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = RookAttacks[sq] & ~(BlackPawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score += (count - RookAverageMobility) * RookMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_ROOK); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = RookAttacks[sq] & ~(WhitePawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score -= (count - RookAverageMobility) * RookMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(WHITE_QUEEN); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = QueenAttacks[sq] & ~(BlackPawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score += (count - QueenAverageMobility) * QueenMobility;
+	}
+
+	for (uint64_t piece = position.GetPieceBB(BLACK_QUEEN); piece != 0; )
+	{
+		unsigned int sq = bitScanForwardErase(piece);
+		uint64_t targets = QueenAttacks[sq] & ~(WhitePawnThreats);
+		unsigned int count = 0;
+
+		while (targets != 0)
+		{
+			unsigned int target = bitScanForwardErase(targets);
+			if (mayMove(sq, target, pieces))
+				count++;
+		}
+
+		Score -= (count - QueenAverageMobility) * QueenMobility;
 	}
 
 	return Score;
@@ -626,7 +733,7 @@ std::vector<int*> TexelParamiters()
 {
 	std::vector<int*> params;
 
-	params.push_back(&pieceValueVector[MIDGAME][0]);
+	/*params.push_back(&pieceValueVector[MIDGAME][0]);
 	params.push_back(&pieceValueVector[MIDGAME][1]);
 	params.push_back(&pieceValueVector[MIDGAME][2]);
 	params.push_back(&pieceValueVector[MIDGAME][3]);
@@ -645,8 +752,6 @@ std::vector<int*> TexelParamiters()
 	params.push_back(&Rook7thRankBonus);
 	params.push_back(&TempoBonus);
 	params.push_back(&CanCastleBonus);
-	params.push_back(&KnightAverageMobility);
-	params.push_back(&KnightMobility);
 
 	for (int i = 0; i < 9; i++)
 	{
@@ -661,7 +766,19 @@ std::vector<int*> TexelParamiters()
 	for (int i = 1; i <= 6; i++)
 	{
 		params.push_back(&PassedPawnBonus[i]);
-	}
+	}*/
+
+	params.push_back(&KnightAverageMobility);
+	params.push_back(&KnightMobility);
+
+	params.push_back(&BishopAverageMobility);
+	params.push_back(&BishopMobility);
+
+	params.push_back(&RookAverageMobility);
+	params.push_back(&RookMobility);
+
+	params.push_back(&QueenAverageMobility);
+	params.push_back(&QueenMobility);
 
 	return params;
 }
@@ -670,14 +787,14 @@ std::vector<int*> TexelPST()
 {
 	std::vector<int*> PST;
 
-	PST.push_back(PawnSquareValuesMid);
+	/*PST.push_back(PawnSquareValuesMid);
 	PST.push_back(PawnSquareValuesEndGame);
 	PST.push_back(KnightSquareValues);
 	PST.push_back(BishopSquareValues);
 	PST.push_back(RookSquareValues);
 	PST.push_back(QueenSquareValues);
 	PST.push_back(KingSquareMid);
-	PST.push_back(KingSquareEndGame);
+	PST.push_back(KingSquareEndGame);*/
 
 	return PST;
 }
