@@ -71,10 +71,7 @@ int AntiDiagonals[64] = {
 
 int PieceValues(unsigned int Piece, GameStages GameStage)
 {
-	if (Piece < N_PIECE_TYPES)
-		return pieceValueVector[GameStage][Piece];
-	else
-		return pieceValueVector[GameStage][Piece - N_PIECE_TYPES];
+	return pieceValueVector[GameStage][Piece % N_PIECE_TYPES];
 }
 
 int EvaluatePosition(const Position & position)
