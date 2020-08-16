@@ -33,6 +33,8 @@ int mateIn(int distanceFromRoot);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
+void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals);
+void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i);
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
 int see(Position& position, int square, bool side);
@@ -558,17 +560,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		position.RevertMove();
 
-		if (newScore > Score)
-		{
-			Score = newScore;
-			bestMove = moves.at(i);
-		}
-
-		if (Score > a)
-		{
-			a = Score;
-			UpdatePV(moves.at(i), distanceFromRoot, locals.PvTable);
-		}
+		UpdateScore(newScore, Score, bestMove, moves, i);
+		UpdateAlpha(Score, a, moves, i, distanceFromRoot, locals);
 
 		if (a >= beta) //Fail high cutoff
 		{
@@ -584,6 +577,24 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
+}
+
+void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals)
+{
+	if (Score > a)
+	{
+		a = Score;
+		UpdatePV(moves.at(i), distanceFromRoot, locals.PvTable);
+	}
+}
+
+void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i)
+{
+	if (newScore > Score)
+	{
+		Score = newScore;
+		bestMove = moves.at(i);
+	}
 }
 
 int Reduction(int depth, int i, int alpha, int beta)
