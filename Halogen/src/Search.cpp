@@ -399,7 +399,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position)) return 0;
 
-	if (distanceFromRoot == 0)
+	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		//at root
 		unsigned int result = tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
@@ -455,7 +455,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
-	if (distanceFromRoot > 0)
+	if (distanceFromRoot > 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		//not root
 		unsigned int result = tb_probe_wdl(position.GetWhitePieces(), position.GetBlackPieces(),
