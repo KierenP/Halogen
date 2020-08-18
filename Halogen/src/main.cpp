@@ -10,11 +10,14 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
+void TestSyzygy();
+
 string version = "6"; 
 
 int main(int argc, char* argv[])
 {
 	PrintVersion();
+	tb_init("<empty>");
 
 	unsigned long long init[4] = { 0x12345ULL, 0x23456ULL, 0x34567ULL, 0x45678ULL }, length = 4;
 	init_by_array64(init, length);
@@ -53,6 +56,7 @@ int main(int argc, char* argv[])
 			cout << "option name Clear Hash type button" << endl;
 			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
+			cout << "option name SyzygyPath type string default <empty>" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -189,6 +193,15 @@ int main(int argc, char* argv[])
 					ThreadCount = size;
 				}
 			}
+
+			else if (token == "SyzygyPath")
+			{
+				iss >> token; //'value'
+				iss >> token;
+
+				tb_init(token.c_str());
+				TestSyzygy();
+			}
 		}
 
 		else if (token == "perft")
@@ -226,6 +239,42 @@ void PrintVersion()
 #else
 	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
 #endif
+}
+
+void TestSyzygy()
+{
+	Position testPosition;
+	testPosition.InitialiseFromFen("8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1");
+	unsigned int result = tb_probe_wdl(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
+		testPosition.GetPieceBB(WHITE_KING) | testPosition.GetPieceBB(BLACK_KING),
+		testPosition.GetPieceBB(WHITE_QUEEN) | testPosition.GetPieceBB(BLACK_QUEEN),
+		testPosition.GetPieceBB(WHITE_ROOK) | testPosition.GetPieceBB(BLACK_ROOK),
+		testPosition.GetPieceBB(WHITE_BISHOP) | testPosition.GetPieceBB(BLACK_BISHOP),
+		testPosition.GetPieceBB(WHITE_KNIGHT) | testPosition.GetPieceBB(BLACK_KNIGHT),
+		testPosition.GetPieceBB(WHITE_PAWN) | testPosition.GetPieceBB(BLACK_PAWN),
+		testPosition.GetFiftyMoveCount(),
+		testPosition.CanCastleBlackKingside() * TB_CASTLING_k + testPosition.CanCastleBlackQueenside() * TB_CASTLING_q + testPosition.CanCastleWhiteKingside() * TB_CASTLING_K + testPosition.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		testPosition.GetEnPassant() <= SQ_H8 ? testPosition.GetEnPassant() : 0,
+		testPosition.GetTurn());
+	assert(result == TB_BLESSED_LOSS);
+
+	result = tb_probe_root(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
+		testPosition.GetPieceBB(WHITE_KING) | testPosition.GetPieceBB(BLACK_KING),
+		testPosition.GetPieceBB(WHITE_QUEEN) | testPosition.GetPieceBB(BLACK_QUEEN),
+		testPosition.GetPieceBB(WHITE_ROOK) | testPosition.GetPieceBB(BLACK_ROOK),
+		testPosition.GetPieceBB(WHITE_BISHOP) | testPosition.GetPieceBB(BLACK_BISHOP),
+		testPosition.GetPieceBB(WHITE_KNIGHT) | testPosition.GetPieceBB(BLACK_KNIGHT),
+		testPosition.GetPieceBB(WHITE_PAWN) | testPosition.GetPieceBB(BLACK_PAWN),
+		testPosition.GetFiftyMoveCount(),
+		testPosition.CanCastleBlackKingside() * TB_CASTLING_k + testPosition.CanCastleBlackQueenside() * TB_CASTLING_q + testPosition.CanCastleWhiteKingside() * TB_CASTLING_K + testPosition.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		testPosition.GetEnPassant() <= SQ_H8 ? testPosition.GetEnPassant() : 0,
+		testPosition.GetTurn(),
+		NULL);
+
+	assert(TB_GET_WDL(result) == TB_BLESSED_LOSS);
+	assert(TB_GET_FROM(result) == SQ_C2);
+	assert(TB_GET_TO(result) == SQ_C1);
+	assert(TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT);
 }
 
 void PerftSuite()

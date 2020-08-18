@@ -31,6 +31,7 @@
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Random.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
+    <ClCompile Include="..\src\tbprobe.cpp" />
     <ClCompile Include="..\src\Texel.cpp" />
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
@@ -50,6 +51,9 @@
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Random.h" />
     <ClInclude Include="..\src\Search.h" />
+    <ClInclude Include="..\src\stdendian.h" />
+    <ClInclude Include="..\src\tbconfig.h" />
+    <ClInclude Include="..\src\tbprobe.h" />
     <ClInclude Include="..\src\Texel.h" />
     <ClInclude Include="..\src\TimeManage.h" />
     <ClInclude Include="..\src\TranspositionTable.h" />
@@ -129,7 +133,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -141,7 +145,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -155,7 +159,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
@@ -172,7 +176,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
