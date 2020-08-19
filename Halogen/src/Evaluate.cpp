@@ -1,37 +1,36 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {47, 492, 462, 631, 1119, 5000},
-												  {52, 391, 357, 680, 1138, 5000} };
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {111, 489, 529, 655, 1221, 5000},
+												  {150, 335, 367, 631, 1248, 5000} };
 
-int knightAdj[9] = { -138, -73, -63, -55, -49, -44, -38, -28, -22 };	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = { -74, -76, -70, -70, -71, -67, -65, -62, -52 };
+int knightAdj[9] = { -84, -18, -4, 4, 11, 14, 19, 25, 30 };	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = { -20, -12, -3, 1, 2, 4, 5, 6, 13 };
 
-int WeakPawnPenalty = 4;
-int WeakOpenPawnPenalty = 17;
-int DoubledPawnPenalty = 12;
+int WeakPawnPenalty = -3;
+int WeakOpenPawnPenalty = 7;
+int DoubledPawnPenalty = 18;
 
-int PassedPawnBonus[N_RANKS] = { 0, -10, -7, 8, 36, 120, 206, 0 };
+int PassedPawnBonus[N_RANKS] = {0, -60, -56, -33, -8, 66, 130, 0};
 
-int CanCastleBonus = 19;
+int CanCastleBonus = 21;
 int CastledBonus = CanCastleBonus * 2;
 int BishopPairBonus = 41;
-int RookOpenFileBonus = 30;
-int RookSemiOpenFileBonus = 26;
-int Rook7thRankBonus = 12;
+int RookOpenFileBonus = 19;
+int RookSemiOpenFileBonus = 21;
 
-int TempoBonus = 20;
+int TempoBonus = 21;
 
-int KnightMobility = 4;
+int KnightMobility = 8;
 int KnightAverageMobility = 6;
 
-int BishopMobility = 3;
+int BishopMobility = 5;
 int BishopAverageMobility = 7;
 
-int RookMobility = 2;
+int RookMobility = 4;
 int RookAverageMobility = 7;
 
-int QueenMobility = 1;
-int QueenAverageMobility = -11;// RookAverageMobility + BishopAverageMobility;
+int QueenMobility = 4;
+int QueenAverageMobility = RookAverageMobility + BishopAverageMobility;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
@@ -323,9 +322,6 @@ int AdjustRookScore(const Position& position)
 	int Score = 0;
 	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
 	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
-
-	Score += Rook7thRankBonus * GetBitCount(position.GetPieceBB(WHITE_ROOK) & RankBB[RANK_7]);
-	Score -= Rook7thRankBonus * GetBitCount(position.GetPieceBB(BLACK_ROOK) & RankBB[RANK_2]);
 
 	return Score;
 }
