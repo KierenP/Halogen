@@ -15,7 +15,7 @@ int PassedPawnBonus[N_RANKS] = { 0, -10, -7, 8, 36, 120, 206, 0 };
 int CanCastleBonus = 19;
 int BishopPairBonus = 41;
 int RookOpenFileBonus = 30;
-int RookSemiOpenFileBonus = 22;
+int RookSemiOpenFileBonus = 26;
 
 int TempoBonus = 20;
 
@@ -29,7 +29,7 @@ int RookMobility = 2;
 int RookAverageMobility = 7;
 
 int QueenMobility = 1;
-int QueenAverageMobility = RookAverageMobility + BishopAverageMobility;
+int QueenAverageMobility = -11;// RookAverageMobility + BishopAverageMobility;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
