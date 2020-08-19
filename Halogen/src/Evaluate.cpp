@@ -13,9 +13,11 @@ int DoubledPawnPenalty = 12;
 int PassedPawnBonus[N_RANKS] = { 0, -10, -7, 8, 36, 120, 206, 0 };
 
 int CanCastleBonus = 19;
+int CastledBonus = CanCastleBonus * 2;
 int BishopPairBonus = 41;
 int RookOpenFileBonus = 30;
 int RookSemiOpenFileBonus = 26;
+int Rook7thRankBonus = 12;
 
 int TempoBonus = 20;
 
@@ -322,6 +324,9 @@ int AdjustRookScore(const Position& position)
 	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
 	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
 
+	Score += Rook7thRankBonus * GetBitCount(position.GetPieceBB(WHITE_ROOK) & RankBB[RANK_7]);
+	Score -= Rook7thRankBonus * GetBitCount(position.GetPieceBB(BLACK_ROOK) & RankBB[RANK_2]);
+
 	return Score;
 }
 
@@ -566,6 +571,12 @@ bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns)
 int EvaluateCastleBonus(const Position & position)
 {
 	int score = 0;
+
+	if (position.HasCastledWhite())
+		score += CastledBonus;
+
+	if (position.HasCastledBlack())
+		score -= CastledBonus;
 
 	if (position.CanCastleWhiteKingside() || position.CanCastleWhiteQueenside())
 		score += CanCastleBonus;
