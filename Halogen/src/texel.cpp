@@ -109,8 +109,6 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 				firstDerivitive = firstDerivitivePositive;
 
 			gradient.push_back(firstDerivitive);
-
-			InitializePieceSquareTable();	//Important to do at end as well as in CalculateError as we need to correct pawn values on first and last rank
 		}
 
 		for (size_t i = 0; i < params.size(); i++)
@@ -278,14 +276,16 @@ double CalculateError(std::vector<std::pair<Position, double>>& positions, Searc
 	sum = 0;
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		sum += PawnSquareValuesMid[i];
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+			sum += PawnSquareValuesMid[i];
 	}
 	error += lambda * sum * sum;
 
 	sum = 0;
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		sum += PawnSquareValuesEndGame[i];
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+			sum += PawnSquareValuesEndGame[i];
 	}
 	error += lambda * sum * sum;
 
