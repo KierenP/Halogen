@@ -1,37 +1,37 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {47, 492, 462, 631, 1119, 5000},
-												  {52, 391, 357, 680, 1138, 5000} };
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {33, 508, 475, 659, 1139, 5000},
+												  {35, 400, 364, 695, 1157, 5000} };
 
-int knightAdj[9] = {-138, -73, -63, -55, -49, -44, -38, -28, -22};	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = {-74, -76, -70, -70, -71, -67, -65, -62, -52};
+int knightAdj[9] = {-143, -79, -63, -60, -53, -49, -45, -37, -29};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-80, -78, -77, -74, -75, -72, -71, -67, -59};
 
 int WeakPawnPenalty = 4;
-int WeakOpenPawnPenalty = 17;
-int DoubledPawnPenalty = 12;
+int WeakOpenPawnPenalty = 18;
+int DoubledPawnPenalty = 13;
 
-int PassedPawnBonus[N_RANKS] = {0, -10, -7, 8, 36, 120, 206, 0};
+int PassedPawnBonus[N_RANKS] = {0, -11, -8, 9, 36, 128, 218, 0};
 
-int CanCastleBonus = 19;
+int CanCastleBonus = 21;
 int CastledBonus = CanCastleBonus * 2;
-int BishopPairBonus = 41;
-int RookOpenFileBonus = 30;
+int BishopPairBonus = 42;
+int RookOpenFileBonus = 24;
 int RookSemiOpenFileBonus = 26;
-int Rook7thRankBonus = 12;
+int Rook7thRankBonus = 9;
 
 int TempoBonus = 20;
 
-int KnightMobility = 4;
+int KnightMobility = 3;
 int KnightAverageMobility = 6;
 
-int BishopMobility = 3;
+int BishopMobility = 4;
 int BishopAverageMobility = 7;
 
-int RookMobility = 2;
-int RookAverageMobility = 7;
+int RookMobility = 3;
+int RookAverageMobility = 8;
 
-int QueenMobility = 1;
-int QueenAverageMobility = -11;
+int QueenMobility = 3;
+int QueenAverageMobility = 1;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
@@ -733,7 +733,7 @@ std::vector<int*> TexelParamiters()
 {
 	std::vector<int*> params;
 
-	/*params.push_back(&pieceValueVector[MIDGAME][0]);
+	params.push_back(&pieceValueVector[MIDGAME][0]);
 	params.push_back(&pieceValueVector[MIDGAME][1]);
 	params.push_back(&pieceValueVector[MIDGAME][2]);
 	params.push_back(&pieceValueVector[MIDGAME][3]);
@@ -766,7 +766,7 @@ std::vector<int*> TexelParamiters()
 	for (int i = 1; i <= 6; i++)
 	{
 		params.push_back(&PassedPawnBonus[i]);
-	}*/
+	}
 
 	params.push_back(&KnightAverageMobility);
 	params.push_back(&KnightMobility);
@@ -787,14 +787,14 @@ std::vector<int*> TexelPST()
 {
 	std::vector<int*> PST;
 
-	/*PST.push_back(PawnSquareValuesMid);
+	PST.push_back(PawnSquareValuesMid);
 	PST.push_back(PawnSquareValuesEndGame);
 	PST.push_back(KnightSquareValues);
 	PST.push_back(BishopSquareValues);
 	PST.push_back(RookSquareValues);
 	PST.push_back(QueenSquareValues);
 	PST.push_back(KingSquareMid);
-	PST.push_back(KingSquareEndGame);*/
+	PST.push_back(KingSquareEndGame);
 
 	return PST;
 }
