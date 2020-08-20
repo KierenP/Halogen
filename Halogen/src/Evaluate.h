@@ -20,4 +20,8 @@ bool EvaluateDebug();
 std::vector<int*> TexelParamiters();
 std::vector<int*> TexelPST();
 
+//exposed so texel can regularise them
+extern int knightAdj[9]; //adjustment of piece value based on the number of own pawns
+extern int rookAdj[9];
+extern int PassedPawnBonus[N_RANKS];
 
