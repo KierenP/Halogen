@@ -1,37 +1,36 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {47, 492, 462, 631, 1119, 5000},
-												  {52, 391, 357, 680, 1138, 5000} };
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
+												  {111, 339, 372, 638, 1301, 5000} };
 
-int knightAdj[9] = {-138, -73, -63, -55, -49, -44, -38, -28, -22};	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = {-74, -76, -70, -70, -71, -67, -65, -62, -52};
+int knightAdj[9] = {-77, -14, -4, 2, 8, 11, 17, 23, 30};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-6, -8, -3, -2, -4, -1, 1, 6, 14};
 
 int WeakPawnPenalty = 4;
 int WeakOpenPawnPenalty = 17;
-int DoubledPawnPenalty = 12;
+int DoubledPawnPenalty = 14;
 
-int PassedPawnBonus[N_RANKS] = {0, -10, -7, 8, 36, 120, 206, 0};
+int PassedPawnBonus[N_RANKS] = {0, -12, -11, 11, 39, 148, 275, 0};
 
-int CanCastleBonus = 19;
+int CanCastleBonus = 29;
 int CastledBonus = CanCastleBonus * 2;
-int BishopPairBonus = 41;
-int RookOpenFileBonus = 30;
-int RookSemiOpenFileBonus = 26;
-int Rook7thRankBonus = 12;
+int BishopPairBonus = 42;
+int RookOpenFileBonus = 21;
+int RookSemiOpenFileBonus = 24;
 
-int TempoBonus = 20;
+int TempoBonus = 22;
 
-int KnightMobility = 4;
+int KnightMobility = 8;
 int KnightAverageMobility = 6;
 
-int BishopMobility = 3;
+int BishopMobility = 5;
 int BishopAverageMobility = 7;
 
-int RookMobility = 2;
+int RookMobility = 4;
 int RookAverageMobility = 7;
 
-int QueenMobility = 1;
-int QueenAverageMobility = -11;
+int QueenMobility = 3;
+int QueenAverageMobility = RookAverageMobility + BishopAverageMobility;
 
 int EvaluateCastleBonus(const Position& position);
 int EvaluatePawn(const Position& position, unsigned int square, bool colour);
@@ -324,8 +323,6 @@ int AdjustRookScore(const Position& position)
 	Score += rookAdj[GetBitCount(position.GetPieceBB(WHITE_PAWN))] * GetBitCount(position.GetPieceBB(WHITE_ROOK));
 	Score -= rookAdj[GetBitCount(position.GetPieceBB(BLACK_PAWN))] * GetBitCount(position.GetPieceBB(BLACK_ROOK));
 
-	Score += Rook7thRankBonus * GetBitCount(position.GetPieceBB(WHITE_ROOK) & RankBB[RANK_7]);
-	Score -= Rook7thRankBonus * GetBitCount(position.GetPieceBB(BLACK_ROOK) & RankBB[RANK_2]);
 	return Score;
 }
 
@@ -733,7 +730,7 @@ std::vector<int*> TexelParamiters()
 {
 	std::vector<int*> params;
 
-	/*params.push_back(&pieceValueVector[MIDGAME][0]);
+	params.push_back(&pieceValueVector[MIDGAME][0]);
 	params.push_back(&pieceValueVector[MIDGAME][1]);
 	params.push_back(&pieceValueVector[MIDGAME][2]);
 	params.push_back(&pieceValueVector[MIDGAME][3]);
@@ -749,7 +746,6 @@ std::vector<int*> TexelParamiters()
 	params.push_back(&BishopPairBonus);
 	params.push_back(&RookOpenFileBonus);
 	params.push_back(&RookSemiOpenFileBonus);
-	params.push_back(&Rook7thRankBonus);
 	params.push_back(&TempoBonus);
 	params.push_back(&CanCastleBonus);
 
@@ -763,21 +759,14 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&rookAdj[i]);
 	}
 
-	for (int i = 1; i <= 6; i++)
+	for (int i = 1; i <= 6; i++)	
 	{
 		params.push_back(&PassedPawnBonus[i]);
-	}*/
+	}
 
-	params.push_back(&KnightAverageMobility);
 	params.push_back(&KnightMobility);
-
-	params.push_back(&BishopAverageMobility);
 	params.push_back(&BishopMobility);
-
-	params.push_back(&RookAverageMobility);
 	params.push_back(&RookMobility);
-
-	params.push_back(&QueenAverageMobility);
 	params.push_back(&QueenMobility);
 
 	return params;
@@ -787,14 +776,14 @@ std::vector<int*> TexelPST()
 {
 	std::vector<int*> PST;
 
-	/*PST.push_back(PawnSquareValuesMid);
+	PST.push_back(PawnSquareValuesMid);
 	PST.push_back(PawnSquareValuesEndGame);
 	PST.push_back(KnightSquareValues);
 	PST.push_back(BishopSquareValues);
 	PST.push_back(RookSquareValues);
 	PST.push_back(QueenSquareValues);
 	PST.push_back(KingSquareMid);
-	PST.push_back(KingSquareEndGame);*/
+	PST.push_back(KingSquareEndGame);
 
 	return PST;
 }

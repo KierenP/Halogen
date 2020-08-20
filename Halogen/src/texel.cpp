@@ -66,7 +66,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 	double step_size = 10000;
 	int iteration = 1;
 	int batchSize = 10;	//eg 20 means 1/20th
-	double lambda = 0;// 0.000001;
+	double lambda = 0.0000001;
 
 	auto rng = std::default_random_engine{};
 
@@ -82,7 +82,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 		if (iteration % 10 == 0)
 			std::shuffle(std::begin(positions), std::end(positions), rng);
 
-		double error = CalculateError(positions, params, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+		double error = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 
 		if (iteration % 10 == 0)
 			PrintIteration(error, params, PST, paramiterValues, step_size, iteration);
@@ -92,12 +92,12 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 		for (size_t i = 0; i < params.size(); i++)
 		{
 			(*params[i])++;
-			double error_plus_epsilon = CalculateError(positions, params, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])--;
 			double firstDerivitivePositive = (error_plus_epsilon - error);
 
 			(*params[i])--;
-			double error_minus_epsilon = CalculateError(positions, params, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])++;
 			double firstDerivitiveNegative = (error_minus_epsilon - error);
 
@@ -118,7 +118,8 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 			(*params[i]) = static_cast<int>(round(paramiterValues[i]));
 		}
 
-		step_size *= 1 / (1 + 0.000001 * iteration);
+		step_size *= 1 / (1 + 0.0000001 * iteration);
+		//step_size = 100000 * exp(-0.0002 * iteration);
 		iteration++;
 
 		if (step_size < 1)
@@ -231,13 +232,15 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> P
 		for (int i = 0; i < N_SQUARES; i++)
 		{
 			if (0 <= PST[piece][i] && PST[piece][i] <= 9)
-				std::cout << "  " << PST[piece][i] << ",";
+				std::cout << "   " << PST[piece][i] << ",";
 			else if (-9 <= PST[piece][i] && PST[piece][i] <= -1)
-				std::cout << " " << PST[piece][i] << ",";
+				std::cout << "  " << PST[piece][i] << ",";
 			else if (10 <= PST[piece][i] && PST[piece][i] <= 99)
+				std::cout << "  " << PST[piece][i] << ",";
+			else if (-99 <= PST[piece][i] && PST[piece][i] <= -10)
 				std::cout << " " << PST[piece][i] << ",";
-			else if (-99 <= PST[piece][i] && PST[piece][i] <= -11)
-				std::cout << "" << PST[piece][i] << ",";
+			else if (101 <= PST[piece][i] && PST[piece][i] <= 999)
+				std::cout << " " << PST[piece][i] << ",";
 			else
 				std::cout << "" << PST[piece][i] << ",";
 
@@ -253,7 +256,7 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> P
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, std::vector<int*>& params, SearchData& data, double k, size_t subset, size_t start, double lambda)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, size_t subset, size_t start, double lambda)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
@@ -266,11 +269,83 @@ double CalculateError(std::vector<std::pair<Position, double>>& positions, std::
 	}
 	error /= subset;
 
-	//L1 regularisation
-	for (size_t i = 0; i < params.size(); i++)
+	//L2 regularisation for sum of PST
+
+	double sum;
+	
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
 	{
-		error += lambda * abs(static_cast<double>(*params[i]));
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+			sum += PawnSquareValuesMid[i];
 	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		if (GetRank(i) != RANK_1 && GetRank(i) != RANK_8)
+			sum += PawnSquareValuesEndGame[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += KnightSquareValues[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += BishopSquareValues[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += RookSquareValues[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += QueenSquareValues[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += KingSquareMid[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		sum += KingSquareEndGame[i];
+	}
+	error += lambda * sum * sum;
+
+	//L2 regularisation for sum of Knight and Rook adjustment
+
+	sum = 0;
+	for (int i = 0; i < 9; i++)
+	{
+		sum += knightAdj[i];
+	}
+	error += lambda * sum * sum;
+
+	sum = 0;
+	for (int i = 0; i < 9; i++)
+	{
+		sum += rookAdj[i];
+	}
+	error += lambda * sum * sum;
 
 	return error;
 }
