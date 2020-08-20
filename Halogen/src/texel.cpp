@@ -81,7 +81,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 	{
 		if (iteration % 10 == 0)
 			std::shuffle(std::begin(positions), std::end(positions), rng);
-		double error = CalculateError(positions, params, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+		double error = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 
 		if (iteration % 10 == 0)
 			PrintIteration(error, params, PST, paramiterValues, step_size, iteration);
@@ -91,12 +91,12 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 		for (size_t i = 0; i < params.size(); i++)
 		{
 			(*params[i])++;
-			double error_plus_epsilon = CalculateError(positions, params, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_plus_epsilon = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])--;
 			double firstDerivitivePositive = (error_plus_epsilon - error);
 
 			(*params[i])--;
-			double error_minus_epsilon = CalculateError(positions, params, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_minus_epsilon = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])++;
 			double firstDerivitiveNegative = (error_minus_epsilon - error);
 
@@ -255,7 +255,7 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> P
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, std::vector<int*>& params, double k, size_t subset, size_t start, double lambda)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, double k, size_t subset, size_t start, double lambda)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
