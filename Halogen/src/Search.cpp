@@ -119,10 +119,6 @@ void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initi
 	*/
 
 	Move TTmove = GetHashMove(position, distanceFromRoot);
-
-	//basically, if we have no hash move, do a shallow search and make that the hash move
-	InternalIterativeDeepening(TTmove, initialDepth, depthRemaining, position, alpha, beta, colour, distanceFromRoot, locals, sharedData);
-
 	std::vector<int> orderScores(moves.size(), 0);
 
 	for (size_t i = 0; i < moves.size(); i++)
@@ -546,6 +542,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	OrderMoves(moves, position, initialDepth, depthRemaining, distanceFromRoot, alpha, beta, colour, locals, sharedData);
 	bool InCheck = IsInCheck(position);
 	int staticScore = colour * EvaluatePosition(position);
+
+	if (hashMove.IsUninitialized() && depthRemaining > 3)
+		depthRemaining--;
 
 	bool FutileNode = (depthRemaining < static_cast<int>(FutilityMargins.size()) && staticScore + FutilityMargins.at(std::max<int>(0, depthRemaining)) < a);
 

@@ -118,7 +118,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 			(*params[i]) = static_cast<int>(round(paramiterValues[i]));
 		}
 
-		step_size *= 1 / (1 + 0.0000001 * iteration);
+		step_size *= 1 / (1 + 0.000001 * iteration);
 		iteration++;
 
 		if (step_size < 1)
