@@ -30,6 +30,10 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 int Reduction(int depth, int i, int alpha, int beta);
 int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
+unsigned int ProbeTBRoot(const Position& position);
+unsigned int ProbeTBSearch(const Position& position);
+const SearchResult& UseSearchTBScore(unsigned int result, int staticEval);
+const SearchResult& UseRootTBScore(unsigned int result, int staticEval);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -402,90 +406,22 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		//at root
-		unsigned int result = tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
-			position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
-			position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
-			position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
-			position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
-			position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
-			position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-			position.GetFiftyMoveCount(),
-			position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
-			position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
-			position.GetTurn(),
-			NULL);
-
+		unsigned int result = ProbeTBRoot(position);
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-
-			int score;
-
-			if (TB_GET_WDL(result) == TB_LOSS)
-				score = -5000;
-			else if (TB_GET_WDL(result) == TB_BLESSED_LOSS)
-				score = 0;
-			else if (TB_GET_WDL(result) == TB_DRAW)
-				score = 0;
-			else if (TB_GET_WDL(result) == TB_CURSED_WIN)
-				score = 0;
-			else if (TB_GET_WDL(result) == TB_WIN)
-				score = 5000;
-			else
-				assert(0);
-
-			int flag;
-
-			if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
-				flag = QUIET;
-			else if (TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT)
-				flag = KNIGHT_PROMOTION;
-			else if (TB_GET_PROMOTES(result) == TB_PROMOTES_BISHOP)
-				flag = BISHOP_PROMOTION;
-			else if (TB_GET_PROMOTES(result) == TB_PROMOTES_ROOK)
-				flag = ROOK_PROMOTION;
-			else if (TB_GET_PROMOTES(result) == TB_PROMOTES_QUEEN)
-				flag = QUEEN_PROMOTION;
-			else
-				assert(0);
-
-			Move move(TB_GET_FROM(result), TB_GET_TO(result), flag);
-
-			return { score, move };
+			return UseRootTBScore(result, colour * EvaluatePosition(position));
 		}
 	}
 
 	if (distanceFromRoot > 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		//not root
-		unsigned int result = tb_probe_wdl(position.GetWhitePieces(), position.GetBlackPieces(),
-			position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
-			position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
-			position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
-			position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
-			position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
-			position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-			0,
-			position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
-			position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
-			position.GetTurn());
-
+		unsigned int result = ProbeTBSearch(position);
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-
-			if (result == TB_LOSS)
-				return -5000;
-			else if (result == TB_BLESSED_LOSS)
-				return 0;
-			else if (result == TB_DRAW)
-				return 0;
-			else if (result == TB_CURSED_WIN)
-				return 0;
-			else if (result == TB_WIN)
-				return 5000;
-			else
-				assert(0);
+			return UseSearchTBScore(result, colour * EvaluatePosition(position));
 		}
 	}
 
@@ -668,6 +604,93 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
+}
+
+unsigned int ProbeTBRoot(const Position& position)
+{
+	return tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
+		position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
+		position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
+		position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
+		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
+		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
+		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
+		position.GetFiftyMoveCount(),
+		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
+		position.GetTurn(),
+		NULL);
+}
+
+unsigned int ProbeTBSearch(const Position& position)
+{
+	return tb_probe_wdl(position.GetWhitePieces(), position.GetBlackPieces(),
+		position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
+		position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
+		position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
+		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
+		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
+		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
+		0,
+		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
+		position.GetTurn());
+}
+
+const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
+{
+	int score;
+	if (result == TB_LOSS)
+		score = -5000 + staticEval / 10;
+	else if (result == TB_BLESSED_LOSS)
+		score = 0 + std::min(-1, staticEval / 100);
+	else if (result == TB_DRAW)
+		score = 0;
+	else if (result == TB_CURSED_WIN)
+		score = std::max(1, staticEval / 100);
+	else if (result == TB_WIN)
+		score = 5000 + staticEval / 10;
+	else
+		assert(0);
+
+	return score;
+}
+
+const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
+{
+	int score;
+
+	if (TB_GET_WDL(result) == TB_LOSS)
+		score = -5000 + staticEval / 10;
+	else if (TB_GET_WDL(result) == TB_BLESSED_LOSS)
+		score = 0 + std::min(-1, staticEval / 100);
+	else if (TB_GET_WDL(result) == TB_DRAW)
+		score = 0;
+	else if (TB_GET_WDL(result) == TB_CURSED_WIN)
+		score = 0 + std::max(1, staticEval / 100);
+	else if (TB_GET_WDL(result) == TB_WIN)
+		score = 5000 + staticEval / 10;
+	else
+		assert(0);
+
+	int flag;
+
+	if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
+		flag = QUIET;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT)
+		flag = KNIGHT_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_BISHOP)
+		flag = BISHOP_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_ROOK)
+		flag = ROOK_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_QUEEN)
+		flag = QUEEN_PROMOTION;
+	else
+		assert(0);
+
+	Move move(TB_GET_FROM(result), TB_GET_TO(result), flag);
+
+	return { score, move };
 }
 
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals)
