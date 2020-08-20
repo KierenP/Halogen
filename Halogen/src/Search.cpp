@@ -6,7 +6,7 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
 TranspositionTable tTable;
 
-void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, SearchData& locals, ThreadSharedData& sharedData);
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals);
 void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, Position& position, Move move, SearchData& locals);
@@ -94,7 +94,7 @@ void InitSearch()
 	pawnHashTable.HashMisses = 0;
 }
 
-void OrderMoves(std::vector<Move>& moves, Position& position, unsigned int initialDepth, int depthRemaining, int distanceFromRoot, int alpha, int beta, int colour, SearchData& locals, ThreadSharedData& sharedData)
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
@@ -512,7 +512,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 	
-	OrderMoves(moves, position, initialDepth, depthRemaining, distanceFromRoot, alpha, beta, colour, locals, sharedData);
+	OrderMoves(moves, position, distanceFromRoot, colour, locals);
 	bool InCheck = IsInCheck(position);
 	int staticScore = colour * EvaluatePosition(position);
 
@@ -796,7 +796,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (moves.size() == 0)
 		return staticScore;
 		
-	OrderMoves(moves, position, initialDepth, depthRemaining, distanceFromRoot, alpha, beta, colour, locals, sharedData);
+	OrderMoves(moves, position, distanceFromRoot, colour, locals);
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{

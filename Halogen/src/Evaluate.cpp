@@ -684,6 +684,9 @@ int EvaluateMaterial(const Position & position, GameStages GameStage)
 
 bool EvaluateDebug()
 {
+#ifdef NDEBUG
+	return true;
+#else
 	pawnHashTable.Init(1);
 
 	for (int i = 0; i <= 1; i++)	//2 pass to check pawn eval hash on 2nd run
@@ -724,6 +727,7 @@ bool EvaluateDebug()
 	}
 
 	return true;
+#endif
 }
 
 std::vector<int*> TexelParamiters()
