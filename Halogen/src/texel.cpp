@@ -347,13 +347,6 @@ double CalculateError(std::vector<std::pair<Position, double>>& positions, Searc
 	}
 	error += lambda * sum * sum;
 
-	sum = 0;
-	for (int i = 0; i < N_RANKS; i++)
-	{
-		sum += PassedPawnBonus[i];
-	}
-	error += lambda * sum * sum;
-
 	return error;
 }
 

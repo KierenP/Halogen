@@ -1,24 +1,24 @@
 #include "Evaluate.h"
 
-int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {111, 489, 529, 655, 1221, 5000},
-												  {150, 335, 367, 631, 1248, 5000} };
+int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
+												  {111, 339, 372, 638, 1301, 5000} };
 
-int knightAdj[9] = { -84, -18, -4, 4, 11, 14, 19, 25, 30 };	//adjustment of piece value based on the number of own pawns
-int rookAdj[9] = { -20, -12, -3, 1, 2, 4, 5, 6, 13 };
+int knightAdj[9] = {-77, -14, -4, 2, 8, 11, 17, 23, 30};	//adjustment of piece value based on the number of own pawns
+int rookAdj[9] = {-6, -8, -3, -2, -4, -1, 1, 6, 14};
 
-int WeakPawnPenalty = -3;
-int WeakOpenPawnPenalty = 7;
-int DoubledPawnPenalty = 18;
+int WeakPawnPenalty = 4;
+int WeakOpenPawnPenalty = 17;
+int DoubledPawnPenalty = 14;
 
-int PassedPawnBonus[N_RANKS] = {0, -60, -56, -33, -8, 66, 130, 0};
+int PassedPawnBonus[N_RANKS] = {0, -12, -11, 11, 39, 148, 275, 0};
 
-int CanCastleBonus = 21;
+int CanCastleBonus = 29;
 int CastledBonus = CanCastleBonus * 2;
-int BishopPairBonus = 41;
-int RookOpenFileBonus = 19;
-int RookSemiOpenFileBonus = 21;
+int BishopPairBonus = 42;
+int RookOpenFileBonus = 21;
+int RookSemiOpenFileBonus = 24;
 
-int TempoBonus = 21;
+int TempoBonus = 22;
 
 int KnightMobility = 8;
 int KnightAverageMobility = 6;
@@ -29,7 +29,7 @@ int BishopAverageMobility = 7;
 int RookMobility = 4;
 int RookAverageMobility = 7;
 
-int QueenMobility = 4;
+int QueenMobility = 3;
 int QueenAverageMobility = RookAverageMobility + BishopAverageMobility;
 
 int EvaluateCastleBonus(const Position& position);
