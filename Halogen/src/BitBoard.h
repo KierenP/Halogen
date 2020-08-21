@@ -22,9 +22,9 @@ public:
 	BitBoard();
 	virtual ~BitBoard() = 0;
 
-	bool IsEmpty(unsigned int positon) const;
-	bool IsOccupied(unsigned int position) const;
-	bool IsOccupied(unsigned int position, bool colour) const;
+	bool IsEmpty(unsigned int square) const;
+	bool IsOccupied(unsigned int square) const;
+	bool IsOccupied(unsigned int square, bool colour) const;
 
 	uint64_t GetAllPieces() const;
 	uint64_t GetEmptySquares() const;

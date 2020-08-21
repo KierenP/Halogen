@@ -40,13 +40,13 @@ public:
 	bool InitialiseFromMoves(std::vector<std::string> moves);
 
 	uint64_t GetZobristKey() const;
-	uint64_t GetNodeCount() { return NodeCount; }
+	uint64_t GetNodeCount() const { return NodeCount; }
 
 	void ResetNodeCount() { NodeCount = 0; }
 	void IncreaseNodeCount() { NodeCount++; }
 	void Reset();
 
-	size_t GetPreviousKeysSize() { return PreviousKeys.size(); }
+	size_t GetPreviousKeysSize() const { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
 
 	void FlipColours();

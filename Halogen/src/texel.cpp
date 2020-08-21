@@ -353,7 +353,7 @@ void TexelOptimise()
 
 }
 
-double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults)
+double CalculateK(const std::vector<Position>& positionList, const std::vector<double>& positionScore, const std::vector<double>& positionResults)
 {
 	double k = 0;
 	double epsilon = 0.0001;
@@ -363,18 +363,12 @@ double CalculateK(std::vector<Position>& positionList, std::vector<double>& posi
 		double error_k = 0;
 		double error_k_minus_epsilon = 0;
 		double error_k_plus_epsilon = 0;
-		double sigmoid = 0;
 
 		for (size_t i = 0; i < positionList.size(); i++)
 		{
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * k / 400));
-			error_k += pow(positionResults[i] - sigmoid, 2);
-
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k + epsilon) / 400));
-			error_k_plus_epsilon += pow(positionResults[i] - sigmoid, 2);
-
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k - epsilon) / 400));
-			error_k_minus_epsilon += pow(positionResults[i] - sigmoid, 2);
+			error_k += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * k / 400)), 2);
+			error_k_plus_epsilon += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * (k + epsilon) / 400)), 2);
+			error_k_minus_epsilon += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * (k - epsilon) / 400)), 2);
 		}
 
 		error_k /= positionList.size();

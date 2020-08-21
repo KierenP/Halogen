@@ -10,7 +10,7 @@ int WeakPawnPenalty = 4;
 int WeakOpenPawnPenalty = 17;
 int DoubledPawnPenalty = 14;
 
-int PassedPawnBonus[N_RANKS] = {0, -12, -11, 11, 39, 148, 275, 0};
+int PassedPawnBonus[N_RANKS] = {0, -12, -11, 11, 39, 148, 0, 0};	//final step passed pawns handled by PST as all final step pawns are passed
 
 int CanCastleBonus = 29;
 int CastledBonus = CanCastleBonus * 2;
@@ -763,7 +763,7 @@ std::vector<int*> TexelParamiters()
 		params.push_back(&rookAdj[i]);
 	}
 
-	for (int i = 1; i <= 6; i++)	
+	for (int i = 1; i < 6; i++)	
 	{
 		params.push_back(&PassedPawnBonus[i]);
 	}
