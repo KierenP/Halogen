@@ -9,7 +9,7 @@ TranspositionTable tTable;
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals);
 void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position);
@@ -30,6 +30,10 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 int Reduction(int depth, int i, int alpha, int beta);
 int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
+unsigned int ProbeTBRoot(const Position& position);
+unsigned int ProbeTBSearch(const Position& position);
+const SearchResult& UseSearchTBScore(unsigned int result, int staticEval);
+const SearchResult& UseRootTBScore(unsigned int result, int staticEval);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -259,7 +263,7 @@ void PrintBestMove(Move Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 {
 	uint64_t actualNodeCount = position.GetNodeCount() * threadCount;
 	std::vector<Move> pv = locals.PvTable[0];
@@ -292,7 +296,8 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " time " << Time																						//Time in ms
 		<< " nodes " << actualNodeCount
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
-		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount());						//thousondths full
+		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
+		<< " tbhits " << sharedData.getTBHits();
 
 #ifdef _MSC_VER
 	std::cout	//these lines are for debug and not part of official uci protocol
@@ -342,7 +347,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		int score = search.GetScore();
 
-		if (locals.timeManage.AbortSearch(position.GetNodeCount())) { break; }
+		if (depth > 1 && locals.timeManage.AbortSearch(position.GetNodeCount())) { break; }
 		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
 
 		if (score <= alpha)
@@ -386,13 +391,35 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
-	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
-	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
+	if (distanceFromRoot > 0 && locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
+	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
+	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position)) return 0;
+
+	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	{
+		//at root
+		unsigned int result = ProbeTBRoot(position);
+		if (result != TB_RESULT_FAILED)
+		{
+			sharedData.AddTBHit();
+			return UseRootTBScore(result, colour * EvaluatePosition(position));
+		}
+	}
+
+	if (distanceFromRoot > 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	{
+		//not root
+		unsigned int result = ProbeTBSearch(position);
+		if (result != TB_RESULT_FAILED)
+		{
+			sharedData.AddTBHit();
+			return UseSearchTBScore(result, colour * EvaluatePosition(position));
+		}
+	}
 
 	/* blockade detection */
 	//Its possible one side has a blockade, but if winning will break it up.
@@ -576,6 +603,93 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
+}
+
+unsigned int ProbeTBRoot(const Position& position)
+{
+	return tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
+		position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
+		position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
+		position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
+		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
+		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
+		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
+		position.GetFiftyMoveCount(),
+		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
+		position.GetTurn(),
+		NULL);
+}
+
+unsigned int ProbeTBSearch(const Position& position)
+{
+	return tb_probe_wdl(position.GetWhitePieces(), position.GetBlackPieces(),
+		position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
+		position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
+		position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
+		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
+		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
+		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
+		0,
+		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
+		position.GetTurn());
+}
+
+const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
+{
+	int score;
+	if (result == TB_LOSS)
+		score = -5000 + staticEval / 10;
+	else if (result == TB_BLESSED_LOSS)
+		score = 0 + std::min(-1, staticEval / 100);
+	else if (result == TB_DRAW)
+		score = 0;
+	else if (result == TB_CURSED_WIN)
+		score = std::max(1, staticEval / 100);
+	else if (result == TB_WIN)
+		score = 5000 + staticEval / 10;
+	else
+		assert(0);
+
+	return score;
+}
+
+const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
+{
+	int score;
+
+	if (TB_GET_WDL(result) == TB_LOSS)
+		score = -5000 + staticEval / 10;
+	else if (TB_GET_WDL(result) == TB_BLESSED_LOSS)
+		score = 0 + std::min(-1, staticEval / 100);
+	else if (TB_GET_WDL(result) == TB_DRAW)
+		score = 0;
+	else if (TB_GET_WDL(result) == TB_CURSED_WIN)
+		score = 0 + std::max(1, staticEval / 100);
+	else if (TB_GET_WDL(result) == TB_WIN)
+		score = 5000 + staticEval / 10;
+	else
+		assert(0);
+
+	int flag;
+
+	if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
+		flag = QUIET;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT)
+		flag = KNIGHT_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_BISHOP)
+		flag = BISHOP_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_ROOK)
+		flag = ROOK_PROMOTION;
+	else if (TB_GET_PROMOTES(result) == TB_PROMOTES_QUEEN)
+		flag = QUEEN_PROMOTION;
+	else
+		assert(0);
+
+	Move move(TB_GET_FROM(result), TB_GET_TO(result), flag);
+
+	return { score, move };
 }
 
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals)
@@ -942,7 +1056,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
 		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals);
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals, *this);
 
 		threadDepthCompleted = depth;
 		currentBestMove = move;

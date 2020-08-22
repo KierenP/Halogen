@@ -6,6 +6,7 @@
 #include "Zobrist.h"
 #include "Move.h"
 #include "TimeManage.h"
+#include "tbprobe.h"
 #include <ctime>
 #include <algorithm>
 #include <thread>
@@ -62,6 +63,8 @@ public:
 	void ReportDepth(unsigned int depth, unsigned int threadID);
 	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
+	void AddTBHit() { tbHits++; }
+	uint64_t getTBHits() { return tbHits; }
 
 private:
 	std::mutex ioMutex;
@@ -70,6 +73,8 @@ private:
 	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
 	bool noOutput;									//Do not write anything to the concole
+
+	std::atomic<uint64_t> tbHits;
 
 	std::vector<unsigned int> searchDepth;					//what depth is each thread currently searching?
 };
