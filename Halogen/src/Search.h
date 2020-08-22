@@ -57,8 +57,8 @@ public:
 	~ThreadSharedData();
 
 	Move GetBestMove();
-	bool ThreadAbort(unsigned int initialDepth);
-	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, Position& position, Move move, SearchData& locals);
+	bool ThreadAbort(unsigned int initialDepth) const;
+	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals);
 	void ReportDepth(unsigned int depth, unsigned int threadID);
 	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
@@ -76,8 +76,8 @@ private:
 
 extern TranspositionTable tTable;
 
-Move MultithreadedSearch(Position position, int allowedTimeMs, unsigned int threads = 1, int maxSearchDepth = MAX_DEPTH);
-uint64_t BenchSearch(Position position, int maxSearchDepth = MAX_DEPTH);
+Move MultithreadedSearch(const Position& position, int allowedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
+uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
 
 int TexelSearch(Position& position, SearchData& data);
 

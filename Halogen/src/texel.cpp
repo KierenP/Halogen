@@ -81,8 +81,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 	{
 		if (iteration % 10 == 0)
 			std::shuffle(std::begin(positions), std::end(positions), rng);
-
-		double error = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+		double error = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 
 		if (iteration % 10 == 0)
 			PrintIteration(error, params, PST, paramiterValues, step_size, iteration);
@@ -92,12 +91,12 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 		for (size_t i = 0; i < params.size(); i++)
 		{
 			(*params[i])++;
-			double error_plus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_plus_epsilon = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])--;
 			double firstDerivitivePositive = (error_plus_epsilon - error);
 
 			(*params[i])--;
-			double error_minus_epsilon = CalculateError(positions, data, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
+			double error_minus_epsilon = CalculateError(positions, k, positions.size() / params.size() / batchSize, (positions.size() / params.size() / batchSize) * (iteration % batchSize), lambda);
 			(*params[i])++;
 			double firstDerivitiveNegative = (error_minus_epsilon - error);
 
@@ -256,14 +255,13 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> P
 	std::cout << std::endl;
 }
 
-double CalculateError(std::vector<std::pair<Position, double>>& positions, SearchData& data, double k, size_t subset, size_t start, double lambda)
+double CalculateError(std::vector<std::pair<Position, double>>& positions, double k, size_t subset, size_t start, double lambda)
 {
 	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
 	double error = 0;
 	for (size_t i = start; i < start + subset; i++)
 	{
-		//double sigmoid = 1 / (1 + pow(10, -TexelSearch(positions[i].first, data) * k / 400));
 		double sigmoid = 1 / (1 + pow(10, -EvaluatePosition(positions.at(i).first) * k / 400));
 		error += pow(positions.at(i).second - sigmoid, 2);
 	}
@@ -355,7 +353,7 @@ void TexelOptimise()
 
 }
 
-double CalculateK(std::vector<Position>& positionList, std::vector<double>& positionScore, std::vector<double>& positionResults)
+double CalculateK(const std::vector<Position>& positionList, const std::vector<double>& positionScore, const std::vector<double>& positionResults)
 {
 	double k = 0;
 	double epsilon = 0.0001;
@@ -365,18 +363,12 @@ double CalculateK(std::vector<Position>& positionList, std::vector<double>& posi
 		double error_k = 0;
 		double error_k_minus_epsilon = 0;
 		double error_k_plus_epsilon = 0;
-		double sigmoid = 0;
 
 		for (size_t i = 0; i < positionList.size(); i++)
 		{
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * k / 400));
-			error_k += pow(positionResults[i] - sigmoid, 2);
-
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k + epsilon) / 400));
-			error_k_plus_epsilon += pow(positionResults[i] - sigmoid, 2);
-
-			sigmoid = 1 / (1 + pow(10, -positionScore[i] * (k - epsilon) / 400));
-			error_k_minus_epsilon += pow(positionResults[i] - sigmoid, 2);
+			error_k += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * k / 400)), 2);
+			error_k_plus_epsilon += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * (k + epsilon) / 400)), 2);
+			error_k_minus_epsilon += pow(positionResults[i] - 1 / (1 + pow(10, -positionScore[i] * (k - epsilon) / 400)), 2);
 		}
 
 		error_k /= positionList.size();
