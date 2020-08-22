@@ -16,7 +16,7 @@ class TTEntry
 {
 public:
 	TTEntry();
-	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int halfmove, int distanceFromRoot, EntryType Cutoff);
+	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff);
 	~TTEntry();
 
 	uint64_t GetKey() const { return key; }

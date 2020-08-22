@@ -4,30 +4,30 @@ void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t p
 void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);	//captures and/or promotions
 
 //Pawn moves
-void PawnPushes(Position & position, std::vector<Move>& moves, uint64_t pinned);
-void PawnPromotions(Position & position, std::vector<Move>& moves, uint64_t pinned);
-void PawnDoublePushes(Position & position, std::vector<Move>& moves, uint64_t pinned);
-void PawnEnPassant(Position & position, std::vector<Move>& moves);	//Ep moves are always checked for legality so no need for pinned mask
-void PawnCaptures(Position & position, std::vector<Move>& moves, uint64_t pinned);
+void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned);
+void PawnPromotions(Position& position, std::vector<Move>& moves, uint64_t pinned);
+void PawnDoublePushes(Position& position, std::vector<Move>& moves, uint64_t pinned);
+void PawnEnPassant(Position& position, std::vector<Move>& moves);	//Ep moves are always checked for legality so no need for pinned mask
+void PawnCaptures(Position& position, std::vector<Move>& moves, uint64_t pinned);
 
 //All other pieces
-void GenerateQuietMoves(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
+void GenerateQuietMoves(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
 void GenerateCaptureMoves(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned);
 
 //misc
-void CastleMoves(Position& position, std::vector<Move>& moves);
+void CastleMoves(const Position& position, std::vector<Move>& moves);
 
 //utility functions
-bool MovePutsSelfInCheck(Position & position, Move & move);
+bool MovePutsSelfInCheck(Position& position, const Move& move);
 uint64_t PinnedMask(const Position& position);
 
 //special generators for when in check
-void KingEvasions(Position & position, std::vector<Move>& moves);						//move the king out of danger	(single or multi threat)
+void KingEvasions(Position& position, std::vector<Move>& moves);						//move the king out of danger	(single or multi threat)
 void KingCapturesEvade(Position& position, std::vector<Move>& moves);			//use only for multi threat with king evasions
 void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats);		//capture the attacker	(single threat only)
 void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats);		//block the attacker (single threat only)
 
-void LegalMoves(Position & position, std::vector<Move>& moves)
+void LegalMoves(Position& position, std::vector<Move>& moves)
 {
 	uint64_t pinned = PinnedMask(position);
 
@@ -133,7 +133,7 @@ uint64_t PinnedMask(const Position& position)
 	return mask;
 }
 
-void KingEvasions(Position & position, std::vector<Move>& moves)
+void KingEvasions(Position& position, std::vector<Move>& moves)
 {
 	unsigned int square = position.GetKing(position.GetTurn());
 	uint64_t quiet = position.GetEmptySquares() & KingAttacks[square];
@@ -206,7 +206,7 @@ void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 	}
 }
 
-void GenerateLegalMoves(Position & position, std::vector<Move>& moves, uint64_t pinned)
+void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t pinned)
 {
 	PawnPushes(position, moves, pinned);
 	PawnDoublePushes(position, moves, pinned);
@@ -221,7 +221,7 @@ void GenerateLegalMoves(Position & position, std::vector<Move>& moves, uint64_t 
 	AddQuiescenceMoves(position, moves, pinned);
 }
 
-void PawnPushes(Position & position, std::vector<Move>& moves, uint64_t pinned)
+void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned)
 {
 	int foward = 0;
 	uint64_t targets = 0;
@@ -284,7 +284,7 @@ void PawnPromotions(Position& position, std::vector<Move>& moves, uint64_t pinne
 	}
 }
 
-void PawnDoublePushes(Position & position, std::vector<Move>& moves, uint64_t pinned)
+void PawnDoublePushes(Position& position, std::vector<Move>& moves, uint64_t pinned)
 {
 	int foward = 0;
 	uint64_t targets = 0;
@@ -315,7 +315,7 @@ void PawnDoublePushes(Position & position, std::vector<Move>& moves, uint64_t pi
 	}
 }
 
-void PawnEnPassant(Position & position, std::vector<Move>& moves)
+void PawnEnPassant(Position& position, std::vector<Move>& moves)
 {
 	if (position.GetEnPassant() <= SQ_H8)
 	{
@@ -347,7 +347,7 @@ void PawnEnPassant(Position & position, std::vector<Move>& moves)
 	}
 }
 
-void PawnCaptures(Position & position, std::vector<Move>& moves, uint64_t pinned)
+void PawnCaptures(Position& position, std::vector<Move>& moves, uint64_t pinned)
 {
 	int fowardleft = 0;
 	int fowardright = 0;
@@ -409,7 +409,7 @@ void PawnCaptures(Position & position, std::vector<Move>& moves, uint64_t pinned
 	}
 }
 
-void CastleMoves(Position & position, std::vector<Move>& moves)
+void CastleMoves(const Position& position, std::vector<Move>& moves)
 {
 	uint64_t Pieces = position.GetAllPieces();
 
@@ -458,7 +458,7 @@ void CastleMoves(Position & position, std::vector<Move>& moves)
 	}
 }
 
-void GenerateQuietMoves(Position & position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
+void GenerateQuietMoves(Position& position, std::vector<Move>& moves, unsigned int square, uint64_t attackMask[N_SQUARES], bool isSliding, uint64_t pinned)
 {
 	assert(square < N_SQUARES);
 
@@ -502,7 +502,7 @@ void GenerateCaptureMoves(Position& position, std::vector<Move>& moves, unsigned
 	}
 }
 
-bool IsSquareThreatened(const Position & position, unsigned int square, bool colour)
+bool IsSquareThreatened(const Position& position, unsigned int square, bool colour)
 {
 	assert(square < N_SQUARES);
 
@@ -672,7 +672,7 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	return Move();
 }
 
-bool MovePutsSelfInCheck(Position & position, Move & move)
+bool MovePutsSelfInCheck(Position& position, const Move & move)
 {
 	unsigned int fromPiece = position.GetSquare(move.GetFrom());
 	unsigned int toPiece = position.GetSquare(move.GetTo());

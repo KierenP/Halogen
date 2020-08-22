@@ -10,9 +10,9 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
-void TestSyzygy();
+string version = "6-20200820-2351"; 
 
-string version = "6"; 
+void TestSyzygy();
 
 int main(int argc, char* argv[])
 {
