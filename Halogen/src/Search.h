@@ -64,7 +64,7 @@ public:
 	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
 	void AddTBHit() { tbHits++; }
-	uint64_t getTBHits() { return tbHits; }
+	uint64_t getTBHits() const { return tbHits; }
 
 private:
 	std::mutex ioMutex;
