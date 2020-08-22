@@ -294,7 +294,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
 		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount());						//thousondths full
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(RELEASE) 
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
