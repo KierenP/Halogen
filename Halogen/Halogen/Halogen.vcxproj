@@ -22,12 +22,10 @@
     <ClCompile Include="..\src\BitBoard.cpp" />
     <ClCompile Include="..\src\BitBoardDefine.cpp" />
     <ClCompile Include="..\src\BoardParamiters.cpp" />
-    <ClCompile Include="..\src\Evaluate.cpp" />
+    <ClCompile Include="..\src\EvalNet.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Move.cpp" />
     <ClCompile Include="..\src\MoveGeneration.cpp" />
-    <ClCompile Include="..\src\PawnHashTable.cpp" />
-    <ClCompile Include="..\src\PieceSquareTables.cpp" />
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Random.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
@@ -43,11 +41,9 @@
     <ClInclude Include="..\src\BitBoard.h" />
     <ClInclude Include="..\src\BitBoardDefine.h" />
     <ClInclude Include="..\src\BoardParamiters.h" />
-    <ClInclude Include="..\src\Evaluate.h" />
+    <ClInclude Include="..\src\EvalNet.h" />
     <ClInclude Include="..\src\Move.h" />
     <ClInclude Include="..\src\MoveGeneration.h" />
-    <ClInclude Include="..\src\PawnHashTable.h" />
-    <ClInclude Include="..\src\PieceSquareTables.h" />
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Random.h" />
     <ClInclude Include="..\src\Search.h" />

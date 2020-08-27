@@ -94,8 +94,6 @@ void InitSearch()
 {
 	KeepSearching = true;
 	tTable.ResetHitCount();
-	pawnHashTable.HashHits = 0;
-	pawnHashTable.HashMisses = 0;
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals)
@@ -302,8 +300,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 #ifdef _MSC_VER
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
-		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1));
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1));
 #endif
 
 	std::cout << " pv ";																								//the current best line found
@@ -406,7 +403,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseRootTBScore(result, colour * EvaluatePosition(position));
+			return UseRootTBScore(result, colour * EvaluatePositionNet(position));
 		}
 	}
 
@@ -417,7 +414,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseSearchTBScore(result, colour * EvaluatePosition(position));
+			return UseSearchTBScore(result, colour * EvaluatePositionNet(position));
 		}
 	}
 
@@ -541,7 +538,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	
 	OrderMoves(moves, position, distanceFromRoot, colour, locals);
 	bool InCheck = IsInCheck(position);
-	int staticScore = colour * EvaluatePosition(position);
+	int staticScore = colour * EvaluatePositionNet(position);
 
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
@@ -898,7 +895,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		moves.clear();
 	}
 
-	int staticScore = colour * EvaluatePosition(position);
+	int staticScore = colour * EvaluatePositionNet(position);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	

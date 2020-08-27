@@ -16,6 +16,8 @@ void TestSyzygy();
 
 int main(int argc, char* argv[])
 {
+	srand(time(NULL));
+
 	PrintVersion();
 	tb_init("<empty>");
 
@@ -24,7 +26,7 @@ int main(int argc, char* argv[])
 
 	ZobristInit();
 	BBInit();
-	EvalInit();
+	InitEval("weights.network");
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
@@ -33,7 +35,6 @@ int main(int argc, char* argv[])
 	//PerftSuite();
 
 	tTable.SetSize(1);
-	pawnHashTable.Init(1);
 
 	Position position;
 	position.StartingPosition();
@@ -57,6 +58,7 @@ int main(int argc, char* argv[])
 			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
+			cout << "option name NetworkPath type string default weights.network" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -65,7 +67,7 @@ int main(int argc, char* argv[])
 		else if (token == "ucinewgame")
 		{
 			position.StartingPosition();
-			pawnHashTable.ResetTable();
+			//pawnHashTable.ResetTable();
 			tTable.ResetTable();
 		}
 
@@ -154,7 +156,7 @@ int main(int argc, char* argv[])
 				iss >> token;
 				if (token == "Hash") 
 				{
-					pawnHashTable.ResetTable();
+					//pawnHashTable.ResetTable();
 					tTable.ResetTable();
 				}
 			}
@@ -173,7 +175,7 @@ int main(int argc, char* argv[])
 				else
 				{
 					tTable.SetSize(stoi(token) - 1);
-					pawnHashTable.Init(1);
+					//pawnHashTable.Init(1);
 				}
 			}
 
@@ -202,6 +204,14 @@ int main(int argc, char* argv[])
 				tb_init(token.c_str());
 				TestSyzygy();
 			}
+
+			else if (token == "NetworkPath")
+			{
+				iss >> token; //'value'
+				iss >> token;
+
+				InitEval(token);
+			}
 		}
 
 		else if (token == "perft")
@@ -212,7 +222,12 @@ int main(int argc, char* argv[])
 
 		else if (token == "texel")
 		{
-			Texel(TexelParamiters(), TexelPST());
+			//Texel(TexelParamiters(), TexelPST());
+		}
+
+		else if (token == "learn")
+		{
+			Learn();
 		}
 
 		else if (token == "stop") KeepSearching = false;

@@ -38,7 +38,7 @@ void Texel(std::vector<int*> params, std::vector<int*> PST)
 
 		Loadquietlabeled(positions, line, lineCount, position);
 		
-		if (EvaluatePosition(position) == TexelSearch(position, data))
+		if (EvaluatePositionNet(position) == TexelSearch(position, data))
 			quietCount++;
 		else
 			positions.pop_back();
@@ -257,7 +257,7 @@ void PrintIteration(double error, std::vector<int*>& params, std::vector<int*> P
 
 double CalculateError(std::vector<std::pair<Position, double>>& positions, double k, size_t subset, size_t start, double lambda)
 {
-	InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
+	/*InitializePieceSquareTable();	//if tuning PST you need to re-load them with this
 
 	double error = 0;
 	for (size_t i = start; i < start + subset; i++)
@@ -345,7 +345,9 @@ double CalculateError(std::vector<std::pair<Position, double>>& positions, doubl
 	}
 	error += lambda * sum * sum;
 
-	return error;
+	return error;*/
+
+	return 0;
 }
 
 void TexelOptimise()
