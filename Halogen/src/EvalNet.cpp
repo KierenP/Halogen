@@ -104,7 +104,7 @@ bool InitEval(std::string file)
     {
         std::cout << "info string Could not load network file: " << file << std::endl;
         std::cout << "info string random weights initialization!" << std::endl;
-        net = CreateRandom({ 12 * 64 - 32, 1 });
+        //net = CreateRandom({ 12 * 64 - 32, 1 });
         return false;
     }
 
