@@ -5,7 +5,7 @@
 #include "Zobrist.h"
 #include <sstream>
 
-#ifdef _MSC_VER
+#ifdef _MSC_VER 
 #define NOMINMAX
 #endif 
 
