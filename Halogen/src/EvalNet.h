@@ -1,5 +1,6 @@
 #pragma once
 #include "Position.h"
+#include "weights.h"
 #include <fstream>
 #include <sstream>
 #include <numeric>
@@ -15,6 +16,7 @@ bool IsBlockade(const Position& position);
 
 int EvaluatePositionNet(const Position& position);
 bool InitEval(std::string file);
+bool InitEval();
 
 int PieceValues(unsigned int Piece, GameStages GameStage = MIDGAME);
 

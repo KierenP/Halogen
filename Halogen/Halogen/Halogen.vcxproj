@@ -34,6 +34,7 @@
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
     <ClCompile Include="..\src\TTEntry.cpp" />
+    <ClCompile Include="..\src\weights.cpp" />
     <ClCompile Include="..\src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +55,7 @@
     <ClInclude Include="..\src\TimeManage.h" />
     <ClInclude Include="..\src\TranspositionTable.h" />
     <ClInclude Include="..\src\TTEntry.h" />
+    <ClInclude Include="..\src\weights.h" />
     <ClInclude Include="..\src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

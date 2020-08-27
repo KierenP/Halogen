@@ -171,6 +171,71 @@ bool InitEval(std::string file)
     return true;
 }
 
+bool InitEval()
+{
+    std::string line;
+    std::istringstream stream(weightsText);
+
+    std::vector<std::vector<double>> weights;
+    std::vector<size_t> LayerNeurons;
+
+    while (getline(stream, line))
+    {
+        std::istringstream iss(line);
+        std::string token;
+
+        iss >> token;
+
+        if (token == "InputNeurons")
+        {
+            getline(stream, line);
+            std::istringstream lineStream(line);
+            lineStream >> token;
+            LayerNeurons.push_back(stoull(token));
+        }
+
+        if (token == "HiddenLayerNeurons")
+        {
+            std::vector<double> layerWeights;
+
+            iss >> token;
+            size_t num = stoull(token);
+
+            LayerNeurons.push_back(num);
+
+            for (size_t i = 0; i < num; i++)
+            {
+                getline(stream, line);
+                std::istringstream lineStream(line);
+
+                while (lineStream >> token)
+                {
+                    layerWeights.push_back(stod(token));
+                }
+            }
+
+            weights.push_back(layerWeights);
+        }
+
+        else if (token == "OutputLayer")
+        {
+            LayerNeurons.push_back(1);  //always 1 output neuron
+            std::vector<double> layerWeights;
+            getline(stream, line);
+            std::istringstream lineStream(line);
+            while (lineStream >> token)
+            {
+                layerWeights.push_back(stod(token));
+            }
+            weights.push_back(layerWeights);
+        }
+    }
+
+    net = new Network(weights, LayerNeurons);
+
+    return true;
+}
+
 Neuron::Neuron(std::vector<double> Weight, double Bias)
 {
     weights = Weight;
