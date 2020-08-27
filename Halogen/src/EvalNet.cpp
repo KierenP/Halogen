@@ -1,8 +1,18 @@
 #include "EvalNet.h"
 #pragma once
 
+#define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
+
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
-                                                  {111, 339, 372, 638, 1301, 5000} };
+                                                  {111, 339, 372, 638, 1301, 5000} };\
+
+struct trainingPoint
+{
+    trainingPoint(std::array<double, INPUT_NEURONS> input, double gameResult);
+
+    std::array<double, INPUT_NEURONS> inputs;
+    double result;
+};
 
 struct Neuron
 {
@@ -33,13 +43,14 @@ struct HiddenLayer
 struct Network
 {
     Network(std::vector<std::vector<double>> inputs, std::vector<size_t> hiddenNeuronCount);
-    double FeedForward(std::vector<double> inputs);
-    double Backpropagate(std::vector<double> inputs, double output, double learnRate);
+    double FeedForward(std::array<double, INPUT_NEURONS> inputs);
+    double Backpropagate(trainingPoint data, double learnRate);
     void WriteToFile();
     void Learn();
 
 private:
-    std::vector<std::pair<Position, double>> quietlabeledDataset();
+    std::vector<trainingPoint> quietlabeledDataset();
+    std::vector<trainingPoint> Stockfish3PerDataset();
     size_t inputNeurons;
 
     //cache for backprop after feedforward (these are for the output neuron)
@@ -55,7 +66,7 @@ Network* net;
 bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
 bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
 Network* CreateRandom(std::vector<size_t> hiddenNeuronCount);
-std::vector<double> GetInputLayer(const Position& position);
+std::array<double, INPUT_NEURONS> GetInputLayer(const Position& position);
 
 template<typename Numeric, typename Generator = std::mt19937>
 Numeric random(Numeric from, Numeric to);
@@ -66,9 +77,11 @@ int EvaluatePositionNet(const Position& position)
     return net->FeedForward(GetInputLayer(position));
 }
 
-std::vector<double> GetInputLayer(const Position& position)
+std::array<double, INPUT_NEURONS> GetInputLayer(const Position& position)
 {
-    std::vector<double> inputs;
+    std::array<double, INPUT_NEURONS> ret;
+
+    size_t index = 0;
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -77,12 +90,17 @@ std::vector<double> GetInputLayer(const Position& position)
         for (int sq = 0; sq < N_SQUARES; sq++)
         {
             if ((i != WHITE_PAWN && i != BLACK_PAWN) || (GetRank(sq) > RANK_1 && GetRank(sq) < RANK_8))
-                inputs.push_back(bb % 2);
-            bb /= 2;
+                ret[index++] = ((bb & SquareBB[sq]) != 0);
         }
     }
 
-    return inputs;
+    ret[index++] = (position.GetTurn());
+    ret[index++] = (position.CanCastleWhiteKingside());
+    ret[index++] = (position.CanCastleWhiteQueenside());
+    ret[index++] = (position.CanCastleBlackKingside());
+    ret[index++] = (position.CanCastleBlackQueenside());
+
+    return ret;
 }
 
 int PieceValues(unsigned int Piece, GameStages GameStage)
@@ -104,7 +122,7 @@ bool InitEval(std::string file)
     {
         std::cout << "info string Could not load network file: " << file << std::endl;
         std::cout << "info string random weights initialization!" << std::endl;
-        //net = CreateRandom({ 12 * 64 - 32, 1 });
+        net = CreateRandom({ INPUT_NEURONS, 1 });
         return false;
     }
 
@@ -321,33 +339,34 @@ Network::Network(std::vector<std::vector<double>> inputs, std::vector<size_t> hi
     }
 }
 
-double Network::FeedForward(std::vector<double> inputs)
+double Network::FeedForward(std::array<double, INPUT_NEURONS> inputs)
 {
     assert(inputs.size() == inputNeurons);
+    std::vector<double> inputLayer = std::vector<double>(inputs.begin(), inputs.end());
 
     for (size_t i = 0; i < hiddenLayers.size(); i++)
     {
-        inputs = hiddenLayers.at(i).FeedForward(inputs);
+        inputLayer = hiddenLayers.at(i).FeedForward(inputLayer);
     }
 
-    zeta = outputNeuron.FeedForward(inputs);
+    zeta = outputNeuron.FeedForward(inputLayer);
     alpha = 1 / (1 + exp(-0.0087 * zeta));  //-0.0087 chosen to mymic the previous evaluation function
 
     return zeta;
 }
 
-double Network::Backpropagate(std::vector<double> inputs, double gameResult, double learnRate)
+double Network::Backpropagate(trainingPoint data, double learnRate)
 {
-    FeedForward(inputs);
-    double delta_l = (alpha - gameResult) * (alpha) * (1 - alpha);
+    FeedForward(data.inputs);
+    double delta_l = (alpha - data.result) * (alpha) * (1 - alpha);
 
     for (int i = 0; i < outputNeuron.weights.size(); i++)
     {
-        outputNeuron.weights.at(i) -= delta_l * inputs.at(i);
+        outputNeuron.weights.at(i) -= delta_l * data.inputs.at(i);
     }
     outputNeuron.bias -= delta_l;
 
-    return 0.5 * (alpha - gameResult) * (alpha - gameResult);
+    return 0.5 * (alpha - data.result) * (alpha - data.result);
 }
 
 void Network::WriteToFile()
@@ -365,7 +384,7 @@ void Network::WriteToFile()
     std::string str(10, 0);
     std::generate_n(str.begin(), 10, randchar);
 
-    std::ofstream myfile(str + ".network");
+    std::ofstream myfile("C:\\HalogenWeights\\" + str + ".network");
     if (!myfile.is_open())
     {
         std::cout << "Could not write network to output file!";
@@ -393,29 +412,30 @@ void Network::WriteToFile()
 
 void Network::Learn()
 {
-    std::vector<std::pair<Position, double>> data = quietlabeledDataset();
+    //std::vector<trainingPoint> data = Stockfish3PerDataset();
+    std::vector<trainingPoint> data = quietlabeledDataset();
 
-    for (int epoch = 1; epoch <= 100; epoch++)
+    for (int epoch = 1; epoch <= 100000; epoch++)
     {
         double error = 0;
 
-        for (auto datapoint = data.begin(); datapoint != data.end(); datapoint++)
+        for (int point = 0; point < data.size(); point++)
         {
-            double y = datapoint->second;
-            Position& pos = datapoint->first;
-
-            error += net->Backpropagate(GetInputLayer(pos), y, 0.1);
+            error += net->Backpropagate(data[point], 0.1);
         }
 
         error /= data.size();
 
         std::cout << "Finished epoch: " << epoch << " MSE: " << 2 * error << std::endl;
+
+        if (epoch % 100 == 0)
+            WriteToFile();
     }
 
     WriteToFile();
 }
 
-std::vector<std::pair<Position, double>> Network::quietlabeledDataset()
+std::vector<trainingPoint> Network::quietlabeledDataset()
 {
     std::ifstream infile("C:\\quiet-labeled.epd");
 
@@ -431,7 +451,7 @@ std::vector<std::pair<Position, double>> Network::quietlabeledDataset()
 
     std::cout << "Beginning to read in positions..." << std::endl;
 
-    std::vector<std::pair<Position, double>> positions;
+    std::vector<trainingPoint> positions;
     Position position;
 
     while (std::getline(infile, line))
@@ -468,15 +488,90 @@ std::vector<std::pair<Position, double>> Network::quietlabeledDataset()
 
         if (result == "\"0-1\";")
         {
-            positions.push_back({ position, 0 });
+            positions.push_back({ GetInputLayer(position), 0 });
         }
         else if (result == "\"1-0\";")
         {
-            positions.push_back({ position, 1 });
+            positions.push_back({ GetInputLayer(position), 1 });
         }
         else if (result == "\"1/2-1/2\";")
         {
-            positions.push_back({ position, 0.5 });
+            positions.push_back({ GetInputLayer(position), 0.5 });
+        }
+        else
+        {
+            std::cout << "line " << lineCount + 1 << ": Could not read result" << std::endl;
+        }
+
+        quietCount++;
+        lineCount++;
+    }
+
+    std::cout << "Reading line: " << lineCount << " quiet positions: " << quietCount << "\r";
+    std::cout << "\nAll positions loaded successfully" << std::endl;
+
+    return positions;
+}
+
+std::vector<trainingPoint> Network::Stockfish3PerDataset()
+{
+    std::ifstream infile("C:\\fish2.fens");
+
+    if (!infile)
+    {
+        std::cout << "Cannot open position file!" << std::endl;
+        return {};
+    }
+
+    std::string line;
+    int lineCount = 0;
+    int quietCount = 0;
+
+    std::cout << "Beginning to read in positions..." << std::endl;
+
+    std::vector<trainingPoint> positions;
+    Position position;
+
+    while (std::getline(infile, line) && lineCount < 2000000)
+    {
+        if (lineCount % 10000 == 0)
+            std::cout << "Reading line: " << lineCount << " quiet positions: " << quietCount << "\r";
+
+        std::vector<std::string> arrayTokens;
+        std::istringstream iss(line);
+        arrayTokens.clear();
+        std::string result;
+
+        do
+        {
+            std::string stub;
+            iss >> stub;
+
+            if (stub == "0-1" || stub == "1-0" || stub == "1/2-1/2")
+            {
+                result = stub;
+                break;
+            }
+
+            arrayTokens.push_back(stub);
+        } while (iss);
+
+        if (!position.InitialiseFromFen(arrayTokens))
+        {
+            std::cout << "line " << lineCount + 1 << ": BAD FEN" << std::endl;
+        }
+
+        if (result == "0-1")
+        {
+            positions.push_back({ GetInputLayer(position), 0 });
+        }
+        else if (result == "1-0")
+        {
+            positions.push_back({ GetInputLayer(position), 1 });
+        }
+        else if (result == "1/2-1/2")
+        {
+            positions.push_back({ GetInputLayer(position), 0.5 });
         }
         else
         {
@@ -660,4 +755,10 @@ Numeric random(Numeric from, Numeric to)
     thread_local static dist_type dist;
 
     return dist(gen, typename dist_type::param_type{ from, to });
+}
+
+trainingPoint::trainingPoint(std::array<double, INPUT_NEURONS> input, double gameResult)
+{
+    inputs = input;
+    result = gameResult;
 }

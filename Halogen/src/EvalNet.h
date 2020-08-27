@@ -7,6 +7,7 @@
 #include <random>
 #include <functional>
 #include <valarray>
+#include <array>
 
 //needed for SEE
 extern int pieceValueVector[N_STAGES][N_PIECE_TYPES];
