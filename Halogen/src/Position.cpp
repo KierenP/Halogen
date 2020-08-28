@@ -255,8 +255,12 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	if (fen.size() != 6)
 		return false;							//bad fen
 
-	InitialiseBoardFromFen(fen);
-	InitialiseParamitersFromFen(fen);
+	if (!InitialiseBoardFromFen(fen))
+		return false;
+
+	if (!InitialiseParamitersFromFen(fen))
+		return false;
+
 	key = GenerateZobristKey();
 
 	return true;

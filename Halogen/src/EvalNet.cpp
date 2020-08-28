@@ -8,9 +8,9 @@ int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000
 
 struct trainingPoint
 {
-    trainingPoint(std::array<double, INPUT_NEURONS> input, double gameResult);
+    trainingPoint(std::array<bool, INPUT_NEURONS> input, double gameResult);
 
-    std::array<double, INPUT_NEURONS> inputs;
+    std::array<bool, INPUT_NEURONS> inputs;
     double result;
 };
 
@@ -43,7 +43,7 @@ struct HiddenLayer
 struct Network
 {
     Network(std::vector<std::vector<double>> inputs, std::vector<size_t> hiddenNeuronCount);
-    double FeedForward(std::array<double, INPUT_NEURONS> inputs);
+    double FeedForward(std::vector<double> inputs);
     double Backpropagate(trainingPoint data, double learnRate);
     void WriteToFile();
     void Learn();
@@ -66,7 +66,8 @@ Network* net;
 bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
 bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
 Network* CreateRandom(std::vector<size_t> hiddenNeuronCount);
-std::array<double, INPUT_NEURONS> GetInputLayer(const Position& position);
+std::vector<double> GetInputLayer(const Position& position);
+std::array<bool, INPUT_NEURONS> GetInputLayerCache(const Position& position); //for training (takes 1/8th the space)
 
 template<typename Numeric, typename Generator = std::mt19937>
 Numeric random(Numeric from, Numeric to);
@@ -77,9 +78,34 @@ int EvaluatePositionNet(const Position& position)
     return net->FeedForward(GetInputLayer(position));
 }
 
-std::array<double, INPUT_NEURONS> GetInputLayer(const Position& position)
+std::vector<double> GetInputLayer(const Position& position)
 {
-    std::array<double, INPUT_NEURONS> ret;
+    std::vector<double> ret;
+    ret.reserve(INPUT_NEURONS);
+
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        uint64_t bb = position.GetPieceBB(i);
+
+        for (int sq = 0; sq < N_SQUARES; sq++)
+        {
+            if ((i != WHITE_PAWN && i != BLACK_PAWN) || (GetRank(sq) > RANK_1 && GetRank(sq) < RANK_8))
+                ret.push_back((bb & SquareBB[sq]) != 0);
+        }
+    }
+
+    ret.push_back(position.GetTurn());
+    ret.push_back(position.CanCastleWhiteKingside());
+    ret.push_back(position.CanCastleWhiteQueenside());
+    ret.push_back(position.CanCastleBlackKingside());
+    ret.push_back(position.CanCastleBlackQueenside());
+
+    return ret;
+}
+
+std::array<bool, INPUT_NEURONS> GetInputLayerCache(const Position& position)
+{
+    std::array<bool, INPUT_NEURONS> ret;
 
     size_t index = 0;
 
@@ -339,17 +365,16 @@ Network::Network(std::vector<std::vector<double>> inputs, std::vector<size_t> hi
     }
 }
 
-double Network::FeedForward(std::array<double, INPUT_NEURONS> inputs)
+double Network::FeedForward(std::vector<double> inputs)
 {
     assert(inputs.size() == inputNeurons);
-    std::vector<double> inputLayer = std::vector<double>(inputs.begin(), inputs.end());
 
     for (size_t i = 0; i < hiddenLayers.size(); i++)
     {
-        inputLayer = hiddenLayers.at(i).FeedForward(inputLayer);
+        inputs = hiddenLayers.at(i).FeedForward(inputs);
     }
 
-    zeta = outputNeuron.FeedForward(inputLayer);
+    zeta = outputNeuron.FeedForward(inputs);
     alpha = 1 / (1 + exp(-0.0087 * zeta));  //-0.0087 chosen to mymic the previous evaluation function
 
     return zeta;
@@ -357,12 +382,14 @@ double Network::FeedForward(std::array<double, INPUT_NEURONS> inputs)
 
 double Network::Backpropagate(trainingPoint data, double learnRate)
 {
-    FeedForward(data.inputs);
+    std::vector<double> inputParams(data.inputs.begin(), data.inputs.end());
+
+    FeedForward(inputParams);
     double delta_l = (alpha - data.result) * (alpha) * (1 - alpha);
 
     for (int i = 0; i < outputNeuron.weights.size(); i++)
     {
-        outputNeuron.weights.at(i) -= delta_l * data.inputs.at(i);
+        outputNeuron.weights.at(i) -= delta_l * inputParams.at(i) * learnRate;
     }
     outputNeuron.bias -= delta_l;
 
@@ -412,8 +439,8 @@ void Network::WriteToFile()
 
 void Network::Learn()
 {
-    //std::vector<trainingPoint> data = Stockfish3PerDataset();
-    std::vector<trainingPoint> data = quietlabeledDataset();
+    std::vector<trainingPoint> data = Stockfish3PerDataset();
+    //std::vector<trainingPoint> data = quietlabeledDataset();
 
     for (int epoch = 1; epoch <= 100000; epoch++)
     {
@@ -421,7 +448,7 @@ void Network::Learn()
 
         for (int point = 0; point < data.size(); point++)
         {
-            error += net->Backpropagate(data[point], 0.1);
+            error += net->Backpropagate(data[point], 1);
         }
 
         error /= data.size();
@@ -488,15 +515,15 @@ std::vector<trainingPoint> Network::quietlabeledDataset()
 
         if (result == "\"0-1\";")
         {
-            positions.push_back({ GetInputLayer(position), 0 });
+            positions.push_back({ GetInputLayerCache(position), 0 });
         }
         else if (result == "\"1-0\";")
         {
-            positions.push_back({ GetInputLayer(position), 1 });
+            positions.push_back({ GetInputLayerCache(position), 1 });
         }
         else if (result == "\"1/2-1/2\";")
         {
-            positions.push_back({ GetInputLayer(position), 0.5 });
+            positions.push_back({ GetInputLayerCache(position), 0.5 });
         }
         else
         {
@@ -532,7 +559,7 @@ std::vector<trainingPoint> Network::Stockfish3PerDataset()
     std::vector<trainingPoint> positions;
     Position position;
 
-    while (std::getline(infile, line) && lineCount < 2000000)
+    while (std::getline(infile, line))
     {
         if (lineCount % 10000 == 0)
             std::cout << "Reading line: " << lineCount << " quiet positions: " << quietCount << "\r";
@@ -563,15 +590,15 @@ std::vector<trainingPoint> Network::Stockfish3PerDataset()
 
         if (result == "0-1")
         {
-            positions.push_back({ GetInputLayer(position), 0 });
+            positions.push_back({ GetInputLayerCache(position), 0 });
         }
         else if (result == "1-0")
         {
-            positions.push_back({ GetInputLayer(position), 1 });
+            positions.push_back({ GetInputLayerCache(position), 1 });
         }
         else if (result == "1/2-1/2")
         {
-            positions.push_back({ GetInputLayer(position), 0.5 });
+            positions.push_back({ GetInputLayerCache(position), 0.5 });
         }
         else
         {
@@ -757,7 +784,7 @@ Numeric random(Numeric from, Numeric to)
     return dist(gen, typename dist_type::param_type{ from, to });
 }
 
-trainingPoint::trainingPoint(std::array<double, INPUT_NEURONS> input, double gameResult)
+trainingPoint::trainingPoint(std::array<bool, INPUT_NEURONS> input, double gameResult)
 {
     inputs = input;
     result = gameResult;
