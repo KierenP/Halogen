@@ -3,6 +3,7 @@
 #include "BoardParamiters.h"
 #include "BitBoard.h"
 #include "Zobrist.h"
+#include "Network.h"
 #include <sstream>
 
 #ifdef _MSC_VER 
@@ -49,22 +50,26 @@ public:
 	size_t GetPreviousKeysSize() const { return PreviousKeys.size(); }
 	uint64_t GetPreviousKey(size_t index);
 
-	void FlipColours();
-	void MirrorLeftRight();
-	void MirrorTopBottom();
-
 	/*Seriously, don't use these functions outside of static exchange evaluation*/
 	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
 	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()
+
+	Network net;
+
+	double GetEvaluation();
 
 private:
 	uint64_t NodeCount;
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;
+	std::vector<std::vector<std::pair<size_t, double>>> PreviousDeltas;
 
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
 
-	
+	std::vector<double> GetInputLayer();
+	std::vector<std::pair<size_t, double>> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
+
+	size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
 };
 

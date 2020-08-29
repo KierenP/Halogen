@@ -26,8 +26,7 @@ int main(int argc, char* argv[])
 
 	ZobristInit();
 	BBInit();
-	//InitEval("C:\\HalogenWeights\\weights.network");
-	InitEval();
+	weightsInit();
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
@@ -59,7 +58,6 @@ int main(int argc, char* argv[])
 			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
-			cout << "option name NetworkPath type string default weights.network" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -204,14 +202,6 @@ int main(int argc, char* argv[])
 
 				tb_init(token.c_str());
 				TestSyzygy();
-			}
-
-			else if (token == "NetworkPath")
-			{
-				iss >> token; //'value'
-				iss >> token;
-
-				InitEval(token);
 			}
 		}
 

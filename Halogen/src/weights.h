@@ -1,3 +1,5 @@
 #pragma once
+#include <sstream>
 
-extern const char* weightsText;
+void weightsInit();
+extern std::ostringstream oss;
