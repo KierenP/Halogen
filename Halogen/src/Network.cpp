@@ -372,7 +372,7 @@ void Network::Learn()
 
         for (size_t point = 0; point < data.size(); point++)
         {
-            error += Backpropagate(data[point], 1);
+            error += Backpropagate(data[point], 0.1);
         }
 
         error /= data.size();
