@@ -32,8 +32,8 @@ int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
 unsigned int ProbeTBSearch(const Position& position);
-const SearchResult& UseSearchTBScore(unsigned int result, int staticEval);
-const SearchResult& UseRootTBScore(unsigned int result, int staticEval);
+SearchResult UseSearchTBScore(unsigned int result, int staticEval);
+SearchResult UseRootTBScore(unsigned int result, int staticEval);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -633,9 +633,10 @@ unsigned int ProbeTBSearch(const Position& position)
 		position.GetTurn());
 }
 
-const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
+SearchResult UseSearchTBScore(unsigned int result, int staticEval)
 {
-	int score;
+	int score = -1;
+
 	if (result == TB_LOSS)
 		score = -5000 + staticEval / 10;
 	else if (result == TB_BLESSED_LOSS)
@@ -652,9 +653,9 @@ const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
 	return score;
 }
 
-const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
+SearchResult UseRootTBScore(unsigned int result, int staticEval)
 {
-	int score;
+	int score = -1;
 
 	if (TB_GET_WDL(result) == TB_LOSS)
 		score = -5000 + staticEval / 10;
@@ -669,7 +670,7 @@ const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
 	else
 		assert(0);
 
-	int flag;
+	int flag = -1;
 
 	if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
 		flag = QUIET;

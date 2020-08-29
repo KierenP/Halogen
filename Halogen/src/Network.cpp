@@ -158,7 +158,7 @@ double Neuron::FeedForward(std::vector<double>& input) const
 
 void Neuron::WriteToFile(std::ofstream& myfile)
 {
-    for (int i = 0; i < weights.size(); i++)
+    for (size_t i = 0; i < weights.size(); i++)
     {
         myfile << weights.at(i) << " ";
     }
@@ -182,7 +182,7 @@ HiddenLayer::HiddenLayer(std::vector<double> inputs, size_t NeuronCount)
 
 std::vector<double> HiddenLayer::FeedForward(std::vector<double>& input)
 {
-    for (int i = 0; i < neurons.size(); i++)
+    for (size_t i = 0; i < neurons.size(); i++)
     {
         zeta[i] = neurons.at(i).FeedForward(input);
     }
@@ -195,7 +195,7 @@ void HiddenLayer::WriteToFile(std::ofstream& myfile)
 {
     myfile << "HiddenLayerNeurons " << neurons.size() << "\n";
 
-    for (int i = 0; i < neurons.size(); i++)
+    for (size_t i = 0; i < neurons.size(); i++)
     {
         neurons.at(i).WriteToFile(myfile);
     }
@@ -205,7 +205,7 @@ void HiddenLayer::activation(std::vector<double>& in, std::vector<double>& out)
 {
     assert(in.size() == out.size());
 
-    for (int i = 0; i < in.size(); i++)
+    for (size_t i = 0; i < in.size(); i++)
     {
         out[i] = std::max(0.0, in[i]);
     }
@@ -216,7 +216,7 @@ std::vector<double> HiddenLayer::activationPrime(std::vector<double> x)
     std::vector<double> ret;
     ret.reserve(x.size());
 
-    for (int i = 0; i < x.size(); i++)
+    for (size_t i = 0; i < x.size(); i++)
     {
         ret.push_back(x[i] >= 0);
     }
@@ -229,7 +229,7 @@ void HiddenLayer::ApplyDelta(std::vector<std::pair<size_t, double>>& delta)
     assert(delta.size() == INPUT_NEURONS);
     int neuronCount = zeta.size();
 
-    for (int index = 0; index < delta.size(); index++)
+    for (size_t index = 0; index < delta.size(); index++)
     {
         for (int neuron = 0; neuron < neuronCount; neuron++)
         {
@@ -245,7 +245,7 @@ void HiddenLayer::ApplyInverseDelta(std::vector<std::pair<size_t, double>>& delt
     assert(delta.size() == INPUT_NEURONS);
     int neuronCount = zeta.size();
 
-    for (int index = 0; index < delta.size(); index++)
+    for (size_t index = 0; index < delta.size(); index++)
     {
         for (int neuron = 0; neuron < neuronCount; neuron++)
         {
@@ -299,16 +299,16 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
     std::transform(outputNeuron.weights.begin(), outputNeuron.weights.end(), std::back_inserter(tmp2), [&delta_l](auto& c) {return c * delta_l; });
     std::transform(tmp.begin(), tmp.end(), tmp2.begin(), std::back_inserter(delta_l_minus_one), std::multiplies<double>());
 
-    for (int i = 0; i < delta_l_minus_one.size(); i++)
+    for (size_t i = 0; i < delta_l_minus_one.size(); i++)
     {
-        for (int weight = 0; weight < hiddenLayers.at(0).neurons.at(i).weights.size(); weight++)
+        for (size_t weight = 0; weight < hiddenLayers.at(0).neurons.at(i).weights.size(); weight++)
         {
             hiddenLayers.at(0).neurons.at(i).weights.at(weight) -= delta_l_minus_one.at(i) * inputParams.at(weight) * learnRate;
         }
         hiddenLayers.at(0).neurons.at(i).bias -= delta_l_minus_one.at(i) * learnRate;
     }
 
-    for (int i = 0; i < outputNeuron.weights.size(); i++)
+    for (size_t i = 0; i < outputNeuron.weights.size(); i++)
     {
         outputNeuron.weights.at(i) -= delta_l * hiddenLayers[0].alpha.at(i) * learnRate;
     }
@@ -342,13 +342,13 @@ void Network::WriteToFile()
     myfile << "InputNeurons\n";
     myfile << inputNeurons << "\n";
 
-    for (int i = 0; i < hiddenLayers.size(); i++)
+    for (size_t i = 0; i < hiddenLayers.size(); i++)
     {
         hiddenLayers.at(i).WriteToFile(myfile);
     }
 
     myfile << "OutputLayer\n";
-    for (int i = 0; i < outputNeuron.weights.size(); i++)
+    for (size_t i = 0; i < outputNeuron.weights.size(); i++)
     {
         myfile << outputNeuron.weights.at(i) << " ";
     }
@@ -370,7 +370,7 @@ void Network::Learn()
 
         double error = 0;
 
-        for (int point = 0; point < data.size(); point++)
+        for (size_t point = 0; point < data.size(); point++)
         {
             error += Backpropagate(data[point], 1);
         }
@@ -426,10 +426,10 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
 
     size_t prevLayerNeurons = NeuronCount[0];
 
-    for (int layer = 1; layer < NeuronCount.size() - 1; layer++)
+    for (size_t layer = 1; layer < NeuronCount.size() - 1; layer++)
     {
         std::vector<double> input;
-        for (int i = 0; i < (prevLayerNeurons + 1) * NeuronCount[layer]; i++)
+        for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount[layer]; i++)
         {
             if (i % prevLayerNeurons == 0 && i != 0)
                 input.push_back(0);
@@ -442,7 +442,7 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
 
     //connections from last hidden to output
     std::vector<double> input;
-    for (int i = 0; i < (prevLayerNeurons + 1) * NeuronCount.back(); i++)
+    for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount.back(); i++)
     {
         if (i % prevLayerNeurons == 0 && i != 0)
             input.push_back(0);

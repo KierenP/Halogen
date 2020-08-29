@@ -31,7 +31,6 @@
     <ClCompile Include="..\src\Random.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
     <ClCompile Include="..\src\tbprobe.cpp" />
-    <ClCompile Include="..\src\Texel.cpp" />
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
     <ClCompile Include="..\src\TTEntry.cpp" />
@@ -53,7 +52,6 @@
     <ClInclude Include="..\src\stdendian.h" />
     <ClInclude Include="..\src\tbconfig.h" />
     <ClInclude Include="..\src\tbprobe.h" />
-    <ClInclude Include="..\src\Texel.h" />
     <ClInclude Include="..\src\TimeManage.h" />
     <ClInclude Include="..\src\TranspositionTable.h" />
     <ClInclude Include="..\src\TTEntry.h" />

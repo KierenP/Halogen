@@ -1,5 +1,4 @@
 #include "EvalNet.h"
-#pragma once
 
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
                                                   {111, 339, 372, 638, 1301, 5000} };

@@ -1,5 +1,5 @@
 #include "Benchmark.h"
-#include "Texel.h"
+#include "Search.h"
 #include <thread>
 
 using namespace::std;
@@ -249,6 +249,7 @@ void PrintVersion()
 
 void TestSyzygy()
 {
+#ifdef DEBUG
 	Position testPosition;
 	testPosition.InitialiseFromFen("8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1");
 	unsigned int result = tb_probe_wdl(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
@@ -281,6 +282,7 @@ void TestSyzygy()
 	assert(TB_GET_FROM(result) == SQ_C2);
 	assert(TB_GET_TO(result) == SQ_C1);
 	assert(TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT);
+#endif 
 }
 
 void PerftSuite()

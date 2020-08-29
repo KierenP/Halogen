@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <random>
 #include <numeric>
+#include <algorithm>
 
 #define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
 
