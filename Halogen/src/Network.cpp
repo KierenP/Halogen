@@ -3,7 +3,7 @@
 
 void Learn()
 {
-    Network net = InitNetwork();
+    Network net = InitNetwork("");
     net.Learn();
 }
 
@@ -144,7 +144,7 @@ Network InitNetwork()
     return Network(weights, LayerNeurons);
 }
 
-Neuron::Neuron(std::vector<double> Weight, double Bias)
+Neuron::Neuron(std::vector<double> Weight, double Bias) : grad(Weight.size() + 1, 0)
 {
     weights = Weight;
     bias = Bias;
@@ -154,6 +154,21 @@ double Neuron::FeedForward(std::vector<double>& input) const
 {
     assert(input.size() == weights.size());
     return std::inner_product(input.begin(), input.end(), weights.begin(), 0.0) + bias;
+}
+
+void Neuron::Backpropogate(double delta_l, const std::vector<double>& prev_weights, double learnRate)
+{
+    for (size_t weight = 0; weight < weights.size(); weight++)
+    {
+        double new_grad = delta_l * prev_weights.at(weight);
+
+        grad.at(weight) += new_grad * new_grad;
+        weights.at(weight) -= new_grad * learnRate / sqrt(grad.at(weight) + 10e-8);
+    }
+
+    double new_grad = delta_l;
+    grad.at(weights.size()) += new_grad * new_grad;
+    bias -= new_grad * learnRate / sqrt(grad.at(weights.size()) + 10e-8);
 }
 
 void Neuron::WriteToFile(std::ofstream& myfile)
@@ -189,6 +204,16 @@ std::vector<double> HiddenLayer::FeedForward(std::vector<double>& input)
 
     activation(zeta, alpha);
     return alpha;
+}
+
+void HiddenLayer::Backpropogate(const std::vector<double>& delta_l, const std::vector<double>& prev_weights, double learnRate)
+{
+    assert(delta_l.size() == neurons.size());
+
+    for (size_t i = 0; i < delta_l.size(); i++)
+    {
+        neurons.at(i).Backpropogate(delta_l.at(i), prev_weights, learnRate);
+    }
 }
 
 void HiddenLayer::WriteToFile(std::ofstream& myfile)
@@ -299,20 +324,8 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
     std::transform(outputNeuron.weights.begin(), outputNeuron.weights.end(), std::back_inserter(tmp2), [&delta_l](auto& c) {return c * delta_l; });
     std::transform(tmp.begin(), tmp.end(), tmp2.begin(), std::back_inserter(delta_l_minus_one), std::multiplies<double>());
 
-    for (size_t i = 0; i < delta_l_minus_one.size(); i++)
-    {
-        for (size_t weight = 0; weight < hiddenLayers.at(0).neurons.at(i).weights.size(); weight++)
-        {
-            hiddenLayers.at(0).neurons.at(i).weights.at(weight) -= delta_l_minus_one.at(i) * inputParams.at(weight) * learnRate;
-        }
-        hiddenLayers.at(0).neurons.at(i).bias -= delta_l_minus_one.at(i) * learnRate;
-    }
-
-    for (size_t i = 0; i < outputNeuron.weights.size(); i++)
-    {
-        outputNeuron.weights.at(i) -= delta_l * hiddenLayers[0].alpha.at(i) * learnRate;
-    }
-    outputNeuron.bias -= delta_l * learnRate;
+    hiddenLayers.at(0).Backpropogate(delta_l_minus_one, inputParams, learnRate);
+    outputNeuron.Backpropogate(delta_l, hiddenLayers.at(0).alpha, learnRate);
 
     return 0.5 * (alpha - data.result) * (alpha - data.result);
 }
@@ -372,14 +385,14 @@ void Network::Learn()
 
         for (size_t point = 0; point < data.size(); point++)
         {
-            error += Backpropagate(data[point], 0.1);
+            error += Backpropagate(data[point], 1);
         }
 
         error /= data.size();
 
         std::cout << "Finished epoch: " << epoch << " MSE: " << 2 * error << std::endl;
 
-        if (epoch % 100 == 0)
+        if (epoch % 10 == 0)
             WriteToFile();
     }
 

@@ -24,16 +24,20 @@ struct Neuron
 {
     Neuron(std::vector<double> Weight, double Bias);
     double FeedForward(std::vector<double>& input) const;
+    void Backpropogate(double delta_l, const std::vector<double>& prev_weights, double learnRate);
     void WriteToFile(std::ofstream& myfile);
 
     std::vector<double> weights;
     double bias;
+
+    std::vector<double> grad;       //for adagrad
 };
 
 struct HiddenLayer
 {
     HiddenLayer(std::vector<double> inputs, size_t NeuronCount);    // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
     std::vector<double> FeedForward(std::vector<double>& input);
+    void Backpropogate(const std::vector<double>& delta_l, const std::vector<double>& prev_weights, double learnRate);
     void WriteToFile(std::ofstream& myfile);
 
     std::vector<Neuron> neurons;
