@@ -1,9 +1,10 @@
 #include "Network.h"
 
+float sqrtfast(const float x);
 
 void Learn()
 {
-    Network net = InitNetwork("");
+    Network net = InitNetwork("C:\\HalogenWeights\\9MWlkhjiot.network");
     net.Learn();
 }
 
@@ -15,7 +16,7 @@ Network InitNetwork(std::string file)
     {
         std::cout << "info string Could not load network file: " << file << std::endl;
         std::cout << "info string random weights initialization!" << std::endl;
-        return CreateRandom({ INPUT_NEURONS, 32, 1 });
+        return CreateRandom({ INPUT_NEURONS, 32, 32, 1 });
     }
 
     std::string line;
@@ -163,12 +164,12 @@ void Neuron::Backpropogate(double delta_l, const std::vector<double>& prev_weigh
         double new_grad = delta_l * prev_weights.at(weight);
 
         grad.at(weight) += new_grad * new_grad;
-        weights.at(weight) -= new_grad * learnRate / sqrt(grad.at(weight) + 10e-8);
+        weights.at(weight) -= new_grad * learnRate / sqrtfast(grad.at(weight) + 10e-8);
     }
 
     double new_grad = delta_l;
     grad.at(weights.size()) += new_grad * new_grad;
-    bias -= new_grad * learnRate / sqrt(grad.at(weights.size()) + 10e-8);
+    bias -= new_grad * learnRate / sqrtfast(grad.at(weights.size()) + 10e-8);
 }
 
 void Neuron::WriteToFile(std::ofstream& myfile)
@@ -315,18 +316,44 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
     std::vector<double> inputParams(data.inputs.begin(), data.inputs.end());
 
     FeedForward(inputParams);
-    double delta_l = 0.0087 * (alpha - data.result) * (alpha) * (1 - alpha); //0.0087 chosen to mymic the previous evaluation function
 
-    std::vector<double> tmp = hiddenLayers.at(0).activationPrime(hiddenLayers.at(0).zeta);
-    std::vector<double> tmp2;
-    std::vector<double> delta_l_minus_one;
+    //we choose a vector for this because delta_l will have a value for each neuron in the layer later
+    std::vector<double> delta_l = { 0.0087 * (alpha - data.result) * (alpha) * (1 - alpha) }; //0.0087 chosen to mymic the previous evaluation function
+    outputNeuron.Backpropogate(delta_l[0], hiddenLayers.back().alpha, learnRate);
 
-    std::transform(outputNeuron.weights.begin(), outputNeuron.weights.end(), std::back_inserter(tmp2), [&delta_l](auto& c) {return c * delta_l; });
-    std::transform(tmp.begin(), tmp.end(), tmp2.begin(), std::back_inserter(delta_l_minus_one), std::multiplies<double>());
+    for (int layer = hiddenLayers.size() - 1; layer >= 0; layer--)
+    {
+        std::vector<double> tmp = hiddenLayers.at(layer).activationPrime(hiddenLayers.at(layer).zeta);  //1 if this neuron is on and 0 if its not
+        std::vector<double> tmp2;
 
-    hiddenLayers.at(0).Backpropogate(delta_l_minus_one, inputParams, learnRate);
-    outputNeuron.Backpropogate(delta_l, hiddenLayers.at(0).alpha, learnRate);
+        for (int neuron = 0; neuron < hiddenLayers.at(layer).neurons.size(); neuron++)
+        {
+            if (layer == hiddenLayers.size() - 1)
+            {
+                tmp2.push_back(outputNeuron.weights.at(neuron) * delta_l.at(0));
+            }
+            else
+            {
+                double val = 0;
 
+                for (int nextLayerNeuron = 0; nextLayerNeuron < hiddenLayers.at(layer + 1).neurons.size(); nextLayerNeuron++)
+                {
+                    val += delta_l.at(nextLayerNeuron) * hiddenLayers.at(layer + 1).neurons.at(nextLayerNeuron).weights.at(neuron);
+                }
+
+                tmp2.push_back(val);
+            }
+        }
+
+        delta_l.clear();
+        std::transform(tmp.begin(), tmp.end(), tmp2.begin(), std::back_inserter(delta_l), std::multiplies<double>()); //element-wise multiplication of delta_l = tmp * tmp2;
+
+        if (layer > 0)
+            hiddenLayers.at(layer).Backpropogate(delta_l, hiddenLayers.at(layer - 1).alpha, learnRate); //get the previous layers activation
+        else
+            hiddenLayers.at(layer).Backpropogate(delta_l, inputParams, learnRate);                      //if at first hidden layer then just use input activation
+    }
+    
     return 0.5 * (alpha - data.result) * (alpha - data.result);
 }
 
@@ -385,7 +412,7 @@ void Network::Learn()
 
         for (size_t point = 0; point < data.size(); point++)
         {
-            error += Backpropagate(data[point], 1);
+            error += Backpropagate(data[point], 0.1);
         }
 
         error /= data.size();
@@ -444,10 +471,10 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
         std::vector<double> input;
         for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount[layer]; i++)
         {
-            if (i % prevLayerNeurons == 0 && i != 0)
+            if ((i + 1) % (prevLayerNeurons + 1) == 0)
                 input.push_back(0);
             else
-                input.push_back(1);
+                input.push_back((rand() % 2) * 2 - 1);
         }
         inputs.push_back(input);
         prevLayerNeurons = NeuronCount[layer];
@@ -460,10 +487,23 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
         if (i % prevLayerNeurons == 0 && i != 0)
             input.push_back(0);
         else
-            input.push_back(1);
+            input.push_back((rand() % 2) * 2 - 1);
     }
     inputs.push_back(input);
 
     return Network(inputs, NeuronCount);
 }
 
+//from https://www.codeproject.com/Articles/69941/Best-Square-Root-Method-Algorithm-Function-Precisi
+float sqrtfast(const float x)
+{
+    union
+    {
+        int i;
+        float x;
+    } u;
+
+    u.x = x;
+    u.i = (1 << 29) + (u.i >> 1) - (1 << 22);
+    return u.x;
+}
