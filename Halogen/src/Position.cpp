@@ -1,6 +1,6 @@
 #include "Position.h"
 
-Position::Position() : net(InitNetwork("C:\\HalogenWeights\\Lxus4AMapY.network"))
+Position::Position() : net(InitNetwork("C:\\HalogenWeights\\UUF3co6xgw.network"))
 {
 	key = EMPTY;
 	NodeCount = 0;
