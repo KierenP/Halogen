@@ -4,7 +4,7 @@ float sqrtfast(const float x);
 
 void Learn()
 {
-    Network net = InitNetwork("C:\\HalogenWeights\\9MWlkhjiot.network");
+    Network net = InitNetwork("C:\\HalogenWeights\\Ic2bCnjHuk.network");
     net.Learn();
 }
 
@@ -163,13 +163,13 @@ void Neuron::Backpropogate(double delta_l, const std::vector<double>& prev_weigh
     {
         double new_grad = delta_l * prev_weights.at(weight);
 
-        grad.at(weight) += new_grad * new_grad;
-        weights.at(weight) -= new_grad * learnRate / sqrtfast(grad.at(weight) + 10e-8);
+        //grad.at(weight) += new_grad * new_grad;
+        weights.at(weight) -= new_grad * learnRate;// / sqrtfast(grad.at(weight) + 10e-8);
     }
 
     double new_grad = delta_l;
-    grad.at(weights.size()) += new_grad * new_grad;
-    bias -= new_grad * learnRate / sqrtfast(grad.at(weights.size()) + 10e-8);
+    //grad.at(weights.size()) += new_grad * new_grad;
+    bias -= new_grad * learnRate;// / sqrtfast(grad.at(weights.size()) + 10e-8);
 }
 
 void Neuron::WriteToFile(std::ofstream& myfile)
@@ -355,7 +355,7 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
     }
     
     return 0.5 * (alpha - data.result) * (alpha - data.result);
-}
+ }
 
 void Network::WriteToFile()
 {
@@ -412,7 +412,7 @@ void Network::Learn()
 
         for (size_t point = 0; point < data.size(); point++)
         {
-            error += Backpropagate(data[point], 0.1);
+            error += Backpropagate(data[point], 0.001);
         }
 
         error /= data.size();
@@ -461,6 +461,9 @@ trainingPoint::trainingPoint(std::array<bool, INPUT_NEURONS> input, double gameR
 
 Network CreateRandom(std::vector<size_t> NeuronCount)
 {
+    std::random_device rd;
+    std::mt19937 e2(rd());
+
     std::vector<std::vector<double>> inputs;
     inputs.push_back({});
 
@@ -468,26 +471,31 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
 
     for (size_t layer = 1; layer < NeuronCount.size() - 1; layer++)
     {
+        //see https://arxiv.org/pdf/1502.01852v1.pdf eq (10) for theoretical significance of w ~ N(0, sqrt(2/n))
+        std::normal_distribution<> dist(0.0, sqrt(2.0 / static_cast<double>(NeuronCount[layer])));
+
         std::vector<double> input;
         for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount[layer]; i++)
         {
             if ((i + 1) % (prevLayerNeurons + 1) == 0)
                 input.push_back(0);
             else
-                input.push_back((rand() % 2) * 2 - 1);
+                input.push_back(dist(e2));
         }
         inputs.push_back(input);
         prevLayerNeurons = NeuronCount[layer];
     }
 
+    std::normal_distribution<> dist(0.0, sqrt(2.0 / static_cast<double>(NeuronCount.back())));
+
     //connections from last hidden to output
     std::vector<double> input;
     for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount.back(); i++)
     {
-        if (i % prevLayerNeurons == 0 && i != 0)
+        if ((i + 1) % (prevLayerNeurons + 1) == 0)
             input.push_back(0);
         else
-            input.push_back((rand() % 2) * 2 - 1);
+            input.push_back(dist(e2));
     }
     inputs.push_back(input);
 
