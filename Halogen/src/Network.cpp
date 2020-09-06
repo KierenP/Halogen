@@ -4,7 +4,7 @@ float sqrtfast(const float x);
 
 void Learn()
 {
-    Network net = InitNetwork("C:\\HalogenWeights\\Ic2bCnjHuk.network");
+    Network net = InitNetwork("");
     net.Learn();
 }
 
@@ -16,7 +16,7 @@ Network InitNetwork(std::string file)
     {
         std::cout << "info string Could not load network file: " << file << std::endl;
         std::cout << "info string random weights initialization!" << std::endl;
-        return CreateRandom({ INPUT_NEURONS, 32, 32, 1 });
+        return CreateRandom({ INPUT_NEURONS, 256, 1 });
     }
 
     std::string line;
@@ -400,6 +400,9 @@ void Network::WriteToFile()
 
 void Network::Learn()
 {
+    //AddExtraNullLayer(32);
+    //WriteToFile();
+
     //std::vector<trainingPoint> data = Stockfish3PerDataset();
     std::vector<trainingPoint> data = quietlabeledDataset();
 
@@ -500,6 +503,24 @@ Network CreateRandom(std::vector<size_t> NeuronCount)
     inputs.push_back(input);
 
     return Network(inputs, NeuronCount);
+}
+
+void Network::AddExtraNullLayer(size_t neurons)
+{
+    std::vector<double> weights;
+
+    for (int j = 0; j < neurons; j++)
+    {
+        for (int i = 0; i < hiddenLayers.back().neurons.size() + 1; i++)
+        {
+            if (i == j)
+                weights.push_back(1);
+            else
+                weights.push_back(0);
+        }
+    }
+
+    hiddenLayers.push_back(HiddenLayer(weights, neurons));
 }
 
 //from https://www.codeproject.com/Articles/69941/Best-Square-Root-Method-Algorithm-Function-Precisi

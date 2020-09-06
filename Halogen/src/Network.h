@@ -70,6 +70,8 @@ private:
     std::vector<trainingPoint> Stockfish3PerDataset();
     size_t inputNeurons;
 
+    void AddExtraNullLayer(size_t neurons);   //given a network add another hidden layer at the end that wont change network output.
+
     //cache for backprop after feedforward (these are for the output neuron)
     double zeta;    //weighted input
     double alpha;   //result after activation function
