@@ -20,6 +20,12 @@ struct trainingPoint
     double result;
 };
 
+struct deltaPoint
+{
+    size_t index;
+    double delta;
+};
+
 struct Neuron
 {
     Neuron(std::vector<double> Weight, double Bias);
@@ -44,13 +50,15 @@ struct HiddenLayer
 
     //cache for backprop after feedforward
     std::vector<double> zeta;    //weighted input
-    std::vector<double> alpha;   //result after activation function
 
-    void activation(std::vector<double>& in, std::vector<double>& out);
+    void activation(const std::vector<double>& in, std::vector<double>& out);      
     std::vector<double> activationPrime(std::vector<double> x);
 
-    void ApplyDelta(std::vector<std::pair<size_t, double>>& delta);            //incrementally update the connections between input layer and first hidden layer
-    void ApplyInverseDelta(std::vector<std::pair<size_t, double>>& delta);     //for un-make moves
+    void ApplyDelta(std::vector<deltaPoint>& delta, double forward);            //incrementally update the connections between input layer and first hidden layer
+
+private:
+
+    std::vector<double> weightTranspose; //first neuron first weight, second neuron first weight etc...
 };
 
 struct Network
@@ -61,8 +69,8 @@ struct Network
     void WriteToFile();
     void Learn();
 
-    void ApplyDelta(std::vector<std::pair<size_t, double>>& delta);            //incrementally update the connections between input layer and first hidden layer
-    void ApplyInverseDelta(std::vector<std::pair<size_t, double>>& delta);     //for un-make moves
+    void ApplyDelta(std::vector<deltaPoint>& delta);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyInverseDelta(std::vector<deltaPoint>& delta);     //for un-make moves
     double QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 private:

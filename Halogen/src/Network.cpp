@@ -1,10 +1,11 @@
 #include "Network.h"
 
 float sqrtfast(const float x);
+float InvSqrt(float x);
 
 void Learn()
 {
-    Network net = InitNetwork("");
+    Network net = InitNetwork("C:\\HalogenWeights\\UcPfefCODx.network");
     net.Learn();
 }
 
@@ -154,22 +155,30 @@ Neuron::Neuron(std::vector<double> Weight, double Bias) : grad(Weight.size() + 1
 double Neuron::FeedForward(std::vector<double>& input) const
 {
     assert(input.size() == weights.size());
-    return std::inner_product(input.begin(), input.end(), weights.begin(), 0.0) + bias;
+
+    double ret = bias;
+
+    for (size_t i = 0; i < input.size(); i++)
+    {
+        ret += std::max(0.0, input[i]) * weights[i];
+    }
+
+    return ret;
 }
 
 void Neuron::Backpropogate(double delta_l, const std::vector<double>& prev_weights, double learnRate)
 {
     for (size_t weight = 0; weight < weights.size(); weight++)
     {
-        double new_grad = delta_l * prev_weights.at(weight);
+        double new_grad = delta_l * std::max(0.0, prev_weights.at(weight)); //ReLU activation calculated here
 
-        //grad.at(weight) += new_grad * new_grad;
-        weights.at(weight) -= new_grad * learnRate;// / sqrtfast(grad.at(weight) + 10e-8);
+        grad.at(weight) += new_grad * new_grad;
+        weights.at(weight) -= new_grad * learnRate *InvSqrt(grad.at(weight) + 10e-8);
     }
 
     double new_grad = delta_l;
-    //grad.at(weights.size()) += new_grad * new_grad;
-    bias -= new_grad * learnRate;// / sqrtfast(grad.at(weights.size()) + 10e-8);
+    grad.at(weights.size()) += new_grad * new_grad;
+    bias -= new_grad * learnRate *InvSqrt(grad.at(weights.size()) + 10e-8);
 }
 
 void Neuron::WriteToFile(std::ofstream& myfile)
@@ -192,8 +201,15 @@ HiddenLayer::HiddenLayer(std::vector<double> inputs, size_t NeuronCount)
         neurons.push_back(Neuron(std::vector<double>(inputs.begin() + (WeightsPerNeuron * i), inputs.begin() + (WeightsPerNeuron * i) + WeightsPerNeuron - 1), inputs.at(WeightsPerNeuron * (1 + i) - 1)));
     }
 
+    for (size_t i = 0; i < WeightsPerNeuron - 1; i++)
+    {
+        for (size_t j = 0; j < NeuronCount; j++)
+        {
+            weightTranspose.push_back(neurons.at(j).weights.at(i));
+        }
+    }
+
     zeta = std::vector<double>(NeuronCount, 0);
-    alpha = std::vector<double>(NeuronCount, 0);
 }
 
 std::vector<double> HiddenLayer::FeedForward(std::vector<double>& input)
@@ -203,8 +219,7 @@ std::vector<double> HiddenLayer::FeedForward(std::vector<double>& input)
         zeta[i] = neurons.at(i).FeedForward(input);
     }
 
-    activation(zeta, alpha);
-    return alpha;
+    return zeta;
 }
 
 void HiddenLayer::Backpropogate(const std::vector<double>& delta_l, const std::vector<double>& prev_weights, double learnRate)
@@ -227,7 +242,7 @@ void HiddenLayer::WriteToFile(std::ofstream& myfile)
     }
 }
 
-void HiddenLayer::activation(std::vector<double>& in, std::vector<double>& out)
+void HiddenLayer::activation(const std::vector<double>& in, std::vector<double>& out)
 {
     assert(in.size() == out.size());
 
@@ -250,36 +265,22 @@ std::vector<double> HiddenLayer::activationPrime(std::vector<double> x)
     return ret;
 }
 
-void HiddenLayer::ApplyDelta(std::vector<std::pair<size_t, double>>& delta)
+void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec, double forward)
 {
-    assert(delta.size() == INPUT_NEURONS);
-    int neuronCount = zeta.size();
+    assert(deltaVec.size() == INPUT_NEURONS);
+    size_t neuronCount = zeta.size();
+    size_t deltaCount = deltaVec.size();
 
-    for (size_t index = 0; index < delta.size(); index++)
+    for (size_t index = 0; index < deltaCount; index++)
     {
-        for (int neuron = 0; neuron < neuronCount; neuron++)
+        double deltaValue = deltaVec[index].delta * forward;
+        size_t weightTransposeIndex = deltaVec[index].index * neuronCount;
+
+        for (size_t neuron = 0; neuron < neuronCount; neuron++)
         {
-            zeta[neuron] += neurons[neuron].weights[delta[index].first] * delta[index].second;
+            zeta[neuron] += weightTranspose[weightTransposeIndex + neuron] * deltaValue;
         }
     }
-
-    activation(zeta, alpha);
-}
-
-void HiddenLayer::ApplyInverseDelta(std::vector<std::pair<size_t, double>>& delta)
-{
-    assert(delta.size() == INPUT_NEURONS);
-    int neuronCount = zeta.size();
-
-    for (size_t index = 0; index < delta.size(); index++)
-    {
-        for (int neuron = 0; neuron < neuronCount; neuron++)
-        {
-            zeta[neuron] -= neurons[neuron].weights[delta[index].first] * delta[index].second;
-        }
-    }
-
-    activation(zeta, alpha);
 }
 
 Network::Network(std::vector<std::vector<double>> inputs, std::vector<size_t> NeuronCount) : outputNeuron(std::vector<double>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back())
@@ -316,10 +317,11 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
     std::vector<double> inputParams(data.inputs.begin(), data.inputs.end());
 
     FeedForward(inputParams);
+    //return 0.5 * (alpha - data.result) * (alpha - data.result);   //if you just want to calculate error without training then do this
 
     //we choose a vector for this because delta_l will have a value for each neuron in the layer later
     std::vector<double> delta_l = { 0.0087 * (alpha - data.result) * (alpha) * (1 - alpha) }; //0.0087 chosen to mymic the previous evaluation function
-    outputNeuron.Backpropogate(delta_l[0], hiddenLayers.back().alpha, learnRate);
+    outputNeuron.Backpropogate(delta_l[0], hiddenLayers.back().zeta, learnRate);
 
     for (int layer = hiddenLayers.size() - 1; layer >= 0; layer--)
     {
@@ -349,7 +351,7 @@ double Network::Backpropagate(trainingPoint data, double learnRate)
         std::transform(tmp.begin(), tmp.end(), tmp2.begin(), std::back_inserter(delta_l), std::multiplies<double>()); //element-wise multiplication of delta_l = tmp * tmp2;
 
         if (layer > 0)
-            hiddenLayers.at(layer).Backpropogate(delta_l, hiddenLayers.at(layer - 1).alpha, learnRate); //get the previous layers activation
+            hiddenLayers.at(layer).Backpropogate(delta_l, hiddenLayers.at(layer - 1).zeta, learnRate); //get the previous layers activation
         else
             hiddenLayers.at(layer).Backpropogate(delta_l, inputParams, learnRate);                      //if at first hidden layer then just use input activation
     }
@@ -413,37 +415,37 @@ void Network::Learn()
 
         double error = 0;
 
-        for (size_t point = 0; point < data.size(); point++)
+        for (size_t point = 0; point < data.size() / 100; point++)
         {
-            error += Backpropagate(data[point], 0.001);
+            error += Backpropagate(data[point], 0.1);
         }
 
-        error /= data.size();
+        error /= data.size() / 100;
 
         std::cout << "Finished epoch: " << epoch << " MSE: " << 2 * error << std::endl;
 
-        if (epoch % 10 == 0)
+        if (epoch % 100 == 0)
             WriteToFile();
     }
 
     WriteToFile();
 }
 
-void Network::ApplyDelta(std::vector<std::pair<size_t, double>>& delta)
+void Network::ApplyDelta(std::vector<deltaPoint>& delta)
 {
     assert(hiddenLayers.size() > 0);
-    hiddenLayers[0].ApplyDelta(delta);
+    hiddenLayers[0].ApplyDelta(delta, 1);
 }
 
-void Network::ApplyInverseDelta(std::vector<std::pair<size_t, double>>& delta)
+void Network::ApplyInverseDelta(std::vector<deltaPoint>& delta)
 {
     assert(hiddenLayers.size() > 0);
-    hiddenLayers[0].ApplyInverseDelta(delta);
+    hiddenLayers[0].ApplyDelta(delta, -1);
 }
 
 double Network::QuickEval()
 {
-    std::vector<double> inputs = hiddenLayers.at(0).alpha;
+    std::vector<double>& inputs = hiddenLayers.at(0).zeta;
 
     for (size_t i = 1; i < hiddenLayers.size(); i++)    //skip first layer
     {
@@ -535,4 +537,15 @@ float sqrtfast(const float x)
     u.x = x;
     u.i = (1 << 29) + (u.i >> 1) - (1 << 22);
     return u.x;
+}
+
+//from https://math.stackexchange.com/questions/800815/fast-inverse-square-root-trick
+float InvSqrt(float x)
+{
+    float xhalf = 0.5f * x; // store 0.5x since x will be changed
+    int i = *(int*)&x; // convert to binary integer
+    i = 0x5f3759df - (i >> 1); // the smart trick
+    x = *(float*)&i; // convert binary back to decimal
+    x = x * (1.5f - xhalf * x * x); // Newton-Raphson step
+    return x;
 }

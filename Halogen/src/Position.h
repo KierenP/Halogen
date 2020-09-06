@@ -62,13 +62,13 @@ private:
 	uint64_t NodeCount;
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;
-	std::vector<std::vector<std::pair<size_t, double>>> PreviousDeltas;
+	std::vector<std::vector<deltaPoint>> PreviousDeltas;
 
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
 
 	std::vector<double> GetInputLayer();
-	std::vector<std::pair<size_t, double>> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
+	std::vector<deltaPoint> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
 
 	size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
 };

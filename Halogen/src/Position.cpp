@@ -1,6 +1,6 @@
 #include "Position.h"
 
-Position::Position() : net(InitNetwork("C:\\HalogenWeights\\tCDFuArgtO.network"))
+Position::Position() : net(InitNetwork("C:\\HalogenWeights\\zJCmNYEU7U.network"))
 {
 	key = EMPTY;
 	NodeCount = 0;
@@ -486,22 +486,22 @@ std::vector<double> Position::GetInputLayer()
 	return ret;
 }
 
-std::vector<std::pair<size_t, double>> Position::CalculateMoveDelta(Move move)
+std::vector<deltaPoint> Position::CalculateMoveDelta(Move move)
 {
 	const BoardParamiterData prev = GetPreviousParamiters();
 
-	std::vector<std::pair<size_t, double>> ret;
+	std::vector<deltaPoint> ret;
 	ret.reserve(4);	//1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 
 	//Change of turn
-	ret.push_back({ modifier(12 * 64), (GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
+	ret.push_back({ modifier(12 * 64), static_cast<double>(GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
 
 	if (move.IsUninitialized()) return ret;		//null move
 
 	if (!move.IsPromotion())
 	{
 		ret.push_back({ modifier(GetSquare(move.GetTo()) * 64 + move.GetFrom()), -1 });				//toggle the square we left
-		ret.push_back({ modifier(GetSquare(move.GetTo()) * 64 + move.GetTo()), 1 });					//toggle the arriving square
+		ret.push_back({ modifier(GetSquare(move.GetTo()) * 64 + move.GetTo()), 1 });				//toggle the arriving square
 	}
 
 	//En Passant
