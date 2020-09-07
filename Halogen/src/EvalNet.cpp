@@ -9,7 +9,7 @@ std::array<bool, INPUT_NEURONS> GetInputLayerCache(const Position& position); //
 
 int EvaluatePositionNet(Position& position)
 {
-    return position.GetEvaluation();
+    return (position.GetEvaluation());
 }
 
 std::array<bool, INPUT_NEURONS> GetInputLayerCache(const Position& position)
