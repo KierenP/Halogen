@@ -5,7 +5,7 @@ float InvSqrt(float x);
 
 void Learn()
 {
-    Network net = InitNetwork("C:\\HalogenWeights\\UcPfefCODx.network");
+    Network net = InitNetwork("C:\\HalogenWeights\\RNC1cVNovG.network");
     net.Learn();
 }
 
@@ -414,12 +414,12 @@ void Network::Learn()
 
         float error = 0;
 
-        for (size_t point = 0; point < data.size() / 100; point++)
+        for (size_t point = 0; point < data.size() / 10; point++)
         {
             error += Backpropagate(data[point], 0.1);
         }
 
-        error /= data.size() / 100;
+        error /= data.size() / 10;
 
         std::cout << "Finished epoch: " << epoch << " MSE: " << 2 * error << std::endl;
 
