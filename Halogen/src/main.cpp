@@ -26,7 +26,6 @@ int main(int argc, char* argv[])
 
 	ZobristInit();
 	BBInit();
-	weightsInit();
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
