@@ -23,7 +23,7 @@ struct trainingPoint
 struct deltaPoint
 {
     size_t index;
-    float delta;
+    int delta;
 };
 
 struct Neuron

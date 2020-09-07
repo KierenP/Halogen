@@ -479,7 +479,7 @@ std::vector<deltaPoint> Position::CalculateMoveDelta(Move move)
 	ret.reserve(4);	//1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 
 	//Change of turn
-	ret.push_back({ modifier(12 * 64), static_cast<float>(GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
+	ret.push_back({ modifier(12 * 64), (GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
 
 	if (move.IsUninitialized()) return ret;		//null move
 
