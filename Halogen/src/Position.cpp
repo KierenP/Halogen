@@ -6,21 +6,6 @@ Position::Position() : net(InitNetwork("C:\\HalogenWeights\\RNC1cVNovG.network")
 	NodeCount = 0;
 }
 
-Position::Position(std::vector<std::string> moves) : net(InitNetwork())
-{
-	InitialiseFromMoves(moves);
-}
-
-Position::Position(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount) : net(InitNetwork())
-{
-	InitialiseFromFen(board, turn, castle, ep, fiftyMove, turnCount);
-}
-
-Position::Position(std::string fen) : net(InitNetwork())
-{
-	InitialiseFromFen(fen);
-}
-
 Position::~Position()
 {
 
@@ -116,8 +101,8 @@ void Position::ApplyMove(Move move)
 	}*/
 	//In order to see if the key was corrupted at some point
 
-	/*std::vector<double> delta = CalculateMoveDelta(move);
-	std::vector<double> after = GetInputLayer();
+	/*std::vector<float> delta = CalculateMoveDelta(move);
+	std::vector<float> after = GetInputLayer();
 
 	for (int i = 0; i < before.size(); i++)
 	{
@@ -461,9 +446,9 @@ uint64_t Position::IncrementZobristKey(Move move)
 	return key;
 }
 
-std::vector<double> Position::GetInputLayer()
+std::vector<float> Position::GetInputLayer()
 {
-	std::vector<double> ret;
+	std::vector<float> ret;
 	ret.reserve(INPUT_NEURONS);
 
 	for (int i = 0; i < N_PIECES; i++)
@@ -494,7 +479,7 @@ std::vector<deltaPoint> Position::CalculateMoveDelta(Move move)
 	ret.reserve(4);	//1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 
 	//Change of turn
-	ret.push_back({ modifier(12 * 64), static_cast<double>(GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
+	ret.push_back({ modifier(12 * 64), static_cast<float>(GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
 
 	if (move.IsUninitialized()) return ret;		//null move
 
@@ -581,7 +566,7 @@ void Position::RevertSEECapture()
 	RestorePreviousBoard();
 }
 
-double Position::GetEvaluation()
+float Position::GetEvaluation()
 {
 	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
 	//	std::cout << "ERROR!";
