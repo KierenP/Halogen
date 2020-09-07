@@ -19,10 +19,7 @@ This class holds all the data required to define a chess board position, as well
 class Position : public BoardParamiters, public BitBoard
 {
 public:
-	Position();
-	Position(std::vector<std::string> moves);																								//Initialise from a vector of moves from the starting position
-	Position(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount);		//split fen
-	Position(std::string fen);																												//whole fen
+	Position();																									
 	~Position();
 
 	void ApplyMove(Move move);

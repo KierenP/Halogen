@@ -267,7 +267,6 @@ std::vector<float> HiddenLayer::activationPrime(std::vector<float> x)
 
 void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec, float forward)
 {
-    assert(deltaVec.size() == INPUT_NEURONS);
     size_t neuronCount = zeta.size();
     size_t deltaCount = deltaVec.size();
 

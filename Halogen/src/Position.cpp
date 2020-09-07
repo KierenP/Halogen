@@ -6,21 +6,6 @@ Position::Position() : net(InitNetwork("C:\\HalogenWeights\\RNC1cVNovG.network")
 	NodeCount = 0;
 }
 
-Position::Position(std::vector<std::string> moves) : net(InitNetwork())
-{
-	InitialiseFromMoves(moves);
-}
-
-Position::Position(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount) : net(InitNetwork())
-{
-	InitialiseFromFen(board, turn, castle, ep, fiftyMove, turnCount);
-}
-
-Position::Position(std::string fen) : net(InitNetwork())
-{
-	InitialiseFromFen(fen);
-}
-
 Position::~Position()
 {
 
