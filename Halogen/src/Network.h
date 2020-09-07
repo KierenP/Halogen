@@ -14,64 +14,64 @@
 
 struct trainingPoint
 {
-    trainingPoint(std::array<bool, INPUT_NEURONS> input, double gameResult);
+    trainingPoint(std::array<bool, INPUT_NEURONS> input, float gameResult);
 
     std::array<bool, INPUT_NEURONS> inputs;
-    double result;
+    float result;
 };
 
 struct deltaPoint
 {
     size_t index;
-    double delta;
+    float delta;
 };
 
 struct Neuron
 {
-    Neuron(std::vector<double> Weight, double Bias);
-    double FeedForward(std::vector<double>& input) const;
-    void Backpropogate(double delta_l, const std::vector<double>& prev_weights, double learnRate);
+    Neuron(std::vector<float> Weight, float Bias);
+    float FeedForward(std::vector<float>& input) const;
+    void Backpropogate(float delta_l, const std::vector<float>& prev_weights, float learnRate);
     void WriteToFile(std::ofstream& myfile);
 
-    std::vector<double> weights;
-    double bias;
+    std::vector<float> weights;
+    float bias;
 
-    std::vector<double> grad;       //for adagrad
+    std::vector<float> grad;       //for adagrad
 };
 
 struct HiddenLayer
 {
-    HiddenLayer(std::vector<double> inputs, size_t NeuronCount);    // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
-    std::vector<double> FeedForward(std::vector<double>& input);
-    void Backpropogate(const std::vector<double>& delta_l, const std::vector<double>& prev_weights, double learnRate);
+    HiddenLayer(std::vector<float> inputs, size_t NeuronCount);    // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
+    std::vector<float> FeedForward(std::vector<float>& input);
+    void Backpropogate(const std::vector<float>& delta_l, const std::vector<float>& prev_weights, float learnRate);
     void WriteToFile(std::ofstream& myfile);
 
     std::vector<Neuron> neurons;
 
     //cache for backprop after feedforward
-    std::vector<double> zeta;    //weighted input
+    std::vector<float> zeta;    //weighted input
 
-    void activation(const std::vector<double>& in, std::vector<double>& out);      
-    std::vector<double> activationPrime(std::vector<double> x);
+    void activation(const std::vector<float>& in, std::vector<float>& out);      
+    std::vector<float> activationPrime(std::vector<float> x);
 
-    void ApplyDelta(std::vector<deltaPoint>& delta, double forward);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(std::vector<deltaPoint>& delta, float forward);            //incrementally update the connections between input layer and first hidden layer
 
 private:
 
-    std::vector<double> weightTranspose; //first neuron first weight, second neuron first weight etc...
+    std::vector<float> weightTranspose; //first neuron first weight, second neuron first weight etc...
 };
 
 struct Network
 {
-    Network(std::vector<std::vector<double>> inputs, std::vector<size_t> hiddenNeuronCount);
-    double FeedForward(std::vector<double> inputs);
-    double Backpropagate(trainingPoint data, double learnRate);
+    Network(std::vector<std::vector<float>> inputs, std::vector<size_t> hiddenNeuronCount);
+    float FeedForward(std::vector<float> inputs);
+    float Backpropagate(trainingPoint data, float learnRate);
     void WriteToFile();
     void Learn();
 
     void ApplyDelta(std::vector<deltaPoint>& delta);            //incrementally update the connections between input layer and first hidden layer
     void ApplyInverseDelta(std::vector<deltaPoint>& delta);     //for un-make moves
-    double QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
+    float QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 private:
     std::vector<trainingPoint> quietlabeledDataset();
@@ -81,8 +81,8 @@ private:
     void AddExtraNullLayer(size_t neurons);   //given a network add another hidden layer at the end that wont change network output.
 
     //cache for backprop after feedforward (these are for the output neuron)
-    double zeta;    //weighted input
-    double alpha;   //result after activation function
+    float zeta;    //weighted input
+    float alpha;   //result after activation function
 
     std::vector<HiddenLayer> hiddenLayers;
     Neuron outputNeuron;
