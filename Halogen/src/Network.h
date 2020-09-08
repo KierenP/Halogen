@@ -28,7 +28,7 @@ struct deltaPoint
 
 struct Neuron
 {
-    Neuron(std::vector<float> Weight, float Bias);
+    Neuron(const std::vector<float>& Weight, float Bias);
     float FeedForward(std::vector<float>& input) const;
     void Backpropogate(float delta_l, const std::vector<float>& prev_weights, float learnRate);
     void WriteToFile(std::ofstream& myfile);
@@ -49,12 +49,10 @@ struct HiddenLayer
     std::vector<Neuron> neurons;
 
     //cache for backprop after feedforward
-    std::vector<float> zeta;    //weighted input
+    std::vector<float> zeta;    //weighted input     
+    static std::vector<float> activationPrime(std::vector<float> x);
 
-    void activation(const std::vector<float>& in, std::vector<float>& out);      
-    std::vector<float> activationPrime(std::vector<float> x);
-
-    void ApplyDelta(std::vector<deltaPoint>& delta, float forward);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(std::vector<deltaPoint>& deltaVec, float forward);            //incrementally update the connections between input layer and first hidden layer
 
 private:
 
@@ -63,7 +61,7 @@ private:
 
 struct Network
 {
-    Network(std::vector<std::vector<float>> inputs, std::vector<size_t> hiddenNeuronCount);
+    Network(std::vector<std::vector<float>> inputs, std::vector<size_t> NeuronCount);
     float FeedForward(std::vector<float> inputs);
     float Backpropagate(trainingPoint data, float learnRate);
     void WriteToFile();
@@ -74,8 +72,8 @@ struct Network
     float QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 private:
-    std::vector<trainingPoint> quietlabeledDataset();
-    std::vector<trainingPoint> Stockfish3PerDataset();
+    static std::vector<trainingPoint> quietlabeledDataset();
+    static std::vector<trainingPoint> Stockfish3PerDataset();
     size_t inputNeurons;
 
     void AddExtraNullLayer(size_t neurons);   //given a network add another hidden layer at the end that wont change network output.
@@ -91,5 +89,4 @@ private:
 void Learn();
 
 Network InitNetwork(std::string file);
-Network InitNetwork();
-Network CreateRandom(std::vector<size_t> hiddenNeuronCount);
+Network CreateRandom(std::vector<size_t> NeuronCount);
