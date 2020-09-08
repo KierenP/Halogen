@@ -7,7 +7,6 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 TranspositionTable tTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals);
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
@@ -78,16 +77,6 @@ uint64_t BenchSearch(const Position& position, int maxSearchDepth)
 	SearchPosition(position, 2147483647, nodesSearched, sharedData, 0, maxSearchDepth);
 
 	return nodesSearched;
-}
-
-int TexelSearch(Position& position, SearchData& data)
-{
-	KeepSearching = true;
-	ThreadSharedData sharedData;
-	data.timeManage.StartSearch(2147483647);
-
-	//initial depth needs to be higher than zero
-	return Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, data, sharedData).GetScore();
 }
 
 void InitSearch()
@@ -189,14 +178,6 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 	}
 
 	SortMovesByScore(moves, orderScores);
-}
-
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData)
-{
-	if (TTmove.IsUninitialized() && depthRemaining > 3)
-	{
-		TTmove = NegaScout(position, initialDepth, depthRemaining - 2, alpha, beta, colour, distanceFromRoot, true, locals, sharedData).GetMove();
-	}
 }
 
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores)

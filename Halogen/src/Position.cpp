@@ -307,21 +307,6 @@ bool Position::InitialiseFromFen(std::string fen)
 	return InitialiseFromFen(splitFen[0], splitFen[1], splitFen[2], splitFen[3], splitFen[4], splitFen[5]);
 }
 
-bool Position::InitialiseFromMoves(std::vector<std::string> moves)
-{
-	StartingPosition();
-
-	for (size_t i = 0; i < moves.size(); i++)
-	{
-		ApplyMove(moves[i]);
-	}
-
-	net.FeedForward(GetInputLayer());
-	PreviousDeltas.clear();
-
-	return true;
-}
-
 uint64_t Position::GetZobristKey() const
 {
 	return key;
@@ -446,7 +431,7 @@ uint64_t Position::IncrementZobristKey(Move move)
 	return key;
 }
 
-std::vector<float> Position::GetInputLayer()
+std::vector<float> Position::GetInputLayer() const
 {
 	std::vector<float> ret;
 	ret.reserve(INPUT_NEURONS);

@@ -35,7 +35,6 @@ public:
 	bool InitialiseFromFen(std::vector<std::string> fen);
 	bool InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount); //Returns true after sucsessful execution, false otherwise
 	bool InitialiseFromFen(std::string fen);
-	bool InitialiseFromMoves(std::vector<std::string> moves);
 
 	uint64_t GetZobristKey() const;
 	uint64_t GetNodeCount() const { return NodeCount; }
@@ -64,9 +63,9 @@ private:
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
 
-	std::vector<float> GetInputLayer();
+	std::vector<float> GetInputLayer() const;
 	std::vector<deltaPoint> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
 
-	size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
+	static size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
 };
 
