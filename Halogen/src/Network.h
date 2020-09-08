@@ -1,5 +1,4 @@
 #pragma once
-#include "weights.h"
 #include <array>
 #include <vector>
 #include <fstream>
@@ -9,6 +8,7 @@
 #include <random>
 #include <numeric>
 #include <algorithm>
+#include <sstream>
 
 #define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
 

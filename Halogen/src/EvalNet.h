@@ -1,9 +1,5 @@
 #pragma once
 #include "Position.h"
-#include "weights.h"
-
-
-
 #include <functional>
 #include <valarray>
 #include <array>
