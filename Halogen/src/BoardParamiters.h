@@ -55,7 +55,6 @@ protected:
 	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
 	void Increment50Move() { m_FiftyMoveCount++; }
 	void Reset50Move() { m_FiftyMoveCount = 0; }
-	void SwapCastelingRights();
 
 	void InitParamiters();
 	BoardParamiterData GetPreviousParamiters();

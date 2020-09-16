@@ -1,6 +1,6 @@
 #pragma once
 #include "Position.h"
-#include "Evaluate.h"
+#include "EvalNet.h"
 
 void LegalMoves(Position& position, std::vector<Move>& moves);
 void QuiescenceMoves(Position& position, std::vector<Move>& moves);

@@ -84,5 +84,3 @@ extern TranspositionTable tTable;
 Move MultithreadedSearch(const Position& position, int allowedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
 
-int TexelSearch(Position& position, SearchData& data);
-
