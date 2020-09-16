@@ -30,7 +30,7 @@ void Position::ApplyMove(Move move)
 			BlackCastled();
 	}
 
-	if (move.GetFlag() == KING_CASTLE)
+	if (move.GetFlag() == KING_CASTLE) 
 	{
 		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
