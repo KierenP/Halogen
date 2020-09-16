@@ -6,7 +6,7 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
 TranspositionTable tTable;
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals);
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
 void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
@@ -32,8 +32,8 @@ int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
 unsigned int ProbeTBSearch(const Position& position);
-const SearchResult& UseSearchTBScore(unsigned int result, int staticEval);
-const SearchResult& UseRootTBScore(unsigned int result, int staticEval);
+SearchResult UseSearchTBScore(unsigned int result, int staticEval);
+SearchResult UseRootTBScore(unsigned int result, int staticEval);
 
 Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
@@ -42,7 +42,7 @@ void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& mo
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
 int see(Position& position, int square, bool side);
-int seeCapture(Position& position, const Move& move, bool side); //Don't send this an en passant move!
+int seeCapture(Position& position, const Move& move); //Don't send this an en passant move!
 
 void InitSearch();
 
@@ -80,25 +80,13 @@ uint64_t BenchSearch(const Position& position, int maxSearchDepth)
 	return nodesSearched;
 }
 
-int TexelSearch(Position& position, SearchData& data)
-{
-	KeepSearching = true;
-	ThreadSharedData sharedData;
-	data.timeManage.StartSearch(2147483647);
-
-	//initial depth needs to be higher than zero
-	return Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, data, sharedData).GetScore();
-}
-
 void InitSearch()
 {
 	KeepSearching = true;
 	tTable.ResetHitCount();
-	pawnHashTable.HashHits = 0;
-	pawnHashTable.HashMisses = 0;
 }
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, int colour, SearchData& locals)
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
@@ -152,7 +140,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 
 			if (moves[i].GetFlag() != EN_PASSANT)
 			{
-				SEE = seeCapture(position, moves[i], colour);
+				SEE = seeCapture(position, moves[i]);
 			}
 
 			if (SEE >= 0)
@@ -191,14 +179,6 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 	}
 
 	SortMovesByScore(moves, orderScores);
-}
-
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData)
-{
-	if (TTmove.IsUninitialized() && depthRemaining > 3)
-	{
-		TTmove = NegaScout(position, initialDepth, depthRemaining - 2, alpha, beta, colour, distanceFromRoot, true, locals, sharedData).GetMove();
-	}
 }
 
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores)
@@ -241,9 +221,11 @@ int see(Position& position, int square, bool side)
 	return value;
 }
 
-int seeCapture(Position& position, const Move& move, bool side)
+int seeCapture(Position& position, const Move& move)
 {
 	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
+
+	bool side = position.GetTurn();
 
 	int value = 0;
 	int captureValue = PieceValues(position.GetSquare(move.GetTo()));
@@ -302,8 +284,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 #if defined(_MSC_VER) && !defined(RELEASE) 
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1))
-		<< " pawnHitRate " << pawnHashTable.HashHits * 1000 / std::max(pawnHashTable.HashHits + pawnHashTable.HashMisses, uint64_t(1));
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1));
 #endif
 
 	std::cout << " pv ";																								//the current best line found
@@ -406,7 +387,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseRootTBScore(result, colour * EvaluatePosition(position));
+			return UseRootTBScore(result, colour * EvaluatePositionNet(position));
 		}
 	}
 
@@ -417,7 +398,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseSearchTBScore(result, colour * EvaluatePosition(position));
+			return UseSearchTBScore(result, colour * EvaluatePositionNet(position));
 		}
 	}
 
@@ -539,9 +520,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 	
-	OrderMoves(moves, position, distanceFromRoot, colour, locals);
+	OrderMoves(moves, position, distanceFromRoot, locals);
 	bool InCheck = IsInCheck(position);
-	int staticScore = colour * EvaluatePosition(position);
+	int staticScore = colour * EvaluatePositionNet(position);
 
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
@@ -636,9 +617,10 @@ unsigned int ProbeTBSearch(const Position& position)
 		position.GetTurn());
 }
 
-const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
+SearchResult UseSearchTBScore(unsigned int result, int staticEval)
 {
-	int score;
+	int score = -1;
+
 	if (result == TB_LOSS)
 		score = -5000 + staticEval / 10;
 	else if (result == TB_BLESSED_LOSS)
@@ -655,9 +637,9 @@ const SearchResult& UseSearchTBScore(unsigned int result, int staticEval)
 	return score;
 }
 
-const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
+SearchResult UseRootTBScore(unsigned int result, int staticEval)
 {
-	int score;
+	int score = -1;
 
 	if (TB_GET_WDL(result) == TB_LOSS)
 		score = -5000 + staticEval / 10;
@@ -672,7 +654,7 @@ const SearchResult& UseRootTBScore(unsigned int result, int staticEval)
 	else
 		assert(0);
 
-	int flag;
+	int flag = -1;
 
 	if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
 		flag = QUIET;
@@ -898,7 +880,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		moves.clear();
 	}
 
-	int staticScore = colour * EvaluatePosition(position);
+	int staticScore = colour * EvaluatePositionNet(position);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	
@@ -910,14 +892,14 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (moves.size() == 0)
 		return staticScore;
 		
-	OrderMoves(moves, position, distanceFromRoot, colour, locals);
+	OrderMoves(moves, position, distanceFromRoot, locals);
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		int SEE = 0;
 		if (moves[i].GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
 		{
-			SEE = seeCapture(position, moves[i], colour);
+			SEE = seeCapture(position, moves[i]);
 		}
 
 		if (moves[i].IsPromotion())

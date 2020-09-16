@@ -109,12 +109,3 @@ void TranspositionTable::PreFetch(uint64_t key) const
 	__builtin_prefetch(&table[HashFunction(key)]);
 #endif 
 }
-
-void TranspositionTable::RunAsserts() const
-{
-	for (size_t i = 0; i < table.size(); i++)
-	{
-		if (table[i].GetScore() == -30000 || table[i].GetScore() == 30000)
-			std::cout << "Bad entry in table!";
-	}
-}

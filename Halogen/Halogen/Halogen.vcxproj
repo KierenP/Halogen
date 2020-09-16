@@ -22,17 +22,15 @@
     <ClCompile Include="..\src\BitBoard.cpp" />
     <ClCompile Include="..\src\BitBoardDefine.cpp" />
     <ClCompile Include="..\src\BoardParamiters.cpp" />
-    <ClCompile Include="..\src\Evaluate.cpp" />
+    <ClCompile Include="..\src\EvalNet.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Move.cpp" />
     <ClCompile Include="..\src\MoveGeneration.cpp" />
-    <ClCompile Include="..\src\PawnHashTable.cpp" />
-    <ClCompile Include="..\src\PieceSquareTables.cpp" />
+    <ClCompile Include="..\src\Network.cpp" />
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Random.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
     <ClCompile Include="..\src\tbprobe.cpp" />
-    <ClCompile Include="..\src\Texel.cpp" />
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
     <ClCompile Include="..\src\TTEntry.cpp" />
@@ -43,22 +41,21 @@
     <ClInclude Include="..\src\BitBoard.h" />
     <ClInclude Include="..\src\BitBoardDefine.h" />
     <ClInclude Include="..\src\BoardParamiters.h" />
-    <ClInclude Include="..\src\Evaluate.h" />
+    <ClInclude Include="..\src\EvalNet.h" />
     <ClInclude Include="..\src\Move.h" />
     <ClInclude Include="..\src\MoveGeneration.h" />
-    <ClInclude Include="..\src\PawnHashTable.h" />
-    <ClInclude Include="..\src\PieceSquareTables.h" />
+    <ClInclude Include="..\src\Network.h" />
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Random.h" />
     <ClInclude Include="..\src\Search.h" />
     <ClInclude Include="..\src\stdendian.h" />
     <ClInclude Include="..\src\tbconfig.h" />
     <ClInclude Include="..\src\tbprobe.h" />
-    <ClInclude Include="..\src\Texel.h" />
     <ClInclude Include="..\src\TimeManage.h" />
     <ClInclude Include="..\src\TranspositionTable.h" />
     <ClInclude Include="..\src\TTEntry.h" />
     <ClInclude Include="..\src\Zobrist.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="perftsuite.txt" />
@@ -135,6 +132,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,6 +146,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,6 +163,11 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>
+      </EnableEnhancedInstructionSet>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -179,6 +185,11 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>
+      </EnableEnhancedInstructionSet>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <LanguageStandard>
+      </LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
