@@ -29,12 +29,6 @@ void BoardParamiters::NextTurn()
 	m_CurrentTurn = !m_CurrentTurn;
 }
 
-void BoardParamiters::SwapCastelingRights()
-{
-	std::swap(m_WhiteKingCastle, m_BlackKingCastle);
-	std::swap(m_WhiteQueenCastle, m_BlackQueenCastle);
-}
-
 void BoardParamiters::InitParamiters()
 {
 	PreviousParamiters.clear();

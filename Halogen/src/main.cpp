@@ -1,5 +1,5 @@
 #include "Benchmark.h"
-#include "Texel.h"
+#include "Search.h"
 #include <thread>
 
 using namespace::std;
@@ -16,6 +16,8 @@ void TestSyzygy();
 
 int main(int argc, char* argv[])
 {
+	srand(time(NULL));
+
 	PrintVersion();
 	tb_init("<empty>");
 
@@ -24,7 +26,6 @@ int main(int argc, char* argv[])
 
 	ZobristInit();
 	BBInit();
-	EvalInit();
 
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
@@ -33,7 +34,6 @@ int main(int argc, char* argv[])
 	//PerftSuite();
 
 	tTable.SetSize(1);
-	pawnHashTable.Init(1);
 
 	Position position;
 	position.StartingPosition();
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 		else if (token == "ucinewgame")
 		{
 			position.StartingPosition();
-			pawnHashTable.ResetTable();
+			//pawnHashTable.ResetTable();
 			tTable.ResetTable();
 		}
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
 				iss >> token;
 				if (token == "Hash") 
 				{
-					pawnHashTable.ResetTable();
+					//pawnHashTable.ResetTable();
 					tTable.ResetTable();
 				}
 			}
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
 				else
 				{
 					tTable.SetSize(stoi(token) - 1);
-					pawnHashTable.Init(1);
+					//pawnHashTable.Init(1);
 				}
 			}
 
@@ -212,7 +212,12 @@ int main(int argc, char* argv[])
 
 		else if (token == "texel")
 		{
-			Texel(TexelParamiters(), TexelPST());
+			//Texel(TexelParamiters(), TexelPST());
+		}
+
+		else if (token == "learn")
+		{
+			Learn();
 		}
 
 		else if (token == "stop") KeepSearching = false;
@@ -243,6 +248,7 @@ void PrintVersion()
 
 void TestSyzygy()
 {
+#ifdef DEBUG
 	Position testPosition;
 	testPosition.InitialiseFromFen("8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1");
 	unsigned int result = tb_probe_wdl(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
@@ -275,6 +281,7 @@ void TestSyzygy()
 	assert(TB_GET_FROM(result) == SQ_C2);
 	assert(TB_GET_TO(result) == SQ_C1);
 	assert(TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT);
+#endif 
 }
 
 void PerftSuite()
