@@ -10,6 +10,7 @@
 #endif
 
 #define USE_POPCNT
+//#define RELEASE
 
 extern bool HASH_ENABLE;
 

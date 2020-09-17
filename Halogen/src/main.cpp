@@ -210,16 +210,6 @@ int main(int argc, char* argv[])
 			PerftDivide(stoi(token), position);
 		}
 
-		else if (token == "texel")
-		{
-			//Texel(TexelParamiters(), TexelPST());
-		}
-
-		else if (token == "learn")
-		{
-			Learn();
-		}
-
 		else if (token == "stop") KeepSearching = false;
 		else if (token == "print") position.Print();
 		else if (token == "quit") return 0;
