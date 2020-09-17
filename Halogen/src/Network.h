@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <sstream>
+#include <cstring>
 
 #define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
 
@@ -67,5 +68,4 @@ private:
     float zeta;
 };
 
-Network InitNetwork(std::string file);
-Network CreateRandom(std::vector<size_t> NeuronCount);
+Network InitNetwork();

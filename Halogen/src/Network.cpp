@@ -1,15 +1,16 @@
 #include "Network.h"
 
-Network InitNetwork(std::string file)
-{
-    std::ifstream stream(file);
+static const char* WeightsTXT[] = {
+    #include "N2UnKRjtei.network"
+    ""
+};
 
-    if (!stream.is_open())
-    {
-        std::cout << "info string Could not load network file: " << file << std::endl;
-        std::cout << "info string random weights initialization!" << std::endl;
-        return CreateRandom({ INPUT_NEURONS, 256, 1 });
-    }
+Network InitNetwork()
+{
+    std::stringstream stream;
+
+    for (int i = 0; strcmp(WeightsTXT[i], ""); i++)
+        stream << WeightsTXT[i] << "\n";
 
     std::string line;
 
@@ -69,7 +70,6 @@ Network InitNetwork(std::string file)
         }
     }
 
-    stream.close();
     return Network(weights, LayerNeurons);
 }
 
@@ -197,47 +197,4 @@ float Network::QuickEval()
 trainingPoint::trainingPoint(std::array<bool, INPUT_NEURONS> input, float gameResult) : inputs(input)
 {
     result = gameResult;
-}
-
-Network CreateRandom(std::vector<size_t> NeuronCount)
-{
-    std::random_device rd;
-    std::mt19937 e2(rd());
-
-    std::vector<std::vector<float>> inputs;
-    inputs.push_back({});
-
-    size_t prevLayerNeurons = NeuronCount[0];
-
-    for (size_t layer = 1; layer < NeuronCount.size() - 1; layer++)
-    {
-        //see https://arxiv.org/pdf/1502.01852v1.pdf eq (10) for theoretical significance of w ~ N(0, sqrt(2/n))
-        std::normal_distribution<> dist(0.0, sqrt(2.0 / static_cast<float>(NeuronCount[layer])));
-
-        std::vector<float> input;
-        for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount[layer]; i++)
-        {
-            if ((i + 1) % (prevLayerNeurons + 1) == 0)
-                input.push_back(0);
-            else
-                input.push_back(static_cast<float>(dist(e2)));
-        }
-        inputs.push_back(input);
-        prevLayerNeurons = NeuronCount[layer];
-    }
-
-    std::normal_distribution<> dist(0.0, sqrt(2.0 / static_cast<float>(NeuronCount.back())));
-
-    //connections from last hidden to output
-    std::vector<float> input;
-    for (size_t i = 0; i < (prevLayerNeurons + 1) * NeuronCount.back(); i++)
-    {
-        if ((i + 1) % (prevLayerNeurons + 1) == 0)
-            input.push_back(0);
-        else
-            input.push_back(static_cast<float>(dist(e2)));
-    }
-    inputs.push_back(input);
-
-    return Network(inputs, NeuronCount);
 }
