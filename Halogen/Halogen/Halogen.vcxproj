@@ -168,6 +168,7 @@
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>
       </LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -190,6 +191,7 @@
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>
       </LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
