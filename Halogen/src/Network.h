@@ -30,7 +30,7 @@ struct deltaPoint
 struct Neuron
 {
     Neuron(const std::vector<float>& Weight, float Bias);
-    float FeedForward(std::vector<float>& input) const;
+    float FeedForward(std::vector<float>& input, bool UseReLU) const;
 
     std::vector<float> weights;
     float bias;
@@ -39,7 +39,7 @@ struct Neuron
 struct HiddenLayer
 {
     HiddenLayer(std::vector<float> inputs, size_t NeuronCount);    // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
-    std::vector<float> FeedForward(std::vector<float>& input);
+    std::vector<float> FeedForward(std::vector<float>& input, bool UseReLU);
 
     std::vector<Neuron> neurons;
     void ApplyDelta(std::vector<deltaPoint>& deltaVec, float forward);            //incrementally update the connections between input layer and first hidden layer
