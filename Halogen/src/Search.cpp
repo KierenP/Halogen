@@ -402,18 +402,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
-	/* blockade detection */
-	//Its possible one side has a blockade, but if winning will break it up.
-	if (beta > Draw) 
-	{
-		if (IsBlockade(position))	//Am I blockaded against?
-		{
-			if (alpha >= Draw)
-				return Draw;
-			beta = Draw;
-		}
-	}
-
 	/*Query the transpotition table*/
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
