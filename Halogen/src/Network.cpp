@@ -78,7 +78,7 @@ Neuron::Neuron(const std::vector<float>& Weight, float Bias) : weights(Weight)
     bias = Bias;
 }
 
-float Neuron::FeedForward(std::vector<float>& input) const
+float Neuron::FeedForward(std::vector<float>& input, bool UseReLU) const
 {
     assert(input.size() == weights.size());
 
@@ -86,7 +86,10 @@ float Neuron::FeedForward(std::vector<float>& input) const
 
     for (size_t i = 0; i < input.size(); i++)
     {
-        ret += std::max(0.f, input[i]) * weights[i];
+        if (UseReLU)
+            ret += std::max(0.f, input[i]) * weights[i];
+        else
+            ret += input[i] * weights[i];
     }
 
     return ret;
@@ -114,11 +117,11 @@ HiddenLayer::HiddenLayer(std::vector<float> inputs, size_t NeuronCount)
     zeta = std::vector<float>(NeuronCount, 0);
 }
 
-std::vector<float> HiddenLayer::FeedForward(std::vector<float>& input)
+std::vector<float> HiddenLayer::FeedForward(std::vector<float>& input, bool UseReLU)
 {
     for (size_t i = 0; i < neurons.size(); i++)
     {
-        zeta[i] = neurons.at(i).FeedForward(input);
+        zeta[i] = neurons.at(i).FeedForward(input, UseReLU);
     }
 
     return zeta;
@@ -160,10 +163,10 @@ float Network::FeedForward(std::vector<float> inputs)
 
     for (size_t i = 0; i < hiddenLayers.size(); i++)
     {
-        inputs = hiddenLayers.at(i).FeedForward(inputs);
+        inputs = hiddenLayers.at(i).FeedForward(inputs, i != 0);
     }
 
-    zeta = outputNeuron.FeedForward(inputs);
+    zeta = outputNeuron.FeedForward(inputs, true);
 
     return zeta;
 }
@@ -186,10 +189,10 @@ float Network::QuickEval()
 
     for (size_t i = 1; i < hiddenLayers.size(); i++)    //skip first layer
     {
-        inputs = hiddenLayers.at(i).FeedForward(inputs);
+        inputs = hiddenLayers.at(i).FeedForward(inputs, true);
     }
 
-    zeta = outputNeuron.FeedForward(inputs);
+    zeta = outputNeuron.FeedForward(inputs, true);
 
     return zeta;
 }
