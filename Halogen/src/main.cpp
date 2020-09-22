@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
-string version = "6-20200820-2351"; 
+string version = "7"; 
 
 void TestSyzygy();
 
@@ -223,16 +223,25 @@ int main(int argc, char* argv[])
 
 void PrintVersion()
 {
+	cout << "Halogen " << version;
+
 #if defined(_WIN64)
-	#if defined(_MSC_VER) || defined(USE_POPCNT)
-		cout << "Halogen " << version << " x64 POPCNT" << endl;
-	#else
-		cout << "Halogen " << version << " x64" << endl;
+	cout << " x64";
+
+	#if defined(USE_POPCNT)
+		cout << " POPCNT";
 	#endif 
+
+	#if defined(USE_AVX2)
+		cout << " AVX2";
+	#endif 
+
+	cout << endl;
+
 #elif defined(_WIN32)
-	cout << "Halogen " << version << " x86" << endl;
+	cout << " x86" << endl;
 #else
-	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
+	cout << " UNKNOWN COMPILATION" << endl;
 #endif
 }
 
