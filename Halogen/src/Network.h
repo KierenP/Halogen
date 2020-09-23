@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cstring>
+#include "EvalCache.h"
 
 #define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
 
@@ -57,7 +58,7 @@ struct Network
 
     void ApplyDelta(std::vector<deltaPoint>& delta);            //incrementally update the connections between input layer and first hidden layer
     void ApplyInverseDelta(std::vector<deltaPoint>& delta);     //for un-make moves
-    float QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
+    float QuickEval();                                          //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 private:
     size_t inputNeurons;
