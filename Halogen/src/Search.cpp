@@ -407,23 +407,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 	{
 		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
-
-		int rep = 1;
-		uint64_t current = position.GetZobristKey();
-
-		for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
-		{
-			if (position.GetPreviousKey(i) == current)
-			{
-				rep++;
-				break;
-			}
-		}
-
-		if (rep < 2)												//don't use the transposition if we have been at this position in the past
-		{
-			if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
-		}
+		if (UseTransposition(entry, distanceFromRoot, alpha, beta)) 
+			return SearchResult(entry.GetScore(), entry.GetMove());
 	}
 
 	/*Drop into quiescence search*/
