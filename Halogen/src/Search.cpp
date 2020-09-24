@@ -715,7 +715,8 @@ bool CheckForRep(Position& position, int distanceFromRoot)
 		}
 
 		if (totalRep == 3) return true;																			//3 reps is always a draw
-		if (totalRep == 2 && (position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
+		if (totalRep == 2 && static_cast<int>(position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) 
+			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
 	}
 	
 	return false;
