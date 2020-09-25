@@ -12,7 +12,7 @@ void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position);
+bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
@@ -378,7 +378,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
-	if (CheckForRep(position)) return 0;
+	if (CheckForRep(position, distanceFromRoot)) return 0;
 
 	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
@@ -410,7 +410,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
-		
+
 		for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
 		{
 			if (position.GetPreviousKey(i) == current)
@@ -716,7 +716,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position)
+bool CheckForRep(Position& position, int distanceFromRoot)
 {
 	int totalRep = 1;
 	uint64_t current = position.GetZobristKey();
@@ -729,7 +729,9 @@ bool CheckForRep(Position& position)
 			totalRep++;
 		}
 
-		if (totalRep == 3) return true;	
+		if (totalRep == 3) return true;																			//3 reps is always a draw
+		if (totalRep == 2 && static_cast<int>(position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) 
+			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
 	}
 	
 	return false;
