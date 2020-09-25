@@ -1,7 +1,7 @@
 #include "Network.h"
 
 static const char* WeightsTXT[] = {
-    #include "NvSRCIor5v.network"
+    #include "ZxKHsEZCfK.network" 
     ""
 };
 
@@ -27,9 +27,7 @@ Network InitNetwork()
 
         if (token == "InputNeurons")
         {
-            getline(stream, line);
-            std::istringstream lineStream(line);
-            lineStream >> token;
+            iss >> token;
             LayerNeurons.push_back(stoull(token));
         }
 
