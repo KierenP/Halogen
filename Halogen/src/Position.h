@@ -10,8 +10,6 @@
 #define NOMINMAX
 #endif 
 
-#include <Windows.h>
-
 /*
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.
 */
