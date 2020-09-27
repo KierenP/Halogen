@@ -214,12 +214,10 @@ void Position::Print() const
 	std::cout << "\n  A B C D E F G H";
 
 	char Letter[N_SQUARES];
-	unsigned short colour[N_SQUARES];
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
 		Letter[i] = PieceToChar(GetSquare(i));
-		colour[i] = 7;									//grey
 	}
 
 	for (int i = 0; i < N_SQUARES; i++)
