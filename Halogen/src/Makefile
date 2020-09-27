@@ -4,7 +4,7 @@ SRC = *.cpp
 OUTPUT = ..\..\..\$(EXE)$(VER)
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
-CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
+CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native -lpthread
 
 POPCNTFLAGS = -DGCC_USE_POPCNT
 

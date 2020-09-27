@@ -1001,6 +1001,7 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput) : curren
 	threadDepthCompleted = 0;
 	prevScore = 0;
 	noOutput = NoOutput;
+	tbHits = 0;
 
 	for (unsigned int i = 0; i < threads; i++)
 		searchDepth.push_back(0);
