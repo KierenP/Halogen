@@ -353,3 +353,8 @@ MigrationBackup/
 
 # End of https://www.gitignore.io/api/visualstudio
 /Halogen/src/Halogen.smp
+/Halogen/src/Halogen.tlog
+/Halogen/Release AVX2/Halogen x32 AVX2.exe
+/Halogen/Release AVX2
+/Halogen/Release No Popcnt
+/Halogen/src/Halogen.vcxproj.FileListAbsolute.txt

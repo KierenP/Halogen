@@ -211,20 +211,13 @@ void Position::RevertNullMove()
 
 void Position::Print() const
 {
-	HANDLE  hConsole;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	SetConsoleTextAttribute(hConsole, 10);	//green text
 	std::cout << "\n  A B C D E F G H";
-	SetConsoleTextAttribute(hConsole, 7);	//back to gray
 
 	char Letter[N_SQUARES];
-	unsigned short colour[N_SQUARES];
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
 		Letter[i] = PieceToChar(GetSquare(i));
-		colour[i] = 7;									//grey
 	}
 
 	for (int i = 0; i < N_SQUARES; i++)
@@ -234,17 +227,12 @@ void Position::Print() const
 		if (GetFile(square) == FILE_A)
 		{
 			std::cout << std::endl;									//Go to a new line
-			SetConsoleTextAttribute(hConsole, 10);					//print the number green
 			std::cout << 8 - GetRank(i);							//Count down from 8
 		}
 
 		std::cout << " ";
-
-		SetConsoleTextAttribute(hConsole, colour[square]);			//Set colour to that squares colour
 		std::cout << Letter[square];
 	}
-
-	SetConsoleTextAttribute(hConsole, 7);							//and back to gray
 
 	std::cout << std::endl;
 }

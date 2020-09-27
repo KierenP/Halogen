@@ -9,8 +9,9 @@
 #include <intrin.h>
 #endif
 
-#define USE_POPCNT
-//#define RELEASE
+#ifndef NO_POPCNT
+	#define USE_POPCNT
+#endif // !NO_POPCNT
 
 extern bool HASH_ENABLE;
 

@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
-string version = "6-20200820-2351"; 
+string version = "7";  
 
 void TestSyzygy();
 
@@ -223,16 +223,25 @@ int main(int argc, char* argv[])
 
 void PrintVersion()
 {
+	cout << "Halogen " << version;
+
 #if defined(_WIN64)
-	#if defined(_MSC_VER) || defined(USE_POPCNT)
-		cout << "Halogen " << version << " x64 POPCNT" << endl;
-	#else
-		cout << "Halogen " << version << " x64" << endl;
+	cout << " x64";
+
+	#if defined(USE_POPCNT)
+		cout << " POPCNT";
 	#endif 
+
+	#if defined(USE_AVX2)
+		cout << " AVX2";
+	#endif 
+
+	cout << endl;
+
 #elif defined(_WIN32)
-	cout << "Halogen " << version << " x86" << endl;
+	cout << " x86" << endl;
 #else
-	cout << "Halogen " << version << " UNKNOWN COMPILATION" << endl;
+	cout << " UNKNOWN COMPILATION" << endl;
 #endif
 }
 
@@ -278,10 +287,6 @@ void PerftSuite()
 {
 	ifstream infile("perftsuite.txt");
 
-	//multi-coloured text in concole 
-	HANDLE  hConsole;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
 	unsigned int Perfts = 0;
 	unsigned int Correct = 0;
 	double Totalnodes = 0;
@@ -307,16 +312,12 @@ void PerftSuite()
 		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
 		if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
 		{
-			SetConsoleTextAttribute(hConsole, 2);	//green text
 			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
-			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 			Correct++;
 		}
 		else
 		{
-			SetConsoleTextAttribute(hConsole, 4);	//red text
 			cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
-			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 		}
 
 		Totalnodes += nodes;

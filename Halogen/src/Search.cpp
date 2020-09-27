@@ -12,7 +12,7 @@ void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position);
+bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
@@ -281,7 +281,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
 		<< " tbhits " << sharedData.getTBHits();
 
-#if defined(_MSC_VER) && !defined(RELEASE) 
+#if defined(_MSC_VER) && !defined(NDEBUG) 
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1));
@@ -378,7 +378,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
-	if (CheckForRep(position)) return 0;
+	if (CheckForRep(position, distanceFromRoot)) return 0;
 
 	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
@@ -402,18 +402,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
-	/* blockade detection */
-	//Its possible one side has a blockade, but if winning will break it up.
-	if (beta > Draw) 
-	{
-		if (IsBlockade(position))	//Am I blockaded against?
-		{
-			if (alpha >= Draw)
-				return Draw;
-			beta = Draw;
-		}
-	}
-
 	/*Query the transpotition table*/
 	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
 	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
@@ -422,7 +410,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
-		
+
 		for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
 		{
 			if (position.GetPreviousKey(i) == current)
@@ -728,7 +716,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position)
+bool CheckForRep(Position& position, int distanceFromRoot)
 {
 	int totalRep = 1;
 	uint64_t current = position.GetZobristKey();
@@ -741,7 +729,9 @@ bool CheckForRep(Position& position)
 			totalRep++;
 		}
 
-		if (totalRep == 3) return true;	
+		if (totalRep == 3) return true;																			//3 reps is always a draw
+		if (totalRep == 2 && static_cast<int>(position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) 
+			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
 	}
 	
 	return false;
@@ -1011,6 +1001,7 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput) : curren
 	threadDepthCompleted = 0;
 	prevScore = 0;
 	noOutput = NoOutput;
+	tbHits = 0;
 
 	for (unsigned int i = 0; i < threads; i++)
 		searchDepth.push_back(0);
