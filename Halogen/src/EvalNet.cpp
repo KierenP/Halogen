@@ -3,9 +3,6 @@
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
                                                   {111, 339, 372, 638, 1301, 5000} };
 
-bool BlackBlockade(uint64_t wPawns, uint64_t bPawns);
-bool WhiteBlockade(uint64_t wPawns, uint64_t bPawns);
-
 int EvaluatePositionNet(Position& position)
 {
     return std::min(4000, std::max(-4000, static_cast<int>(std::round(position.GetEvaluation()))));
