@@ -287,10 +287,6 @@ void PerftSuite()
 {
 	ifstream infile("perftsuite.txt");
 
-	//multi-coloured text in concole 
-	HANDLE  hConsole;
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
 	unsigned int Perfts = 0;
 	unsigned int Correct = 0;
 	double Totalnodes = 0;
@@ -316,16 +312,12 @@ void PerftSuite()
 		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
 		if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
 		{
-			SetConsoleTextAttribute(hConsole, 2);	//green text
 			cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
-			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 			Correct++;
 		}
 		else
 		{
-			SetConsoleTextAttribute(hConsole, 4);	//red text
 			cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
-			SetConsoleTextAttribute(hConsole, 7);	//back to gray
 		}
 
 		Totalnodes += nodes;
