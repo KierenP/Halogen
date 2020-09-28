@@ -349,8 +349,8 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
 
 		depth++;
-		alpha = score - 25;
-		beta = score + 25;
+		alpha = score - 25 - 4 * ((threadID % 2 == 0) ? 1 : -1) * int(log2(threadID + 1)); 
+		beta  = score + 25 + 4 * ((threadID % 2 == 0) ? 1 : -1) * int(log2(threadID + 1));
 		prevScore = score;
 	}
 
@@ -432,7 +432,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining))
+	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && ((colour * EvaluatePositionNet(position)) > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
