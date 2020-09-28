@@ -351,8 +351,8 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
 
 		depth++;
-		alpha = score - 25 - ((threadID % 2 == 0) ? 1 : -1) * threadID * 2;
-		beta = score + 25 + ((threadID % 2 == 0) ? 1 : -1) * threadID * 2;
+		alpha = score - 25 - 4 * ((threadID % 2 == 0) ? 1 : -1) * int(log2(threadID + 1));
+		beta  = score + 25 + 4 * ((threadID % 2 == 0) ? 1 : -1) * int(log2(threadID + 1));
 		prevScore = score;
 	}
 
