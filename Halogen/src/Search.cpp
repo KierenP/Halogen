@@ -350,9 +350,9 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 		move = search.GetMove();	//this is only hit if the continue before is not hit
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
 
-		depth++;
 		alpha = score - std::max(1, 25 - ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
 		beta =  score + std::max(1, 25 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+
 		prevScore = score;
 	}
 
