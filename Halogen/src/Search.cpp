@@ -369,7 +369,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 #endif 
 
 	locals.PvTable[distanceFromRoot].clear();
-	sharedData.AddNode();
 
 	if (distanceFromRoot > 0 && locals.timeManage.AbortSearch(sharedData.getNodes())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
@@ -466,6 +465,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
+		sharedData.AddNode();
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		int extendedDepth = depthRemaining + extension(position, hashMove, alpha, beta);
 		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
@@ -522,6 +522,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			continue;
 
 		position.ApplyMove(moves.at(i));
+		sharedData.AddNode();
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
@@ -909,6 +910,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			continue;
 
 		position.ApplyMove(moves.at(i));
+		sharedData.AddNode();
 		int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1, depthRemaining - 1, locals, sharedData).GetScore();
 		position.RevertMove();
 
