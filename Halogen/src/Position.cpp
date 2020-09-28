@@ -3,7 +3,6 @@
 Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
-	NodeCount = 0;
 }
 
 Position::~Position()
@@ -18,7 +17,6 @@ void Position::ApplyMove(Move move)
 	SaveBoard();
 	SetEnPassant(static_cast<unsigned int>(-1));
 	Increment50Move();
-	NodeCount += 1;
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 
@@ -305,7 +303,6 @@ void Position::Reset()
 	PreviousKeys.clear();
 	PreviousDeltas.clear();
 	key = EMPTY;
-	NodeCount = 0;
 
 	ResetBoard();
 	InitParamiters();
