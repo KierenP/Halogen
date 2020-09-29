@@ -303,6 +303,7 @@ void Position::Reset()
 	PreviousKeys.clear();
 	PreviousDeltas.clear();
 	key = EMPTY;
+	EvaluatedPositions = 0;
 
 	ResetBoard();
 	InitParamiters();
@@ -540,5 +541,11 @@ float Position::GetEvaluation()
 {
 	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
 	//	std::cout << "ERROR!";
-	return net.QuickEval();
+
+	EvaluatedPositions++;
+
+	if (EvaluatedPositions % 1024 == 0)
+		return net.FeedForward(GetInputLayer());
+	else 
+		return net.QuickEval();
 }

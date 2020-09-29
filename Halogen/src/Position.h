@@ -61,5 +61,7 @@ private:
 	std::vector<deltaPoint> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
 
 	static size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
+
+	size_t EvaluatedPositions = 0;
 };
 
