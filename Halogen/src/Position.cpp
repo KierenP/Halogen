@@ -3,7 +3,6 @@
 Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
-	NodeCount = 0;
 }
 
 Position::~Position()
@@ -18,7 +17,6 @@ void Position::ApplyMove(Move move)
 	SaveBoard();
 	SetEnPassant(static_cast<unsigned int>(-1));
 	Increment50Move();
-	NodeCount += 1;
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 
@@ -305,7 +303,7 @@ void Position::Reset()
 	PreviousKeys.clear();
 	PreviousDeltas.clear();
 	key = EMPTY;
-	NodeCount = 0;
+	EvaluatedPositions = 0;
 
 	ResetBoard();
 	InitParamiters();
@@ -543,5 +541,11 @@ float Position::GetEvaluation()
 {
 	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
 	//	std::cout << "ERROR!";
-	return net.QuickEval();
+
+	EvaluatedPositions++;
+
+	if (EvaluatedPositions % 1024 == 0)
+		return net.FeedForward(GetInputLayer());
+	else 
+		return net.QuickEval();
 }
