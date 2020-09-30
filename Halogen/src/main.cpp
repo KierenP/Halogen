@@ -67,7 +67,6 @@ int main(int argc, char* argv[])
 			position.StartingPosition();
 			//pawnHashTable.ResetTable();
 			tTable.ResetTable();
-			evalTable.Reset();
 		}
 
 		else if (token == "position")
@@ -156,7 +155,6 @@ int main(int argc, char* argv[])
 				if (token == "Hash") 
 				{
 					//pawnHashTable.ResetTable();
-					evalTable.Reset();
 					tTable.ResetTable();
 				}
 			}

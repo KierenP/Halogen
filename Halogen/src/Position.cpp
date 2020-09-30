@@ -164,7 +164,6 @@ void Position::ApplyMove(std::string strmove)
 void Position::RevertMove()
 {
 	assert(PreviousKeys.size() > 0);
-	assert(PreviousDeltas.size() > 0);
 
 	RestorePreviousBoard();
 	RestorePreviousParamiters();
@@ -195,7 +194,6 @@ void Position::ApplyNullMove()
 void Position::RevertNullMove()
 {
 	assert(PreviousKeys.size() > 0);
-	assert(PreviousDeltas.size() > 0);
 
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();

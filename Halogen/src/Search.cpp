@@ -54,7 +54,7 @@ Move MultithreadedSearch(const Position& position, int allowedTimeMs, unsigned i
 
 	for (unsigned int i = 0; i < threadCount; i++)
 	{
-		uint64_t nodesSearched = 0;
+		uint64_t nodesSearched = 0; 
 		threads.emplace_back(std::thread([=, &nodesSearched, &sharedData] {SearchPosition(position, allowedTimeMs, nodesSearched, sharedData, i, maxSearchDepth); }));
 	}
 
@@ -71,7 +71,6 @@ uint64_t BenchSearch(const Position& position, int maxSearchDepth)
 {
 	InitSearch();
 	tTable.ResetTable();
-	evalTable.Reset();
 	ThreadSharedData sharedData(1, true);
 	
 	uint64_t nodesSearched = 0;
@@ -84,8 +83,6 @@ void InitSearch()
 {
 	KeepSearching = true;
 	tTable.ResetHitCount();
-	evalTable.hits = 0;
-	evalTable.misses = 0;
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -286,7 +283,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
 		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(sharedData.getNodes(), uint64_t(1))
-		<< " evalHitRate " << evalTable.hits * 1000 / std::max(evalTable.hits + evalTable.misses, uint64_t(1));
+		<< " evalHitRate " << locals.evalTable.hits * 1000 / std::max(locals.evalTable.hits + locals.evalTable.misses, uint64_t(1));
 #endif
 
 	std::cout << " pv ";																								//the current best line found
@@ -388,7 +385,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseRootTBScore(result, colour * EvaluatePositionNet(position));
+			return UseRootTBScore(result, colour * EvaluatePositionNet(position, locals.evalTable));
 		}
 	}
 
@@ -399,7 +396,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (result != TB_RESULT_FAILED)
 		{
 			sharedData.AddTBHit();
-			return UseSearchTBScore(result, colour * EvaluatePositionNet(position));
+			return UseSearchTBScore(result, colour * EvaluatePositionNet(position, locals.evalTable));
 		}
 	}
 
@@ -434,7 +431,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && ((colour * EvaluatePositionNet(position)) > beta))
+	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && ((colour * EvaluatePositionNet(position, locals.evalTable)) > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
@@ -512,7 +509,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	
 	OrderMoves(moves, position, distanceFromRoot, locals);
 	bool InCheck = IsInCheck(position);
-	int staticScore = colour * EvaluatePositionNet(position);
+	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
@@ -873,7 +870,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		moves.clear();
 	}
 
-	int staticScore = colour * EvaluatePositionNet(position);
+	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	

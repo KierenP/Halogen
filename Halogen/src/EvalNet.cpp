@@ -1,11 +1,9 @@
 #include "EvalNet.h"
 
-EvalCacheTable evalTable;
-
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
                                                   {111, 339, 372, 638, 1301, 5000} };
 
-int EvaluatePositionNet(Position& position)
+int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
     int eval;
 
