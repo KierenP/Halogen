@@ -765,9 +765,7 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 
 bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining)
 {
-	return !move.IsCapture()
-		&& !move.IsPromotion()
-		&& !InCheck 
+	return !InCheck 
 		&& !IsEndGame(position)
 		&& !IsInCheck(position)
 		&& depthRemaining > 3;
