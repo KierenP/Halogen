@@ -3,9 +3,17 @@
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
                                                   {111, 339, 372, 638, 1301, 5000} };
 
-int EvaluatePositionNet(Position& position)
+int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
-    return std::min(4000, std::max(-4000, static_cast<int>(std::round(position.GetEvaluation()))));
+    int eval;
+
+    if (!evalTable.GetEntry(position.GetZobristKey(), eval))
+    {
+        eval = static_cast<int>(std::round(position.GetEvaluation()));
+        evalTable.AddEntry(position.GetZobristKey(), eval);
+    }
+
+    return std::min(4000, std::max(-4000, eval));
 }
 
 int PieceValues(unsigned int Piece, GameStages GameStage)
