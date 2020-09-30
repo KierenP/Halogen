@@ -42,12 +42,15 @@ struct HiddenLayer
     std::vector<float> FeedForward(std::vector<float>& input, bool UseReLU);
 
     std::vector<Neuron> neurons;
-    void ApplyDelta(std::vector<deltaPoint>& deltaVec, float forward);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(std::vector<deltaPoint>& deltaVec);            //incrementally update the connections between input layer and first hidden layer
+    void ReverseDelta();
 
     std::vector<float> zeta;
 
 private:
     std::vector<float> weightTranspose; //first neuron first weight, second neuron first weight etc...
+
+    std::vector<std::vector<float>> OldZeta;
 };
 
 struct Network
@@ -55,8 +58,8 @@ struct Network
     Network(std::vector<std::vector<float>> inputs, std::vector<size_t> NeuronCount);
     float FeedForward(std::vector<float> inputs);
 
-    void ApplyDelta(std::vector<deltaPoint>& delta);            //incrementally update the connections between input layer and first hidden layer
-    void ApplyInverseDelta(std::vector<deltaPoint>& delta);     //for un-make moves
+    void ApplyDelta(std::vector<deltaPoint> delta);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyInverseDelta();     //for un-make moves
     float QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 private:
