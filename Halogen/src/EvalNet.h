@@ -15,3 +15,6 @@ int EvaluatePositionNet(Position& position);
 
 int PieceValues(unsigned int Piece, GameStages GameStage = MIDGAME);
 
+
+extern EvalCacheTable evalTable;
+

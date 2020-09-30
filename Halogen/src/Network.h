@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cstring>
+#include "EvalCache.h"
 
 #define INPUT_NEURONS 12 * 64 - 32 + 1 + 4
 

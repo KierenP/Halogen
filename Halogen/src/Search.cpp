@@ -7,7 +7,6 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 TranspositionTable tTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
-void InternalIterativeDeepening(Move& TTmove, unsigned int initialDepth, int depthRemaining, Position& position, int alpha, int beta, int colour, int distanceFromRoot, SearchData& locals, ThreadSharedData& sharedData);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
@@ -72,6 +71,7 @@ uint64_t BenchSearch(const Position& position, int maxSearchDepth)
 {
 	InitSearch();
 	tTable.ResetTable();
+	evalTable.Reset();
 	ThreadSharedData sharedData(1, true);
 	
 	uint64_t nodesSearched = 0;
@@ -84,6 +84,8 @@ void InitSearch()
 {
 	KeepSearching = true;
 	tTable.ResetHitCount();
+	evalTable.hits = 0;
+	evalTable.misses = 0;
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -283,7 +285,8 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 #if defined(_MSC_VER) && !defined(NDEBUG) 
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1));
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(sharedData.getNodes(), uint64_t(1))
+		<< " evalHitRate " << evalTable.hits * 1000 / std::max(evalTable.hits + evalTable.misses, uint64_t(1));
 #endif
 
 	std::cout << " pv ";																								//the current best line found
