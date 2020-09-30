@@ -1,6 +1,9 @@
 #pragma once
 #include <vector>
 #include <memory>		//required to compile with g++
+#include <array>
+#include <assert.h>
+#include <iostream>
 
 struct EvalCacheEntry
 {
@@ -19,6 +22,9 @@ public:
 
 	void Reset();
 
+	uint64_t hits = 0;
+	uint64_t misses = 0;
+
 private:
-	std::vector<EvalCacheEntry> table;
+	std::array<EvalCacheEntry, 512 * 1024 / sizeof(EvalCacheEntry)> table {};
 };

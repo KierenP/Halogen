@@ -84,6 +84,8 @@ void InitSearch()
 {
 	KeepSearching = true;
 	tTable.ResetHitCount();
+	evalTable.hits = 0;
+	evalTable.misses = 0;
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -280,10 +282,11 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
 		<< " tbhits " << sharedData.getTBHits();
 
-#if defined(_MSC_VER) && !defined(NDEBUG) 
+#if defined(_MSC_VER)// && !defined(NDEBUG) 
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(actualNodeCount, uint64_t(1));
+		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(sharedData.getNodes(), uint64_t(1))
+		<< " evalHitRate " << evalTable.hits * 1000 / std::max(evalTable.hits + evalTable.misses, uint64_t(1));
 #endif
 
 	std::cout << " pv ";																								//the current best line found

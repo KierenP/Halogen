@@ -2,12 +2,7 @@
 
 EvalCacheTable::EvalCacheTable()
 {
-	size_t entries = 511 * 1024 / sizeof(EvalCacheEntry);
 
-	for (size_t i = 0; i < entries; i++)
-	{
-		table.push_back({});
-	}
 }
 
 EvalCacheTable::~EvalCacheTable()
@@ -23,15 +18,22 @@ void EvalCacheTable::AddEntry(uint64_t key, int eval)
 bool EvalCacheTable::GetEntry(uint64_t key, int& eval)
 {
 	if (table[key % table.size()].key != key)
+	{
+		misses++;
 		return false;
+	}
 
 	eval = table[key % table.size()].eval;
+	hits++; 
 
 	return true;
 }
 
 void EvalCacheTable::Reset()
 {
+	hits = 0;
+	misses = 0;
+
 	for (size_t i = 0; i < table.size(); i++)
 	{
 		table[i] = {};
