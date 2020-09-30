@@ -7,6 +7,7 @@ EvalCacheTable::EvalCacheTable()
 
 EvalCacheTable::~EvalCacheTable()
 {
+	delete table;
 }
 
 void EvalCacheTable::AddEntry(uint64_t key, int eval)
