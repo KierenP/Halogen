@@ -89,8 +89,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	PreviousDeltas.push_back(CalculateMoveDelta(move));
-	net.ApplyDelta(PreviousDeltas.back());
+	net.ApplyDelta(CalculateMoveDelta(move));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -171,8 +170,7 @@ void Position::RevertMove()
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta(PreviousDeltas.back());
-	PreviousDeltas.pop_back();
+	net.ApplyInverseDelta();
 }
 
 void Position::ApplyNullMove()
@@ -185,8 +183,7 @@ void Position::ApplyNullMove()
 
 	NextTurn();
 	IncrementZobristKey(Move());
-	PreviousDeltas.push_back(CalculateMoveDelta(Move()));
-	net.ApplyDelta(PreviousDeltas.back());
+	net.ApplyDelta(CalculateMoveDelta(Move()));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -203,8 +200,7 @@ void Position::RevertNullMove()
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta(PreviousDeltas.back());
-	PreviousDeltas.pop_back();
+	net.ApplyInverseDelta();
 }
 
 void Position::Print() const
@@ -301,7 +297,6 @@ uint64_t Position::GetZobristKey() const
 void Position::Reset()
 {
 	PreviousKeys.clear();
-	PreviousDeltas.clear();
 	key = EMPTY;
 	EvaluatedPositions = 0;
 
@@ -539,13 +534,5 @@ void Position::RevertSEECapture()
 
 float Position::GetEvaluation()
 {
-	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
-	//	std::cout << "ERROR!";
-
-	EvaluatedPositions++;
-
-	if (EvaluatedPositions % 1024 == 0)
-		return net.FeedForward(GetInputLayer());
-	else 
-		return net.QuickEval();
+	return net.QuickEval();
 }
