@@ -66,6 +66,9 @@ public:
 	void AddTBHit() { tbHits++; }
 	uint64_t getTBHits() const { return tbHits; }
 
+	void AddNode() { nodes++; }
+	uint64_t getNodes() const { return nodes; }
+
 private:
 	std::mutex ioMutex;
 	unsigned int threadCount;
@@ -75,6 +78,7 @@ private:
 	bool noOutput;									//Do not write anything to the concole
 
 	std::atomic<uint64_t> tbHits;
+	std::atomic<uint64_t> nodes;
 
 	std::vector<unsigned int> searchDepth;					//what depth is each thread currently searching?
 };

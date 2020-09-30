@@ -10,8 +10,6 @@
 #define NOMINMAX
 #endif 
 
-#include <Windows.h>
-
 /*
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.
 */
@@ -37,10 +35,7 @@ public:
 	bool InitialiseFromFen(std::string fen);
 
 	uint64_t GetZobristKey() const;
-	uint64_t GetNodeCount() const { return NodeCount; }
 
-	void ResetNodeCount() { NodeCount = 0; }
-	void IncreaseNodeCount() { NodeCount++; }
 	void Reset();
 
 	size_t GetPreviousKeysSize() const { return PreviousKeys.size(); }
@@ -55,7 +50,6 @@ public:
 	float GetEvaluation();
 
 private:
-	uint64_t NodeCount;
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;
 	std::vector<std::vector<deltaPoint>> PreviousDeltas;
@@ -67,5 +61,7 @@ private:
 	std::vector<deltaPoint> CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
 
 	static size_t modifier(size_t index);						//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
+
+	size_t EvaluatedPositions = 0;
 };
 

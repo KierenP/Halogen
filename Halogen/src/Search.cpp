@@ -11,7 +11,7 @@ void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position);
+bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
@@ -247,7 +247,6 @@ void PrintBestMove(Move Best)
 
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData)
 {
-	uint64_t actualNodeCount = position.GetNodeCount() * threadCount;
 	std::vector<Move> pv = locals.PvTable[0];
 
 	if (pv.size() == 0)
@@ -276,8 +275,8 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 
 	std::cout
 		<< " time " << Time																						//Time in ms
-		<< " nodes " << actualNodeCount
-		<< " nps " << int(actualNodeCount / std::max(int(Time), 1) * 1000)
+		<< " nodes " << sharedData.getNodes()
+		<< " nps " << int(sharedData.getNodes() / std::max(int(Time), 1) * 1000)
 		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
 		<< " tbhits " << sharedData.getTBHits();
 
@@ -303,7 +302,6 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	Move move;
 
 	locals.timeManage.StartSearch(allowedTimeMs);
-	position.ResetNodeCount();
 
 	Timer searchTime;
 	searchTime.Start();
@@ -313,7 +311,7 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 	int prevScore = 0;
 	bool aspirationReSearch = false;
 
-	for (int depth = 1; (!locals.timeManage.AbortSearch(position.GetNodeCount()) && locals.timeManage.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
+	for (int depth = 1; (!locals.timeManage.AbortSearch(0) && locals.timeManage.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
 	{
 		if (!aspirationReSearch && sharedData.ShouldSkipDepth(depth))
 		{
@@ -323,12 +321,12 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 
 		sharedData.ReportDepth(depth, threadID);
 
-		position.IncreaseNodeCount();	//make the root node count. Otherwise when re-searching a position and getting an immediant hash hit the nodes searched is zero
+		sharedData.AddNode();	//make the root node count. Otherwise when re-searching a position and getting an immediant hash hit the nodes searched is zero
 
 		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		int score = search.GetScore();
 
-		if (depth > 1 && locals.timeManage.AbortSearch(position.GetNodeCount())) { break; }
+		if (depth > 1 && locals.timeManage.AbortSearch(0)) { break; }
 		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
 
 		if (score <= alpha)
@@ -350,14 +348,14 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 		move = search.GetMove();	//this is only hit if the continue before is not hit
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
 
-		depth++;
-		alpha = score - 25;
-		beta = score + 25;
+		alpha = score - std::max(1, 25 - ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+		beta =  score + std::max(1, 25 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+
 		prevScore = score;
 	}
 
 	//tTable.RunAsserts();	//only for testing purposes
-	totalNodes = position.GetNodeCount();
+	totalNodes = sharedData.getNodes();
 	return move;
 }
 
@@ -372,13 +370,13 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (distanceFromRoot > 0 && locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;		//we must check later that we don't let this score pollute the transposition table
+	if (distanceFromRoot > 0 && locals.timeManage.AbortSearch(sharedData.getNodes())) return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
-	if (CheckForRep(position)) return 0;
+	if (CheckForRep(position, distanceFromRoot)) return 0;
 
 	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
@@ -410,7 +408,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		int rep = 1;
 		uint64_t current = position.GetZobristKey();
-		
+
 		for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
 		{
 			if (position.GetPreviousKey(i) == current)
@@ -433,7 +431,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining))
+	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && ((colour * EvaluatePositionNet(position)) > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
@@ -467,6 +465,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
+		sharedData.AddNode();
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		int extendedDepth = depthRemaining + extension(position, hashMove, alpha, beta);
 		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
@@ -489,7 +488,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			AddKiller(hashMove, distanceFromRoot, locals.KillerMoves);
 			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix, position.GetTurn());
 
-			if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !(sharedData.ThreadAbort(initialDepth)))
+			if (!locals.timeManage.AbortSearch(sharedData.getNodes()) && !(sharedData.ThreadAbort(initialDepth)))
 				AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 			return SearchResult(Score, bestMove);
@@ -523,6 +522,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			continue;
 
 		position.ApplyMove(moves.at(i));
+		sharedData.AddNode();
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 
 		//futility pruning
@@ -568,7 +568,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		b = a + 1;				//Set a new zero width window
 	}
 
-	if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !sharedData.ThreadAbort(initialDepth))
+	if (!locals.timeManage.AbortSearch(sharedData.getNodes()) && !sharedData.ThreadAbort(initialDepth))
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
@@ -716,7 +716,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position)
+bool CheckForRep(Position& position, int distanceFromRoot)
 {
 	int totalRep = 1;
 	uint64_t current = position.GetZobristKey();
@@ -729,7 +729,9 @@ bool CheckForRep(Position& position)
 			totalRep++;
 		}
 
-		if (totalRep == 3) return true;	
+		if (totalRep == 3) return true;																			//3 reps is always a draw
+		if (totalRep == 2 && static_cast<int>(position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) 
+			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
 	}
 	
 	return false;
@@ -849,7 +851,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 {
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (locals.timeManage.AbortSearch(position.GetNodeCount())) return -1;
+	if (locals.timeManage.AbortSearch(sharedData.getNodes())) return -1;
 	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
 
@@ -908,6 +910,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			continue;
 
 		position.ApplyMove(moves.at(i));
+		sharedData.AddNode();
 		int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1, depthRemaining - 1, locals, sharedData).GetScore();
 		position.RevertMove();
 
@@ -927,7 +930,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			break;
 	}
 
-	if (!locals.timeManage.AbortSearch(position.GetNodeCount()) && !(sharedData.ThreadAbort(initialDepth)))
+	if (!locals.timeManage.AbortSearch(sharedData.getNodes()) && !(sharedData.ThreadAbort(initialDepth)))
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestmove);
 
 	return SearchResult(Score, bestmove);
@@ -999,6 +1002,8 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput) : curren
 	threadDepthCompleted = 0;
 	prevScore = 0;
 	noOutput = NoOutput;
+	tbHits = 0;
+	nodes = 0;
 
 	for (unsigned int i = 0; i < threads; i++)
 		searchDepth.push_back(0);
