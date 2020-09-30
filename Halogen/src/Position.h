@@ -52,7 +52,6 @@ public:
 private:
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;
-	std::vector<std::vector<deltaPoint>> PreviousDeltas;
 
 	uint64_t GenerateZobristKey() const;
 	uint64_t IncrementZobristKey(Move move);	
