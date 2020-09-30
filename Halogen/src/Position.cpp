@@ -542,10 +542,9 @@ float Position::GetEvaluation()
 	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
 	//	std::cout << "ERROR!";
 
-	EvaluatedPositions++;
-
-	if (EvaluatedPositions % 1024 == 0)
-		return net.FeedForward(GetInputLayer());
-	else 
-		return net.QuickEval();
+	float eval = net.QuickEval();
+	if (abs(std::round(eval - 0.5) - (eval - 0.5)) < 0.001) {
+		eval = net.FeedForward(GetInputLayer());
+	}
+	return eval;
 }
