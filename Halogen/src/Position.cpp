@@ -3,7 +3,6 @@
 Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
-	NodeCount = 0;
 }
 
 Position::~Position()
@@ -18,7 +17,6 @@ void Position::ApplyMove(Move move)
 	SaveBoard();
 	SetEnPassant(static_cast<unsigned int>(-1));
 	Increment50Move();
-	NodeCount += 1;
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 
@@ -91,8 +89,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	PreviousDeltas.push_back(CalculateMoveDelta(move));
-	net.ApplyDelta(PreviousDeltas.back());
+	net.ApplyDelta(CalculateMoveDelta(move));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -167,14 +164,12 @@ void Position::ApplyMove(std::string strmove)
 void Position::RevertMove()
 {
 	assert(PreviousKeys.size() > 0);
-	assert(PreviousDeltas.size() > 0);
 
 	RestorePreviousBoard();
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta(PreviousDeltas.back());
-	PreviousDeltas.pop_back();
+	net.ApplyInverseDelta();
 }
 
 void Position::ApplyNullMove()
@@ -187,8 +182,7 @@ void Position::ApplyNullMove()
 
 	NextTurn();
 	IncrementZobristKey(Move());
-	PreviousDeltas.push_back(CalculateMoveDelta(Move()));
-	net.ApplyDelta(PreviousDeltas.back());
+	net.ApplyDelta(CalculateMoveDelta(Move()));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -200,13 +194,11 @@ void Position::ApplyNullMove()
 void Position::RevertNullMove()
 {
 	assert(PreviousKeys.size() > 0);
-	assert(PreviousDeltas.size() > 0);
 
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta(PreviousDeltas.back());
-	PreviousDeltas.pop_back();
+	net.ApplyInverseDelta();
 }
 
 void Position::Print() const
@@ -303,9 +295,8 @@ uint64_t Position::GetZobristKey() const
 void Position::Reset()
 {
 	PreviousKeys.clear();
-	PreviousDeltas.clear();
 	key = EMPTY;
-	NodeCount = 0;
+	EvaluatedPositions = 0;
 
 	ResetBoard();
 	InitParamiters();
@@ -541,7 +532,5 @@ void Position::RevertSEECapture()
 
 float Position::GetEvaluation()
 {
-	//if (abs(net.QuickEval() - net.FeedForward(GetInputLayer())) > 0.001)
-	//	std::cout << "ERROR!";
 	return net.QuickEval();
 }

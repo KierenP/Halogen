@@ -49,6 +49,7 @@ struct SearchData
 	std::vector<Killer> KillerMoves;							//2 moves indexed by distanceFromRoot
 	unsigned int HistoryMatrix[N_PLAYERS][N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
 	SearchTimeManage timeManage;
+	EvalCacheTable evalTable;
 };
 
 class ThreadSharedData
@@ -66,6 +67,9 @@ public:
 	void AddTBHit() { tbHits++; }
 	uint64_t getTBHits() const { return tbHits; }
 
+	void AddNode() { nodes++; }
+	uint64_t getNodes() const { return nodes; }
+
 private:
 	std::mutex ioMutex;
 	unsigned int threadCount;
@@ -75,6 +79,7 @@ private:
 	bool noOutput;									//Do not write anything to the concole
 
 	std::atomic<uint64_t> tbHits;
+	std::atomic<uint64_t> nodes;
 
 	std::vector<unsigned int> searchDepth;					//what depth is each thread currently searching?
 };

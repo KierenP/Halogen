@@ -38,6 +38,7 @@
     <ClCompile Include="..\src\BitBoard.cpp" />
     <ClCompile Include="..\src\BitBoardDefine.cpp" />
     <ClCompile Include="..\src\BoardParamiters.cpp" />
+    <ClCompile Include="..\src\EvalCache.cpp" />
     <ClCompile Include="..\src\EvalNet.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Move.cpp" />
@@ -57,6 +58,7 @@
     <ClInclude Include="..\src\BitBoard.h" />
     <ClInclude Include="..\src\BitBoardDefine.h" />
     <ClInclude Include="..\src\BoardParamiters.h" />
+    <ClInclude Include="..\src\EvalCache.h" />
     <ClInclude Include="..\src\EvalNet.h" />
     <ClInclude Include="..\src\Move.h" />
     <ClInclude Include="..\src\MoveGeneration.h" />
