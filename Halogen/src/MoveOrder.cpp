@@ -51,7 +51,7 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 		//Fall through to next case
 
 	case Stage::QUIET_MOVES:
-		if (currentIndex == -1)
+		if (currentIndex == -1) 
 		{
 			QuietMoves(position, quietMoves);
 			OrderMoves(quietMoves, position, distanceFromRoot, KillerMoves, HistoryMatrix);
