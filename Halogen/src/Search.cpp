@@ -4,8 +4,6 @@ const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
 const unsigned int R = 3;					//Null-move reduction depth
 const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
-TranspositionTable tTable;
-
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
@@ -22,7 +20,6 @@ void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
 int extension(Position & position, const Move& move, int alpha, int beta);
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
-Move GetHashMove(const Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
 void AddHistory(const Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
@@ -959,19 +956,6 @@ Move GetHashMove(const Position& position, int depthRemaining, int distanceFromR
 	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
 
 	if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
-	{
-		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
-		return hash.GetMove();
-	}
-
-	return {};
-}
-
-Move GetHashMove(const Position& position, int distanceFromRoot)
-{
-	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
-
-	if (CheckEntry(hash, position.GetZobristKey()))
 	{
 		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 		return hash.GetMove();

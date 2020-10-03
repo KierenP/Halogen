@@ -1,7 +1,6 @@
 #pragma once
 
-#include "TranspositionTable.h"
-#include "Position.h"
+#include "MoveOrder.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
 #include "Move.h"
