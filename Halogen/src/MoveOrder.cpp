@@ -20,7 +20,7 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 	switch (state)
 	{
 	case Stage::TT_MOVE:
-		move = GetHashMove(position, distanceFromRoot);
+		move = GetHashMove(position, distanceFromRoot); 
 		if (!move.IsUninitialized())
 		{	
 			state = Stage::CAPTURES;
