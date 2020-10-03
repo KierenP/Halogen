@@ -1,6 +1,6 @@
 #include "MoveOrder.h"
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const std::vector<Killer>& KillerMoves, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], Move TTmove);
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const std::vector<Killer>& KillerMoves, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES]);
 void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
 
 MoveGenerator::MoveGenerator()
@@ -24,15 +24,16 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 		if (!move.IsUninitialized())
 		{	
 			state = Stage::CAPTURES;
-			TTmove = move;
 			return true;
 		}
-		//Fall through
+		//Fall through to next case
+
 	case Stage::CAPTURES:
+		
 		if (currentIndex == -1) 
 		{
 			QuiescenceMoves(position, loudMoves);
-			OrderMoves(loudMoves, position, distanceFromRoot, KillerMoves, HistoryMatrix, TTmove);
+			OrderMoves(loudMoves, position, distanceFromRoot, KillerMoves, HistoryMatrix);
 			currentIndex++;
 		}
 
@@ -47,12 +48,13 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 			state = Stage::QUIET_MOVES;
 			currentIndex = -1;
 		}
-		//Fall through
+		//Fall through to next case
+
 	case Stage::QUIET_MOVES:
 		if (currentIndex == -1)
 		{
 			QuietMoves(position, quietMoves);
-			OrderMoves(quietMoves, position, distanceFromRoot, KillerMoves, HistoryMatrix, TTmove);
+			OrderMoves(quietMoves, position, distanceFromRoot, KillerMoves, HistoryMatrix);
 			currentIndex++;
 		}
 
@@ -80,12 +82,13 @@ Move GetHashMove(const Position& position, int distanceFromRoot)
 	return {};
 }
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const std::vector<Killer>& KillerMoves, unsigned int(&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], Move TTmove)
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const std::vector<Killer>& KillerMoves, unsigned int(&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES])
 {
 	/*
 	Previously this function would order all the moves at once. Now it only orderes the section we are generating (for example just the loud moves).
 	*/
 
+	Move TTmove = GetHashMove(position, distanceFromRoot);
 	std::vector<int> orderScores(moves.size(), 0);
 
 	for (size_t i = 0; i < moves.size(); i++)
@@ -93,9 +96,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 		//Hash move
 		if (moves[i] == TTmove)
 		{
-			orderScores.erase(orderScores.begin() + i);
-			moves.erase(moves.begin() + i);
-			i--;
+			orderScores[i] = 10000000;
 			continue;
 		}
 
