@@ -29,6 +29,7 @@ private:
 
 	std::vector<Move> loudMoves;
 	std::vector<Move> quietMoves;
+	Move TTmove;
 	int currentIndex;
 }; 
 
