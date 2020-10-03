@@ -58,7 +58,7 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 			currentIndex++;
 		}
 
-		if (currentIndex < quietMoves.size())
+		if (currentIndex < quietMoves.size()) 
 		{
 			move = quietMoves[currentIndex];
 			currentIndex++;
