@@ -35,11 +35,6 @@ enum Score
 	Draw = 0
 };
 
-struct Killer
-{
-	Move move[2];
-};
-
 struct SearchData
 {
 	SearchData();

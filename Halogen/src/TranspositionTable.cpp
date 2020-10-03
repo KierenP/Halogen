@@ -1,5 +1,7 @@
 #include "TranspositionTable.h"
 
+TranspositionTable tTable;
+
 TranspositionTable::TranspositionTable()
 {
 	TTHits = 0;

@@ -36,5 +36,5 @@ private:
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
 bool CheckEntry(const TTEntry& entry, uint64_t key);
 
-TranspositionTable tTable;
+extern TranspositionTable tTable;
 
