@@ -44,14 +44,11 @@ struct HiddenLayer
 
     std::vector<Neuron> neurons;
     void ApplyDelta(std::vector<deltaPoint>& deltaVec);            //incrementally update the connections between input layer and first hidden layer
-    void ReverseDelta();
 
     std::vector<float> zeta;
 
 private:
     std::vector<float> weightTranspose; //first neuron first weight, second neuron first weight etc...
-
-    std::vector<std::vector<float>> OldZeta;
 };
 
 struct Network
@@ -70,6 +67,9 @@ private:
     Neuron outputNeuron;
 
     float zeta;
+
+    std::vector<std::vector<float>> OldZeta;
+    size_t incrementalDepth = 0;
 };
 
 Network InitNetwork();
