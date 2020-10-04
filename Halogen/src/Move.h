@@ -42,6 +42,8 @@ public:
 
 	void Reset();
 
+	int orderScore;	//used by the move picker to order the moves
+
 private:
 
 	void SetFrom(unsigned int from);
