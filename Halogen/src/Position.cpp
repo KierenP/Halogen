@@ -159,6 +159,7 @@ void Position::ApplyMove(std::string strmove)
 	}
 
 	ApplyMove(Move(prev, next, flag));
+	net.FeedForward(GetInputLayer());
 }
 
 void Position::RevertMove()

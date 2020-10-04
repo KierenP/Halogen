@@ -167,6 +167,7 @@ float Network::FeedForward(std::vector<float> inputs)
     {
         OldZeta.push_back(std::vector<float>(hiddenLayers[0].neurons.size()));
     }
+    incrementalDepth = 0;
 
     assert(inputs.size() == inputNeurons);
 
