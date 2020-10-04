@@ -103,16 +103,16 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 		{
 			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
 			{
-				moves[i].orderScore = 9000000;
+				moves[i].orderScore = static_cast<int>(MoveScore::PROMOTION);
 			}
 			else
 			{
-				moves[i].orderScore = -1;
+				moves[i].orderScore = static_cast<int>(MoveScore::UNDERPROMOTION);
 			}
 		}
 
 		//Captures
-		if (moves[i].IsCapture())
+		else if (moves[i].IsCapture())
 		{
 			int SEE = 0;
 
@@ -123,24 +123,24 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 
 			if (SEE >= 0)
 			{
-				moves[i].orderScore = 8000000 + SEE;
+				moves[i].orderScore = static_cast<int>(MoveScore::GOOD_CAPTURE) + SEE;
 			}
 
 			if (SEE < 0)
 			{
-				moves[i].orderScore = 6000000 + SEE;
+				moves[i].orderScore = static_cast<int>(MoveScore::BAD_CAPTURE) + SEE;
 			}
 		}
 
 		//Killers
 		else if (moves[i] == KillerMoves.at(distanceFromRoot).move[0])
 		{
-			moves[i].orderScore = 7500000;
+			moves[i].orderScore = static_cast<int>(MoveScore::KILLER_1);
 		}
 
 		else if (moves[i] == KillerMoves.at(distanceFromRoot).move[1])
 		{
-			moves[i].orderScore = 6500000;
+			moves[i].orderScore = static_cast<int>(MoveScore::KILLER_2);
 		}
 
 		else 
@@ -148,9 +148,9 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 			//Quiet
 			moves[i].orderScore = HistoryMatrix[position.GetTurn()][moves[i].GetFrom()][moves[i].GetTo()];
 
-			if (moves[i].orderScore > 1000000)
+			if (moves[i].orderScore > static_cast<int>(MoveScore::QUIET_MAXIMUM))
 			{
-				moves[i].orderScore = 1000000;
+				moves[i].orderScore = static_cast<int>(MoveScore::QUIET_MAXIMUM);
 			}
 		}
 	}

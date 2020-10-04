@@ -11,6 +11,18 @@ enum class Stage
 	QUIET_MOVES
 };
 
+enum class MoveScore
+{
+	TT_MOVE = 10000000,
+	PROMOTION = 9000000,
+	GOOD_CAPTURE = 8000000,
+	KILLER_1 = 7500000,
+	KILLER_2 = 6500000,
+	BAD_CAPTURE = 6000000,
+	QUIET_MAXIMUM = 1000000,
+	UNDERPROMOTION = -1
+};
+
 struct Killer
 {
 	Move move[2];

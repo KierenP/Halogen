@@ -671,9 +671,17 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	while (gen.GetNext(move, position, distanceFromRoot, locals.KillerMoves, locals.HistoryMatrix))
 	{
 		int SEE = 0;
+		
 		if (move.GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
 		{
-			SEE = seeCapture(position, move);
+			if (move.orderScore >= static_cast<int>(MoveScore::GOOD_CAPTURE))
+			{
+				SEE = move.orderScore - static_cast<int>(MoveScore::GOOD_CAPTURE);
+			}
+			else 
+			{
+				SEE = move.orderScore - static_cast<int>(MoveScore::BAD_CAPTURE);
+			}
 		}
 
 		if (move.IsPromotion())
