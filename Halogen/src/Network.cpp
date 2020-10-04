@@ -117,8 +117,6 @@ HiddenLayer::HiddenLayer(std::vector<float> inputs, size_t NeuronCount)
 
 std::vector<float> HiddenLayer::FeedForward(std::vector<float>& input, bool UseReLU)
 {
-    OldZeta.clear();
-
     for (size_t i = 0; i < neurons.size(); i++)
     {
         zeta[i] = neurons.at(i).FeedForward(input, UseReLU);
@@ -129,8 +127,6 @@ std::vector<float> HiddenLayer::FeedForward(std::vector<float>& input, bool UseR
 
 void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec)
 {
-    OldZeta.push_back(zeta);
-
     size_t neuronCount = zeta.size();
     size_t deltaCount = deltaVec.size();
 
@@ -146,12 +142,6 @@ void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec)
     }
 }
 
-void HiddenLayer::ReverseDelta()
-{
-    zeta = OldZeta.back();
-    OldZeta.pop_back();
-}
-
 Network::Network(std::vector<std::vector<float>> inputs, std::vector<size_t> NeuronCount) : outputNeuron(std::vector<float>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back())
 {
     assert(inputs.size() == NeuronCount.size());
@@ -163,10 +153,21 @@ Network::Network(std::vector<std::vector<float>> inputs, std::vector<size_t> Neu
     {
         hiddenLayers.push_back(HiddenLayer(inputs.at(i), NeuronCount.at(i)));
     }
+
+    for (size_t i = 0; i < 100; i++)
+    {
+        OldZeta.push_back(std::vector<float>(hiddenLayers[0].neurons.size()));
+    }
 }
 
 float Network::FeedForward(std::vector<float> inputs)
 {
+    OldZeta.clear();
+    for (size_t i = 0; i < 100; i++)
+    {
+        OldZeta.push_back(std::vector<float>(hiddenLayers[0].neurons.size()));
+    }
+
     assert(inputs.size() == inputNeurons);
 
     for (size_t i = 0; i < hiddenLayers.size(); i++)
@@ -182,13 +183,14 @@ float Network::FeedForward(std::vector<float> inputs)
 void Network::ApplyDelta(std::vector<deltaPoint> delta)
 {
     assert(hiddenLayers.size() > 0);
+    OldZeta[incrementalDepth++] = hiddenLayers[0].zeta;
     hiddenLayers[0].ApplyDelta(delta);
 }
 
 void Network::ApplyInverseDelta()
 {
     assert(hiddenLayers.size() > 0);
-    hiddenLayers[0].ReverseDelta();
+    hiddenLayers[0].zeta = OldZeta[--incrementalDepth];
 }
 
 float Network::QuickEval()
