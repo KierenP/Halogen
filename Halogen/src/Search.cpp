@@ -7,11 +7,11 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 TranspositionTable tTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position, int distanceFromRoot);
-bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining);
+bool LMR(bool InCheck, const Position& position, int depthRemaining);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
 bool IsEndGame(const Position& position);
@@ -213,7 +213,7 @@ void PrintBestMove(Move Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData)
 {
 	std::vector<Move> pv = locals.PvTable[0];
 
@@ -505,7 +505,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		int extendedDepth = depthRemaining + extension(position, moves[i], alpha, beta);
 
 		//late move reductions
-		if (LMR(moves[i], InCheck, position, depthRemaining) && i > 3)
+		if (LMR(InCheck, position, depthRemaining) && i > 3)
 		{
 			int reduction = Reduction(depthRemaining, static_cast<int>(i), alpha, beta);
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
@@ -733,7 +733,7 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 	return extension;
 }
 
-bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining)
+bool LMR(bool InCheck, const Position& position, int depthRemaining)
 {
 	return !InCheck 
 		&& !IsEndGame(position)
@@ -999,7 +999,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
 		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals, *this);
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals, *this);
 
 		threadDepthCompleted = depth;
 		currentBestMove = move;

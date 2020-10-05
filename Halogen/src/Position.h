@@ -63,6 +63,6 @@ private:
 
 	size_t EvaluatedPositions = 0;
 
-	std::vector<deltaPoint> ret;										//re recycle this object to save time in CalculateMoveDelta
+	std::vector<deltaPoint> delta;										//re recycle this object to save time in CalculateMoveDelta
 };
 
