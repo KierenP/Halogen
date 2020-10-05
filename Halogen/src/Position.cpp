@@ -3,6 +3,7 @@
 Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
+	ret.reserve(4); //1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 }
 
 Position::~Position()
@@ -436,12 +437,10 @@ std::vector<float> Position::GetInputLayer() const
 	return ret;
 }
 
-std::vector<deltaPoint> Position::CalculateMoveDelta(Move move)
+std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)
 {
+	ret.clear();
 	const BoardParamiterData prev = GetPreviousParamiters();
-
-	std::vector<deltaPoint> ret;
-	ret.reserve(4);	//1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 
 	//Change of turn
 	ret.push_back({ modifier(12 * 64), (GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn

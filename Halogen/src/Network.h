@@ -56,7 +56,7 @@ struct Network
     Network(std::vector<std::vector<float>> inputs, std::vector<size_t> NeuronCount);
     float FeedForward(std::vector<float> inputs);
 
-    void ApplyDelta(std::vector<deltaPoint> delta);            //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(std::vector<deltaPoint>& delta);            //incrementally update the connections between input layer and first hidden layer
     void ApplyInverseDelta();     //for un-make moves
     float QuickEval();                                                         //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
