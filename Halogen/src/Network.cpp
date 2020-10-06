@@ -181,7 +181,7 @@ float Network::FeedForward(std::vector<float> inputs)
     return zeta;
 }
 
-void Network::ApplyDelta(std::vector<deltaPoint> delta)
+void Network::ApplyDelta(std::vector<deltaPoint>& delta)
 {
     assert(hiddenLayers.size() > 0);
     OldZeta[incrementalDepth++] = hiddenLayers[0].zeta;

@@ -7,12 +7,11 @@ const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 TranspositionTable tTable;
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
-void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores);
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position, int distanceFromRoot);
-bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining);
+bool LMR(bool InCheck, const Position& position, int depthRemaining);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
 bool IsEndGame(const Position& position);
@@ -106,34 +105,30 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 	*/
 
 	Move TTmove = GetHashMove(position, distanceFromRoot);
-	std::vector<int> orderScores(moves.size(), 0);
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		//Hash move
 		if (moves[i] == TTmove)
 		{
-			orderScores[i] = 10000000;
-			continue;
+			moves[i].orderScore = 10000000;
 		}
 
 		//Promotions
-		if (moves[i].IsPromotion()) 
+		else if (moves[i].IsPromotion()) 
 		{
 			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
 			{
-				orderScores[i] = 9000000;
+				moves[i].orderScore = 9000000;
 			}
 			else
 			{
-				orderScores[i] = -1;	
+				moves[i].orderScore = -1;
 			}
-
-			continue;
 		}
 
 		//Captures
-		if (moves[i].IsCapture())
+		else if (moves[i].IsCapture())
 		{
 			int SEE = 0;
 
@@ -144,63 +139,37 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 
 			if (SEE >= 0)
 			{
-				orderScores[i] = 8000000 + SEE;
+				moves[i].orderScore = 8000000 + SEE;
 			}
 
 			if (SEE < 0)
 			{
-				orderScores[i] = 6000000 + SEE;
+				moves[i].orderScore = 6000000 + SEE;
 			}
-
-			continue;
 		}
 
 		//Killers
-		if (moves[i] == locals.KillerMoves.at(distanceFromRoot).move[0])
+		else if (moves[i] == locals.KillerMoves.at(distanceFromRoot).move[0])
 		{
-			orderScores[i] = 7500000;
-			continue;
+			moves[i].orderScore = 7500000;
 		}
 
-		if (moves[i] == locals.KillerMoves.at(distanceFromRoot).move[1])
+		else if (moves[i] == locals.KillerMoves.at(distanceFromRoot).move[1])
 		{
-			orderScores[i] = 6500000;
-			continue;
+			moves[i].orderScore = 6500000;
 		}
 
 		//Quiet
-		orderScores[i] = locals.HistoryMatrix[position.GetTurn()][moves[i].GetFrom()][moves[i].GetTo()];
-
-		if (orderScores[i] > 1000000)
+		else
 		{
-			orderScores[i] = 1000000;
+			moves[i].orderScore = std::min(1000000U, locals.HistoryMatrix[position.GetTurn()][moves[i].GetFrom()][moves[i].GetTo()]);
 		}
 	}
 
-	SortMovesByScore(moves, orderScores);
-}
-
-void SortMovesByScore(std::vector<Move>& moves, std::vector<int>& orderScores)
-{
-	//selection sort
-	for (size_t i = 0; i < moves.size() - 1; i++)
-	{
-		size_t max = i;
-
-		for (size_t j = i + 1; j < moves.size(); j++)
+	std::stable_sort(moves.begin(), moves.end(), [](const Move& a, const Move& b)
 		{
-			if (orderScores[j] > orderScores[max])
-			{
-				max = j;
-			}
-		}
-
-		if (max != i)
-		{
-			std::swap(moves[i], moves[max]);
-			std::swap(orderScores[i], orderScores[max]);
-		}
-	}
+			return a.orderScore > b.orderScore;
+		});
 }
 
 int see(Position& position, int square, bool side)
@@ -244,7 +213,7 @@ void PrintBestMove(Move Best)
 	std::cout << std::endl;
 }
 
-void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, unsigned int threadCount, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData)
+void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData)
 {
 	std::vector<Move> pv = locals.PvTable[0];
 
@@ -430,8 +399,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
 	}
 
+	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && ((colour * EvaluatePositionNet(position, locals.evalTable)) > beta))
+	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && (staticScore > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
@@ -509,7 +480,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	
 	OrderMoves(moves, position, distanceFromRoot, locals);
 	bool InCheck = IsInCheck(position);
-	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
@@ -535,7 +505,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		int extendedDepth = depthRemaining + extension(position, moves[i], alpha, beta);
 
 		//late move reductions
-		if (LMR(moves[i], InCheck, position, depthRemaining) && i > 3)
+		if (LMR(InCheck, position, depthRemaining) && i > 3)
 		{
 			int reduction = Reduction(depthRemaining, static_cast<int>(i), alpha, beta);
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
@@ -763,7 +733,7 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 	return extension;
 }
 
-bool LMR(Move move, bool InCheck, const Position& position, int depthRemaining)
+bool LMR(bool InCheck, const Position& position, int depthRemaining)
 {
 	return !InCheck 
 		&& !IsEndGame(position)
@@ -1029,7 +999,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
 		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, threadCount, position, move, locals, *this);
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals, *this);
 
 		threadDepthCompleted = depth;
 		currentBestMove = move;

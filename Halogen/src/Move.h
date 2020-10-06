@@ -42,6 +42,8 @@ public:
 
 	void Reset();
 
+	int orderScore;
+
 private:
 
 	void SetFrom(unsigned int from);
