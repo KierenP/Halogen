@@ -232,6 +232,7 @@ void Position::Print() const
 
 void Position::StartingPosition()
 {
+	Reset();
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
 	net.FeedForward(GetInputLayer());
 }
@@ -434,6 +435,11 @@ std::vector<float> Position::GetInputLayer() const
 	ret.push_back(CanCastleBlackQueenside());
 
 	return ret;
+}
+
+void Position::RandomlyChangeWeights(std::normal_distribution<double>& normal, std::default_random_engine& rng)
+{
+	net.RandomlyChangeWeights(normal, rng);
 }
 
 std::vector<deltaPoint> Position::CalculateMoveDelta(Move move)

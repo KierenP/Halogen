@@ -89,3 +89,5 @@ extern TranspositionTable tTable;
 Move MultithreadedSearch(const Position& position, int allowedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
 
+SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals);
+

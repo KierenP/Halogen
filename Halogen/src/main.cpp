@@ -1,5 +1,6 @@
 #include "Benchmark.h"
 #include "Search.h"
+#include "elo.h"
 #include <thread>
 
 using namespace::std;
@@ -9,6 +10,12 @@ void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
+
+void RL();
+
+bool TestNetwork(Position& board, Position& pos1, Position& pos2, int Maxgames, bool earlyExit);
+
+void RLPlayGame(int startingSide, Position& pos1, Position& pos2, SearchData& data1, SearchData& data2, int  Score[3]);
 
 string version = "7";  
 
@@ -41,6 +48,8 @@ int main(int argc, char* argv[])
 	unsigned int ThreadCount = 1;
 
 	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
+
+	RL();
 
 	while (getline(cin, Line))
 	{
@@ -399,4 +408,172 @@ void Bench()
 	}
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
+}
+
+void RL()
+{
+	std::cout << "Starting reinforcement learning" << std::endl;
+
+	Position original;
+	Position bestYet;
+	Position board;
+	srand(time(NULL));
+
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0, 0.5);
+
+	for (int i = 0; i < 1000; i++)
+	{
+		Position next = bestYet;
+		next.RandomlyChangeWeights(distribution, generator);
+		if (TestNetwork(board, bestYet, next, 10000, true))
+		{
+			std::cout << "Current best updated\n";
+			bestYet.net = next.net;
+			bestYet.net.WriteToFile();
+		}
+
+		if (i % 10 == 0 && i != 0)
+		{
+			std::cout << "\nScore against original:\n";
+			TestNetwork(board, original, bestYet, 10000, false);
+			std::cout << "\n";
+		}
+	}
+}
+
+bool TestNetwork(Position& board, Position& pos1, Position& pos2, int Maxgames, bool earlyExit)
+{
+	int Score[3] = { 0, 0, 0 };
+	int i; 
+
+	for (i = 0; i < Maxgames; i++)
+	{
+		board.StartingPosition();
+
+		SearchData data1;
+		SearchData data2;
+		std::vector<Move> opening;
+
+		//Do a few random moves at the start
+		for (int move = 0; move < 10; move++)
+		{
+			std::vector<Move> legalMoves;
+			LegalMoves(board, legalMoves);
+
+			if (legalMoves.size() == 0)
+			{
+				i--;
+				continue;
+			}
+
+			int index = rand() % legalMoves.size();
+			opening.push_back(legalMoves[index]);
+			board.ApplyMove(legalMoves[index]);
+			//board.Print();
+		}
+
+		pos1.StartingPosition();
+		pos2.StartingPosition();
+		for (int move = 0; move < opening.size(); move++)
+		{
+			pos1.ApplyMove(opening[move]);
+			pos2.ApplyMove(opening[move]);
+		}
+		RLPlayGame(1, pos1, pos2, data1, data2, Score);
+
+		pos1.StartingPosition();
+		pos2.StartingPosition();
+		for (int move = 0; move < opening.size(); move++)
+		{
+			pos1.ApplyMove(opening[move]);
+			pos2.ApplyMove(opening[move]);
+		}
+		RLPlayGame(-1, pos1, pos2, data1, data2, Score);
+
+		if (i % 100 == 0 && i != 0 && earlyExit)
+		{
+			Elo::IntervalEstimate diff = Elo::estimate_rating_difference(Score[0], Score[1], Score[2]);
+			std::cout << "Result after " << i << " games: {" << Score[0] << ", " << Score[1] << ", " << Score[2] << "} (w, d, l) ELO: " << diff.estimate << " (95% " << diff.lower << ", " << diff.upper << ")       \r";
+
+			if (diff.lower > 0 || diff.upper < 0)
+				break;
+		}
+	}
+
+	Elo::IntervalEstimate diff = Elo::estimate_rating_difference(Score[0], Score[1], Score[2]);
+	std::cout << "Result after " << i << " games: {" << Score[0] << ", " << Score[1] << ", " << Score[2] << "} (w, d, l) ELO: " << diff.estimate << " (95% " << diff.lower << ", " << diff.upper << ")" << std::endl;
+
+	return (diff.estimate > 0);
+}
+
+void RLPlayGame(int startingSide, Position& pos1, Position& pos2, SearchData& data1, SearchData& data2, int  Score[3])
+{
+	int color = 1;
+
+	for (int move = 0; true; move++)
+	{
+		Position& current = color == startingSide ? pos1 : pos2;
+		SearchData& currentData = color == startingSide ? data1 : data2;
+
+		std::vector<Move> legalMoves;
+		LegalMoves(current, legalMoves);
+
+		int bestScore = LowINF;
+		Move bestMove;
+
+		for (auto it = legalMoves.begin(); it != legalMoves.end(); ++it)
+		{
+			current.ApplyMove(*it);
+			SearchResult result = Quiescence(current, 1, LowINF, HighINF, color, 0, 0, currentData);
+			current.RevertMove();
+
+			if (result.GetScore() > bestScore)
+			{
+				bestScore = result.GetScore();
+				bestMove = *it;
+			}
+		}
+
+		if (bestScore >= 9900)
+		{
+			if (color == startingSide)
+				Score[0]++;
+			else
+				Score[2]++;
+
+			break;
+		}
+
+		if (bestScore <= -9900)
+		{
+			if (color == startingSide)
+				Score[2]++;
+			else
+				Score[0]++;
+
+			break;
+		}
+
+		if (bestScore == 0 && bestMove.IsUninitialized())
+		{
+			Score[1]++;
+			break;
+		}
+
+		if (move == 250)
+		{
+			Score[1]++;
+			break;
+		}
+
+		pos1.ApplyMove(bestMove);
+		pos2.ApplyMove(bestMove);
+
+		//pos1.net.FeedForward(pos1.GetInputLayer());
+		//pos2.net.FeedForward(pos2.GetInputLayer());
+
+		//current.Print();
+		color = -color;
+	}
 }

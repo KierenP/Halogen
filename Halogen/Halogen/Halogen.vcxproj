@@ -58,6 +58,7 @@
     <ClInclude Include="..\src\BitBoard.h" />
     <ClInclude Include="..\src\BitBoardDefine.h" />
     <ClInclude Include="..\src\BoardParamiters.h" />
+    <ClInclude Include="..\src\elo.h" />
     <ClInclude Include="..\src\EvalCache.h" />
     <ClInclude Include="..\src\EvalNet.h" />
     <ClInclude Include="..\src\Move.h" />

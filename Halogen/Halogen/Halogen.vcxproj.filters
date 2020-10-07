@@ -128,6 +128,9 @@
     <ClInclude Include="..\src\EvalCache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\elo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="perftsuite.txt">

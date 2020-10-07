@@ -93,6 +93,26 @@ float Neuron::FeedForward(std::vector<float>& input, bool UseReLU) const
     return ret;
 }
 
+void Neuron::RandomlyChangeWeights(std::normal_distribution<double>& normal, std::default_random_engine& rng)
+{
+    for (int i = 0; i < weights.size(); i++)
+    {
+        weights[i] += normal(rng);
+    }
+    bias += normal(rng);
+}
+
+void Neuron::WriteToFile(std::ofstream& myfile)
+{
+    myfile << "\"";
+
+    for (size_t i = 0; i < weights.size(); i++)
+    {
+        myfile << weights.at(i) << " ";
+    }
+    myfile << bias << "\",\n";
+}
+
 HiddenLayer::HiddenLayer(std::vector<float> inputs, size_t NeuronCount)
 {
     assert(inputs.size() % NeuronCount == 0);
@@ -142,6 +162,33 @@ void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec)
     }
 }
 
+void HiddenLayer::RandomlyChangeWeights(std::normal_distribution<double>& normal, std::default_random_engine& rng)
+{
+    for (size_t j = 0; j < neurons.size(); j++)
+    {
+        neurons[j].RandomlyChangeWeights(normal, rng);
+    }
+
+    //reinitialize the weightTranspose
+    for (size_t i = 0; i < weightTranspose.size() / neurons.size(); i++)
+    {
+        for (size_t j = 0; j < neurons.size(); j++)
+        {
+            weightTranspose[i * neurons.size() + j] = neurons.at(j).weights.at(i);
+        }
+    }
+}
+
+void HiddenLayer::WriteToFile(std::ofstream& myfile)
+{
+    myfile << "\"HiddenLayerNeurons " << neurons.size() << "\",\n";
+
+    for (size_t i = 0; i < neurons.size(); i++)
+    {
+        neurons.at(i).WriteToFile(myfile);
+    }
+}
+
 Network::Network(std::vector<std::vector<float>> inputs, std::vector<size_t> NeuronCount) : outputNeuron(std::vector<float>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back())
 {
     assert(inputs.size() == NeuronCount.size());
@@ -154,7 +201,7 @@ Network::Network(std::vector<std::vector<float>> inputs, std::vector<size_t> Neu
         hiddenLayers.push_back(HiddenLayer(inputs.at(i), NeuronCount.at(i)));
     }
 
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < 300; i++)
     {
         OldZeta.push_back(std::vector<float>(hiddenLayers[0].neurons.size()));
     }
@@ -163,7 +210,7 @@ Network::Network(std::vector<std::vector<float>> inputs, std::vector<size_t> Neu
 float Network::FeedForward(std::vector<float> inputs)
 {
     OldZeta.clear();
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < 300; i++)
     {
         OldZeta.push_back(std::vector<float>(hiddenLayers[0].neurons.size()));
     }
@@ -206,6 +253,51 @@ float Network::QuickEval()
     zeta = outputNeuron.FeedForward(inputs, true);
 
     return zeta;
+}
+
+void Network::RandomlyChangeWeights(std::normal_distribution<double>& normal, std::default_random_engine& rng)
+{
+    outputNeuron.RandomlyChangeWeights(normal, rng);
+
+    for (int i = 0; i < hiddenLayers.size(); i++)
+    {
+        hiddenLayers[0].RandomlyChangeWeights(normal, rng);
+    }
+}
+
+void Network::WriteToFile()
+{
+    //from stack overflow: generates a random string
+    auto randchar = []() -> char
+    {
+        const char charset[] =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        return charset[rand() % max_index];
+    };
+    std::string str(10, 0);
+    std::generate_n(str.begin(), 10, randchar);
+
+    std::ofstream myfile("D:\\HalogenNetworks\\" + str + ".network");
+    if (!myfile.is_open())
+    {
+        std::cout << "Could not write network to output file!";
+        return;
+    }
+
+    myfile << "\"InputNeurons " << inputNeurons << "\",\n";
+
+    for (size_t i = 0; i < hiddenLayers.size(); i++)
+    {
+        hiddenLayers.at(i).WriteToFile(myfile);
+    }
+
+    myfile << "OutputLayer\n";
+    outputNeuron.WriteToFile(myfile);
+
+    myfile.close();
 }
 
 trainingPoint::trainingPoint(std::array<bool, INPUT_NEURONS> input, float gameResult) : inputs(input)
