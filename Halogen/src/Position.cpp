@@ -233,12 +233,15 @@ void Position::Print() const
 
 void Position::StartingPosition()
 {
+	Reset();
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
 	net.FeedForward(GetInputLayer());
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
 {
+	Reset();
+
 	if (fen.size() != 6)
 		return false;							//bad fen
 
@@ -256,6 +259,8 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 
 bool Position::InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount)
 {
+	Reset();
+
 	std::vector<std::string> splitFen;		
 	splitFen.push_back(board);
 	splitFen.push_back(turn);
@@ -269,6 +274,8 @@ bool Position::InitialiseFromFen(std::string board, std::string turn, std::strin
 
 bool Position::InitialiseFromFen(std::string fen)
 {
+	Reset();
+
 	std::vector<std::string> splitFen;			//Split the line into an array of strings seperated by each space
 	std::istringstream iss(fen);
 	splitFen.push_back("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
@@ -435,6 +442,11 @@ std::vector<float> Position::GetInputLayer() const
 	ret.push_back(CanCastleBlackQueenside());
 
 	return ret;
+}
+
+void Position::RandomlyChangeWeights(std::normal_distribution<double>& normal, std::default_random_engine& rng)
+{
+	net.RandomlyChangeWeights(normal, rng);
 }
 
 std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)

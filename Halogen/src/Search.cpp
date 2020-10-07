@@ -37,7 +37,6 @@ Move SearchPosition(Position position, int allowedTimeMs, uint64_t& totalNodes, 
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i);
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
 int see(Position& position, int square, bool side);
 int seeCapture(Position& position, const Move& move); //Don't send this an en passant move!
@@ -396,7 +395,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	/*Drop into quiescence search*/
 	if (depthRemaining <= 0 && !IsInCheck(position))
 	{ 
-		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
+		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals);
 	}
 
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
@@ -815,12 +814,9 @@ int mateIn(int distanceFromRoot)
 	return -(MateScore) - (distanceFromRoot);
 }
 
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
+SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals)
 {
 	locals.PvTable[distanceFromRoot].clear();
-
-	if (locals.timeManage.AbortSearch(sharedData.getNodes())) return -1;
-	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
 
 	std::vector<Move> moves;
@@ -878,8 +874,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			continue;
 
 		position.ApplyMove(moves.at(i));
-		sharedData.AddNode();
-		int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1, depthRemaining - 1, locals, sharedData).GetScore();
+		int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1, depthRemaining - 1, locals).GetScore();
 		position.RevertMove();
 
 		if (newScore > Score)
@@ -897,9 +892,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		if (Score >= beta)
 			break;
 	}
-
-	if (!locals.timeManage.AbortSearch(sharedData.getNodes()) && !(sharedData.ThreadAbort(initialDepth)))
-		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestmove);
 
 	return SearchResult(Score, bestmove);
 }
