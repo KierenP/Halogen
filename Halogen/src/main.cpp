@@ -13,7 +13,7 @@ void Bench();
 
 void RL();
 
-bool TestNetwork(Position& board, Position& pos1, Position& pos2, int Maxgames, bool earlyExit);
+bool TestNetwork(Position& pos1, Position& pos2, int Maxgames, bool earlyExit, std::vector<std::string>& openings);
 
 void RLPlayGame(int startingSide, Position& pos1, Position& pos2, SearchData& data1, SearchData& data2, int  Score[3]);
 
@@ -416,17 +416,27 @@ void RL()
 
 	Position original;
 	Position bestYet;
-	Position board;
 	srand(time(NULL));
 
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0, 0.5);
+	std::normal_distribution<double> distribution(0, 0.05);
+
+	std::vector<std::string> Openings;
+
+	std::ifstream file_in("D:\\HalogenNetworks\\book.epd");
+	std::string line;
+	while (std::getline(file_in, line))
+	{
+		Openings.push_back(line);
+	}
 
 	for (int i = 0; i < 1000; i++)
 	{
+		std::shuffle(std::begin(Openings), std::end(Openings), generator);
+
 		Position next = bestYet;
 		next.RandomlyChangeWeights(distribution, generator);
-		if (TestNetwork(board, bestYet, next, 10000, true))
+		if (TestNetwork(bestYet, next, 10000, true, Openings))
 		{
 			std::cout << "Current best updated\n";
 			bestYet.net = next.net;
@@ -436,59 +446,32 @@ void RL()
 		if (i % 10 == 0 && i != 0)
 		{
 			std::cout << "\nScore against original:\n";
-			TestNetwork(board, original, bestYet, 10000, false);
+			TestNetwork(original, bestYet, 10000, false, Openings);
 			std::cout << "\n";
 		}
 	}
 }
 
-bool TestNetwork(Position& board, Position& pos1, Position& pos2, int Maxgames, bool earlyExit)
+bool TestNetwork(Position& pos1, Position& pos2, int Maxgames, bool earlyExit, std::vector<std::string>& openings)
 {
 	int Score[3] = { 0, 0, 0 };
 	int i; 
 
 	for (i = 0; i < Maxgames; i++)
 	{
-		board.StartingPosition();
-
 		SearchData data1;
 		SearchData data2;
-		std::vector<Move> opening;
-
-		//Do a few random moves at the start
-		for (int move = 0; move < 10; move++)
-		{
-			std::vector<Move> legalMoves;
-			LegalMoves(board, legalMoves);
-
-			if (legalMoves.size() == 0)
-			{
-				i--;
-				continue;
-			}
-
-			int index = rand() % legalMoves.size();
-			opening.push_back(legalMoves[index]);
-			board.ApplyMove(legalMoves[index]);
-			//board.Print();
-		}
-
-		pos1.StartingPosition();
-		pos2.StartingPosition();
-		for (int move = 0; move < opening.size(); move++)
-		{
-			pos1.ApplyMove(opening[move]);
-			pos2.ApplyMove(opening[move]);
-		}
+		
+		pos1.InitialiseFromFen(openings[i]);
+		pos2.InitialiseFromFen(openings[i]);
+		//pos1.StartingPosition();
+		//pos2.StartingPosition();
 		RLPlayGame(1, pos1, pos2, data1, data2, Score);
 
-		pos1.StartingPosition();
-		pos2.StartingPosition();
-		for (int move = 0; move < opening.size(); move++)
-		{
-			pos1.ApplyMove(opening[move]);
-			pos2.ApplyMove(opening[move]);
-		}
+		pos1.InitialiseFromFen(openings[i]);
+		pos2.InitialiseFromFen(openings[i]);
+		//pos1.StartingPosition();
+		//pos2.StartingPosition();
 		RLPlayGame(-1, pos1, pos2, data1, data2, Score);
 
 		if (i % 100 == 0 && i != 0 && earlyExit)
