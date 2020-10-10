@@ -672,6 +672,160 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	return Move();
 }
 
+bool MoveIsLegal(Position& position, Move& move)
+{
+	/*Obvious check first*/
+	if (move.IsUninitialized())
+		return false;
+
+	unsigned int Piece = position.GetSquare(move.GetFrom());
+
+	/*Make sure there's a piece to be moved*/
+	if (position.GetSquare(move.GetFrom()) == N_PIECES)
+		return false;
+
+	/*Make sure the piece are are moving is ours*/
+	if (ColourOfPiece(Piece) != position.GetTurn())
+		return false;
+
+	/*Make sure we aren't capturing our own piece*/
+	if (position.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(position.GetSquare(move.GetTo())) == position.GetTurn())
+		return false;
+
+	/*If capture, make sure there's something there to capture*/
+	if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
+		if (position.GetSquare(move.GetTo()) == N_PIECES)
+			return false;
+
+	/*If promotion, make sure there's a pawn we are moving*/
+	if (move.IsPromotion())
+		if (position.GetSquare(move.GetFrom()) != WHITE_PAWN && position.GetSquare(move.GetFrom()) != BLACK_PAWN)
+			return false;
+
+	uint64_t allPieces = position.GetAllPieces();
+
+	/*Sliding pieces*/
+	if (Piece == WHITE_BISHOP || Piece == BLACK_BISHOP || Piece == WHITE_ROOK || Piece == BLACK_ROOK || Piece == WHITE_QUEEN || Piece == BLACK_QUEEN)
+	{
+		if (!mayMove(move.GetFrom(), move.GetTo(), allPieces))
+			return false;
+	}
+
+	if (Piece == WHITE_PAWN)
+	{
+		if (RankDiff(move.GetFrom(), move.GetTo()) == -1 && FileDiff(move.GetFrom(), move.GetTo()) == 0)		//push
+		{
+			if (position.GetSquare(move.GetTo()) != N_PIECES)		//Something in the way!
+				return false;
+		}
+		else if (RankDiff(move.GetFrom(), move.GetTo()) == -2 && FileDiff(move.GetFrom(), move.GetTo()) == 0)	//double push
+		{
+			if (GetRank(move.GetFrom()) != RANK_2)
+				return false;
+
+			if (position.GetSquare(move.GetTo()) != N_PIECES)								//Something in the way!
+				return false;
+
+			if (position.GetSquare((move.GetTo() + move.GetFrom()) / 2) != N_PIECES)		//average of from and to is the middle square
+				return false;
+		}
+		else if (RankDiff(move.GetFrom(), move.GetTo()) == -1 && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1)	//capture
+		{
+			if (position.GetSquare(move.GetTo()) == N_PIECES && position.GetEnPassant() != move.GetTo())		//nothing there to capture
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	if (Piece == BLACK_PAWN)
+	{
+		if (RankDiff(move.GetFrom(), move.GetTo()) == 1 && FileDiff(move.GetFrom(), move.GetTo()) == 0)		//push
+		{
+			if (position.GetSquare(move.GetTo()) != N_PIECES)		//Something in the way!
+				return false;
+		}
+		else if (RankDiff(move.GetFrom(), move.GetTo()) == 2 && FileDiff(move.GetFrom(), move.GetTo()) == 0)	//double push
+		{
+			if (GetRank(move.GetFrom()) != RANK_7)
+				return false;
+
+			if (position.GetSquare(move.GetTo()) != N_PIECES)								//Something in the way!
+				return false;
+
+			if (position.GetSquare((move.GetTo() + move.GetFrom()) / 2) != N_PIECES)		//average of from and to is the middle square
+				return false;
+		}
+		else if (RankDiff(move.GetFrom(), move.GetTo()) == 1 && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1)	//capture
+		{
+			if (position.GetSquare(move.GetTo()) == N_PIECES && position.GetEnPassant() != move.GetTo())		//nothing there to capture
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	if (Piece == WHITE_KNIGHT || Piece == BLACK_KNIGHT)
+	{
+		if ((SquareBB[move.GetTo()] & KnightAttacks[move.GetFrom()]) == 0)
+			return false;
+	}
+
+	if ((Piece == WHITE_KING || Piece == BLACK_KING) && !(move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE))
+	{
+		if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
+			return false;
+	}
+
+	if (Piece == WHITE_ROOK || Piece == BLACK_ROOK)
+	{
+		if ((SquareBB[move.GetTo()] & RookAttacks[move.GetFrom()]) == 0)
+			return false;
+	}
+
+	if (Piece == WHITE_BISHOP || Piece == BLACK_BISHOP)
+	{
+		if ((SquareBB[move.GetTo()] & BishopAttacks[move.GetFrom()]) == 0)
+			return false;
+	}
+
+	if (Piece == WHITE_QUEEN || Piece == BLACK_QUEEN)
+	{
+		if ((SquareBB[move.GetTo()] & QueenAttacks[move.GetFrom()]) == 0)
+			return false;
+	}
+
+	if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
+	{
+		std::vector<Move> moves;
+		CastleMoves(position, moves);
+
+		bool present = false;
+		for (int i = 0; i < moves.size(); i++)
+		{
+			if (moves[i] == move)
+				present = true;
+		}
+
+		if (!present)
+			return false;
+	}
+
+	/*Move puts me in check*/
+	if (MovePutsSelfInCheck(position, move))
+		return false;
+
+	return true;
+}
+
 bool MovePutsSelfInCheck(Position& position, const Move & move)
 {
 	unsigned int fromPiece = position.GetSquare(move.GetFrom());

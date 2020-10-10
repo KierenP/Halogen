@@ -433,7 +433,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
 	Move hashMove = GetHashMove(position, distanceFromRoot);
-	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100)	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100 && MoveIsLegal(position, hashMove))	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
 		position.ApplyMove(hashMove);
 		sharedData.AddNode();
