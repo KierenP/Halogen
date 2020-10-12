@@ -2,7 +2,7 @@
 
 A c++ chess engine that implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
 
-Halogen developement is currently supported on [Openbench](http://chess.grantnet.us/). OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines. It uses distributed computing that anyone can contribite CPU power and help support the development of some of the worlds best Chess engine.
+Halogen developement is currently supported on [Openbench](http://chess.grantnet.us/). OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines. It uses distributed computing so that anyone can contribite CPU power and help support the development of some of the world's best Chess engines.
 
 Since Halogen 7, Halogen has used a neural network for its evaluation function. The incrementally updated architecture is inspired by the new NNUE networks in [Stockfish](https://github.com/official-stockfish/Stockfish). Networks are trained through a private pytorch implementation created through colarberation with Andrew Grant.
 
