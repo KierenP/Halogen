@@ -35,7 +35,8 @@ int Timer::ElapsedMs()
 
 SearchTimeManage::SearchTimeManage() : timer(Timer())
 {
-	AllowedSearchTimeMS = 0;
+	AllocatedSearchTimeMS = 0;
+	MaxTimeMS = 0;
 }
 
 SearchTimeManage::~SearchTimeManage()
@@ -44,20 +45,21 @@ SearchTimeManage::~SearchTimeManage()
 
 bool SearchTimeManage::ContinueSearch()
 {
-	return (timer.ElapsedMs() < AllowedSearchTimeMS / 2);
+	return (timer.ElapsedMs() < AllocatedSearchTimeMS / 2);
 }
 
 bool SearchTimeManage::AbortSearch(uint64_t nodes)
 {
 	if ((nodes & 0x3FF) == 0 || nodes <= 0x3FFF)	//should hit once every 1024 times. & is quicker than (nodes % 1024). EDIT: will hit once every 1024, but every time its called initially to help with very fast time controls
-		CacheShouldStop = timer.ElapsedMs() > (AllowedSearchTimeMS - 10);
+		CacheShouldStop = (timer.ElapsedMs() > (AllocatedSearchTimeMS)) || (timer.ElapsedMs() > (MaxTimeMS - 10));
 
 	return (!KeepSearching || CacheShouldStop);
 }
 
-void SearchTimeManage::StartSearch(int ms)
+void SearchTimeManage::StartSearch(int maxTime, int allocatedTime)
 {
 	timer.Restart();
-	AllowedSearchTimeMS = ms;
+	AllocatedSearchTimeMS = allocatedTime;
+	MaxTimeMS = maxTime;
 	timer.Start();
 }
