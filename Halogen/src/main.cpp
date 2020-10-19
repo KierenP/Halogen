@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 				else if (token == "winc")	iss >> winc;
 				else if (token == "binc")	iss >> binc;
 				else if (token == "movetime") iss >> searchTime;
-				else if (token == "infinite") searchTime = 2147483647;
+				else if (token == "infinite") { wtime = 2147483647; btime = 2147483647; }
 				else if (token == "movestogo") iss >> movestogo;
 			}
 
