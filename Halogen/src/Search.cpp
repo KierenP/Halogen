@@ -275,8 +275,11 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 	int beta = 30000;
 	int prevScore = 0;
 
-	for (int depth = 1; (!sharedData.AbortSearch() && sharedData.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; depth++)	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
+	for (int depth = 1; (!sharedData.AbortSearch() && depth <= maxSearchDepth) || depth == 1; depth++)	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
 	{
+		if (!sharedData.ContinueSearch())
+			sharedData.ReportWantsToStop(threadID);
+
 		if (sharedData.ShouldSkipDepth(depth)) continue;
 
 		sharedData.ReportDepth(depth, threadID);
@@ -966,7 +969,10 @@ ThreadSharedData::ThreadSharedData(unsigned int allocatedTimeMs, unsigned int ma
 	nodes = 0;
 
 	for (unsigned int i = 0; i < threads; i++)
+	{
 		searchDepth.push_back(0);
+		ThreadWantsToStop.push_back(false);
+	}
 
 	timeManage.StartSearch(maxTime, allocatedTimeMs);
 }
@@ -1005,6 +1011,20 @@ void ThreadSharedData::ReportDepth(unsigned int depth, unsigned int threadID)
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 	searchDepth[threadID] = depth;
+}
+
+void ThreadSharedData::ReportWantsToStop(unsigned int threadID)
+{
+	std::lock_guard<std::mutex> lg(ioMutex);
+	ThreadWantsToStop[threadID] = true;
+
+	for (unsigned int i = 0; i < ThreadWantsToStop.size(); i++)
+	{
+		if (ThreadWantsToStop[i] == false)
+			return;
+	}
+
+	KeepSearching = false;
 }
 
 bool ThreadSharedData::ShouldSkipDepth(unsigned int depth)

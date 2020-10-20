@@ -61,6 +61,7 @@ public:
 	bool ThreadAbort(unsigned int initialDepth) const;
 	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals);
 	void ReportDepth(unsigned int depth, unsigned int threadID);
+	void ReportWantsToStop(unsigned int threadID);
 	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
 	void AddTBHit() { tbHits++; }
@@ -85,7 +86,8 @@ private:
 	std::atomic<uint64_t> tbHits;
 	std::atomic<uint64_t> nodes;
 
-	std::vector<unsigned int> searchDepth;					//what depth is each thread currently searching?
+	std::vector<unsigned int> searchDepth;			//what depth is each thread currently searching?
+	std::vector<bool> ThreadWantsToStop;			//Threads signal here that they want to stop searching, but will keep going until all threads want to stop
 };
 
 extern TranspositionTable tTable;
