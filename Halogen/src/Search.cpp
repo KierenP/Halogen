@@ -33,7 +33,8 @@ unsigned int ProbeTBSearch(const Position& position);
 SearchResult UseSearchTBScore(unsigned int result, int staticEval);
 SearchResult UseRootTBScore(unsigned int result, int staticEval);
 
-Move SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
+void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
+SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i);
@@ -265,63 +266,57 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	std::cout << std::endl;
 }
 
-Move SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth, SearchData locals)
+void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxSearchDepth, SearchData locals)
 {
-	Move move;
-
 	Timer searchTime;
 	searchTime.Start();
 
 	int alpha = -30000;
 	int beta = 30000;
 	int prevScore = 0;
-	bool aspirationReSearch = false;
 
-	for (int depth = 1; (!sharedData.AbortSearch() && sharedData.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; )	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
+	for (int depth = 1; (!sharedData.AbortSearch() && sharedData.ContinueSearch() && depth <= maxSearchDepth) || depth == 1; depth++)	//depth == 1 is a temporary band-aid to illegal moves under time pressure.
 	{
-		if (!aspirationReSearch && sharedData.ShouldSkipDepth(depth))
-		{
-			depth++;
-			continue;
-		}
+		if (sharedData.ShouldSkipDepth(depth)) continue;
 
 		sharedData.ReportDepth(depth, threadID);
-
 		sharedData.AddNode();	//make the root node count. Otherwise when re-searching a position and getting an immediant hash hit the nodes searched is zero
 
-		SearchResult search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
+		SearchResult search = AspirationWindowSearch(position, depth, prevScore, locals, sharedData, threadID);
 		int score = search.GetScore();
 
 		if (depth > 1 && sharedData.AbortSearch()) { break; }
 		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
 
-		if (score <= alpha)
-		{
-			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
-			aspirationReSearch = true;
-			continue;
-		}
-
-		if (score >= beta)
-		{
-			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
-			aspirationReSearch = true;
-			continue;
-		}
-
-		aspirationReSearch = false;
-
-		move = search.GetMove();	//this is only hit if the continue before is not hit
-		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, move, locals);
-
-		alpha = score - std::max(1, 25 - ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-		beta =  score + std::max(1, 25 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-
+		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, search.GetMove(), locals);
 		prevScore = score;
 	}
+}
 
-	//tTable.RunAsserts();	//only for testing purposes
-	return move;
+SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
+{
+	int alpha = prevScore - std::max(1, 25 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	int beta = prevScore + std::max(1, 25 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	SearchResult search = { 0 };
+
+	while (!sharedData.AbortSearch())
+	{
+		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
+		if (alpha < search.GetScore() && search.GetScore() < beta) break;
+		if (sharedData.ThreadAbort(depth)) break;
+
+		if (search.GetScore() <= alpha)
+		{
+			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
+		}
+
+		if (search.GetScore() >= beta)
+		{
+			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
+		}
+	} 
+
+	return search;
 }
 
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
@@ -335,7 +330,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (distanceFromRoot > 0 && sharedData.AbortSearch()) return -1;		//we must check later that we don't let this score pollute the transposition table
+	if (distanceFromRoot > 0 && sharedData.AbortSearch()) 
+		return -1;		//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
 
