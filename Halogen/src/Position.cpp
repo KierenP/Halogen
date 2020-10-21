@@ -29,7 +29,7 @@ void Position::ApplyMove(Move move)
 			BlackCastled();
 	}
 
-	if (move.GetFlag() == KING_CASTLE) 
+	if (move.GetFlag() == KING_CASTLE)
 	{
 		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
 		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
@@ -45,7 +45,7 @@ void Position::ApplyMove(Move move)
 	switch (move.GetFlag())
 	{
 	case PAWN_DOUBLE_MOVE:
-		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white 
+		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
 		break;
 	case EN_PASSANT:
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
@@ -216,7 +216,7 @@ void Position::Print() const
 
 	for (int i = 0; i < N_SQUARES; i++)
 	{
-		unsigned int square = GetPosition(GetFile(i), 7 - GetRank(i));		//7- to flip on the y axis and do rank 8, 7 ... 
+		unsigned int square = GetPosition(GetFile(i), 7 - GetRank(i));		//7- to flip on the y axis and do rank 8, 7 ...
 
 		if (GetFile(square) == FILE_A)
 		{
@@ -256,7 +256,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 
 bool Position::InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount)
 {
-	std::vector<std::string> splitFen;		
+	std::vector<std::string> splitFen;
 	splitFen.push_back(board);
 	splitFen.push_back(turn);
 	splitFen.push_back(castle);
@@ -343,7 +343,7 @@ uint64_t Position::GenerateZobristKey() const
 	return Key;
 }
 
-uint64_t Position::IncrementZobristKey(Move move) 
+uint64_t Position::IncrementZobristKey(Move move)
 {
 	const BoardParamiterData prev = GetPreviousParamiters();
 
@@ -417,22 +417,18 @@ std::vector<float> Position::GetInputLayer() const
 	std::vector<float> ret;
 	ret.reserve(INPUT_NEURONS);
 
-	for (int i = 0; i < N_PIECES; i++)
+	for (int side = WHITE; side >= BLACK; side--)
 	{
-		uint64_t bb = GetPieceBB(i);
-
-		for (int sq = 0; sq < N_SQUARES; sq++)
+		for (int piece = PAWN; piece <= KING; piece++)
 		{
-			if ((i != WHITE_PAWN && i != BLACK_PAWN) || (GetRank(sq) > RANK_1 && GetRank(sq) < RANK_8))
+			uint64_t bb = GetPieceBB(Piece(piece, side));
+
+			for (int sq = 0; sq < N_SQUARES; sq++)
+			{
 				ret.push_back((bb & SquareBB[sq]) != 0);
+			}
 		}
 	}
-
-	ret.push_back(GetTurn());
-	ret.push_back(CanCastleWhiteKingside());
-	ret.push_back(CanCastleWhiteQueenside());
-	ret.push_back(CanCastleBlackKingside());
-	ret.push_back(CanCastleBlackQueenside());
 
 	return ret;
 }
@@ -440,11 +436,6 @@ std::vector<float> Position::GetInputLayer() const
 std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)
 {
 	delta.clear();
-	const BoardParamiterData prev = GetPreviousParamiters();
-
-	//Change of turn
-	delta.push_back({ modifier(12 * 64), (GetTurn() * 2 - 1) });	//+1 if its now whites turn and -1 if its now blacks turn
-
 	if (move.IsUninitialized()) return delta;		//null move
 
 	if (!move.IsPromotion())
@@ -460,16 +451,6 @@ std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
 		delta.push_back({ modifier(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo()), -1 });
-
-	//Castling
-	if (CanCastleWhiteKingside() != prev.CanCastleWhiteKingside())					//if casteling rights changed (we can only lose casteling rights when doing a move)
-		delta.push_back({ modifier(12 * 64 + 1), -1 });
-	if (CanCastleWhiteQueenside() != prev.CanCastleWhiteQueenside())
-		delta.push_back({ modifier(12 * 64 + 2), -1 });
-	if (CanCastleBlackKingside() != prev.CanCastleBlackKingside())
-		delta.push_back({ modifier(12 * 64 + 3), -1 });
-	if (CanCastleBlackQueenside() != prev.CanCastleBlackQueenside())
-		delta.push_back({ modifier(12 * 64 + 4), -1 });
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
@@ -503,18 +484,14 @@ std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)
 
 size_t Position::modifier(size_t index)
 {
-	size_t ret = index;
-
-	if (index >= BLACK_PAWN * 64)
-		ret -= 8;
-	if (index >= BLACK_PAWN * 64 + 64)
-		ret -= 8;
-	if (index >= WHITE_PAWN * 64)
-		ret -= 8;
-	if (index >= WHITE_PAWN * 64 + 64)
-		ret -= 8;
-
-	return ret;
+	if (index >= 384)
+	{
+		return index - 384;
+	}
+	else
+	{
+		return index + 384;
+	}
 }
 
 void Position::ApplySEECapture(Move move)
