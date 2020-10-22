@@ -20,7 +20,7 @@ constexpr size_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) /
 struct deltaPoint
 {
     size_t index;
-    int delta;
+    int8_t delta;
 };
 
 struct Neuron
