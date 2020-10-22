@@ -112,7 +112,7 @@ HiddenLayer::HiddenLayer(std::vector<float> inputs, size_t NeuronCount)
         }
     }
 
-    zeta = std::vector<float>(NeuronCount, 0);
+    zeta = std::vector<float>(NeuronCount, 0); 
 }
 
 std::vector<float> HiddenLayer::FeedForward(std::vector<float>& input, bool UseReLU)
