@@ -1,7 +1,7 @@
 #include "Network.h"
 
 static const char* WeightsTXT[] = {
-    #include "768x96_epoch729_b8192.nn"
+    #include "768x96_epoch1751_b8192.nn"
     ""
 };
 
