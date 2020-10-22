@@ -2,7 +2,7 @@
 #include "Search.h"
 #include <thread>
 
-using namespace::std;
+using namespace::std; 
 
 void PerftSuite();
 void PrintVersion();
