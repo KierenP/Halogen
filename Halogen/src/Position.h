@@ -47,7 +47,7 @@ public:
 
 	Network net;
 
-	float GetEvaluation();
+	int16_t GetEvaluation();
 
 private:
 	uint64_t key;

@@ -507,7 +507,7 @@ void Position::RevertSEECapture()
 	RestorePreviousBoard();
 }
 
-float Position::GetEvaluation()
+int16_t Position::GetEvaluation()
 {
 	return net.QuickEval();
 }

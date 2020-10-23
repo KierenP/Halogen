@@ -61,8 +61,6 @@ private:
     std::vector<HiddenLayer> hiddenLayers;
     Neuron outputNeuron;
 
-    int32_t zeta;
-
     std::vector<std::vector<int16_t>> OldZeta;
     size_t incrementalDepth = 0;
 };

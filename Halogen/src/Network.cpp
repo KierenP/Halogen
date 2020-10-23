@@ -90,7 +90,7 @@ int32_t Neuron::FeedForward(std::vector<int16_t>& input, bool UseReLU) const
             ret += input[i] * weights[i];
     }
 
-    return ret / PRECISION;
+    return (ret + PRECISION / 2) / PRECISION;
 }
 
 HiddenLayer::HiddenLayer(std::vector<int16_t> inputs, size_t NeuronCount)
@@ -146,7 +146,6 @@ Network::Network(std::vector<std::vector<int16_t>> inputs, std::vector<size_t> N
 {
     assert(inputs.size() == NeuronCount.size());
 
-    zeta = 0;
     inputNeurons = NeuronCount.at(0);
 
     for (size_t i = 1; i < NeuronCount.size() - 1; i++)
@@ -197,7 +196,5 @@ int16_t Network::QuickEval()
         inputs = hiddenLayers.at(i).FeedForward(inputs, true);
     }
 
-    zeta = outputNeuron.FeedForward(inputs, true);
-
-    return zeta / PRECISION;
+    return (outputNeuron.FeedForward(inputs, true) + PRECISION / 2) / PRECISION;
 }
