@@ -809,7 +809,7 @@ bool MoveIsLegal(Position& position, Move& move)
 		CastleMoves(position, moves);
 
 		bool present = false;
-		for (int i = 0; i < moves.size(); i++)
+		for (size_t i = 0; i < moves.size(); i++)
 		{
 			if (moves[i] == move)
 				present = true;
