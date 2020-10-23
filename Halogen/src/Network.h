@@ -14,8 +14,16 @@
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 
-constexpr size_t MAX_VALUE = 128;
-constexpr size_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / 128;
+constexpr int16_t MAX_VALUE = 128;
+constexpr int16_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / 128;
+constexpr int16_t HALF_PRECISION = PRECISION / 2;
+
+constexpr int16_t log2u16(int16_t n)
+{
+    return ((n < 2) ? 0 : 1 + log2u16(n / 2));
+}
+
+constexpr int16_t PRECISION_SHIFT = log2u16(PRECISION);
 
 struct deltaPoint
 {

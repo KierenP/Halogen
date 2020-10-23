@@ -425,7 +425,7 @@ std::vector<int16_t> Position::GetInputLayer() const
 
 			for (int sq = 0; sq < N_SQUARES; sq++)
 			{
-				ret.push_back(((bb & SquareBB[sq]) != 0) * PRECISION);
+				ret.push_back(((bb & SquareBB[sq]) != 0) << PRECISION_SHIFT);
 			}
 		}
 	}
