@@ -47,7 +47,7 @@ Network InitNetwork()
 
                 while (lineStream >> token)
                 {
-                    layerWeights.push_back(stof(token));
+                    layerWeights.push_back(stoull(token));
                 }
             }
 
@@ -62,7 +62,7 @@ Network InitNetwork()
             std::istringstream lineStream(line);
             while (lineStream >> token)
             {
-                layerWeights.push_back(stof(token));
+                layerWeights.push_back(stoull(token));
             }
             weights.push_back(layerWeights);
         }
