@@ -80,7 +80,7 @@ int32_t Neuron::FeedForward(std::vector<int16_t>& input, bool UseReLU) const
 {
     assert(input.size() == weights.size());
 
-    int32_t ret = bias;
+    int32_t ret = bias * PRECISION;
 
     for (size_t i = 0; i < input.size(); i++)
     {
