@@ -160,7 +160,7 @@ void Position::ApplyMove(std::string strmove)
 	}
 
 	ApplyMove(Move(prev, next, flag));
-	net.FeedForward(GetInputLayer());
+	net.RecalculateIncremental(GetInputLayer());
 }
 
 void Position::RevertMove()
@@ -234,7 +234,7 @@ void Position::Print() const
 void Position::StartingPosition()
 {
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
-	net.FeedForward(GetInputLayer());
+	net.RecalculateIncremental(GetInputLayer());
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
@@ -249,7 +249,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 		return false;
 
 	key = GenerateZobristKey();
-	net.FeedForward(GetInputLayer());
+	net.RecalculateIncremental(GetInputLayer());
 
 	return true;
 }
@@ -412,9 +412,9 @@ uint64_t Position::IncrementZobristKey(Move move)
 	return key;
 }
 
-std::vector<float> Position::GetInputLayer() const
+std::vector<int16_t> Position::GetInputLayer() const
 {
-	std::vector<float> ret;
+	std::vector<int16_t> ret;
 	ret.reserve(INPUT_NEURONS);
 
 	for (int side = WHITE; side >= BLACK; side--)
@@ -425,7 +425,7 @@ std::vector<float> Position::GetInputLayer() const
 
 			for (int sq = 0; sq < N_SQUARES; sq++)
 			{
-				ret.push_back((bb & SquareBB[sq]) != 0);
+				ret.push_back(((bb & SquareBB[sq]) != 0) << PRECISION_SHIFT);
 			}
 		}
 	}
@@ -507,7 +507,7 @@ void Position::RevertSEECapture()
 	RestorePreviousBoard();
 }
 
-float Position::GetEvaluation()
+int16_t Position::GetEvaluation()
 {
 	return net.QuickEval();
 }

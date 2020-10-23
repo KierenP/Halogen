@@ -9,7 +9,7 @@ int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 
     if (!evalTable.GetEntry(position.GetZobristKey(), eval))
     {
-        eval = static_cast<int>(std::round(position.GetEvaluation()));
+        eval = position.GetEvaluation();
         evalTable.AddEntry(position.GetZobristKey(), eval);
     }
 
