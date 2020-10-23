@@ -132,7 +132,7 @@ void HiddenLayer::ApplyDelta(std::vector<deltaPoint>& deltaVec)
 
     for (size_t index = 0; index < deltaCount; index++)
     {
-        int16_t deltaValue = deltaVec[index].delta;
+        int16_t deltaValue = deltaVec[index].delta; 
         size_t weightTransposeIndex = deltaVec[index].index * neuronCount;
 
         for (size_t neuron = 0; neuron < neuronCount; neuron++)
