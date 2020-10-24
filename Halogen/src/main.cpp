@@ -225,7 +225,7 @@ void PrintVersion()
 {
 	cout << "Halogen " << version;
 
-#if defined(_WIN64)
+#if defined(_WIN64) or defined(__x86_64__)
 	cout << " x64";
 
 	#if defined(USE_POPCNT)
