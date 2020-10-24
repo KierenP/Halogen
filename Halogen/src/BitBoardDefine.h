@@ -195,3 +195,5 @@ uint64_t inBetween(unsigned int sq1, unsigned int sq2);	//return the bb of the s
 uint64_t inBetweenCache(unsigned int from, unsigned int to);
 bool mayMove(unsigned int from, unsigned int to, uint64_t pieces);
 
+const unsigned int MAX_DEPTH = 100;
+

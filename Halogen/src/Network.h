@@ -11,11 +11,7 @@
 #include <sstream>
 #include <cstring>
 #include "EvalCache.h"
-
-static const char* WeightsTXT[] = {
-    #include "epoch1751_b8192_quant.nn"
-    ""
-};
+#include "BitBoardDefine.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 96;
@@ -35,7 +31,8 @@ struct deltaPoint
 template<size_t INPUT_COUNT>
 struct Neuron
 {
-    Neuron(const std::vector<int16_t>& Weight, int16_t Bias);
+    Neuron();
+    Neuron(std::vector<int16_t> Weight, int16_t Bias);
     int32_t FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU) const;
 
     std::array<int16_t, INPUT_COUNT> weights;
@@ -60,7 +57,7 @@ private:
 struct Network
 {
     Network(std::vector<std::vector<int16_t>> inputs);
-    void RecalculateIncremental(std::vector<int16_t> inputs);
+    void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs);
 
     void ApplyDelta(std::vector<deltaPoint>& delta);                                                            //incrementally update the connections between input layer and first hidden layer
     void ApplyInverseDelta();                                                                                   //for un-make moves
@@ -72,7 +69,7 @@ private:
     HiddenLayer <INPUT_NEURONS, HIDDEN_NEURONS> hiddenLayer;
     Neuron<HIDDEN_NEURONS> outputNeuron;
 
-    std::vector<std::vector<int16_t>> OldZeta;
+    std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>  OldZeta;
     size_t incrementalDepth = 0;
 };
 
