@@ -108,7 +108,7 @@ int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input
 }
 
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs)
+HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs) : neurons(new std::array<Neuron<INPUT_COUNT>, OUTPUT_COUNT>), weightTranspose(new std::array<int16_t, INPUT_COUNT* OUTPUT_COUNT>)
 {
     assert(inputs.size() % OUTPUT_COUNT == 0);
 
@@ -116,14 +116,14 @@ HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs)
 
     for (size_t i = 0; i < OUTPUT_COUNT; i++)
     {
-        neurons[i] = Neuron<INPUT_COUNT>(std::vector<int16_t>(inputs.begin() + (WeightsPerNeuron * i), inputs.begin() + (WeightsPerNeuron * i) + WeightsPerNeuron - 1), inputs.at(WeightsPerNeuron * (1 + i) - 1));
+        (*neurons)[i] = Neuron<INPUT_COUNT>(std::vector<int16_t>(inputs.begin() + (WeightsPerNeuron * i), inputs.begin() + (WeightsPerNeuron * i) + WeightsPerNeuron - 1), inputs.at(WeightsPerNeuron * (1 + i) - 1));
     }
 
     for (size_t i = 0; i < WeightsPerNeuron - 1; i++)
     {
         for (size_t j = 0; j < OUTPUT_COUNT; j++)
         {
-            weightTranspose.push_back(neurons.at(j).weights.at(i));
+            weightTranspose->at(i * OUTPUT_COUNT + j) = (neurons->at(j).weights.at(i));
         }
     }
 
@@ -133,9 +133,9 @@ HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs)
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
 std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU)
 {
-    for (size_t i = 0; i < neurons.size(); i++)
+    for (size_t i = 0; i < neurons->size(); i++)
     {
-        zeta[i] = neurons.at(i).FeedForward(input, UseReLU);
+        zeta[i] = neurons->at(i).FeedForward(input, UseReLU);
     }
 
     return zeta;
@@ -154,7 +154,7 @@ void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>&
 
         for (size_t neuron = 0; neuron < neuronCount; neuron++)
         {
-            zeta[neuron] += weightTranspose[weightTransposeIndex + neuron] * deltaValue;
+            zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron] * deltaValue;
         }
     }
 }
