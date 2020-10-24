@@ -412,10 +412,10 @@ uint64_t Position::IncrementZobristKey(Move move)
 	return key;
 }
 
-std::vector<int16_t> Position::GetInputLayer() const
+std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 {
-	std::vector<int16_t> ret;
-	ret.reserve(INPUT_NEURONS);
+	std::array<int16_t, INPUT_NEURONS> ret;
+	size_t index = 0;
 
 	for (int side = WHITE; side >= BLACK; side--)
 	{
@@ -425,7 +425,7 @@ std::vector<int16_t> Position::GetInputLayer() const
 
 			for (int sq = 0; sq < N_SQUARES; sq++)
 			{
-				ret.push_back(((bb & SquareBB[sq]) != 0) << PRECISION_SHIFT);
+				ret[index++] = ((bb & SquareBB[sq]) != 0) << PRECISION_SHIFT;
 			}
 		}
 	}

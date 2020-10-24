@@ -25,8 +25,6 @@ private:
 	Move m_move;
 };
 
-const unsigned int MAX_DEPTH = 100;
-
 enum Score
 {
 	HighINF = 30000,
