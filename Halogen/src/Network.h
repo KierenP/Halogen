@@ -25,7 +25,7 @@ constexpr int16_t PRECISION_SHIFT = log2u16(PRECISION);
 struct deltaPoint
 {
     size_t index;
-    int8_t delta;
+    int16_t delta;
 };
 
 template<size_t INPUT_COUNT>

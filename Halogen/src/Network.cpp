@@ -92,11 +92,9 @@ Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias)
 template<size_t INPUT_COUNT>
 int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU) const
 {
-    assert(input.size() == weights.size());
-
     int32_t ret = bias << PRECISION_SHIFT;
 
-    for (size_t i = 0; i < input.size(); i++)
+    for (size_t i = 0; i < INPUT_COUNT; i++)
     {
         if (UseReLU)
             ret += std::max(int16_t(0), input[i]) * weights[i];
