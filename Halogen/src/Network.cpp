@@ -83,7 +83,7 @@ Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias)
 
     bias = Bias;
 
-    for (int i = 0; i < INPUT_COUNT; i++)
+    for (size_t i = 0; i < INPUT_COUNT; i++)
     {
         weights[i] = Weight[i];
     }
@@ -159,7 +159,7 @@ void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>&
     }
 }
 
-Network::Network(std::vector<std::vector<int16_t>> inputs) : outputNeuron(std::vector<int16_t>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back()), hiddenLayer(inputs[1])
+Network::Network(std::vector<std::vector<int16_t>> inputs) : hiddenLayer(inputs[1]), outputNeuron(std::vector<int16_t>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back())
 {
     for (size_t i = 0; i < MAX_DEPTH; i++)
     {
