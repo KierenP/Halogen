@@ -3,13 +3,15 @@
 int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000},
                                                   {111, 339, 372, 638, 1301, 5000} };
 
+constexpr int TEMPO = 10;
+
 int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
     int eval;
 
     if (!evalTable.GetEntry(position.GetZobristKey(), eval))
     {
-        eval = position.GetEvaluation();
+        eval = position.GetEvaluation() + (position.GetTurn() == WHITE ? TEMPO : -TEMPO);
         evalTable.AddEntry(position.GetZobristKey(), eval);
     }
 
