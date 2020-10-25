@@ -142,17 +142,25 @@ std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedFo
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
 void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>& deltaVec)
 {
-    size_t neuronCount = zeta.size();
-    size_t deltaCount = deltaVec.size();
-
-    for (size_t index = 0; index < deltaCount; index++)
+    for (auto it = deltaVec.begin(); it != deltaVec.end(); ++it)
     {
-        int16_t deltaValue = deltaVec[index].delta; 
-        size_t weightTransposeIndex = deltaVec[index].index * neuronCount;
+        int16_t deltaValue = it->delta; 
+        size_t weightTransposeIndex = it->index * OUTPUT_COUNT;
 
-        for (size_t neuron = 0; neuron < neuronCount; neuron++)
+        if (deltaValue == 1)
         {
-            zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron] * deltaValue;
+            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
+            {
+                zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron];
+            }
+        }
+
+        if (deltaValue == -1)
+        {
+            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
+            {
+                zeta[neuron] -= (*weightTranspose)[weightTransposeIndex + neuron];
+            }
         }
     }
 }
@@ -173,22 +181,18 @@ void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
     }
     incrementalDepth = 0;
 
-    assert(inputs.size() == inputNeurons);
-
     //We never actually use FeedForward to get the evaluaton, only to 'refresh' the incremental updates and so we only need to do connection with first layer
     hiddenLayer.FeedForward(inputs, false);
 }
 
 void Network::ApplyDelta(std::vector<deltaPoint>& delta)
 {
-    assert(hiddenLayers.size() > 0);
     OldZeta[incrementalDepth++] = hiddenLayer.zeta;
     hiddenLayer.ApplyDelta(delta);
 }
 
 void Network::ApplyInverseDelta()
 {
-    assert(hiddenLayers.size() > 0);
     hiddenLayer.zeta = OldZeta[--incrementalDepth];
 }
 
