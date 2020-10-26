@@ -33,7 +33,7 @@ struct Neuron
 {
     Neuron();
     Neuron(std::vector<int16_t> Weight, int16_t Bias);
-    int32_t FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU) const;
+    int32_t FeedForward(std::array<int16_t, INPUT_COUNT>& input) const;
 
     std::array<int16_t, INPUT_COUNT> weights;
     int16_t bias;
@@ -43,7 +43,7 @@ template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
 struct HiddenLayer
 {
     HiddenLayer(std::vector<int16_t> inputs);                                                                   // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
-    std::array<int16_t, OUTPUT_COUNT> FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU);
+    std::array<int16_t, OUTPUT_COUNT> FeedForward(std::array<int16_t, INPUT_COUNT>& input);
 
     void ApplyDelta(std::vector<deltaPoint>& deltaVec);                                                         //incrementally update the connections between input layer and first hidden layer
 
