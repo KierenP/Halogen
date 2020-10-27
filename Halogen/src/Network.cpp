@@ -90,16 +90,13 @@ Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias)
 }
 
 template<size_t INPUT_COUNT>
-int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU) const
+int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input) const
 {
     int32_t ret = bias << PRECISION_SHIFT;
 
     for (size_t i = 0; i < INPUT_COUNT; i++)
     {
-        if (UseReLU)
-            ret += std::max(int16_t(0), input[i]) * weights[i];
-        else
-            ret += input[i] * weights[i];
+        ret += input[i] * weights[i];
     }
 
     return (ret + HALF_PRECISION) >> PRECISION_SHIFT;
@@ -129,11 +126,11 @@ HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs)
 }
 
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input, bool UseReLU)
+std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input)
 {
     for (size_t i = 0; i < neurons->size(); i++)
     {
-        zeta[i] = neurons->at(i).FeedForward(input, UseReLU);
+        zeta[i] = neurons->at(i).FeedForward(input);
     }
 
     return zeta;
@@ -174,7 +171,7 @@ void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
     incrementalDepth = 0;
 
     //We never actually use FeedForward to get the evaluaton, only to 'refresh' the incremental updates and so we only need to do connection with first layer
-    hiddenLayer.FeedForward(inputs, false);
+    hiddenLayer.FeedForward(inputs);
 }
 
 void Network::ApplyDelta(std::vector<deltaPoint>& delta)
@@ -190,6 +187,12 @@ void Network::ApplyInverseDelta()
 
 int16_t Network::QuickEval()
 {
-    std::array<int16_t, HIDDEN_NEURONS> inputs = hiddenLayer.zeta;
-    return (outputNeuron.FeedForward(inputs, true) + HALF_PRECISION) >> PRECISION_SHIFT;
+    std::array<int16_t, HIDDEN_NEURONS> inputs;
+    
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+    {
+        inputs[i] = std::max(int16_t(0), hiddenLayer.zeta[i]);
+    }
+
+    return (outputNeuron.FeedForward(inputs) + HALF_PRECISION) >> PRECISION_SHIFT;
 }
