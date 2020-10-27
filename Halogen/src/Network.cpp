@@ -139,17 +139,25 @@ std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedFo
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
 void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>& deltaVec)
 {
-    size_t neuronCount = zeta.size();
-    size_t deltaCount = deltaVec.size();
-
-    for (size_t index = 0; index < deltaCount; index++)
+    for (auto it = deltaVec.begin(); it != deltaVec.end(); ++it)
     {
-        int16_t deltaValue = deltaVec[index].delta; 
-        size_t weightTransposeIndex = deltaVec[index].index * neuronCount;
+        int16_t deltaValue = it->delta; 
+        size_t weightTransposeIndex = it->index * OUTPUT_COUNT;
 
-        for (size_t neuron = 0; neuron < neuronCount; neuron++)
+        if (deltaValue == 1)
         {
-            zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron] * deltaValue;
+            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
+            {
+                zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron];
+            }
+        }
+
+        if (deltaValue == -1)
+        {
+            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
+            {
+                zeta[neuron] -= (*weightTranspose)[weightTransposeIndex + neuron];
+            }
         }
     }
 }
