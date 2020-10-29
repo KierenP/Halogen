@@ -973,7 +973,7 @@ ThreadSharedData::ThreadSharedData(unsigned int allocatedTimeMs, unsigned int ma
 		ThreadWantsToStop.push_back(false);
 	}
 
-	timeManage.StartSearch(maxTime, allocatedTimeMs);
+	timeManage.StartSearch(maxTime, allocatedTimeMs, threads);
 }
 
 ThreadSharedData::~ThreadSharedData()

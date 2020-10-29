@@ -297,7 +297,7 @@ int bitScanForward(uint64_t bb)
 	_BitScanForward64(&index, bb);
 	return index;
 #elif defined(__GNUG__) && defined(GCC_USE_POPCNT)
-	return __builtin_ffsll(bb) - 1;
+	return __builtin_ctzll(bb);
 #else
 	/**
 	 * bitScanForward
