@@ -2,7 +2,7 @@
 
 std::atomic<bool> KeepSearching;
 
-Timer::Timer() : Begin(clock()), End(clock())
+Timer::Timer() : Begin(0), End(0)
 {
 	ElapsedTime = 0;
 }
@@ -13,23 +13,20 @@ Timer::~Timer()
 
 void Timer::Start()
 {
-	Begin = clock();
-	End = clock();
+	Begin = get_time_point();
 }
 
 void Timer::Restart()
 {
-	Begin = clock();
-	End = clock();
+	Begin = 0;
+	End = 0;
 	ElapsedTime = 0;
 }
 
 int Timer::ElapsedMs()
 {
-	End = clock();
-	ElapsedTime = (double(End) - double(Begin)) / CLOCKS_PER_SEC * 1000;
-
-	//std::cout << ElapsedTime << std::endl;
+	End = get_time_point();
+	ElapsedTime = (End - Begin);
 	return ElapsedTime;
 }
 

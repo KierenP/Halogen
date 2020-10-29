@@ -54,8 +54,7 @@ Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsig
 
 	for (unsigned int i = 0; i < threadCount; i++)
 	{
-		uint64_t nodesSearched = 0; 
-		threads.emplace_back(std::thread([=, &nodesSearched, &sharedData] {SearchPosition(position, sharedData, i, maxSearchDepth); }));
+		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i, maxSearchDepth); }));
 	}
 
 	for (size_t i = 0; i < threads.size(); i++)
@@ -945,7 +944,7 @@ Move GetHashMove(const Position& position, int distanceFromRoot)
 	return {};
 }
 
-SearchData::SearchData() : HistoryMatrix{0}
+SearchData::SearchData() : HistoryMatrix{ {0} }
 {
 	PvTable.clear();
 	for (unsigned int i = 0; i < MAX_DEPTH; i++)

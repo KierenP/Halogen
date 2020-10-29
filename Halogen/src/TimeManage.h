@@ -6,6 +6,26 @@
 
 extern std::atomic<bool> KeepSearching;
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+static inline double get_time_point() {
+	return (double)(GetTickCount());
+}
+#else
+#include <sys/time.h>
+static inline double get_time_point() {
+
+	struct timeval tv;
+	double secsInMilli, usecsInMilli;
+
+	gettimeofday(&tv, NULL);
+	secsInMilli = ((double)tv.tv_sec) * 1000;
+	usecsInMilli = tv.tv_usec / 1000;
+
+	return secsInMilli + usecsInMilli;
+}
+#endif
+
 class Timer
 {
 public:
@@ -19,8 +39,8 @@ public:
 private:
 	double ElapsedTime;
 
-	clock_t Begin;
-	clock_t End;
+	double Begin;
+	double End;
 };
 
 class SearchTimeManage

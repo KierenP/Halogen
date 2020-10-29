@@ -37,8 +37,6 @@ const int index64[64] = {
    13, 18,  8, 12,  7,  6,  5, 63
 };
 
-const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-
 void BBInit()
 {
 	UNIVERCE = 0xffffffffffffffff;
@@ -308,6 +306,7 @@ int bitScanForward(uint64_t bb)
 	 * @precondition bb != 0
 	 * @return index (0..63) of least significant one bit
 	 */
+	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 #endif
 }
