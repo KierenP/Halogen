@@ -76,11 +76,11 @@ void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t p
 	PawnEnPassant(position, moves);
 	PawnPromotions(position, moves, pinned);
 
-	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, LSPpop(pieces), KnightAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, LSPpop(pieces), BishopAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, LSPpop(pieces), KingAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, LSPpop(pieces), RookAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateCaptureMoves(position, moves, LSPpop(pieces), QueenAttacks, true, pinned));
 }
 
 uint64_t PinnedMask(const Position& position)
@@ -95,7 +95,7 @@ uint64_t PinnedMask(const Position& position)
 
 	while (possiblePins != 0)
 	{
-		unsigned int sq = bitScanForwardErase(possiblePins);
+		unsigned int sq = LSPpop(possiblePins);
 
 		if (!mayMove(king, sq, maskAll))	//if you can't move from the square to the king, it can't be pinned
 			continue;
@@ -140,7 +140,7 @@ void KingEvasions(Position& position, std::vector<Move>& moves)
 
 	while (quiet != 0)
 	{
-		unsigned int target = bitScanForwardErase(quiet);
+		unsigned int target = LSPpop(quiet);
 		Move move(square, target, QUIET);
 
 		if (!MovePutsSelfInCheck(position, move))
@@ -155,7 +155,7 @@ void KingCapturesEvade(Position& position, std::vector<Move>& moves)
 
 	while (captures != 0)
 	{
-		unsigned int target = bitScanForwardErase(captures);
+		unsigned int target = LSPpop(captures);
 		Move move(square, target, CAPTURE);
 
 		if (!MovePutsSelfInCheck(position, move))
@@ -165,7 +165,7 @@ void KingCapturesEvade(Position& position, std::vector<Move>& moves)
 
 void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 {
-	unsigned int threatSquare = bitScanForwardErase(threats);
+	unsigned int threatSquare = LSPpop(threats);
 
 	uint64_t potentialCaptures = GetThreats(position, threatSquare, !position.GetTurn()) 
 		& ~SquareBB[position.GetKing(position.GetTurn())]									//King captures handelled in KingCapturesEvade()
@@ -173,7 +173,7 @@ void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threat
 
 	while (potentialCaptures != 0)
 	{
-		unsigned int start = bitScanForwardErase(potentialCaptures);
+		unsigned int start = LSPpop(potentialCaptures);
 		Move move(start, threatSquare, CAPTURE);
 
 		if (!MovePutsSelfInCheck(position, move))
@@ -183,7 +183,7 @@ void CaptureThreat(Position& position, std::vector<Move>& moves, uint64_t threat
 
 void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 {
-	unsigned int threatSquare = bitScanForwardErase(threats);
+	unsigned int threatSquare = LSPpop(threats);
 	unsigned int piece = position.GetSquare(threatSquare);
 
 	if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT) return;	//cant block non-sliders. Also cant be threatened by enemy king
@@ -192,12 +192,12 @@ void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 
 	while (blockSquares != 0)
 	{
-		unsigned int sq = bitScanForwardErase(blockSquares);
+		unsigned int sq = LSPpop(blockSquares);
 		uint64_t potentialBlockers = GetThreats(position, sq, !position.GetTurn()) & ~position.GetPieceBB(Piece(PAWN, position.GetTurn()));	//pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
 
 		while (potentialBlockers != 0)
 		{
-			unsigned int start = bitScanForwardErase(potentialBlockers);
+			unsigned int start = LSPpop(potentialBlockers);
 			Move move(start, sq, QUIET);
 
 			if (!MovePutsSelfInCheck(position, move))
@@ -212,11 +212,11 @@ void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t p
 	PawnDoublePushes(position, moves, pinned);
 	CastleMoves(position, moves);
 
-	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KnightAttacks, false, pinned));
-	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), BishopAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), QueenAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), RookAttacks, true, pinned));
-	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, bitScanForwardErase(pieces), KingAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KNIGHT, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, LSPpop(pieces), KnightAttacks, false, pinned));
+	for (uint64_t pieces = position.GetPieceBB(BISHOP, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, LSPpop(pieces), BishopAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(QUEEN, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, LSPpop(pieces), QueenAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, LSPpop(pieces), RookAttacks, true, pinned));
+	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, LSPpop(pieces), KingAttacks, false, pinned));
 
 	AddQuiescenceMoves(position, moves, pinned);
 }
@@ -242,7 +242,7 @@ void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned)
 
 	while (pawnPushes != 0)
 	{
-		unsigned int end = bitScanForwardErase(pawnPushes);
+		unsigned int end = LSPpop(pawnPushes);
 		Move move(end - foward, end, QUIET);
 
 		if (!(pinned & SquareBB[end- foward]) || !MovePutsSelfInCheck(position, move))
@@ -271,7 +271,7 @@ void PawnPromotions(Position& position, std::vector<Move>& moves, uint64_t pinne
 
 	while (pawnPromotions != 0)
 	{
-		unsigned int end = bitScanForwardErase(pawnPromotions);
+		unsigned int end = LSPpop(pawnPromotions);
 
 		Move move(end - foward, end, KNIGHT_PROMOTION);
 		if ((pinned & SquareBB[end - foward]) && MovePutsSelfInCheck(position, move))
@@ -307,7 +307,7 @@ void PawnDoublePushes(Position& position, std::vector<Move>& moves, uint64_t pin
 
 	while (targets != 0)
 	{
-		unsigned int end = bitScanForwardErase(targets);
+		unsigned int end = LSPpop(targets);
 		Move move(end - foward, end, PAWN_DOUBLE_MOVE);
 
 		if (!(pinned & SquareBB[end - foward]) || !MovePutsSelfInCheck(position, move))
@@ -324,7 +324,7 @@ void PawnEnPassant(Position& position, std::vector<Move>& moves)
 			uint64_t potentialAttackers = BlackPawnAttacks[position.GetEnPassant()] & position.GetPieceBB(WHITE_PAWN);			//if a black pawn could capture me from the ep square, I can capture on the ep square
 			while (potentialAttackers != 0)
 			{
-				unsigned int start = bitScanForwardErase(potentialAttackers);
+				unsigned int start = LSPpop(potentialAttackers);
 
 				Move move(start, position.GetEnPassant(), EN_PASSANT);
 				if (!MovePutsSelfInCheck(position, move))
@@ -337,7 +337,7 @@ void PawnEnPassant(Position& position, std::vector<Move>& moves)
 			uint64_t potentialAttackers = WhitePawnAttacks[position.GetEnPassant()] & position.GetPieceBB(BLACK_PAWN);			//if a white pawn could capture me from the ep square, I can capture on the ep square
 			while (potentialAttackers != 0)
 			{
-				unsigned int start = bitScanForwardErase(potentialAttackers);
+				unsigned int start = LSPpop(potentialAttackers);
 
 				Move move(start, position.GetEnPassant(), EN_PASSANT);
 				if (!MovePutsSelfInCheck(position, move))
@@ -372,7 +372,7 @@ void PawnCaptures(Position& position, std::vector<Move>& moves, uint64_t pinned)
 
 	while (leftAttack != 0)
 	{
-		unsigned int end = bitScanForwardErase(leftAttack);
+		unsigned int end = LSPpop(leftAttack);
 
 		Move move(end - fowardleft, end, CAPTURE);
 		if ((pinned & SquareBB[end - fowardleft]) && MovePutsSelfInCheck(position, move))
@@ -391,7 +391,7 @@ void PawnCaptures(Position& position, std::vector<Move>& moves, uint64_t pinned)
 
 	while (rightAttack != 0)
 	{
-		unsigned int end = bitScanForwardErase(rightAttack);
+		unsigned int end = LSPpop(rightAttack);
 
 		Move move(end - fowardright, end, CAPTURE);
 		if ((pinned & SquareBB[end - fowardright]) && MovePutsSelfInCheck(position, move))
@@ -467,7 +467,7 @@ void GenerateQuietMoves(Position& position, std::vector<Move>& moves, unsigned i
 
 	while (quiet != 0)
 	{
-		unsigned int target = bitScanForwardErase(quiet);
+		unsigned int target = LSPpop(quiet);
 		if (!isSliding || mayMove(square, target, maskall))
 		{
 			Move move(square, target, QUIET);
@@ -489,7 +489,7 @@ void GenerateCaptureMoves(Position& position, std::vector<Move>& moves, unsigned
 
 	while (captures != 0)
 	{
-		unsigned int target = bitScanForwardErase(captures);
+		unsigned int target = LSPpop(captures);
 		if (!isSliding || mayMove(square, target, maskall))
 		{
 			Move move(square, target, CAPTURE);
@@ -529,7 +529,7 @@ bool IsSquareThreatened(const Position& position, unsigned int square, bool colo
 	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
 	while (queen != 0)
 	{
-		unsigned int start = bitScanForwardErase(queen);
+		unsigned int start = LSPpop(queen);
 		if (mayMove(start, square, Pieces))
 			return true;
 	}
@@ -537,7 +537,7 @@ bool IsSquareThreatened(const Position& position, unsigned int square, bool colo
 	uint64_t bishops = position.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
 	while (bishops != 0)
 	{
-		unsigned int start = bitScanForwardErase(bishops);
+		unsigned int start = LSPpop(bishops);
 		if (mayMove(start, square, Pieces))
 			return true;
 	}
@@ -545,7 +545,7 @@ bool IsSquareThreatened(const Position& position, unsigned int square, bool colo
 	uint64_t rook = position.GetPieceBB(ROOK, !colour) & RookAttacks[square];
 	while (rook != 0)
 	{
-		unsigned int start = bitScanForwardErase(rook);
+		unsigned int start = LSPpop(rook);
 		if (mayMove(start, square, Pieces))
 			return true;
 	}
@@ -587,7 +587,7 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 	uint64_t queen = position.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
 	while (queen != 0)
 	{
-		unsigned int start = bitScanForwardErase(queen);
+		unsigned int start = LSPpop(queen);
 		if (mayMove(start, square, Pieces))
 			threats |= SquareBB[start];
 	}
@@ -595,7 +595,7 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 	uint64_t bishops = position.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
 	while (bishops != 0)
 	{
-		unsigned int start = bitScanForwardErase(bishops);
+		unsigned int start = LSPpop(bishops);
 		if (mayMove(start, square, Pieces))
 			threats |= SquareBB[start];
 	}
@@ -603,7 +603,7 @@ uint64_t GetThreats(const Position& position, unsigned int square, bool colour)
 	uint64_t rook = position.GetPieceBB(ROOK, !colour) & RookAttacks[square];
 	while (rook != 0)
 	{
-		unsigned int start = bitScanForwardErase(rook);
+		unsigned int start = LSPpop(rook);
 		if (mayMove(start, square, Pieces))
 			threats |= SquareBB[start];
 	}
@@ -628,13 +628,13 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 
 	if (pawnmask != 0)
 	{
-		return(Move(bitScanForwardErase(pawnmask), square, CAPTURE));
+		return(Move(LSPpop(pawnmask), square, CAPTURE));
 	}
 
 	uint64_t knightmask = (KnightAttacks[square] & position.GetPieceBB(KNIGHT, colour));
 	if (knightmask != 0)
 	{
-		return(Move(bitScanForwardErase(knightmask), square, CAPTURE));
+		return(Move(LSPpop(knightmask), square, CAPTURE));
 	}
 
 	uint64_t Pieces = position.GetAllPieces();
@@ -642,7 +642,7 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	uint64_t bishops = position.GetPieceBB(BISHOP, colour) & BishopAttacks[square];
 	while (bishops != 0)
 	{
-		unsigned int start = bitScanForwardErase(bishops);
+		unsigned int start = LSPpop(bishops);
 		if (mayMove(start, square, Pieces))
 			return Move(start, square, CAPTURE);
 	}
@@ -650,7 +650,7 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	uint64_t rook = position.GetPieceBB(ROOK, colour) & RookAttacks[square];
 	while (rook != 0)
 	{
-		unsigned int start = bitScanForwardErase(rook);
+		unsigned int start = LSPpop(rook);
 		if (mayMove(start, square, Pieces))
 			return Move(start, square, CAPTURE);
 	}
@@ -658,7 +658,7 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	uint64_t queen = position.GetPieceBB(QUEEN, colour) & QueenAttacks[square];
 	while (queen != 0)
 	{
-		unsigned int start = bitScanForwardErase(queen);
+		unsigned int start = LSPpop(queen);
 		if (mayMove(start, square, Pieces))
 			return Move(start, square, CAPTURE);
 	}
@@ -666,26 +666,26 @@ Move GetSmallestAttackerMove(const Position& position, unsigned int square, bool
 	uint64_t kingmask = (KingAttacks[square] & position.GetPieceBB(KING, colour));
 	if (kingmask != 0)
 	{
-		return(Move(bitScanForwardErase(kingmask), square, CAPTURE));
+		return(Move(LSPpop(kingmask), square, CAPTURE));
 	}
 
 	return Move();
 }
 
-bool MoveIsLegal(Position& position, Move& move)
+bool MoveIsLegal(Position& position, const Move& move)
 {
 	/*Obvious check first*/
 	if (move.IsUninitialized())
 		return false;
 
-	unsigned int Piece = position.GetSquare(move.GetFrom());
+	unsigned int piece = position.GetSquare(move.GetFrom());
 
 	/*Make sure there's a piece to be moved*/
 	if (position.GetSquare(move.GetFrom()) == N_PIECES)
 		return false;
 
 	/*Make sure the piece are are moving is ours*/
-	if (ColourOfPiece(Piece) != position.GetTurn())
+	if (ColourOfPiece(piece) != position.GetTurn())
 		return false;
 
 	/*Make sure we aren't capturing our own piece*/
@@ -705,13 +705,13 @@ bool MoveIsLegal(Position& position, Move& move)
 	uint64_t allPieces = position.GetAllPieces();
 
 	/*Sliding pieces*/
-	if (Piece == WHITE_BISHOP || Piece == BLACK_BISHOP || Piece == WHITE_ROOK || Piece == BLACK_ROOK || Piece == WHITE_QUEEN || Piece == BLACK_QUEEN)
+	if (piece == WHITE_BISHOP || piece == BLACK_BISHOP || piece == WHITE_ROOK || piece == BLACK_ROOK || piece == WHITE_QUEEN || piece == BLACK_QUEEN)
 	{
 		if (!mayMove(move.GetFrom(), move.GetTo(), allPieces))
 			return false;
 	}
 
-	if (Piece == WHITE_PAWN)
+	if (piece == WHITE_PAWN)
 	{
 		if (RankDiff(move.GetFrom(), move.GetTo()) == -1 && FileDiff(move.GetFrom(), move.GetTo()) == 0)		//push
 		{
@@ -742,7 +742,7 @@ bool MoveIsLegal(Position& position, Move& move)
 		}
 	}
 
-	if (Piece == BLACK_PAWN)
+	if (piece == BLACK_PAWN)
 	{
 		if (RankDiff(move.GetFrom(), move.GetTo()) == 1 && FileDiff(move.GetFrom(), move.GetTo()) == 0)		//push
 		{
@@ -773,31 +773,31 @@ bool MoveIsLegal(Position& position, Move& move)
 		}
 	}
 
-	if (Piece == WHITE_KNIGHT || Piece == BLACK_KNIGHT)
+	if (piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
 	{
 		if ((SquareBB[move.GetTo()] & KnightAttacks[move.GetFrom()]) == 0)
 			return false;
 	}
 
-	if ((Piece == WHITE_KING || Piece == BLACK_KING) && !(move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE))
+	if ((piece == WHITE_KING || piece == BLACK_KING) && !(move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE))
 	{
 		if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
 			return false;
 	}
 
-	if (Piece == WHITE_ROOK || Piece == BLACK_ROOK)
+	if (piece == WHITE_ROOK || piece == BLACK_ROOK)
 	{
 		if ((SquareBB[move.GetTo()] & RookAttacks[move.GetFrom()]) == 0)
 			return false;
 	}
 
-	if (Piece == WHITE_BISHOP || Piece == BLACK_BISHOP)
+	if (piece == WHITE_BISHOP || piece == BLACK_BISHOP)
 	{
 		if ((SquareBB[move.GetTo()] & BishopAttacks[move.GetFrom()]) == 0)
 			return false;
 	}
 
-	if (Piece == WHITE_QUEEN || Piece == BLACK_QUEEN)
+	if (piece == WHITE_QUEEN || piece == BLACK_QUEEN)
 	{
 		if ((SquareBB[move.GetTo()] & QueenAttacks[move.GetFrom()]) == 0)
 			return false;

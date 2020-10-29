@@ -56,7 +56,7 @@ private:
 
 struct Network
 {
-    Network(std::vector<std::vector<int16_t>> inputs);
+    Network(const std::vector<std::vector<int16_t>>& inputs);
     void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs);
 
     void ApplyDelta(std::vector<deltaPoint>& delta);                                                            //incrementally update the connections between input layer and first hidden layer

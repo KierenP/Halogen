@@ -72,16 +72,14 @@ Network InitNetwork()
 }
 
 template<size_t INPUT_COUNT>
-Neuron<INPUT_COUNT>::Neuron()
+Neuron<INPUT_COUNT>::Neuron() : weights(),  bias(0)
 {
 }
 
 template<size_t INPUT_COUNT>
-Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias)
+Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias) : weights(), bias(Bias)
 {
     assert(Weight.size() == INPUT_COUNT);
-
-    bias = Bias;
 
     for (size_t i = 0; i < INPUT_COUNT; i++)
     {
@@ -162,12 +160,8 @@ void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>&
     }
 }
 
-Network::Network(std::vector<std::vector<int16_t>> inputs) : hiddenLayer(inputs[1]), outputNeuron(std::vector<int16_t>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back())
+Network::Network(const std::vector<std::vector<int16_t>>& inputs) : hiddenLayer(inputs[1]), outputNeuron(std::vector<int16_t>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back()), OldZeta()
 {
-    for (size_t i = 0; i < MAX_DEPTH; i++)
-    {
-        OldZeta[i] = {};
-    }
 }
 
 void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)

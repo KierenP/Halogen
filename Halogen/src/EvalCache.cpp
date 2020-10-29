@@ -1,8 +1,7 @@
 #include "EvalCache.h"
 
-EvalCacheTable::EvalCacheTable()
+EvalCacheTable::EvalCacheTable() : table(new std::array<EvalCacheEntry, 65536>)
 {
-	table = new std::array<EvalCacheEntry, 65536>;
 }
 
 EvalCacheTable::~EvalCacheTable()
