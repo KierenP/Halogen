@@ -333,6 +333,7 @@ int bitScanReverse(uint64_t bb)
 	bb |= bb >> 8;
 	bb |= bb >> 16;
 	bb |= bb >> 32;
+	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
 	return index64[(bb * debruijn64) >> 58];
 #endif 
 }
