@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			thread searchThread([&] {MultithreadedSearch(position, position.GetTurn() ? wtime + winc : btime + binc, movetime, ThreadCount); });
+			thread searchThread([=] {MultithreadedSearch(position, position.GetTurn() ? wtime + winc : btime + binc, movetime, ThreadCount); });
 			searchThread.detach();
 			
 		}
