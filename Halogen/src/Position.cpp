@@ -4,6 +4,7 @@ Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
 	delta.reserve(4); //1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
+	StartingPosition();
 }
 
 Position::~Position()
@@ -91,6 +92,7 @@ void Position::ApplyMove(Move move)
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
 	net.ApplyDelta(CalculateMoveDelta(move));
+	nodesSearched++;
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -250,6 +252,9 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 
 	key = GenerateZobristKey();
 	net.RecalculateIncremental(GetInputLayer());
+
+	nodesSearched = 0;
+	tbHits = 0;
 
 	return true;
 }
