@@ -64,7 +64,6 @@ public:
 	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals);
 	void ReportDepth(unsigned int depth, unsigned int threadID);
 	void ReportWantsToStop(unsigned int threadID);
-	bool ShouldSkipDepth(unsigned int depth);
 	int GetAspirationScore();
 	
 	uint64_t getTBHits() const { return tbHits; }

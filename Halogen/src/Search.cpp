@@ -290,8 +290,6 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 		if (!locals.ContinueSearch())
 			sharedData.ReportWantsToStop(threadID);
 
-		if (sharedData.ShouldSkipDepth(depth)) continue;
-
 		sharedData.ReportDepth(depth, threadID);
 
 		SearchResult search = AspirationWindowSearch(position, depth, prevScore, locals, sharedData, threadID);
@@ -1048,20 +1046,6 @@ void ThreadSharedData::ReportWantsToStop(unsigned int threadID)
 	}
 
 	KeepSearching = false;
-}
-
-bool ThreadSharedData::ShouldSkipDepth(unsigned int depth)
-{
-	std::lock_guard<std::mutex> lg(ioMutex);
-	int count = 0;
-
-	for (size_t i = 0; i < searchDepth.size(); i++)
-	{
-		if (searchDepth[i] >= depth)
-			count++;
-	}
-
-	return (count > static_cast<int>(searchDepth.size()) / 2);
 }
 
 int ThreadSharedData::GetAspirationScore()
