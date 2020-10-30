@@ -375,26 +375,29 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	/*Query the transpotition table*/
-	TTEntry entry = tTable.GetEntry(position.GetZobristKey());
-	if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
+	if (!IsPV(beta, alpha)) 
 	{
-		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
-
-		int rep = 1;
-		uint64_t current = position.GetZobristKey();
-
-		for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
+		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 		{
-			if (position.GetPreviousKey(i) == current)
+			tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+
+			int rep = 1;
+			uint64_t current = position.GetZobristKey();
+
+			for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
 			{
-				rep++;
-				break;
+				if (position.GetPreviousKey(i) == current)
+				{
+					rep++;
+					break;
+				}
 			}
-		}
 
-		if (rep < 2)												//don't use the transposition if we have been at this position in the past
-		{
-			if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
+			if (rep < 2)												//don't use the transposition if we have been at this position in the past
+			{
+				if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
+			}
 		}
 	}
 
