@@ -36,7 +36,6 @@ int main(int argc, char* argv[])
 	tTable.SetSize(1);
 
 	Position position;
-	position.StartingPosition();
 
 	unsigned int ThreadCount = 1;
 
