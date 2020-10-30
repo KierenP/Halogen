@@ -104,6 +104,7 @@ int main(int argc, char* argv[])
 			int binc = 0;
 			int searchTime = 0;
 			int movestogo = 0;
+			int depth = 0;
 
 			while (iss >> token)
 			{
@@ -112,9 +113,16 @@ int main(int argc, char* argv[])
 				else if (token == "winc")	iss >> winc;
 				else if (token == "binc")	iss >> binc;
 				else if (token == "movetime") iss >> searchTime;
-				else if (token == "infinite") { wtime = 2147483647; btime = 2147483647; }
+				else if (token == "infinite") searchTime = 2147483647;
 				else if (token == "movestogo") iss >> movestogo;
+
+				else if (token == "depth") {
+					iss >> depth;
+					DepthSearch(position, depth);
+				}
 			}
+
+			if (depth != 0) continue;	//search already done just above
 
 			int movetime = 0;
 
@@ -139,7 +147,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			thread searchThread([=] {MultithreadedSearch(position, position.GetTurn() ? wtime + winc : btime + binc, movetime, ThreadCount); });
+			thread searchThread([=] {MultithreadedSearch(position, std::max(position.GetTurn() ? wtime + winc : btime + binc, movetime), movetime, ThreadCount); });
 			searchThread.detach();
 			
 		}
