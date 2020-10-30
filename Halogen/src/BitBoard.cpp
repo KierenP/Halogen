@@ -166,7 +166,7 @@ uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
 unsigned int BitBoard::GetKing(bool colour) const
 {
 	assert(GetPieceBB(KING, colour) != 0);	//assert only runs in debug so I don't care about the double call
-	return bitScanForward(GetPieceBB(KING, colour));
+	return LSB(GetPieceBB(KING, colour));
 }
 
 BitBoardData::BitBoardData() : m_Bitboard {0}

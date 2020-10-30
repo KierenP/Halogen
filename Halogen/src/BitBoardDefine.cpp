@@ -280,17 +280,17 @@ unsigned int ColourOfPiece(unsigned int piece)
 	return piece / N_PIECE_TYPES;
 }
 
-int bitScanForwardErase(uint64_t &bb)
+int LSPpop(uint64_t &bb)
 {
 	assert(bb != 0);
 
-	int index = bitScanForward(bb);
+	int index = LSB(bb);
 
 	bb &= bb - 1;
 	return index;
 }
 
-int bitScanForward(uint64_t bb)
+int LSB(uint64_t bb)
 {
 #if defined(_MSC_VER) && defined(USE_POPCNT) && defined(_WIN64)
 	unsigned long index;
@@ -309,33 +309,6 @@ int bitScanForward(uint64_t bb)
 	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 #endif
-}
-
-int bitScanReverse(uint64_t bb)
-{
-#if defined(_MSC_VER) && defined(USE_POPCNT) && defined(_WIN64)
-	unsigned long index;
-	_BitScanReverse64(&index, bb);
-	return index;
-#elif defined(__GNUG__) && defined(GCC_USE_POPCNT)
-	return 63 - __builtin_clzll(bb);
-#else
-	/**
-	 * bitScanReverse
-	 * @authors Kim Walisch, Mark Dickinson
-	 * @param bb bitboard to scan
-	 * @precondition bb != 0
-	 * @return index (0..63) of most significant one bit
-	 */
-	bb |= bb >> 1;
-	bb |= bb >> 2;
-	bb |= bb >> 4;
-	bb |= bb >> 8;
-	bb |= bb >> 16;
-	bb |= bb >> 32;
-	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-	return index64[(bb * debruijn64) >> 58];
-#endif 
 }
 
 //Not my code
