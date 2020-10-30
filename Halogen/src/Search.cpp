@@ -81,8 +81,8 @@ void DepthSearch(const Position& position, int maxSearchDepth)
 {
 	InitSearch();
 	tTable.ResetTable();
-	ThreadSharedData sharedData(2147483647, 2147483647, 1);
-	SearchPosition(position, sharedData, 0, maxSearchDepth);
+	ThreadSharedData sharedData(1);
+	SearchPosition(position, sharedData, 0, 2147483647, 2147483647, 1, maxSearchDepth);
 	PrintBestMove(sharedData.GetBestMove());
 }
 
