@@ -53,8 +53,8 @@ int main(int argc, char* argv[])
 			cout << "id name Halogen " << version << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 2 min 2 max 8192" << endl;
-			cout << "option name Threads type spin default 1 min 1 max 8" << endl;
+			cout << "option name Hash type spin default 2 min 2 max 262144" << endl;
+			cout << "option name Threads type spin default 1 min 1 max 64" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
 			cout << "uciok" << endl;
 		}
@@ -64,7 +64,6 @@ int main(int argc, char* argv[])
 		else if (token == "ucinewgame")
 		{
 			position.StartingPosition();
-			//pawnHashTable.ResetTable();
 			tTable.ResetTable();
 		}
 
@@ -161,7 +160,6 @@ int main(int argc, char* argv[])
 				iss >> token;
 				if (token == "Hash") 
 				{
-					//pawnHashTable.ResetTable();
 					tTable.ResetTable();
 				}
 			}
@@ -170,35 +168,14 @@ int main(int argc, char* argv[])
 			{
 				iss >> token; //'value'
 				iss >> token;
-
-				int size = stoi(token);
-
-				if (size < 2)
-					cout << "info string Hash size too small" << endl;
-				else if (size > 8192)
-					cout << "info string Hash size too large" << endl;
-				else
-				{
-					tTable.SetSize(stoi(token) - 1);
-					//pawnHashTable.Init(1);
-				}
+				tTable.SetSize(stoi(token));
 			}
 
 			else if (token == "Threads")
 			{
 				iss >> token; //'value'
 				iss >> token;
-
-				int size = stoi(token);
-
-				if (size < 1)
-					cout << "info string thread count too small" << endl;
-				else if (size > 8)
-					cout << "info string thread count too large" << endl;
-				else
-				{
-					ThreadCount = size;
-				}
+				ThreadCount = stoi(token);
 			}
 
 			else if (token == "SyzygyPath")
