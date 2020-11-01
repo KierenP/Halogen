@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
 				}
 			}
 
-			thread searchThread([=] {MultithreadedSearch(position, std::max(position.GetTurn() ? wtime + winc : btime + binc, movetime), movetime, ThreadCount); });
+			thread searchThread([=] {MultithreadedSearch(position, std::max(position.GetTurn() ? wtime : btime, movetime), movetime, ThreadCount); });
 			searchThread.detach();
 			
 		}
