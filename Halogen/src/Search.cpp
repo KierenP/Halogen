@@ -309,7 +309,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	int beta = prevScore + std::max(1, 15 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
 	SearchResult search = { 0 };
 
-	while (!locals.AbortSearch(0))
+	while (!locals.AbortSearch(0) || depth == 1)
 	{
 		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		if (alpha < search.GetScore() && search.GetScore() < beta) break;
@@ -340,7 +340,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (distanceFromRoot > 0 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
+	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
 
@@ -826,7 +826,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 {
 	locals.PvTable[distanceFromRoot].clear();
 
-	if (locals.AbortSearch(position.GetNodes())) return -1;
+	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;
 	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
 
