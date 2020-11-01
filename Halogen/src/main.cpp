@@ -113,41 +113,26 @@ int main(int argc, char* argv[])
 				else if (token == "movetime") iss >> searchTime;
 				else if (token == "infinite") searchTime = 2147483647;
 				else if (token == "movestogo") iss >> movestogo;
-
-				else if (token == "depth") {
-					iss >> depth;
-					DepthSearch(position, depth);
-				}
+				else if (token == "depth") iss >> depth;
 			}
 
-			if (depth != 0) continue;	//search already done just above
+			thread searchThread;
 
-			int movetime = 0;
+			int myTime = position.GetTurn() ? wtime : btime;
+			int myInc  = position.GetTurn() ? winc : binc;
 
-			if (searchTime != 0) 
-				movetime = searchTime;
-			else
-			{
-				if (movestogo == 0)
-				{
+			if (depth != 0) 										
+				searchThread = thread([=] {DepthSearch(position, depth); });																				//fixed depth search
+			else if (searchTime != 0) 							
+				searchThread = thread([=] {MultithreadedSearch(position, searchTime, searchTime, ThreadCount); });											//fixed time search
+			else if (movestogo != 0)		
+				searchThread = thread([=] {MultithreadedSearch(position, myTime, movestogo <= 1 ? myTime : myTime / (movestogo + 1) * 2, ThreadCount); });	//repeating time control
+			else if (myInc != 0)
+				searchThread = thread([=] {MultithreadedSearch(position, myTime, myTime / 16 + myInc, ThreadCount); });										//increment time control
+			else 
+				searchThread = thread([=] {MultithreadedSearch(position, myTime, myTime / 16, ThreadCount); });												//sudden death time control
 
-					if (position.GetTurn() == WHITE)
-						movetime = wtime / 16 + winc;
-					else
-						movetime = btime / 16 + binc;
-				}
-				else
-				{
-					if (position.GetTurn() == WHITE)
-						movetime = movestogo <= 1 ? wtime : wtime / (movestogo + 1) * 2;	
-					else
-						movetime = movestogo <= 1 ? btime : btime / (movestogo + 1) * 2;
-				}
-			}
-
-			thread searchThread([=] {MultithreadedSearch(position, std::max(position.GetTurn() ? wtime : btime, movetime), movetime, ThreadCount); });
 			searchThread.detach();
-			
 		}
 
 		else if (token == "setoption")
