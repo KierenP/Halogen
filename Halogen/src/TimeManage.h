@@ -52,7 +52,7 @@ public:
 	bool ContinueSearch();	//Should I search to another depth, or stop with what ive got?
 	bool AbortSearch(uint64_t nodes);		//should I attempt to stop searching right now? Nodes is passed because we only want to check the exact time every 1000 nodes or so
 
-	void StartSearch(int maxTime, int allocatedTime, int threads = 1);	//pass the allowed search time maximum in milliseconds
+	void StartSearch(int maxTime, int allocatedTime);	//pass the allowed search time maximum in milliseconds
 
 private:
 	Timer timer;

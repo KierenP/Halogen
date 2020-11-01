@@ -54,11 +54,10 @@ bool SearchTimeManage::AbortSearch(uint64_t nodes)
 	return (!KeepSearching || CacheShouldStop);
 }
 
-void SearchTimeManage::StartSearch(int maxTime, int allocatedTime, int threads)
+void SearchTimeManage::StartSearch(int maxTime, int allocatedTime)
 {
 	timer.Restart();
 	timer.Start();
 	AllocatedSearchTimeMS = allocatedTime;
 	MaxTimeMS = maxTime;
-	BufferTime *= threads;
 }
