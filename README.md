@@ -17,4 +17,4 @@ Halogen is not a stand alone application and should be used with any popular che
 
 Check it out on the CCRL Blitz rating list: [Link](https://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Halogen&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents)
 
-Halogen is currently ranked 150 in the international CCRL blitz leaderboards
+Halogen is currently ranked 93rd in the international CCRL 40/15 leaderboards
