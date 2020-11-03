@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 			else if (myInc != 0)
 				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 16 + myInc, ThreadCount); });				//increment time control
 			else 
-				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 16, ThreadCount); });						//sudden death time control
+				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 20, ThreadCount); });						//sudden death time control
 
 			searchThread.detach();
 		}
