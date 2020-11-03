@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 			else if (searchTime != 0) 							
 				searchThread = thread([=, &position] {MultithreadedSearch(position, searchTime, searchTime, ThreadCount); });					//fixed time search
 			else if (movestogo != 0)		
-				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / (movestogo + 1) * 2, ThreadCount); });		//repeating time control
+				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / (movestogo + 1) * 3 / 2, ThreadCount); });	//repeating time control
 			else if (myInc != 0)
 				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 16 + myInc, ThreadCount); });				//increment time control
 			else 
