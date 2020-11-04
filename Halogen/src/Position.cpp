@@ -3,7 +3,6 @@
 Position::Position() : net(InitNetwork())
 {
 	key = EMPTY;
-	delta.reserve(4); //1 for turn change, 2 for to and from square and then 1 extra if there is a capture. Promotions or castle moves use more but thats ok
 	StartingPosition();
 }
 
@@ -438,50 +437,67 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 	return ret;
 }
 
-std::vector<deltaPoint>& Position::CalculateMoveDelta(Move move)
+deltaArray& Position::CalculateMoveDelta(Move move)
 {
-	delta.clear();
+	delta.size = 0;
 	if (move.IsUninitialized()) return delta;		//null move
 
 	if (!move.IsPromotion())
 	{
-		delta.push_back({ modifier(GetSquare(move.GetTo()) * 64 + move.GetFrom()), -1 });				//toggle the square we left
-		delta.push_back({ modifier(GetSquare(move.GetTo()) * 64 + move.GetTo()), 1 });				//toggle the arriving square
+		delta.deltas[delta.size].index = modifier(GetSquare(move.GetTo()) * 64 + move.GetFrom());			//toggle the square we left
+		delta.deltas[delta.size++].delta = -1;
+		delta.deltas[delta.size].index = modifier(GetSquare(move.GetTo()) * 64 + move.GetTo());			//toggle the arriving square
+		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//En Passant
 	if (move.GetFlag() == EN_PASSANT)
-		delta.push_back({ modifier(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))), -1 });	//remove the captured piece
+	{
+		delta.deltas[delta.size].index = modifier(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));	//remove the captured piece
+		delta.deltas[delta.size++].delta = -1;
+	}
 
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-		delta.push_back({ modifier(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo()), -1 });
+	{
+		delta.deltas[delta.size].index = modifier(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo());
+		delta.deltas[delta.size++].delta = -1;
+	}
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
-		delta.push_back({ modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()))), -1 });
-		delta.push_back({ modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()))), 1 });
+		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom())));
+		delta.deltas[delta.size++].delta = -1;
+
+		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom())));
+		delta.deltas[delta.size++].delta = 1;
 	}
 
 	if (move.GetFlag() == QUEEN_CASTLE)
 	{
-		delta.push_back({ modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()))), -1 });
-		delta.push_back({ modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()))), 1 });
+		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom())));
+		delta.deltas[delta.size++].delta = -1;
+
+		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom())));
+		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//Promotions
 	if (move.IsPromotion())
 	{
-		delta.push_back({ modifier(Piece(PAWN, !GetTurn()) * 64 + move.GetFrom()), -1 });
+		delta.deltas[delta.size].index = modifier(Piece(PAWN, !GetTurn()) * 64 + move.GetFrom());
+		delta.deltas[delta.size++].delta = -1;
 
 		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			delta.push_back({ modifier(Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo()), 1 });
+			delta.deltas[delta.size].index = modifier(Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo());
 		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			delta.push_back({ modifier(Piece(BISHOP, !GetTurn()) * 64 + move.GetTo()), 1 });
+			delta.deltas[delta.size].index = modifier(Piece(BISHOP, !GetTurn()) * 64 + move.GetTo());
 		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			delta.push_back({ modifier(Piece(ROOK, !GetTurn()) * 64 + move.GetTo()), 1 });
+			delta.deltas[delta.size].index = modifier(Piece(ROOK, !GetTurn()) * 64 + move.GetTo());
 		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			delta.push_back({ modifier(Piece(QUEEN, !GetTurn()) * 64 + move.GetTo()), 1 });
+			delta.deltas[delta.size].index = modifier(Piece(QUEEN, !GetTurn()) * 64 + move.GetTo());
+
+		delta.deltas[delta.size++].delta = 1;
 	}
 
 	return delta;

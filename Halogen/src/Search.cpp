@@ -34,7 +34,7 @@ SearchResult UseSearchTBScore(unsigned int result, int staticEval);
 SearchResult UseRootTBScore(unsigned int result, int staticEval);
 
 void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxTime, int allocatedTimeMs, int maxSearchDepth = MAX_DEPTH, SearchData locals = SearchData());
-SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
+SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID, Timer& searchTime);
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i);
@@ -292,7 +292,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 
 		sharedData.ReportDepth(depth, threadID);
 
-		SearchResult search = AspirationWindowSearch(position, depth, prevScore, locals, sharedData, threadID);
+		SearchResult search = AspirationWindowSearch(position, depth, prevScore, locals, sharedData, threadID, searchTime);
 		int score = search.GetScore();
 
 		if (depth > 1 && locals.AbortSearch(0)) { break; }
@@ -303,7 +303,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 	}
 }
 
-SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
+SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID, Timer& searchTime)
 {
 	int alpha = prevScore - std::max(1, 15 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
 	int beta = prevScore + std::max(1, 15 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
@@ -317,11 +317,13 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 
 		if (search.GetScore() <= alpha)
 		{
+			sharedData.ReportResult(depth, searchTime.ElapsedMs(), alpha, alpha, beta, position, search.GetMove(), locals);
 			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
 		}
 
 		if (search.GetScore() >= beta)
 		{
+			sharedData.ReportResult(depth, searchTime.ElapsedMs(), beta, alpha, beta, position, search.GetMove(), locals);
 			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
 		}
 	} 

@@ -135,12 +135,12 @@ std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedFo
 }
 
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(std::vector<deltaPoint>& deltaVec)
+void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(deltaArray& deltaVec)
 {
-    for (auto it = deltaVec.begin(); it != deltaVec.end(); ++it)
+    for (size_t point = 0; point < deltaVec.size; point++)
     {
-        int16_t deltaValue = it->delta; 
-        size_t weightTransposeIndex = it->index * OUTPUT_COUNT;
+        int16_t deltaValue = deltaVec.deltas[point].delta; 
+        size_t weightTransposeIndex = deltaVec.deltas[point].index * OUTPUT_COUNT;
 
         if (deltaValue == 1)
         {
@@ -176,7 +176,7 @@ void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
     hiddenLayer.FeedForward(inputs);
 }
 
-void Network::ApplyDelta(std::vector<deltaPoint>& delta)
+void Network::ApplyDelta(deltaArray& delta)
 {
     OldZeta[incrementalDepth++] = hiddenLayer.zeta;
     hiddenLayer.ApplyDelta(delta);

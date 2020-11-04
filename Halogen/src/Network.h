@@ -22,10 +22,16 @@ constexpr int16_t HALF_PRECISION = PRECISION / 2;
 constexpr int16_t log2u16(int16_t n) { return ((n < 2) ? 0 : 1 + log2u16(n / 2)); }
 constexpr int16_t PRECISION_SHIFT = log2u16(PRECISION);
 
-struct deltaPoint
+struct deltaArray
 {
-    size_t index;
-    int16_t delta;
+    struct deltaPoint
+    {
+        size_t index;
+        int16_t delta;
+    };
+
+    size_t size;
+    deltaPoint deltas[4];
 };
 
 template<size_t INPUT_COUNT>
@@ -45,7 +51,7 @@ struct HiddenLayer
     HiddenLayer(std::vector<int16_t> inputs);                                                                   // <for first neuron>: weight1, weight2, ..., weightN, bias, <next neuron etc...>
     std::array<int16_t, OUTPUT_COUNT> FeedForward(std::array<int16_t, INPUT_COUNT>& input);
 
-    void ApplyDelta(std::vector<deltaPoint>& deltaVec);                                                         //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(deltaArray& deltaVec);                                                         //incrementally update the connections between input layer and first hidden layer
 
     std::array<Neuron<INPUT_COUNT>, OUTPUT_COUNT>* neurons;
     std::array<int16_t, OUTPUT_COUNT> zeta;
@@ -59,7 +65,7 @@ struct Network
     Network(const std::vector<std::vector<int16_t>>& inputs);
     void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs);
 
-    void ApplyDelta(std::vector<deltaPoint>& delta);                                                            //incrementally update the connections between input layer and first hidden layer
+    void ApplyDelta(deltaArray& delta);                                                            //incrementally update the connections between input layer and first hidden layer
     void ApplyInverseDelta();                                                                                   //for un-make moves
     int16_t QuickEval();                                                                                        //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
