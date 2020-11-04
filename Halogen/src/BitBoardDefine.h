@@ -9,10 +9,6 @@
 #include <intrin.h>
 #endif
 
-#ifndef NO_POPCNT
-	#define USE_POPCNT
-#endif // !NO_POPCNT
-
 extern bool HASH_ENABLE;
 
 enum Squares

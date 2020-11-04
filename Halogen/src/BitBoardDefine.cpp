@@ -256,7 +256,7 @@ unsigned int GetBitCount(uint64_t bb)
 {
 #if defined(_MSC_VER) && defined(USE_POPCNT) && defined(_WIN64)
 	return __popcnt64(bb);
-#elif defined(__GNUG__) && defined(GCC_USE_POPCNT)
+#elif defined(__GNUG__) && defined(USE_POPCNT)
 	return __builtin_popcountll(bb);
 #else
 	return std::bitset<std::numeric_limits<uint64_t>::digits>(bb).count();
@@ -296,7 +296,7 @@ int LSB(uint64_t bb)
 	unsigned long index;
 	_BitScanForward64(&index, bb);
 	return index;
-#elif defined(__GNUG__) && defined(GCC_USE_POPCNT)
+#elif defined(__GNUG__) && defined(USE_POPCNT)
 	return __builtin_ctzll(bb);
 #else
 	/**
