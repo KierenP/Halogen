@@ -725,13 +725,6 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
 			extension += 1;
 	}
-	else
-	{
-		int SEE = see(position, move.GetTo(), position.GetTurn());
-
-		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()) && SEE == 0)	//move already applied so positive SEE bad
-			extension += 1;
-	}
 
 	if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
 		extension += 1;
