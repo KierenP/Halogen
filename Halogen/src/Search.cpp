@@ -464,7 +464,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (Score > a)
 		{
 			a = Score;
-			UpdatePV(hashMove, distanceFromRoot, locals.PvTable);
+			UpdatePV(hashMove, distanceFromRoot, locals.PvTable); 5177344
 		}
 
 		if (a >= beta) //Fail high cutoff
@@ -494,7 +494,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	OrderMoves(moves, position, distanceFromRoot, locals);
 	bool InCheck = IsInCheck(position);
 
-	if (multiCut && !IsPV(beta, alpha) && depthRemaining > Multicut_r + 1 && !InCheck)
+	if (multiCut && !IsPV(beta, alpha) && depthRemaining > Multicut_r + 1 && !InCheck && (staticScore > beta))
 	{
 		int cut = 0;
 		for (size_t i = 0; i < moves.size() && i < Multicut_m; i++)
