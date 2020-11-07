@@ -726,12 +726,6 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 			extension += 1;
 	}
 
-	//if (position.GetSquare(move.GetTo()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_7)	//note the move has already been applied
-	//	extension += 1;
-
-	//if (position.GetSquare(move.GetTo()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_2)
-	//	extension += 1;
-
 	return extension;
 }
 
