@@ -90,7 +90,7 @@ bool MoveGenerator::GetNext(Move& move, Position& position, int distanceFromRoot
 	if (stage == GIVE_TT_MOVE)
 	{
 		stage = GEN_ALL_OTHERS;
-		if (!TTmove.IsUninitialized())
+		if (!TTmove.IsUninitialized() && MoveIsLegal(position, TTmove))
 		{
 			move = TTmove;
 			return true;
@@ -510,6 +510,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int a = alpha;
 	int b = beta;
 	bool InCheck = IsInCheck(position);
+
+	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+		depthRemaining--;
+
 	bool FutileNode = (depthRemaining < static_cast<int>(FutilityMargins.size()) && staticScore + FutilityMargins.at(std::max<int>(0, depthRemaining)) < a);
 
 	Move move;
