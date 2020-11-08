@@ -464,7 +464,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (Score > a)
 		{
 			a = Score;
-			UpdatePV(hashMove, distanceFromRoot, locals.PvTable); 5177344
+			UpdatePV(hashMove, distanceFromRoot, locals.PvTable);
 		}
 
 		if (a >= beta) //Fail high cutoff
