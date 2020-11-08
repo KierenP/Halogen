@@ -919,9 +919,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			break;
 	}
 
-	if (!locals.AbortSearch(position.GetNodes()) && !(sharedData.ThreadAbort(initialDepth)))
-		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestmove);
-
 	return SearchResult(Score, bestmove);
 }
 
