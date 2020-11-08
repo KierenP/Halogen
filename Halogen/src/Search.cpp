@@ -54,7 +54,7 @@ Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsig
 
 	for (unsigned int i = 0; i < threadCount; i++)
 	{
-		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i, maxTimeMs, AllocatedTimeMs, maxSearchDepth ); }));
+		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i, maxTimeMs, AllocatedTimeMs, maxSearchDepth ); })); 
 	}
 
 	for (size_t i = 0; i < threads.size(); i++)
