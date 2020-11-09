@@ -25,6 +25,7 @@ class Move
 public:
 	Move();
 	Move(unsigned int from, unsigned int to, unsigned int flag);
+	Move(unsigned short bits);
 	~Move();
 
 	unsigned int GetFrom() const;
@@ -44,6 +45,8 @@ public:
 
 	int orderScore;
 
+	unsigned short GetBits() const { return data; }
+
 private:
 
 	void SetFrom(unsigned int from);
@@ -51,6 +54,11 @@ private:
 	void SetFlag(unsigned int flag);
 
 	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
+	unsigned short data;
+};
+
+struct MoveBits
+{
 	unsigned short data;
 };
 

@@ -258,7 +258,6 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 #if defined(_MSC_VER) && !defined(NDEBUG)  
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(sharedData.getNodes(), uint64_t(1))
 		<< " evalHitRate " << locals.evalTable.hits * 1000 / std::max(locals.evalTable.hits + locals.evalTable.misses, uint64_t(1));
 #endif
 
