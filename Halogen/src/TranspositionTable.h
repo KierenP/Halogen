@@ -13,10 +13,8 @@ public:
 	~TranspositionTable();
 
 	size_t GetSize() const { return table.size(); }
-	uint64_t GetHitCount() const { return TTHits; }
 	int GetCapacity(int halfmove) const;
 
-	void ResetHitCount() { TTHits = 0; }
 	void ResetTable();
 	void SetSize(uint64_t MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff);
@@ -24,13 +22,11 @@ public:
 
 	void SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot);
 
-	void AddHit() { TTHits++; }	//this is called every time we get a position from here. We don't count it if we just used it for move ordering
 	uint64_t HashFunction(const uint64_t& key) const;
 	void PreFetch(uint64_t key) const;
 
 private:
 	std::vector<TTEntry> table;
-	uint64_t TTHits;
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);

@@ -89,7 +89,6 @@ void DepthSearch(const Position& position, int maxSearchDepth)
 void InitSearch()
 {
 	KeepSearching = true;
-	tTable.ResetHitCount();
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -679,7 +678,6 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 {
-	tTable.AddHit();
 	entry.MateScoreAdjustment(distanceFromRoot);	//this MUST be done
 
 	if (entry.GetCutoff() == EntryType::EXACT) return true;
