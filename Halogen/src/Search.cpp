@@ -11,15 +11,15 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position, int distanceFromRoot);
-bool LMR(bool InCheck, const Position& position, int depthRemaining);
+bool LMR(bool InCheck, const Position& position);
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining);
+bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha);
 bool IsEndGame(const Position& position);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
-int extension(Position & position, const Move& move, int alpha, int beta);
+int extension(Position & position, int alpha, int beta);
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
 Move GetHashMove(const Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
@@ -408,7 +408,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha, depthRemaining) && (staticScore > beta))
+	if (AllowedNull(allowedNull, position, beta, alpha) && (staticScore > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
@@ -437,7 +437,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	{
 		position.ApplyMove(hashMove);
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
-		int extendedDepth = depthRemaining + extension(position, hashMove, alpha, beta);
+		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 		position.RevertMove();
 
@@ -503,10 +503,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			continue;
 		}
 
-		int extendedDepth = depthRemaining + extension(position, moves[i], alpha, beta);
+		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 
 		//late move reductions
-		if (LMR(InCheck, position, depthRemaining) && i > 3)
+		if (LMR(InCheck, position) && i > 3)
 		{
 			int reduction = Reduction(depthRemaining, static_cast<int>(i), alpha, beta);
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
@@ -707,7 +707,7 @@ bool CheckForRep(Position& position, int distanceFromRoot)
 	return false;
 }
 
-int extension(Position& position, const Move& move, int alpha, int beta)
+int extension(Position& position, int alpha, int beta)
 {
 	int extension = 0;
 
@@ -720,7 +720,7 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 	return extension;
 }
 
-bool LMR(bool InCheck, const Position& position, int depthRemaining)
+bool LMR(bool InCheck, const Position& position)
 {
 	return !InCheck
 		&& !IsEndGame(position)
@@ -736,7 +736,7 @@ bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& posi
 		&& !IsInCheck(position);
 }
 
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, unsigned int depthRemaining)
+bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha)
 {
 	return allowedNull
 		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn())

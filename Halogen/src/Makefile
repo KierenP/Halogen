@@ -6,7 +6,7 @@ LIBS    = -lpthread -lm
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
