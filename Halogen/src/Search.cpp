@@ -722,10 +722,9 @@ int extension(Position& position, const Move& move, int alpha, int beta)
 
 bool LMR(bool InCheck, const Position& position, int depthRemaining)
 {
-	return !InCheck 
+	return !InCheck
 		&& !IsEndGame(position)
-		&& !IsInCheck(position)
-		&& depthRemaining > 3;
+		&& !IsInCheck(position);
 }
 
 bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position)
