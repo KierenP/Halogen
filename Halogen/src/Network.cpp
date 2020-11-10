@@ -90,14 +90,14 @@ Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias) : weights
 template<size_t INPUT_COUNT>
 int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input) const
 {
-    int32_t ret = bias << PRECISION_SHIFT;
+    int32_t ret = bias * PRECISION;
 
     for (size_t i = 0; i < INPUT_COUNT; i++)
     {
         ret += input[i] * weights[i];
     }
 
-    return (ret + HALF_PRECISION) >> PRECISION_SHIFT;
+    return (ret + HALF_PRECISION) / PRECISION;
 }
 
 template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
@@ -196,5 +196,5 @@ int16_t Network::QuickEval()
         inputs[i] = std::max(int16_t(0), hiddenLayer.zeta[i]);
     }
 
-    return (outputNeuron.FeedForward(inputs) + HALF_PRECISION) >> PRECISION_SHIFT;
+    return (outputNeuron.FeedForward(inputs) + HALF_PRECISION) / PRECISION;
 }

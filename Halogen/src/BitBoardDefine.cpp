@@ -314,9 +314,9 @@ int LSB(uint64_t bb)
 //Not my code
 uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 {
-	const int64_t a2a7 = uint64_t(0x0001010101010100);
-	const int64_t b2g7 = uint64_t(0x0040201008040200);
-	const int64_t h1b7 = uint64_t(0x0002040810204080); /* Thanks Dustin, g2b7 did not work for c1-a3 */
+	const uint64_t a2a7 = uint64_t(0x0001010101010100);
+	const uint64_t b2g7 = uint64_t(0x0040201008040200);
+	const uint64_t h1b7 = uint64_t(0x0002040810204080); /* Thanks Dustin, g2b7 did not work for c1-a3 */
 	int64_t btwn, line, rank, file;
 
 	btwn = (UNIVERCE << sq1) ^ (UNIVERCE << sq2);
