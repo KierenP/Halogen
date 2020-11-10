@@ -416,14 +416,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
 		position.RevertNullMove();
 
-		//Verification search worth about ~5 elo. 
 		if (score >= beta)
-		{
-			SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
-
-			if (result.GetScore() >= beta)
-				return result;
-		}
+			return beta;
 	}
 
 	//mate distance pruning
