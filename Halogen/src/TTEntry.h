@@ -1,6 +1,7 @@
 #pragma once
 #include "Move.h"
 #include "BitBoardDefine.h"
+#include <climits>
 
 const unsigned int HALF_MOVE_MODULO = 16;
 
