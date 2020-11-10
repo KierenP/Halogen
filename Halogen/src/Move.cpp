@@ -25,6 +25,11 @@ Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 	SetFlag(flag);
 }
 
+Move::Move(unsigned short bits)
+{
+	data = bits;
+}
+
 Move::~Move()
 {
 }

@@ -89,7 +89,6 @@ void DepthSearch(const Position& position, int maxSearchDepth)
 void InitSearch()
 {
 	KeepSearching = true;
-	tTable.ResetHitCount();
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -259,7 +258,6 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 #if defined(_MSC_VER) && !defined(NDEBUG)  
 	std::cout	//these lines are for debug and not part of official uci protocol
 		<< " string thread " << std::this_thread::get_id()
-		<< " hashHitRate " << tTable.GetHitCount() * 1000 / std::max(sharedData.getNodes(), uint64_t(1))
 		<< " evalHitRate " << locals.evalTable.hits * 1000 / std::max(locals.evalTable.hits + locals.evalTable.misses, uint64_t(1));
 #endif
 
@@ -679,7 +677,6 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 {
-	tTable.AddHit();
 	entry.MateScoreAdjustment(distanceFromRoot);	//this MUST be done
 
 	if (entry.GetCutoff() == EntryType::EXACT) return true;

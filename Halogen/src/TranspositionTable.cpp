@@ -2,7 +2,6 @@
 
 TranspositionTable::TranspositionTable()
 {
-	TTHits = 0;
 	table.push_back(TTEntry());
 }
 
@@ -74,8 +73,6 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-	TTHits = 0;
-
 	for (size_t i = 0; i < table.size(); i++)
 	{
 		table.at(i).Reset();
