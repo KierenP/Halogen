@@ -363,7 +363,7 @@ void Bench()
 			break;
 		}
 
-		uint64_t nodes = BenchSearch(position, 8);
+		uint64_t nodes = BenchSearch(position, 12);
 		nodeCount += nodes;
 	}
 
