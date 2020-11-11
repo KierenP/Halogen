@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench();
 
-string version = "8";  
+string version = "8.1";  
 
 void TestSyzygy();
 
