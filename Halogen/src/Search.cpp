@@ -1,6 +1,6 @@
 #include "Search.h"
 
-const std::vector<int> FutilityMargins = { 100, 150, 250, 400, 600 };
+int FutilityMargins[MAX_DEPTH];
 const unsigned int R = 3;					//Null-move reduction depth
 const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
@@ -89,6 +89,11 @@ void DepthSearch(const Position& position, int maxSearchDepth)
 void InitSearch()
 {
 	KeepSearching = true;
+
+	for (int i = 0; i < MAX_DEPTH; i++)
+	{
+		FutilityMargins[i] = 25 * i * i + 25 * i + 100;
+	}
 }
 
 void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
@@ -485,7 +490,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
-	bool FutileNode = (depthRemaining < static_cast<int>(FutilityMargins.size()) && staticScore + FutilityMargins.at(std::max<int>(0, depthRemaining)) < a);
+	bool FutileNode = staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a;
 
 	for (size_t i = 0; i < moves.size(); i++)	
 	{
