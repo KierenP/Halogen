@@ -90,9 +90,12 @@ void InitSearch()
 {
 	KeepSearching = true;
 
+	int Futility_linear = 25;
+	int Futility_constant = 100;
+
 	for (int i = 0; i < MAX_DEPTH; i++)
 	{
-		FutilityMargins[i] = 25 * i * i + 25 * i + 100;
+		FutilityMargins[i] = Futility_linear * i + Futility_constant;
 	}
 }
 
