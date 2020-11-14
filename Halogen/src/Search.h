@@ -92,4 +92,5 @@ extern TranspositionTable tTable;
 Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
 void DepthSearch(const Position& position, int maxSearchDepth);
+void MateSearch(const Position& position, int searchTime, int mate);
 
