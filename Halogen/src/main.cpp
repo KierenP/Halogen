@@ -103,6 +103,7 @@ int main(int argc, char* argv[])
 			int searchTime = 0;
 			int movestogo = 0;
 			int depth = 0;
+			int mate = 0;
 
 			while (iss >> token)
 			{
@@ -114,6 +115,7 @@ int main(int argc, char* argv[])
 				else if (token == "infinite") searchTime = 2147483647;
 				else if (token == "movestogo") iss >> movestogo;
 				else if (token == "depth") iss >> depth;
+				else if (token == "mate") iss >> mate;
 			}
 
 			thread searchThread;
@@ -121,7 +123,9 @@ int main(int argc, char* argv[])
 			int myTime = position.GetTurn() ? wtime : btime;
 			int myInc  = position.GetTurn() ? winc : binc;
 
-			if (depth != 0) 										
+			if (mate != 0)
+				searchThread = thread([=, &position] {MateSearch(position, searchTime, mate); });
+			else if (depth != 0) 										
 				searchThread = thread([=, &position] {DepthSearch(position, depth); });															//fixed depth search
 			else if (searchTime != 0) 							
 				searchThread = thread([=, &position] {MultithreadedSearch(position, searchTime, searchTime, ThreadCount); });					//fixed time search
@@ -323,8 +327,8 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	clock_t after = clock();
 	double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
 
-	cout << "\nTotal nodes: " << (nodeCount) << " in " << (elapsed_ms / 1000) << "s";
-	cout << "\nNodes per second: " << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000);
+	cout << "\nNodes searched: " << (nodeCount) << " in " << (elapsed_ms / 1000) << " seconds ";
+	cout << "(" << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000) << " nps)" << endl;
 	return nodeCount;
 }
 
@@ -336,6 +340,9 @@ uint64_t Perft(unsigned int depth, Position& position)
 	uint64_t nodeCount = 0;
 	vector<Move> moves;
 	LegalMoves(position, moves);
+
+	if (depth == 1)
+		return moves.size();
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{

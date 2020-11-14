@@ -240,7 +240,13 @@ void Position::StartingPosition()
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
 {
-	if (fen.size() != 6)
+	if (fen.size() == 4)
+	{
+		fen.push_back("0");
+		fen.push_back("1");
+	}
+
+	if (fen.size() < 6)
 		return false;							//bad fen
 
 	if (!InitialiseBoardFromFen(fen))
