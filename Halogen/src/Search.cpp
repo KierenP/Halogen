@@ -1,6 +1,7 @@
 #include "Search.h"
 
-int FutilityMargins[MAX_DEPTH];
+constexpr unsigned int FutilityMaxDepth = 15;
+int FutilityMargins[FutilityMaxDepth];
 const unsigned int R = 3;					//Null-move reduction depth
 const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
 
@@ -105,7 +106,7 @@ void InitSearch()
 	int Futility_linear = 25;
 	int Futility_constant = 100;
 
-	for (int i = 0; i < MAX_DEPTH; i++)
+	for (int i = 0; i < FutilityMaxDepth; i++)
 	{
 		FutilityMargins[i] = Futility_linear * i + Futility_constant;
 	}
@@ -507,7 +508,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
-	bool FutileNode = staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a;
+	bool FutileNode = (depthRemaining < FutilityMaxDepth) && (staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a);
 
 	for (size_t i = 0; i < moves.size(); i++)	
 	{
