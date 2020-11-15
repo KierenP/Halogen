@@ -440,7 +440,18 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		position.RevertNullMove();
 
 		if (score >= beta)
-			return beta;
+		{
+			if (beta < matedIn(MAX_DEPTH))	
+			{
+				SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
+				if (result.GetScore() >= beta)
+					return result;
+			}
+			else
+			{
+				return beta;
+			}
+		}
 	}
 
 	//mate distance pruning
