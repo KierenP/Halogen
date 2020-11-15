@@ -43,7 +43,7 @@ SearchTimeManage::~SearchTimeManage()
 
 bool SearchTimeManage::ContinueSearch()
 {
-	return (timer.ElapsedMs() < AllocatedSearchTimeMS / 2);
+	return (AllocatedSearchTimeMS == MaxTimeMS || timer.ElapsedMs() < AllocatedSearchTimeMS / 2);	//if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort search early
 }
 
 bool SearchTimeManage::AbortSearch(uint64_t nodes)
