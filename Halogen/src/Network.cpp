@@ -1,7 +1,7 @@
 #include "Network.h"
 
 static const char* WeightsTXT[] = {
-    #include "epoch1500_b8192_quant128.nn"
+    #include "epoch170_b16384_quant128.nn"
     ""
 };
 
@@ -139,7 +139,7 @@ void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(deltaArray& deltaVec)
 {
     for (size_t point = 0; point < deltaVec.size; point++)
     {
-        int16_t deltaValue = deltaVec.deltas[point].delta; 
+        int16_t deltaValue = deltaVec.deltas[point].delta;
         size_t weightTransposeIndex = deltaVec.deltas[point].index * OUTPUT_COUNT;
 
         if (deltaValue == 1)
@@ -190,7 +190,7 @@ void Network::ApplyInverseDelta()
 int16_t Network::QuickEval()
 {
     std::array<int16_t, HIDDEN_NEURONS> inputs;
-    
+
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
     {
         inputs[i] = std::max(int16_t(0), hiddenLayer.zeta[i]);
