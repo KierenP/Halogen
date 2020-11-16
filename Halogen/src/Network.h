@@ -14,7 +14,7 @@
 #include "BitBoardDefine.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
-constexpr size_t HIDDEN_NEURONS = 128;
+constexpr size_t HIDDEN_NEURONS = 256;
 
 constexpr int16_t MAX_VALUE = 128;
 constexpr int16_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / MAX_VALUE;
