@@ -1,6 +1,6 @@
 #include "Search.h"
 
-constexpr unsigned int FutilityMaxDepth = 15;
+constexpr int FutilityMaxDepth = 15;
 int FutilityMargins[FutilityMaxDepth];
 const unsigned int R = 3;					//Null-move reduction depth
 const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
