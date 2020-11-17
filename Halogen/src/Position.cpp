@@ -90,7 +90,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	net.ApplyDelta(CalculateMoveDelta(move));
+	net->ApplyDelta(CalculateMoveDelta(move));
 	nodesSearched++;
 
 	/*if (GenerateZobristKey() != key)
@@ -161,7 +161,7 @@ void Position::ApplyMove(std::string strmove)
 	}
 
 	ApplyMove(Move(prev, next, flag));
-	net.RecalculateIncremental(GetInputLayer());
+	net->RecalculateIncremental(GetInputLayer());
 }
 
 void Position::RevertMove()
@@ -172,7 +172,7 @@ void Position::RevertMove()
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta();
+	net->ApplyInverseDelta();
 }
 
 void Position::ApplyNullMove()
@@ -185,7 +185,7 @@ void Position::ApplyNullMove()
 
 	NextTurn();
 	IncrementZobristKey(Move());
-	net.ApplyDelta(CalculateMoveDelta(Move()));
+	net->ApplyDelta(CalculateMoveDelta(Move()));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -201,7 +201,7 @@ void Position::RevertNullMove()
 	RestorePreviousParamiters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta();
+	net->ApplyInverseDelta();
 }
 
 void Position::Print() const
@@ -235,7 +235,7 @@ void Position::Print() const
 void Position::StartingPosition()
 {
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
-	net.RecalculateIncremental(GetInputLayer());
+	net->RecalculateIncremental(GetInputLayer());
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
@@ -256,7 +256,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 		return false;
 
 	key = GenerateZobristKey();
-	net.RecalculateIncremental(GetInputLayer());
+	net->RecalculateIncremental(GetInputLayer());
 
 	nodesSearched = 0;
 	tbHits = 0;
@@ -435,7 +435,7 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 
 			for (int sq = 0; sq < N_SQUARES; sq++)
 			{
-				ret[index++] = ((bb & SquareBB[sq]) != 0) * PRECISION;
+				ret[index++] = ((bb & SquareBB[sq]) != 0);
 			}
 		}
 	}
@@ -536,5 +536,5 @@ void Position::RevertSEECapture()
 
 int16_t Position::GetEvaluation()
 {
-	return net.QuickEval();
+	return net->QuickEval();
 }
