@@ -20,6 +20,7 @@ constexpr int16_t MAX_VALUE = 128;
 constexpr int16_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / MAX_VALUE;
 constexpr int32_t SQUARE_PRECISION = (int32_t)PRECISION * PRECISION;
 constexpr int32_t HALF_SQUARE_PRECISION = SQUARE_PRECISION / 2;
+constexpr int16_t HALF_PRECISION = PRECISION / 2;
 
 struct deltaArray
 {
