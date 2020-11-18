@@ -1,200 +1,88 @@
 #include "Network.h"
+#include "epoch170_b16384_768-256-1_embedded.nn"
 
-static const char* WeightsTXT[] = {
-    #include "epoch170_b16384_quant128.nn"
-    ""
-};
+std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS>* hiddenWeights;
+std::array<int16_t, HIDDEN_NEURONS>* hiddenBias;
+std::array<int16_t, HIDDEN_NEURONS>* outputWeights;
+int16_t* outputBias;
 
-Network InitNetwork()
+void NetworkInit()
 {
-    std::stringstream stream;
+    hiddenWeights = new std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS>;
+    hiddenBias    = new std::array<int16_t, HIDDEN_NEURONS>;
+    outputWeights = new std::array<int16_t, HIDDEN_NEURONS>;
+    outputBias    = new int16_t;
 
-    for (int i = 0; strcmp(WeightsTXT[i], ""); i++)
-        stream << WeightsTXT[i] << "\n";
+    auto* HiddenWeights = new float[INPUT_NEURONS * HIDDEN_NEURONS];
+    auto* HiddenBias    = new float[HIDDEN_NEURONS];
+    auto* OutputWeights = new float[HIDDEN_NEURONS];
+    auto* OutputBias    = new float[1];
 
-    std::string line;
+    memcpy(HiddenBias,    &label[0],                                                                     sizeof(float) * HIDDEN_NEURONS);
+    memcpy(HiddenWeights, &label[(HIDDEN_NEURONS) * sizeof(float)],                                      sizeof(float) * INPUT_NEURONS * HIDDEN_NEURONS);
+    memcpy(OutputBias,    &label[(HIDDEN_NEURONS + INPUT_NEURONS * HIDDEN_NEURONS) * sizeof(float)],     sizeof(float) * 1);
+    memcpy(OutputWeights, &label[(HIDDEN_NEURONS + INPUT_NEURONS * HIDDEN_NEURONS + 1) * sizeof(float)], sizeof(float) * HIDDEN_NEURONS);
 
-    std::vector<std::vector<int16_t>> weights;
-    std::vector<size_t> LayerNeurons;
-    weights.push_back({});
-
-    while (getline(stream, line))
-    {
-        std::istringstream iss(line);
-        std::string token;
-
-        iss >> token;
-
-        if (token == "InputNeurons")
-        {
-            iss >> token;
-            LayerNeurons.push_back(stoull(token));
-        }
-
-        if (token == "HiddenLayerNeurons")
-        {
-            std::vector<int16_t> layerWeights;
-
-            iss >> token;
-            size_t num = stoull(token);
-
-            LayerNeurons.push_back(num);
-
-            for (size_t i = 0; i < num; i++)
-            {
-                getline(stream, line);
-                std::istringstream lineStream(line);
-
-                while (lineStream >> token)
-                {
-                    layerWeights.push_back(stoull(token));
-                }
-            }
-
-            weights.push_back(layerWeights);
-        }
-
-        else if (token == "OutputLayer")
-        {
-            LayerNeurons.push_back(1);  //always 1 output neuron
-            std::vector<int16_t> layerWeights;
-            getline(stream, line);
-            std::istringstream lineStream(line);
-            while (lineStream >> token)
-            {
-                layerWeights.push_back(stoull(token));
-            }
-            weights.push_back(layerWeights);
-        }
-    }
-
-    return Network(weights);
-}
-
-template<size_t INPUT_COUNT>
-Neuron<INPUT_COUNT>::Neuron() : weights(),  bias(0)
-{
-}
-
-template<size_t INPUT_COUNT>
-Neuron<INPUT_COUNT>::Neuron(std::vector<int16_t> Weight, int16_t Bias) : weights(), bias(Bias)
-{
-    assert(Weight.size() == INPUT_COUNT);
-
-    for (size_t i = 0; i < INPUT_COUNT; i++)
-    {
-        weights[i] = Weight[i];
-    }
-}
-
-template<size_t INPUT_COUNT>
-int32_t Neuron<INPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input) const
-{
-    int32_t ret = bias * PRECISION;
-
-    for (size_t i = 0; i < INPUT_COUNT; i++)
-    {
-        ret += input[i] * weights[i];
-    }
-
-    return (ret + HALF_PRECISION) / PRECISION;
-}
-
-template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::HiddenLayer(std::vector<int16_t> inputs) : neurons(new std::array<Neuron<INPUT_COUNT>, OUTPUT_COUNT>), weightTranspose(new std::array<int16_t, INPUT_COUNT* OUTPUT_COUNT>)
-{
-    assert(inputs.size() % OUTPUT_COUNT == 0);
-
-    size_t WeightsPerNeuron = inputs.size() / OUTPUT_COUNT;
-
-    for (size_t i = 0; i < OUTPUT_COUNT; i++)
-    {
-        (*neurons)[i] = Neuron<INPUT_COUNT>(std::vector<int16_t>(inputs.begin() + (WeightsPerNeuron * i), inputs.begin() + (WeightsPerNeuron * i) + WeightsPerNeuron - 1), inputs.at(WeightsPerNeuron * (1 + i) - 1));
-    }
-
-    for (size_t i = 0; i < WeightsPerNeuron - 1; i++)
-    {
-        for (size_t j = 0; j < OUTPUT_COUNT; j++)
-        {
-            weightTranspose->at(i * OUTPUT_COUNT + j) = (neurons->at(j).weights.at(i));
-        }
-    }
-
-    zeta = {};
-}
-
-template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-std::array<int16_t, OUTPUT_COUNT> HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::FeedForward(std::array<int16_t, INPUT_COUNT>& input)
-{
-    for (size_t i = 0; i < neurons->size(); i++)
-    {
-        zeta[i] = neurons->at(i).FeedForward(input);
-    }
-
-    return zeta;
-}
-
-template<size_t INPUT_COUNT, size_t OUTPUT_COUNT>
-void HiddenLayer<INPUT_COUNT, OUTPUT_COUNT>::ApplyDelta(deltaArray& deltaVec)
-{
-    for (size_t point = 0; point < deltaVec.size; point++)
-    {
-        int16_t deltaValue = deltaVec.deltas[point].delta;
-        size_t weightTransposeIndex = deltaVec.deltas[point].index * OUTPUT_COUNT;
-
-        if (deltaValue == 1)
-        {
-            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
-            {
-                zeta[neuron] += (*weightTranspose)[weightTransposeIndex + neuron];
-            }
-        }
-
-        if (deltaValue == -1)
-        {
-            for (size_t neuron = 0; neuron < OUTPUT_COUNT; neuron++)
-            {
-                zeta[neuron] -= (*weightTranspose)[weightTransposeIndex + neuron];
-            }
-        }
-    }
-}
-
-Network::Network(const std::vector<std::vector<int16_t>>& inputs) : hiddenLayer(inputs[1]), outputNeuron(std::vector<int16_t>(inputs.back().begin(), inputs.back().end() - 1), inputs.back().back()), OldZeta()
-{
-}
-
-void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
-{
-    for (size_t i = 0; i < MAX_DEPTH; i++)
-    {
-        OldZeta[i] = {};
-    }
-    incrementalDepth = 0;
-
-    //We never actually use FeedForward to get the evaluaton, only to 'refresh' the incremental updates and so we only need to do connection with first layer
-    hiddenLayer.FeedForward(inputs);
-}
-
-void Network::ApplyDelta(deltaArray& delta)
-{
-    OldZeta[incrementalDepth++] = hiddenLayer.zeta;
-    hiddenLayer.ApplyDelta(delta);
-}
-
-void Network::ApplyInverseDelta()
-{
-    hiddenLayer.zeta = OldZeta[--incrementalDepth];
-}
-
-int16_t Network::QuickEval()
-{
-    std::array<int16_t, HIDDEN_NEURONS> inputs;
+    for (size_t i = 0; i < INPUT_NEURONS; i++)
+        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+            (*hiddenWeights)[i][j] = (int16_t)round(HiddenWeights[i * HIDDEN_NEURONS + j] * PRECISION);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-    {
-        inputs[i] = std::max(int16_t(0), hiddenLayer.zeta[i]);
-    }
+        (*hiddenBias)[i] = (int16_t)round(HiddenBias[i] * PRECISION);
 
-    return (outputNeuron.FeedForward(inputs) + HALF_PRECISION) / PRECISION;
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        (*outputWeights)[i] = (int16_t)round(OutputWeights[i] * PRECISION);
+
+    (*outputBias) = (int16_t)round(OutputBias[0] * PRECISION);
+
+    delete[] HiddenWeights;
+    delete[] HiddenBias;
+    delete[] OutputWeights;
+    delete[] OutputBias;
+}
+
+void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
+{
+    incrementalDepth = 0;
+
+    for (size_t i = 0; i < MAX_DEPTH; i++)
+        Zeta[i] = {};
+
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        Zeta[0][i] = (*hiddenBias)[i];
+
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        for (size_t j = 0; j < INPUT_NEURONS; j++)
+            Zeta[0][i] += inputs[j] * (*hiddenWeights)[j][i];
+}
+
+void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
+{
+    incrementalDepth++;
+    Zeta[incrementalDepth] = Zeta[incrementalDepth - 1];
+
+    for (size_t i = 0; i < update.size; i++)
+    {
+        if (update.deltas[i].delta == 1)
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+                Zeta[incrementalDepth][j] += (*hiddenWeights)[update.deltas[i].index][j];
+        else
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+                Zeta[incrementalDepth][j] -= (*hiddenWeights)[update.deltas[i].index][j];
+    }
+}
+
+void ApplyInverseDelta(size_t& incrementalDepth)
+{
+    --incrementalDepth;
+}
+
+int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, const size_t& incrementalDepth)
+{
+    int32_t output = (*outputBias) * PRECISION;
+
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        output += std::max(int16_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
+
+    return output / SQUARE_PRECISION;
 }

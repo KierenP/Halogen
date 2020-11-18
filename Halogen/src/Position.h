@@ -48,8 +48,6 @@ public:
 	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
 	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()
 
-	Network net;
-
 	int16_t GetEvaluation();
 
 	void addTbHit() { tbHits++; }
@@ -75,5 +73,9 @@ private:
 	size_t EvaluatedPositions = 0;
 
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
+
+	//Values for keeping the network updated
+	std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH> Zeta;
+	size_t incrementalDepth = 0;
 };
 
