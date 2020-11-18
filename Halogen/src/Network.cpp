@@ -51,14 +51,11 @@ void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::arra
     std::array<int32_t, HIDDEN_NEURONS> Zeta32;    //calculate into a int32 but save to a int16 once the quantisation has compressed the values at the end
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta32[i] = (*hiddenBias)[i] * PRECISION;
+        Zeta32[i] = (*hiddenBias)[i];
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         for (size_t j = 0; j < INPUT_NEURONS; j++)
             Zeta32[i] += inputs[j] * (*hiddenWeights)[j][i];
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta32[i] = (Zeta32[i] + HALF_PRECISION) / PRECISION;
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         Zeta[0][i] = Zeta32[i];
@@ -92,9 +89,7 @@ int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPT
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         output += std::max(int16_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
 
-    output += HALF_PRECISION;
-    output /= PRECISION;
-    output += HALF_PRECISION;
-    output /= PRECISION;
+    output /= SQUARE_PRECISION;
+
     return output;
 }
