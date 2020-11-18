@@ -41,25 +41,30 @@ void NetworkInit()
     delete[] OutputBias;
 }
 
-void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int32_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
+void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
 {
     incrementalDepth = 0;
 
     for (size_t i = 0; i < MAX_DEPTH; i++)
         Zeta[i] = {};
 
+    std::array<int32_t, HIDDEN_NEURONS> Zeta32;    //calculate into a int32 but save to a int16 once the quantisation has compressed the values at the end
+
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta[0][i] = (*hiddenBias)[i] * PRECISION;
+        Zeta32[i] = (*hiddenBias)[i] * PRECISION;
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         for (size_t j = 0; j < INPUT_NEURONS; j++)
-            Zeta[0][i] += inputs[j] * (*hiddenWeights)[j][i];
+            Zeta32[i] += inputs[j] * (*hiddenWeights)[j][i];
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta[0][i] = (Zeta[0][i] + HALF_PRECISION) / PRECISION;
+        Zeta32[i] = (Zeta32[i] + HALF_PRECISION) / PRECISION;
+
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        Zeta[0][i] = Zeta32[i];
 }
 
-void ApplyDelta(deltaArray& update, std::array<std::array<int32_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
+void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
 {
     incrementalDepth++;
     Zeta[incrementalDepth] = Zeta[incrementalDepth - 1];
@@ -80,12 +85,12 @@ void ApplyInverseDelta(size_t& incrementalDepth)
     --incrementalDepth;
 }
 
-int16_t QuickEval(const std::array<std::array<int32_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, const size_t& incrementalDepth)
+int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, const size_t& incrementalDepth)
 {
     int32_t output = (*outputBias) * PRECISION;
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        output += std::max(int32_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
+        output += std::max(int16_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
 
     output += HALF_PRECISION;
     output /= PRECISION;
