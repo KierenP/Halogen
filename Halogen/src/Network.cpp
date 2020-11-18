@@ -48,17 +48,12 @@ void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::arra
     for (size_t i = 0; i < MAX_DEPTH; i++)
         Zeta[i] = {};
 
-    std::array<int32_t, HIDDEN_NEURONS> Zeta32;    //calculate into a int32 but save to a int16 once the quantisation has compressed the values at the end
-
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta32[i] = (*hiddenBias)[i];
+        Zeta[0][i] = (*hiddenBias)[i];
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         for (size_t j = 0; j < INPUT_NEURONS; j++)
-            Zeta32[i] += inputs[j] * (*hiddenWeights)[j][i];
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta[0][i] = Zeta32[i];
+            Zeta[0][i] += inputs[j] * (*hiddenWeights)[j][i];
 }
 
 void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth)
@@ -89,7 +84,5 @@ int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPT
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         output += std::max(int16_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
 
-    output /= SQUARE_PRECISION;
-
-    return output;
+    return output / SQUARE_PRECISION;
 }
