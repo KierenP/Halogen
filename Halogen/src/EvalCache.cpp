@@ -1,29 +1,32 @@
 #include "EvalCache.h"
 
-EvalCacheTable::EvalCacheTable() : table(new std::array<EvalCacheEntry, 65536>)
+constexpr size_t TableSize = 65536;
+
+EvalCacheTable::EvalCacheTable()
 {
+	for (size_t i = 0; i < TableSize; i++)
+		table.push_back({});
 }
 
 EvalCacheTable::~EvalCacheTable()
 {
-	delete table;
 }
 
 void EvalCacheTable::AddEntry(uint64_t key, int eval)
 {
-	(*table)[key % table->size()].key = key;
-	(*table)[key % table->size()].eval = eval;
+	table[key % TableSize].key = key;
+	table[key % TableSize].eval = eval;
 }
 
 bool EvalCacheTable::GetEntry(uint64_t key, int& eval)
 {
-	if ((*table)[key % table->size()].key != key)
+	if (table[key % TableSize].key != key)
 	{
 		misses++;
 		return false;
 	}
 
-	eval = (*table)[key % table->size()].eval;
+	eval = table[key % TableSize].eval;
 	hits++; 
 
 	return true;
@@ -34,8 +37,8 @@ void EvalCacheTable::Reset()
 	hits = 0;
 	misses = 0;
 
-	for (size_t i = 0; i < table->size(); i++)
+	for (size_t i = 0; i < TableSize; i++)
 	{
-		(*table)[i] = {};
+		table[i] = {};
 	}
 }
