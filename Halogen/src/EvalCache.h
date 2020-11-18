@@ -26,5 +26,5 @@ public:
 	uint64_t misses = 0;
 
 private:
-	std::array<EvalCacheEntry, 65536>* table;
+	std::vector<EvalCacheEntry> table;
 };
