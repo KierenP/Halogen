@@ -87,9 +87,6 @@ int16_t QuickEval(const std::array<std::array<int32_t, HIDDEN_NEURONS>, MAX_DEPT
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         output += std::max(int32_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
 
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        std::cout << Zeta[incrementalDepth][i] << std::endl;
-
     output += HALF_PRECISION;
     output /= PRECISION;
     output += HALF_PRECISION;
