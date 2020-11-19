@@ -13,7 +13,7 @@ void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(bool InCheck, const Position& position);
-bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position);
+bool IsFutile(Move move, int beta, int alpha, Position & position);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha);
 bool IsEndGame(const Position& position);
 bool IsPV(int beta, int alpha);
@@ -209,9 +209,9 @@ int see(Position& position, int square, bool side)
 	{
 		int captureValue = PieceValues(position.GetSquare(capture.GetTo()));
 
-		position.ApplySEECapture(capture);
+		position.ApplyMoveQuick(capture);
 		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
-		position.RevertSEECapture();
+		position.RevertMoveQuick();
 	}
 
 	return value;
@@ -226,9 +226,9 @@ int seeCapture(Position& position, const Move& move)
 	int value = 0;
 	int captureValue = PieceValues(position.GetSquare(move.GetTo()));
 
-	position.ApplySEECapture(move);
+	position.ApplyMoveQuick(move);
 	value = captureValue - see(position, move.GetTo(), !side);
-	position.RevertSEECapture();
+	position.RevertMoveQuick();
 
 	return value;
 }
@@ -526,17 +526,14 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (moves[i] == hashMove)
 			continue;
 
-		position.ApplyMove(moves.at(i));
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 
 		//futility pruning
-		if (IsFutile(moves[i], beta, alpha, InCheck, position) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
-		{
-			position.RevertMove();
+		if (IsFutile(moves[i], beta, alpha, position) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 			continue;
-		}
 
+		position.ApplyMove(moves.at(i));
 		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 
 		//late move reductions
@@ -761,12 +758,20 @@ bool LMR(bool InCheck, const Position& position)
 		&& !IsInCheck(position);
 }
 
-bool IsFutile(Move move, int beta, int alpha, bool InCheck, const Position& position)
+bool FutilityMoveGivesCheck(Position& position, Move move)
+{
+	position.ApplyMoveQuick(move);
+	bool ret = IsInCheck(position);
+	position.RevertMoveQuick();
+	return ret;
+}
+
+bool IsFutile(Move move, int beta, int alpha, Position & position)
 {
 	return !IsPV(beta, alpha)
 		&& !move.IsCapture() 
 		&& !move.IsPromotion() 
-		&& !InCheck 
+		&& !FutilityMoveGivesCheck(position, move)
 		&& !IsInCheck(position);
 }
 

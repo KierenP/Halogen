@@ -45,8 +45,8 @@ public:
 	uint64_t GetPreviousKey(size_t index);
 
 	/*Seriously, don't use these functions outside of static exchange evaluation*/
-	void ApplySEECapture(Move move);	//does ApplyMove functionality but much quicker. Only for use within see() and seeAttack()
-	void RevertSEECapture();			//does RevertMove functionality but much quicker. Only for use within see() and seeAttack()
+	void ApplyMoveQuick(Move move);	//does ApplyMove functionality but much quicker.
+	void RevertMoveQuick();			//does RevertMove functionality but much quicker.
 
 	int16_t GetEvaluation();
 
