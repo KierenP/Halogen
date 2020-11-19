@@ -5,16 +5,27 @@ int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000
 
 constexpr int TEMPO = 10;
 
+uint64_t SimpleZobristKey(Position& position)
+{
+    uint64_t key = position.GetZobristKey();
+    if (position.GetTurn())
+        key ^= ZobristTable[12 * 64];
+    return key;
+}
+
 int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
     int eval;
 
-    if (!evalTable.GetEntry(position.GetZobristKey(), eval))
+    uint64_t key = SimpleZobristKey(position);
+
+    if (!evalTable.GetEntry(key, eval))
     {
-        eval = position.GetEvaluation() * 94 / 100 + (position.GetTurn() == WHITE ? TEMPO : -TEMPO);
-        evalTable.AddEntry(position.GetZobristKey(), eval);
+        eval = position.GetEvaluation() * 94 / 100;
+        evalTable.AddEntry(key, eval);
     }
 
+    eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
     return std::min(4000, std::max(-4000, eval));
 }
 
