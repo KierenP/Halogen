@@ -519,7 +519,7 @@ size_t Position::modifier(size_t index)
 	}
 }
 
-void Position::ApplySEECapture(Move move)
+void Position::ApplyMoveQuick(Move move)
 {
 	SaveBoard();
 
@@ -527,7 +527,7 @@ void Position::ApplySEECapture(Move move)
 	ClearSquare(move.GetFrom());
 }
 
-void Position::RevertSEECapture()
+void Position::RevertMoveQuick()
 {
 	RestorePreviousBoard();
 }
