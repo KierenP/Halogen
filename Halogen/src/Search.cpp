@@ -13,7 +13,7 @@ void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(bool InCheck, const Position& position);
-bool IsFutile(Move move, int beta, int alpha, Position & position);
+bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha);
 bool IsEndGame(const Position& position);
 bool IsPV(int beta, int alpha);
@@ -526,14 +526,13 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (moves[i] == hashMove)
 			continue;
 
-		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
-		if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
-
 		//futility pruning
-		if (IsFutile(moves[i], beta, alpha, position) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (IsFutile(moves[i], beta, alpha, position, InCheck) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 			continue;
 
 		position.ApplyMove(moves.at(i));
+		if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
+		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 
 		//late move reductions
@@ -761,18 +760,18 @@ bool LMR(bool InCheck, const Position& position)
 bool FutilityMoveGivesCheck(Position& position, Move move)
 {
 	position.ApplyMoveQuick(move);
-	bool ret = IsInCheck(position);
+	bool ret = IsInCheck(position, !position.GetTurn());	//ApplyMoveQuick does not change whos turn it is
 	position.RevertMoveQuick();
 	return ret;
 }
 
-bool IsFutile(Move move, int beta, int alpha, Position & position)
+bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck)
 {
 	return !IsPV(beta, alpha)
 		&& !move.IsCapture() 
 		&& !move.IsPromotion() 
-		&& !FutilityMoveGivesCheck(position, move)
-		&& !IsInCheck(position);
+		&& !IsInCheck
+		&& !FutilityMoveGivesCheck(position, move);
 }
 
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha)
