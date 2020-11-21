@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
 	tTable.SetSize(1);
 
 	Position position;
+	thread searchThread;
 
 	unsigned int ThreadCount = 1;
 
@@ -119,7 +120,8 @@ int main(int argc, char* argv[])
 				else if (token == "mate") iss >> mate;
 			}
 
-			thread searchThread;
+			if (searchThread.joinable())
+				searchThread.join();
 
 			int myTime = position.GetTurn() ? wtime : btime;
 			int myInc  = position.GetTurn() ? winc : binc;
@@ -136,8 +138,6 @@ int main(int argc, char* argv[])
 				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 16 + myInc, ThreadCount); });				//increment time control
 			else 
 				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 20, ThreadCount); });						//sudden death time control
-
-			searchThread.detach();
 		}
 
 		else if (token == "setoption")
@@ -184,11 +184,22 @@ int main(int argc, char* argv[])
 			PerftDivide(stoi(token), position);
 		}
 
-		else if (token == "stop") KeepSearching = false;
+		else if (token == "stop") 
+		{
+			KeepSearching = false;
+			if (searchThread.joinable()) searchThread.join();	
+		}
+
+		else if (token == "quit") 
+		{
+			KeepSearching = false;
+			if (searchThread.joinable()) searchThread.join();
+			return 0;
+		}
+
+		//Non uci commands
 		else if (token == "print") position.Print();
-		else if (token == "quit") return 0;
 		else if (token == "bench") Bench();
-		
 		else cout << "Unknown command" << endl;
 	}
 
