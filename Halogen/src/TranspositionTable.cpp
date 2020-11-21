@@ -81,19 +81,7 @@ void TranspositionTable::ResetTable()
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-	/*
-	We can't adjust the number of entries based on the size of a mutex because this size is different under msvc (80 bytes) and g++ (8 bytes)
-	*/
-
-	table.clear();
-	size_t EntrySize = sizeof(TTEntry);
-
-	size_t entries = (MB * 1024 * 1024 / EntrySize);
-	
-	for (size_t i = 0; i < entries; i++)
-	{
-		table.push_back(TTEntry());
-	}
+	table.resize(MB * 1024 * 1024 / sizeof(TTEntry));
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
