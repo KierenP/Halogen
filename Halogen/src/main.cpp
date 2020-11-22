@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 			cout << "id author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
 			cout << "option name Hash type spin default 2 min 2 max 262144" << endl;
-			cout << "option name Threads type spin default 1 min 1 max 64" << endl;
+			cout << "option name Threads type spin default 1 min 1 max 256" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
 			cout << "uciok" << endl;
 		}
