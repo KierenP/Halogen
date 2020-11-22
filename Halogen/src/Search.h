@@ -82,8 +82,8 @@ private:
 	int highestBeta;
 	bool noOutput;									//Do not write anything to the concole
 
-	std::atomic<uint64_t> tbHits;
-	std::atomic<uint64_t> nodes;
+	uint64_t tbHits;
+	uint64_t nodes;
 
 	std::vector<unsigned int> searchDepth;			//what depth is each thread currently searching?
 	std::vector<bool> ThreadWantsToStop;			//Threads signal here that they want to stop searching, but will keep going until all threads want to stop

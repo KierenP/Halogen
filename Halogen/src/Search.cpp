@@ -362,6 +362,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 #endif 
 
 	locals.PvTable[distanceFromRoot].clear();
+	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
@@ -469,13 +470,12 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	Move hashMove = GetHashMove(position, distanceFromRoot);
 	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100 && MoveIsLegal(position, hashMove))	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
+		position.addNode();
 		position.ApplyMove(hashMove);
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 		position.RevertMove();
-
-		if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 
 		if (newScore > Score)
 		{
@@ -525,6 +525,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	{
 		if (moves[i] == hashMove)
 			continue;
+
+		position.addNode();
 
 		//futility pruning
 		if (IsFutile(moves[i], beta, alpha, position, InCheck) && i > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
@@ -841,6 +843,7 @@ int mateIn(int distanceFromRoot)
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
 	locals.PvTable[distanceFromRoot].clear();
+	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;
 	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
@@ -877,6 +880,8 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
+		position.addNode();
+
 		int SEE = 0;
 		if (moves[i].GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
 		{
@@ -903,8 +908,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		position.ApplyMove(moves.at(i));
 		int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1, depthRemaining - 1, locals, sharedData).GetScore();
 		position.RevertMove();
-
-		if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 
 		if (newScore > Score)
 		{

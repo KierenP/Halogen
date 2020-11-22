@@ -91,7 +91,6 @@ void Position::ApplyMove(Move move)
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
 	ApplyDelta(CalculateMoveDelta(move), Zeta, incrementalDepth);
-	nodesSearched++;
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -535,4 +534,26 @@ void Position::RevertMoveQuick()
 int16_t Position::GetEvaluation()
 {
 	return QuickEval(Zeta, incrementalDepth);
+}
+
+bool Position::NodesSearchedAddToThreadTotal()
+{
+	if (nodesSearched > NodeCountChunk)
+	{
+		nodesSearched -= NodeCountChunk;
+		return true;
+	}
+
+	return false;
+}
+
+bool Position::TbHitaddToThreadTotal()
+{
+	if (tbHits > NodeCountChunk)
+	{
+		tbHits -= NodeCountChunk;
+		return true;
+	}
+
+	return false;
 }
