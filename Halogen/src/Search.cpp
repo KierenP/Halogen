@@ -1042,13 +1042,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 		highestBeta = score;
 	}
 
-	if (score <= lowestAlpha && score <= alpha && !noOutput && Time > 1000 && threadDepthCompleted == depth - 1)
+	if (score <= lowestAlpha && score <= alpha && !noOutput && Time > 5000 && threadDepthCompleted == depth - 1)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals, *this);
 		lowestAlpha = alpha;
 	}
 
-	if (score >= highestBeta && score >= beta && !noOutput && Time > 1000 && threadDepthCompleted == depth - 1)
+	if (score >= highestBeta && score >= beta && !noOutput && Time > 5000 && threadDepthCompleted == depth - 1)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals, *this);
 		highestBeta = alpha;
