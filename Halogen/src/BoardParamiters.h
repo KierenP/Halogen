@@ -56,6 +56,8 @@ protected:
 	void Increment50Move() { m_FiftyMoveCount++; }
 	void Reset50Move() { m_FiftyMoveCount = 0; }
 
+	unsigned int GetPreviousFiftyMove(unsigned int index) { return PreviousParamiters.at(index).GetFiftyMoveCount(); }
+
 	void InitParamiters();
 	BoardParamiterData GetPreviousParamiters();
 

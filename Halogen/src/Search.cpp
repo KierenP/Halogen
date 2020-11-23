@@ -404,22 +404,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		{
 			tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 
-			int rep = 1;
-			uint64_t current = position.GetZobristKey();
-
-			for (unsigned int i = 0; i < position.GetPreviousKeysSize(); i++)	//note Previous keys will not contain the current key, hence rep starts at one
-			{
-				if (position.GetPreviousKey(i) == current)
-				{
-					rep++;
-					break;
-				}
-			}
-
-			if (rep < 2)												//don't use the transposition if we have been at this position in the past
-			{
-				if (UseTransposition(entry, distanceFromRoot, alpha, beta)) return SearchResult(entry.GetScore(), entry.GetMove());
-			}
+			if (!position.CheckForRep(distanceFromRoot, 2))
+				if (UseTransposition(entry, distanceFromRoot, alpha, beta)) 
+					return SearchResult(entry.GetScore(), entry.GetMove());
 		}
 	}
 
@@ -720,23 +707,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 
 bool CheckForRep(Position& position, int distanceFromRoot)
 {
-	int totalRep = 1;
-	uint64_t current = position.GetZobristKey();
-
-	//note Previous keys will not contain the current key, hence rep starts at one
-	for (size_t i = 0; i < position.GetPreviousKeysSize(); i++)
-	{
-		if (position.GetPreviousKey(i) == current)
-		{
-			totalRep++;
-		}
-
-		if (totalRep == 3) return true;																			//3 reps is always a draw
-		if (totalRep == 2 && static_cast<int>(position.GetPreviousKeysSize() - i) < distanceFromRoot - 1) 
-			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
-	}
-	
-	return false;
+	return position.CheckForRep(distanceFromRoot, 3);
 }
 
 int extension(Position& position, int alpha, int beta)
