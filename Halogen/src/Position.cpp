@@ -564,7 +564,7 @@ bool Position::CheckForRep(int distanceFromRoot, int maxReps)
 	uint64_t current = GetZobristKey();
 
 	//note Previous keys will not contain the current key, hence rep starts at one
-	for (int i = static_cast<int>(PreviousKeys.size()) - 1; i >= 0; i--)
+	for (int i = static_cast<int>(PreviousKeys.size()) - 2; i >= 0; i -= 2)
 	{
 		if (PreviousKeys[i] == current)
 			totalRep++;
