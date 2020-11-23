@@ -2,6 +2,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>		//required to compile with g++
+#include <algorithm>
 #include "TTEntry.h"
 
 const unsigned int mutex_frequency = 1024;					//how many entries per mutex
@@ -26,7 +27,7 @@ public:
 	void PreFetch(uint64_t key) const;
 
 private:
-	std::vector<TTEntry> table;
+	std::vector<TTBucket> table;
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
