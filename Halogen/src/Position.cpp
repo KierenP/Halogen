@@ -569,9 +569,9 @@ bool Position::CheckForRep(int distanceFromRoot, int maxReps)
 		if (PreviousKeys[i] == current)
 			totalRep++;
 
-		if (totalRep == maxReps) return true;																			//3 reps is always a draw
+		if (totalRep == maxReps) return true;	//maxReps (usually 3) reps is always a draw
 		if (totalRep == 2 && static_cast<int>(PreviousKeys.size() - i) < distanceFromRoot - 1)
-			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
+			return true;						//Don't allow 2 reps if its in the local search history (not part of the actual played game)
 
 		if (GetPreviousFiftyMove(i) == 0) break;
 	}
