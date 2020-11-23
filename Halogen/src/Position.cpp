@@ -557,3 +557,24 @@ bool Position::TbHitaddToThreadTotal()
 
 	return false;
 }
+
+bool Position::CheckForRep(int distanceFromRoot, int maxReps)
+{
+	int totalRep = 1;
+	uint64_t current = GetZobristKey();
+
+	//note Previous keys will not contain the current key, hence rep starts at one
+	for (int i = static_cast<int>(PreviousKeys.size()) - 2; i >= 0; i -= 2)
+	{
+		if (PreviousKeys[i] == current)
+			totalRep++;
+
+		if (totalRep == maxReps) return true;																			//3 reps is always a draw
+		if (totalRep == 2 && static_cast<int>(PreviousKeys.size() - i) < distanceFromRoot - 1)
+			return true;			//Don't allow 2 reps if its in the local search history (not part of the actual played game)
+
+		if (GetPreviousFiftyMove(i) == 0) break;
+	}
+
+	return false;
+}

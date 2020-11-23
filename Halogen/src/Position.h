@@ -56,6 +56,8 @@ public:
 
 	size_t GetNodes() { return nodesSearched; }
 
+	bool CheckForRep(int distanceFromRoot, int maxReps);
+
 private:
 	size_t nodesSearched;
 	size_t tbHits;
