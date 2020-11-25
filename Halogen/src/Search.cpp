@@ -14,7 +14,7 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 bool CheckForRep(Position& position, int distanceFromRoot);
 bool LMR(bool InCheck, const Position& position);
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha);
+bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
 bool IsEndGame(const Position& position);
 bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
@@ -410,19 +410,20 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
+	bool InCheck = IsInCheck(position);
+
 	/*Drop into quiescence search*/
-	if (depthRemaining <= 0 && !IsInCheck(position))
+	if (depthRemaining <= 0 && !InCheck)
 	{ 
 		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
 	}
 
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
-	bool InCheck = IsInCheck(position);
 
 	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
 	/*Null move pruning*/
-	if (AllowedNull(allowedNull, position, beta, alpha) && (staticScore > beta))
+	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
 	{
 		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
@@ -749,10 +750,10 @@ bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInChec
 		&& !FutilityMoveGivesCheck(position, move);
 }
 
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha)
+bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck)
 {
 	return allowedNull
-		&& !IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn())
+		&& !InCheck
 		&& !IsPV(beta, alpha)
 		&& !IsEndGame(position)
 		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
