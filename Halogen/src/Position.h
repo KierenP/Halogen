@@ -78,7 +78,7 @@ private:
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
 
 	//Values for keeping the network updated
-	std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH> Zeta;
+	std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1> Zeta;
 	size_t incrementalDepth = 0;
 };
 
