@@ -417,6 +417,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+	bool InCheck = IsInCheck(position);
+
+	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha) && (staticScore > beta))
@@ -501,7 +504,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 	
 	OrderMoves(moves, position, distanceFromRoot, locals);
-	bool InCheck = IsInCheck(position);
 
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
