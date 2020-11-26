@@ -358,3 +358,4 @@ MigrationBackup/
 /Halogen/Release AVX2
 /Halogen/Release No Popcnt
 /Halogen/src/Halogen.vcxproj.FileListAbsolute.txt
+*.exe
