@@ -39,9 +39,9 @@ extern std::array<int16_t, HIDDEN_NEURONS>* hiddenBias;
 extern std::array<int16_t, HIDDEN_NEURONS>* outputWeights;
 extern int16_t* outputBias;
 
-void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth);
-void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, size_t& incrementalDepth);     //incrementally update the connections between input layer and first hidden layer
+void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, size_t& incrementalDepth);
+void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, size_t& incrementalDepth);     //incrementally update the connections between input layer and first hidden layer
 void ApplyInverseDelta(size_t& incrementalDepth);                                                                                   //for un-make moves
-int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH>& Zeta, const size_t& incrementalDepth);          //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
+int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, const size_t& incrementalDepth);          //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
 void NetworkInit();
