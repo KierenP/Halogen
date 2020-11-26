@@ -332,6 +332,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 
 	while (!locals.AbortSearch(0) || depth == 1)
 	{
+		position.ResetSeldepth();
 		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		if (alpha < search.GetScore() && search.GetScore() < beta) break;
 		if (sharedData.ThreadAbort(depth)) break;
@@ -364,7 +365,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
-	if (distanceFromRoot == 0) position.ResetSeldepth();
 	position.ReportDepth(distanceFromRoot);
 
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
