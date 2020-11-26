@@ -58,9 +58,14 @@ public:
 
 	bool CheckForRep(int distanceFromRoot, int maxReps);
 
+	void ResetSeldepth() { selDepth = 0; }
+	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
+	int GetSelDepth() const { return selDepth; }
+
 private:
 	size_t nodesSearched;
 	size_t tbHits;
+	int selDepth;
 
 	uint64_t key;
 	std::vector<uint64_t> PreviousKeys;

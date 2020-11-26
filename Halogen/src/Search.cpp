@@ -250,7 +250,7 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 
 	std::cout
 		<< "info depth " << depth																//the depth of search
-		<< " seldepth " << pv.size();															//the selective depth (for example searching further for checks and captures)
+		<< " seldepth " << position.GetSelDepth();															//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
 	{
@@ -314,7 +314,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 		SearchResult search = AspirationWindowSearch(position, depth, prevScore, locals, sharedData, threadID, searchTime);
 		int score = search.GetScore();
 
-		if (depth > 1 && locals.AbortSearch(0)) { break; }
+		if (depth > 1 && locals.AbortSearch(0)) break;
 		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
 
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, search.GetMove(), locals);
@@ -335,6 +335,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 		if (alpha < search.GetScore() && search.GetScore() < beta) break;
 		if (sharedData.ThreadAbort(depth)) break;
+		if (depth > 1 && locals.AbortSearch(0)) break; 
 
 		if (search.GetScore() <= alpha)
 		{
@@ -363,6 +364,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
+	if (distanceFromRoot == 0) position.ResetSeldepth();
+	position.ReportDepth(distanceFromRoot);
 
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
@@ -818,6 +821,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 {
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
+	position.ReportDepth(distanceFromRoot);
 
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;
 	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
