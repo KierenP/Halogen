@@ -7,6 +7,7 @@ LIBS    = -lpthread -lm
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize
+PGOFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
@@ -21,3 +22,10 @@ release:
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(PEXTFLAGS) -o $(EXE)$(VER)-x64-pext.exe
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(POPCNTFLAGS) -o $(EXE)$(VER)-x64-popcnt-avx2.exe
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(PEXTFLAGS) -o $(EXE)$(VER)-x64-pext-avx2.exe
+	
+pgo:
+	rm -f *.gcda
+	$(CC) -fprofile-generate $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
+	./$(EXE) bench
+	$(CC) -fprofile-use $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
+	rm -f *.gcda
