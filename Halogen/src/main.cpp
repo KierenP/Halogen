@@ -176,6 +176,20 @@ int main(int argc, char* argv[])
 				tb_init(token.c_str());
 				TestSyzygy();
 			}
+
+			else if (token == "LMR_constant")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				LMR_constant = stod(token);
+			}
+
+			else if (token == "LMR_coeff")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				LMR_coeff = stod(token);
+			}
 		}
 
 		else if (token == "perft")
