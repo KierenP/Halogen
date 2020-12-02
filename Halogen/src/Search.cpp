@@ -1,9 +1,19 @@
 #include "Search.h"
 
+/*Search constants*/
+
+double LMR_constant = 0.5;
+double LMR_coeff    = 0.5;
+
+unsigned int R = 3;					//Null-move reduction depth
+unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
+
 constexpr int FutilityMaxDepth = 10;
-int FutilityMargins[FutilityMaxDepth];
-const unsigned int R = 3;					//Null-move reduction depth
-const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
+
+/*----------------*/
+
+int FutilityMargins[FutilityMaxDepth];		//[depth]
+int LMR_reduction[64][64] = {};				//[depth][move number]
 
 TranspositionTable tTable;
 
@@ -109,6 +119,14 @@ void InitSearch()
 	for (int i = 0; i < FutilityMaxDepth; i++)
 	{
 		FutilityMargins[i] = Futility_linear * i + Futility_constant;
+	}
+
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 0; j < 64; j++)
+		{
+			LMR_reduction[i][j] = std::round(LMR_constant + LMR_coeff * log(i) * log(j));
+		}
 	}
 }
 
@@ -678,11 +696,7 @@ void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& mo
 
 int Reduction(int depth, int i, int alpha, int beta)
 {
-	/*Formula adapted from Fruit Reloaded, sourced from chess programming wiki*/
-	if (IsPV(beta, alpha))
-		return int((sqrt(static_cast<double>(depth - 1)) + sqrt(static_cast<double>(i - 1))) / 3);
-	else
-		return int((sqrt(static_cast<double>(depth - 1)) + sqrt(static_cast<double>(i - 1))) / 2);
+	return LMR_reduction[std::min(64, depth)][std::min(64, i)];
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)

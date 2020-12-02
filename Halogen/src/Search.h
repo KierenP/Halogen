@@ -12,6 +12,15 @@
 #include <thread>
 #include <cmath>
 
+/*Search constants*/
+
+
+extern double LMR_constant;
+extern double LMR_coeff;
+
+
+/*----------------*/
+
 struct SearchResult
 {
 	SearchResult(int score, Move move = Move()) : m_score(score), m_move(move) {}
