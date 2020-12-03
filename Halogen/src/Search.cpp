@@ -439,7 +439,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
 	}
 
-	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
