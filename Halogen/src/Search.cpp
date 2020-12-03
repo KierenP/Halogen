@@ -764,7 +764,7 @@ bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha
 
 bool IsEndGame(const Position& position)
 {
-	return (position.GetAllPieces() == (position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING) | position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN)));
+	return (position.GetPiecesColour(position.GetTurn()) == (position.GetPieceBB(KING, position.GetTurn()) | position.GetPieceBB(PAWN, position.GetTurn())));
 }
 
 bool IsPV(int beta, int alpha)
