@@ -48,7 +48,7 @@ bool SearchTimeManage::ContinueSearch()
 
 bool SearchTimeManage::AbortSearch(uint64_t nodes)
 {
-	if ((nodes & 0x3FF) == 0 || nodes <= 0x3FFF)	//will hit once every 1024, but every time its called initially to help with very fast time controls
+	if ((nodes & 0x3FF) == 0)
 		CacheShouldStop = (timer.ElapsedMs() > (AllocatedSearchTimeMS)) || (timer.ElapsedMs() > (MaxTimeMS - BufferTime));
 
 	return (!KeepSearching || CacheShouldStop);
