@@ -696,7 +696,7 @@ void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& mo
 
 int Reduction(int depth, int i, int alpha, int beta)
 {
-	return LMR_reduction[std::min(64, std::max(0, depth))][std::min(64, std::max(0, i))];
+	return LMR_reduction[std::min(63, std::max(0, depth))][std::min(63, std::max(0, i))];
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
