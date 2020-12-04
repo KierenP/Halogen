@@ -17,8 +17,9 @@
 extern double LMR_constant;
 extern double LMR_coeff;
 
-extern int Null_constant;					//Null-move reduction depth
-extern int VariableNullDepth;				//Beyond this depth R = 4
+extern int Null_constant;				
+extern int Null_depth_quotent;				
+extern int Null_beta_quotent;
 
 extern int Futility_linear;
 extern int Futility_constant;

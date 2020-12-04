@@ -198,11 +198,18 @@ int main(int argc, char* argv[])
 				Null_constant = stoi(token);
 			}
 
-			else if (token == "VariableNullDepth")
+			else if (token == "Null_depth_quotent")
 			{
 				iss >> token; //'value'
 				iss >> token;
-				VariableNullDepth = stoi(token);
+				Null_depth_quotent = stoi(token);
+			}
+
+			else if (token == "Null_beta_quotent")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Null_beta_quotent = stoi(token);
 			}
 
 			else if (token == "Futility_linear")
