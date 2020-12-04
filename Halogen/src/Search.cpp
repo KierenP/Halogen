@@ -5,8 +5,9 @@
 double LMR_constant = -1.26;
 double LMR_coeff    =  0.84;
 
-int Null_constant = 3;					//Null-move reduction depth
-int VariableNullDepth = 7;				//Beyond this depth R = 4
+int Null_constant = 4;
+int Null_depth_quotent = 6;
+int Null_beta_quotent = 250;
 
 int Futility_linear = 25;
 int Futility_constant = 100;
@@ -449,7 +450,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
 	{
-		unsigned int reduction = Null_constant + (depthRemaining >= static_cast<int>(VariableNullDepth));
+		unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent + std::min(3, (staticScore - beta) / Null_beta_quotent);
 
 		position.ApplyNullMove();
 		int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
