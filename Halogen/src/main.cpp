@@ -190,6 +190,48 @@ int main(int argc, char* argv[])
 				iss >> token;
 				LMR_coeff = stod(token);
 			}
+
+			else if (token == "Null_constant")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Null_constant = stoi(token);
+			}
+
+			else if (token == "VariableNullDepth")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				VariableNullDepth = stoi(token);
+			}
+
+			else if (token == "Futility_linear")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Futility_linear = stoi(token);
+			}
+
+			else if (token == "Futility_constant")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Futility_constant = stoi(token);
+			}
+
+			else if (token == "Aspiration_window")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Aspiration_window = stoi(token);
+			}
+
+			else if (token == "Delta_margin")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Delta_margin = stoi(token);
+			}
 		}
 
 		else if (token == "perft")
