@@ -12,12 +12,20 @@
 #include <thread>
 #include <cmath>
 
-/*Search constants*/
-
+/*Tuneable search constants*/
 
 extern double LMR_constant;
 extern double LMR_coeff;
 
+extern int Null_constant;					//Null-move reduction depth
+extern int VariableNullDepth;				//Beyond this depth R = 4
+
+extern int Futility_linear;
+extern int Futility_constant;
+
+extern int Aspiration_window;
+
+extern int Delta_margin;
 
 /*----------------*/
 

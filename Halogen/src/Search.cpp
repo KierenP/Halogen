@@ -1,17 +1,23 @@
 #include "Search.h"
 
-/*Search constants*/
+/*Tuneable search constants*/
 
 double LMR_constant = -1.26;
 double LMR_coeff    =  0.84;
 
-unsigned int R = 3;					//Null-move reduction depth
-unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
+int Null_constant = 3;					//Null-move reduction depth
+int VariableNullDepth = 7;				//Beyond this depth R = 4
 
-constexpr int FutilityMaxDepth = 10;
+int Futility_linear = 25;
+int Futility_constant = 100;
+
+int Aspiration_window = 15;
+
+int Delta_margin = 200;
 
 /*----------------*/
 
+constexpr int FutilityMaxDepth = 10;
 int FutilityMargins[FutilityMaxDepth];		//[depth]
 int LMR_reduction[64][64] = {};				//[depth][move number]
 
@@ -112,9 +118,6 @@ void DepthSearch(const Position& position, int maxSearchDepth)
 void InitSearch()
 {
 	KeepSearching = true;
-
-	int Futility_linear = 25;
-	int Futility_constant = 100;
 
 	for (int i = 0; i < FutilityMaxDepth; i++)
 	{
@@ -344,8 +347,8 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 
 SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID, Timer& searchTime)
 {
-	int alpha = prevScore - std::max(1, 15 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-	int beta = prevScore + std::max(1, 15 + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	int alpha = prevScore - std::max(1, Aspiration_window + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	int beta = prevScore + std::max(1, Aspiration_window + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
 	SearchResult search = { 0 };
 
 	while (!locals.AbortSearch(0) || depth == 1)
@@ -446,7 +449,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	/*Null move pruning*/
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
 	{
-		unsigned int reduction = R + (depthRemaining >= static_cast<int>(VariableNullDepth));
+		unsigned int reduction = Null_constant + (depthRemaining >= static_cast<int>(VariableNullDepth));
 
 		position.ApplyNullMove();
 		int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
@@ -885,7 +888,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 			SEE += PieceValues(WHITE_QUEEN);
 		}
 
-		if (staticScore + SEE + 200 < alpha) 								//delta pruning
+		if (staticScore + SEE + Delta_margin < alpha) 						//delta pruning
 			break;
 
 		if (SEE < 0)														//prune bad captures
