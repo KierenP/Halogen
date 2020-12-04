@@ -1002,6 +1002,8 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput) : curren
 	noOutput = NoOutput;
 	tbHits = 0;
 	nodes = 0;
+	lowestAlpha = 0;
+	highestBeta = 0;
 
 	for (unsigned int i = 0; i < threads; i++)
 	{
