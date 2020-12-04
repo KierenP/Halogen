@@ -1,9 +1,19 @@
 #include "Search.h"
 
+/*Search constants*/
+
+double LMR_constant = -1.26;
+double LMR_coeff    =  0.84;
+
+unsigned int R = 3;					//Null-move reduction depth
+unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
+
 constexpr int FutilityMaxDepth = 10;
-int FutilityMargins[FutilityMaxDepth];
-const unsigned int R = 3;					//Null-move reduction depth
-const unsigned int VariableNullDepth = 7;	//Beyond this depth R = 4
+
+/*----------------*/
+
+int FutilityMargins[FutilityMaxDepth];		//[depth]
+int LMR_reduction[64][64] = {};				//[depth][move number]
 
 TranspositionTable tTable;
 
@@ -109,6 +119,14 @@ void InitSearch()
 	for (int i = 0; i < FutilityMaxDepth; i++)
 	{
 		FutilityMargins[i] = Futility_linear * i + Futility_constant;
+	}
+
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 0; j < 64; j++)
+		{
+			LMR_reduction[i][j] = std::round(LMR_constant + LMR_coeff * log(i + 1) * log(j + 1));
+		}
 	}
 }
 
@@ -421,7 +439,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
 	}
 
-	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
@@ -436,7 +454,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		if (score >= beta)
 		{
-			if (beta < matedIn(MAX_DEPTH))	
+			if (beta < matedIn(MAX_DEPTH))
 			{
 				SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
 				if (result.GetScore() >= beta)
@@ -678,11 +696,7 @@ void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& mo
 
 int Reduction(int depth, int i, int alpha, int beta)
 {
-	/*Formula adapted from Fruit Reloaded, sourced from chess programming wiki*/
-	if (IsPV(beta, alpha))
-		return int((sqrt(static_cast<double>(depth - 1)) + sqrt(static_cast<double>(i - 1))) / 3);
-	else
-		return int((sqrt(static_cast<double>(depth - 1)) + sqrt(static_cast<double>(i - 1))) / 2);
+	return LMR_reduction[std::min(63, std::max(0, depth))][std::min(63, std::max(0, i))];
 }
 
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
