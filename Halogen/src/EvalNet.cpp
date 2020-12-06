@@ -5,34 +5,42 @@ int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000
 
 constexpr int TEMPO = 10;
 
-uint64_t SimpleZobristKey(Position& position)
-{
-    uint64_t key = position.GetZobristKey();
-    if (position.GetTurn())
-        key ^= ZobristTable[12 * 64];
-    return key;
-}
+void NetworkScaleAdjustment(int& eval);
 
 int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
     int eval;
 
-    uint64_t key = SimpleZobristKey(position);
-
-    if (!evalTable.GetEntry(key, eval))
+    if (!evalTable.GetEntry(position.GetZobristKey(), eval))
     {
-        eval = position.GetEvaluation() * 94 / 100;
+        eval = position.GetEvaluation();
 
-        if (eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0)
-            eval /= 2;
-        if (eval < 0 && position.GetPieceBB(PAWN, BLACK) == 0)
-            eval /= 2;
+        NetworkScaleAdjustment(eval);
+        NoPawnAdjustment(eval, position);
+        TempoAdjustment(eval, position);
 
-        evalTable.AddEntry(key, eval);
+        evalTable.AddEntry(position.GetZobristKey(), eval);
     }
 
-    eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
     return std::min(4000, std::max(-4000, eval));
+}
+
+void TempoAdjustment(int& eval, Position& position)
+{
+    eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
+}
+
+void NoPawnAdjustment(int& eval, Position& position)
+{
+    if (eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0)
+        eval /= 2;
+    if (eval < 0 && position.GetPieceBB(PAWN, BLACK) == 0)
+        eval /= 2;
+}
+
+void NetworkScaleAdjustment(int& eval)
+{
+    eval = eval * 94 / 100;
 }
 
 int PieceValues(unsigned int Piece, GameStages GameStage)
