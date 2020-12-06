@@ -13,5 +13,9 @@ bool IsBlockade(const Position& position);
 
 int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable);
 
+void TempoAdjustment(int& eval, Position& position);
+
+void NoPawnAdjustment(int& eval, Position& position);
+
 int PieceValues(unsigned int Piece, GameStages GameStage = MIDGAME);
 
