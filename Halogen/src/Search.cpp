@@ -43,7 +43,7 @@ Move GetHashMove(const Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
 void AddHistory(const Move& move, int depthRemaining, unsigned int (&HistoryMatrix)[N_PLAYERS][N_SQUARES][N_SQUARES], bool sideToMove);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
-int Reduction(int depth, int i, int alpha, int beta);
+int Reduction(int depth, int i);
 int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
@@ -555,7 +555,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		//late move reductions
 		if (LMR(InCheck, position) && i > 3)
 		{
-			int reduction = Reduction(depthRemaining, static_cast<int>(i), alpha, beta);
+			int reduction = Reduction(depthRemaining, static_cast<int>(i));
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 
 			if (score <= a)
@@ -698,7 +698,7 @@ void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& mo
 	}
 }
 
-int Reduction(int depth, int i, int alpha, int beta)
+int Reduction(int depth, int i)
 {
 	return LMR_reduction[std::min(63, std::max(0, depth))][std::min(63, std::max(0, i))];
 }
