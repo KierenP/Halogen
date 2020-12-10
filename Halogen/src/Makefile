@@ -2,7 +2,7 @@ CC 		= g++
 SRC 	= *.cpp
 OUTPUT 	= ../../../$(EXE)$(VER)
 EXE 	= Halogen
-LIBS    = -lpthread -lm
+LIBS    = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++14
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
