@@ -16,8 +16,19 @@ void Position::ApplyMove(Move move)
 	PreviousKeys.push_back(key);
 	SaveParamiters();
 	SaveBoard();
-	SetEnPassant(static_cast<unsigned int>(-1));
+	SetEnPassant(N_SQUARES);
 	Increment50Move();
+
+	if (move.IsCapture())
+	{
+		SetCaptureSquare(move.GetTo());
+		SetCapturePiece(GetSquare(move.GetTo()));	//will fail with en passant, but that currently doesn't matter
+	}
+	else
+	{
+		SetCaptureSquare(N_SQUARES);
+		SetCapturePiece(N_PIECES);
+	}
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 
@@ -45,7 +56,7 @@ void Position::ApplyMove(Move move)
 	switch (move.GetFlag())
 	{
 	case PAWN_DOUBLE_MOVE:
-		SetEnPassant((move.GetTo() + move.GetFrom()) / 2);			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
+		SetEnPassant(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2));			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
 		break;
 	case EN_PASSANT:
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
@@ -78,11 +89,6 @@ void Position::ApplyMove(Move move)
 		break;
 	}
 
-	if (move.IsCapture())
-		SetCaptureSquare(move.GetTo());
-	else
-		SetCaptureSquare(static_cast<unsigned int>(-1));
-
 	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
 		Reset50Move();
 
@@ -112,9 +118,9 @@ void Position::ApplyMove(Move move)
 
 void Position::ApplyMove(std::string strmove)
 {
-	unsigned int prev = (strmove[0] - 97) + (strmove[1] - 49) * 8;
-	unsigned int next = (strmove[2] - 97) + (strmove[3] - 49) * 8;
-	unsigned int flag = QUIET;
+	Square prev = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
+	Square next = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
+	MoveFlag flag = QUIET;
 
 	//Captures
 	if (IsOccupied(next))
@@ -155,8 +161,8 @@ void Position::ApplyMove(std::string strmove)
 		if (tolower(strmove[4]) == 'b')
 			flag = BISHOP_PROMOTION;
 
-		if (IsOccupied(next))				//if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag = capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
-			flag += 4;
+		if (IsOccupied(next))				//if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag == capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
+			flag = static_cast<MoveFlag>(flag + CAPTURE);	//might be slow, but don't care.
 	}
 
 	ApplyMove(Move(prev, next, flag));
@@ -178,8 +184,9 @@ void Position::ApplyNullMove()
 {
 	PreviousKeys.push_back(key);
 	SaveParamiters();
-	SetEnPassant(static_cast<unsigned int>(-1));
-	SetCaptureSquare(static_cast<unsigned int>(-1));
+	SetEnPassant(N_SQUARES);
+	SetCaptureSquare(N_SQUARES);
+	SetCapturePiece(N_PIECES);
 	Increment50Move();
 
 	NextTurn();
@@ -207,7 +214,7 @@ void Position::Print() const
 
 	char Letter[N_SQUARES];
 
-	for (int i = 0; i < N_SQUARES; i++)
+	for (Square i : SquareIterator())
 	{
 		Letter[i] = PieceToChar(GetSquare(i));
 	}
@@ -321,7 +328,7 @@ uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
 
-	for (int i = 0; i < N_PIECES; i++)
+	for (Pieces i : PieceIterator())
 	{
 		uint64_t bitboard = GetPieceBB(i);
 		while (bitboard != 0)
@@ -333,13 +340,13 @@ uint64_t Position::GenerateZobristKey() const
 	if (GetTurn() == WHITE)
 		Key ^= ZobristTable.at(12 * 64);
 
-	if (CanCastleWhiteKingside())
+	if (GetCanCastleWhiteKingside())
 		Key ^= ZobristTable.at(12 * 64 + 1);
-	if (CanCastleWhiteQueenside())
+	if (GetCanCastleWhiteQueenside())
 		Key ^= ZobristTable.at(12 * 64 + 2);
-	if (CanCastleBlackKingside())
+	if (GetCanCastleBlackKingside())
 		Key ^= ZobristTable.at(12 * 64 + 3);
-	if (CanCastleBlackQueenside())
+	if (GetCanCastleBlackQueenside())
 		Key ^= ZobristTable.at(12 * 64 + 4);
 
 	if (GetEnPassant() <= SQ_H8)														//no ep = -1 which wraps around to a very large number
@@ -352,7 +359,7 @@ uint64_t Position::GenerateZobristKey() const
 
 uint64_t Position::IncrementZobristKey(Move move)
 {
-	const BoardParamiterData prev = GetPreviousParamiters();
+	/*const BoardParamiterData prev = GetPreviousParamiters();
 
 	//Change of turn
 	key ^= ZobristTable[12 * 64];	//because who's turn it is changed
@@ -416,6 +423,9 @@ uint64_t Position::IncrementZobristKey(Move move)
 			key ^= ZobristTable[Piece(QUEEN, !GetTurn()) * 64 + move.GetTo()];
 	}
 
+	return key;*/
+
+	key = GenerateZobristKey();
 	return key;
 }
 
@@ -424,11 +434,12 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 	std::array<int16_t, INPUT_NEURONS> ret;
 	size_t index = 0;
 
+	//TODO: iterate over enum and remove static cast
 	for (int side = WHITE; side >= BLACK; side--)
 	{
 		for (int piece = PAWN; piece <= KING; piece++)
 		{
-			uint64_t bb = GetPieceBB(Piece(piece, side));
+			uint64_t bb = GetPieceBB(static_cast<Pieces>(Piece(piece, side)));
 
 			for (int sq = 0; sq < N_SQUARES; sq++)
 			{
@@ -463,7 +474,7 @@ deltaArray& Position::CalculateMoveDelta(Move move)
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
 	{
-		delta.deltas[delta.size].index = modifier(GetPreviousBoard().GetSquare(move.GetTo()) * 64 + move.GetTo());
+		delta.deltas[delta.size].index = modifier(GetCapturePiece() * 64 + move.GetTo());
 		delta.deltas[delta.size++].delta = -1;
 	}
 

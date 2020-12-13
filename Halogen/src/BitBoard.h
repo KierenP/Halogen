@@ -4,40 +4,34 @@
 
 struct BitBoardData
 {
-	friend class BitBoard;	//so that bitboard can access m_Bitboard directly but the position class cannot 
-
 	BitBoardData();
-
-	//we need these functions because Zobrist increment will access the previous BitBoardData from previousBoards and it then needs to extract this information
-	uint64_t GetPieceBB(unsigned int piece) const;
-	unsigned int GetSquare(unsigned int square) const;	//returns N_PIECES = 12 if empty
-
-private:
 	uint64_t m_Bitboard[N_PIECES];
 };
 
-class BitBoard : public BitBoardData
+class BitBoard
 {
 public:
 	BitBoard();
 	virtual ~BitBoard() = 0;
 
-	bool IsEmpty(unsigned int square) const;
-	bool IsOccupied(unsigned int square) const;
-	bool IsOccupied(unsigned int square, bool colour) const;
+	Pieces GetSquare(Square square) const;
+
+	bool IsEmpty(Square square) const;
+	bool IsOccupied(Square square) const;
+	bool IsOccupied(Square square, Players colour) const;
 
 	uint64_t GetAllPieces() const;
 	uint64_t GetEmptySquares() const;
 	uint64_t GetWhitePieces() const;
 	uint64_t GetBlackPieces() const;
-	uint64_t GetPiecesColour(bool colour) const;
-	uint64_t GetPieceBB(unsigned int pieceType, bool colour) const;
-	unsigned int GetKing(bool colour) const;
+	uint64_t GetPiecesColour(Players colour) const;
+	uint64_t GetPieceBB(PieceTypes pieceType, Players colour) const;
+	uint64_t GetPieceBB(Pieces piece) const;
 
-	void SetSquare(unsigned int square, unsigned int piece);
-	void ClearSquare(unsigned int square);
+	Square GetKing(Players colour) const;
 
-	using BitBoardData::GetPieceBB;	//allow this function to be overloaded without it being overwriten
+	void SetSquare(Square square, Pieces piece);
+	void ClearSquare(Square square);
 
 protected:
 	void ResetBoard();
@@ -46,9 +40,8 @@ protected:
 	void SaveBoard();
 	void RestorePreviousBoard();
 
-	BitBoardData GetPreviousBoard();
-
 private:
-	std::vector<BitBoardData> previousBoards;
+	std::vector<BitBoardData> previousBoards = { BitBoardData() };
+	std::vector<BitBoardData>::iterator Current = previousBoards.begin();
 };
 

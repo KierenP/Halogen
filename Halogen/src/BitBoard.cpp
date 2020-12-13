@@ -3,54 +3,30 @@
 
 BitBoard::BitBoard()
 {
-
 }
 
 BitBoard::~BitBoard()
 {
 }
 
-void BitBoard::SetSquare(unsigned int square, unsigned int piece)
-{
-	assert(square < N_SQUARES);
-	assert(piece < N_PIECES);
-
-	ClearSquare(square);
-
-	if (piece < N_PIECES)	//it is possible we might set a square to be empty using this function rather than using the ClearSquare function below. 
-		m_Bitboard[piece] |= SquareBB[square];
-}
-
-void BitBoard::ClearSquare(unsigned int square)
-{
-	assert(square < N_SQUARES);
-
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		m_Bitboard[i] &= ~SquareBB[square];
-	}
-}
-
 void BitBoard::ResetBoard()
 {
-	previousBoards.clear();
-
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		m_Bitboard[i] = EMPTY;
-	}
+	previousBoards = { BitBoardData() };
+	Current = previousBoards.begin();
 }
 
 bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 {
 	ResetBoard();
 
-	size_t FenLetter = 0;													//index within the string
+	size_t FenLetter = 0;												//index within the string
 	int square = 0;														//index within the board
 	while ((square < 64) && (FenLetter < fen[0].length()))
 	{
 		char letter = fen[0].at(FenLetter);
-		int sq = GetPosition(GetFile(square), 7 - GetRank(square));		//the squares of the board go up as you move up the board towards blacks starting side, but a fen starts from the black side and works downwards
+		//ugly code, but surely this is the only time in the code that we iterate over squares in a different order than the Square enum
+		//the squares values go up as you move up the board towards black's starting side, but a fen starts from the black side and works downwards
+		Square sq = static_cast<Square>((RANK_8 - square / 8) * 8 + square % 8);
 
 		switch (letter)
 		{
@@ -86,46 +62,95 @@ bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
 
 void BitBoard::SaveBoard()
 {
-	previousBoards.push_back(static_cast<BitBoardData>(*this));
+	previousBoards.emplace_back(*Current);
+	Current = --previousBoards.end();		//Current might be invalidated by the above line if reallocation occurs
 }
 
 void BitBoard::RestorePreviousBoard()
 {
-	assert(previousBoards.size() != 0);
+	assert(previousBoards.size() > 1);
 
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		m_Bitboard[i] = previousBoards.back().GetPieceBB(i);
-	}
-
+	Current--;
 	previousBoards.pop_back();
 }
 
-BitBoardData BitBoard::GetPreviousBoard()
+BitBoardData::BitBoardData() : m_Bitboard {0}
 {
-	assert(previousBoards.size() != 0);
-	return previousBoards.back();
+
 }
 
-bool BitBoard::IsEmpty(unsigned int square) const
+uint64_t BitBoard::GetPiecesColour(Players colour) const
+{
+	if (colour == WHITE)
+		return GetWhitePieces();
+	else
+		return GetBlackPieces();
+}
+
+void BitBoard::SetSquare(Square square, Pieces piece)
+{
+	assert(square < N_SQUARES);
+	assert(piece < N_PIECES);
+
+	ClearSquare(square);
+
+	if (piece < N_PIECES)	//it is possible we might set a square to be empty using this function rather than using the ClearSquare function below. 
+		Current->m_Bitboard[piece] |= SquareBB[square];
+}
+
+uint64_t BitBoard::GetPieceBB(Pieces piece) const
+{
+	return Current->m_Bitboard[piece];
+}
+
+void BitBoard::ClearSquare(Square square)
 {
 	assert(square < N_SQUARES);
 
-	return ((SquareBB[square] & GetEmptySquares()) != 0);
+	for (int i = 0; i < N_PIECES; i++)
+	{
+		Current->m_Bitboard[i] &= ~SquareBB[square];
+	}
 }
 
-bool BitBoard::IsOccupied(unsigned int square) const
+uint64_t BitBoard::GetPieceBB(PieceTypes pieceType, Players colour) const
 {
-	assert(square < N_SQUARES);
-
-	return !IsEmpty(square);
+	return GetPieceBB(Piece(pieceType, colour));
 }
 
-bool BitBoard::IsOccupied(unsigned int square, bool colour) const
+Square BitBoard::GetKing(Players colour) const
 {
-	assert(square < N_SQUARES);
+	assert(GetPieceBB(KING, colour) != 0);	//assert only runs in debug so I don't care about the double call
+	return static_cast<Square>(LSB(GetPieceBB(KING, colour)));
+}
 
-	return ((SquareBB[square] & GetPiecesColour(colour)) != 0);
+bool BitBoard::IsEmpty(Square square) const
+{
+	assert(square != N_SQUARES);
+	return (GetSquare(square) == N_PIECES);
+}
+
+bool BitBoard::IsOccupied(Square square) const
+{
+	assert(square != N_SQUARES);
+	return (!IsEmpty(square));
+}
+
+bool BitBoard::IsOccupied(Square square, Players colour) const
+{
+	assert(square != N_SQUARES);
+	return (ColourOfPiece(GetSquare(square)) == colour);
+}
+
+Pieces BitBoard::GetSquare(Square square) const
+{
+	for (Pieces i : PieceIterator())
+	{
+		if ((GetPieceBB(i) & SquareBB[square]) != 0)
+			return i;
+	}
+
+	return N_PIECES;
 }
 
 uint64_t BitBoard::GetAllPieces() const
@@ -140,56 +165,10 @@ uint64_t BitBoard::GetEmptySquares() const
 
 uint64_t BitBoard::GetWhitePieces() const
 {
-	return m_Bitboard[WHITE_PAWN] | m_Bitboard[WHITE_KNIGHT] | m_Bitboard[WHITE_BISHOP] | m_Bitboard[WHITE_ROOK] | m_Bitboard[WHITE_QUEEN] | m_Bitboard[WHITE_KING];
+	return GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK) | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
 }
 
 uint64_t BitBoard::GetBlackPieces() const
 {
-	return m_Bitboard[BLACK_PAWN] | m_Bitboard[BLACK_KNIGHT] | m_Bitboard[BLACK_BISHOP] | m_Bitboard[BLACK_ROOK] | m_Bitboard[BLACK_QUEEN] | m_Bitboard[BLACK_KING];
-}
-
-uint64_t BitBoard::GetPiecesColour(bool colour) const
-{
-	if (colour == WHITE)
-		return GetWhitePieces();
-	else
-		return GetBlackPieces();
-}
-
-uint64_t BitBoard::GetPieceBB(unsigned int pieceType, bool colour) const
-{
-	assert(pieceType < N_PIECE_TYPES);
-
-	return m_Bitboard[pieceType + 6 * (colour)];
-}
-
-unsigned int BitBoard::GetKing(bool colour) const
-{
-	assert(GetPieceBB(KING, colour) != 0);	//assert only runs in debug so I don't care about the double call
-	return LSB(GetPieceBB(KING, colour));
-}
-
-BitBoardData::BitBoardData() : m_Bitboard {0}
-{
-
-}
-
-uint64_t BitBoardData::GetPieceBB(unsigned int piece) const
-{
-	assert(piece < N_PIECES);
-
-	return m_Bitboard[piece];
-}
-
-unsigned int BitBoardData::GetSquare(unsigned int square) const
-{
-	assert(square < N_SQUARES);
-
-	for (int i = 0; i < N_PIECES; i++)
-	{
-		if ((m_Bitboard[i] & SquareBB[square]) != 0)
-			return i;
-	}
-
-	return N_PIECES;
+	return GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK) | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
 }

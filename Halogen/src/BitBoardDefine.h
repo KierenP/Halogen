@@ -4,6 +4,7 @@
 #include <bitset>
 #include <stdexcept>
 #include <limits>
+#include <type_traits>
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -11,7 +12,7 @@
 
 extern bool HASH_ENABLE;
 
-enum Squares
+enum Square
 {
 	SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
 	SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -32,6 +33,8 @@ enum Players
 
 	N_PLAYERS
 };
+
+Players operator!(const Players& val);
 
 enum Pieces
 {
@@ -141,6 +144,33 @@ enum GameStages
 	N_STAGES
 };
 
+//From https://stackoverflow.com/questions/261963/how-can-i-iterate-over-an-enum
+
+template < typename C, C beginVal, C endVal>
+class Iterator {
+	typedef typename std::underlying_type<C>::type val_t;
+	int val;
+public:
+	Iterator(const C& f) : val(static_cast<val_t>(f)) {}
+	Iterator() : val(static_cast<val_t>(beginVal)) {}
+	Iterator operator++() {
+		++val;
+		return *this;
+	}
+	C operator*() { return static_cast<C>(val); }
+	Iterator begin() { return *this; } //default ctor is good
+	Iterator end() {
+		static const Iterator endIter = ++Iterator(endVal); // cache it
+		return endIter;
+	}
+	bool operator!=(const Iterator& i) { return val != i.val; }
+};
+
+//Add typedefs here for any enums you are tring to iterate over
+typedef Iterator<Pieces, Pieces::BLACK_PAWN, Pieces::WHITE_KING> PieceIterator;
+typedef Iterator<Square, Square::SQ_A1, Square::SQ_H8> SquareIterator;
+
+
 void BBInit();
 char PieceToChar(unsigned int piece);
 unsigned int Piece(unsigned int piecetype, unsigned int colour);
@@ -157,6 +187,12 @@ unsigned int GetAntiDiagonal(unsigned int square);
 unsigned int GetBitCount(uint64_t bb);
 unsigned int AlgebraicToPos(std::string str);
 unsigned int ColourOfPiece(unsigned int piece);
+
+//TODO slowly change over the functions to use expicit enums
+Pieces Piece(PieceTypes type, Players colour);
+Square GetPosition(File file, Rank rank);
+File GetFile(Square square);
+Rank GetRank(Square square);
 
 extern uint64_t EMPTY;
 extern uint64_t UNIVERCE;
@@ -191,4 +227,3 @@ uint64_t inBetweenCache(unsigned int from, unsigned int to);
 bool mayMove(unsigned int from, unsigned int to, uint64_t pieces);
 
 const unsigned int MAX_DEPTH = 100;
-

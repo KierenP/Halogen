@@ -5,63 +5,76 @@
 
 struct BoardParamiterData
 {
-	friend class BoardParamiters;
-
 	BoardParamiterData();
 
-	unsigned int GetTurnCount() const { return m_TurnCount; }
-	bool GetTurn() const { return m_CurrentTurn; }
-	bool HasCastledWhite() const { return m_HasCastledWhite; }
-	bool HasCastledBlack() const { return m_HasCastledBlack; }
-	bool CanCastleWhiteKingside() const { return m_WhiteKingCastle; }
-	bool CanCastleWhiteQueenside() const { return m_WhiteQueenCastle; }
-	bool CanCastleBlackKingside() const { return m_BlackKingCastle; }
-	bool CanCastleBlackQueenside() const { return m_BlackQueenCastle; }
-	unsigned int GetEnPassant() const { return m_EnPassant; }
-	unsigned int GetCaptureSquare() const { return m_CaptureSquare; }
-	unsigned int GetFiftyMoveCount() const { return m_FiftyMoveCount; }
-
-private:
-	unsigned int m_CaptureSquare;
-	unsigned int m_EnPassant;
+	Square m_CaptureSquare;
+	Pieces m_CapturePiece;
+	Square m_EnPassant;
 	unsigned int m_FiftyMoveCount;
 	unsigned int m_TurnCount;
 
 	bool m_HasCastledWhite;
 	bool m_HasCastledBlack;
 
-	bool m_CurrentTurn;
+	Players m_CurrentTurn;
 	bool m_WhiteKingCastle;
 	bool m_WhiteQueenCastle;
 	bool m_BlackKingCastle;
 	bool m_BlackQueenCastle;
 };
 
-class BoardParamiters : public BoardParamiterData
+class BoardParamiters
 {
 public:
 	BoardParamiters();
 	virtual ~BoardParamiters() = 0;
 
+	unsigned int GetTurnCount() const { return Current->m_TurnCount; }
+	Players GetTurn() const { return Current->m_CurrentTurn; }
+	bool GetHasCastledWhite() const { return Current->m_HasCastledWhite; }
+	bool GetHasCastledBlack() const { return Current->m_HasCastledBlack; }
+	bool GetCanCastleWhiteKingside() const { return Current->m_WhiteKingCastle; }
+	bool GetCanCastleWhiteQueenside() const { return Current->m_WhiteQueenCastle; }
+	bool GetCanCastleBlackKingside() const { return Current->m_BlackKingCastle; }
+	bool GetCanCastleBlackQueenside() const { return Current->m_BlackQueenCastle; }
+	Square GetEnPassant() const { return Current->m_EnPassant; }
+	Square GetCaptureSquare() const { return Current->m_CaptureSquare; }
+	Pieces GetCapturePiece() const { return Current->m_CapturePiece; }
+	unsigned int GetFiftyMoveCount() const { return Current->m_FiftyMoveCount; }
+
+	void SetTurnCount(unsigned int val) { Current->m_TurnCount = val; }
+	void SetTurn(Players val) { Current->m_CurrentTurn = val; }
+	void SetHasCastledWhite(bool val) { Current->m_HasCastledWhite = val; }
+	void SetHasCastledBlack(bool val) { Current->m_HasCastledBlack = val; }
+	void SetCanCastleWhiteKingside(bool val) { Current->m_WhiteKingCastle = val; }
+	void SetCanCastleWhiteQueenside(bool val) { Current->m_WhiteQueenCastle = val; }
+	void SetCanCastleBlackKingside(bool val) { Current->m_BlackKingCastle = val; }
+	void SetCanCastleBlackQueenside(bool val) { Current->m_BlackQueenCastle = val; }
+	void SetEnPassant(Square val) { Current->m_EnPassant = val; }
+	void SetCaptureSquare(Square val) { Current->m_CaptureSquare = val; }
+	void SetCapturePiece(Pieces val) { Current->m_CapturePiece = val; }
+	void SetFiftyMoveCount(unsigned int val) { Current->m_FiftyMoveCount = val; }
+
 protected:
+
 	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
 	void SaveParamiters();
 	void RestorePreviousParamiters();
 	void UpdateCastleRights(Move move);
-	void SetEnPassant(unsigned int var) { m_EnPassant = var; }
 	void WhiteCastled();
 	void BlackCastled();
 	void NextTurn();
-	void SetCaptureSquare(unsigned int sq) { m_CaptureSquare = sq; }
-	void Increment50Move() { m_FiftyMoveCount++; }
-	void Reset50Move() { m_FiftyMoveCount = 0; }
+	void Increment50Move() { SetFiftyMoveCount(GetFiftyMoveCount() + 1); }
+	void Reset50Move() { SetFiftyMoveCount(0); }
 
-	unsigned int GetPreviousFiftyMove(unsigned int index) { return PreviousParamiters.at(index).GetFiftyMoveCount(); }
+	//The only function like this, because we need to be able to do this when detecting 50 move repititions
+	unsigned int GetPreviousFiftyMove(unsigned int index) const { return PreviousParamiters.at(index).m_FiftyMoveCount; }
 
 	void InitParamiters();
-	BoardParamiterData GetPreviousParamiters();
 
 private:
-	std::vector<BoardParamiterData> PreviousParamiters;
+
+	std::vector<BoardParamiterData> PreviousParamiters = { BoardParamiterData() };
+	std::vector<BoardParamiterData>::iterator Current = PreviousParamiters.begin();
 };
 

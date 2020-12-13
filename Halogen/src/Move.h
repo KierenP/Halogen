@@ -1,4 +1,5 @@
 #pragma once
+#include "BitBoardDefine.h"
 #include <iostream>
 #include <assert.h>
 
@@ -24,13 +25,13 @@ class Move
 {
 public:
 	Move();
-	Move(unsigned int from, unsigned int to, unsigned int flag);
-	Move(unsigned short bits);
+	Move(Square from, Square to, MoveFlag flag);
+	Move(uint16_t bits);
 	~Move();
 
-	unsigned int GetFrom() const;
-	unsigned int GetTo() const;
-	unsigned int GetFlag() const;
+	Square GetFrom() const;
+	Square GetTo() const;
+	MoveFlag GetFlag() const;
 
 	bool IsPromotion() const;
 	bool IsCapture() const;
@@ -45,21 +46,21 @@ public:
 
 	int orderScore;
 
-	unsigned short GetBits() const { return data; }
+	uint16_t GetBits() const { return data; }
 
 private:
 
-	void SetFrom(unsigned int from);
-	void SetTo(unsigned int to);
-	void SetFlag(unsigned int flag);
+	void SetFrom(Square from);
+	void SetTo(Square to);
+	void SetFlag(MoveFlag flag);
 
 	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
-	unsigned short data;
+	uint16_t data;
 };
 
 struct MoveBits
 {
-	unsigned short data;
+	uint16_t data;
 };
 
 
