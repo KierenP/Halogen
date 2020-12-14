@@ -376,7 +376,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	return search;
 }
 
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
+void DebugAssert(const Position& position, int colour)
 {
 #ifdef _DEBUG
 	/*Add any code in here that tests the position for validity*/
@@ -384,6 +384,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	position.GetKing(BLACK);
 	assert((colour == 1 && position.GetTurn() == WHITE) || (colour == -1 && position.GetTurn() == BLACK));
 #endif 
+}
+
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
+{
+	DebugAssert(position, colour);
 
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
@@ -837,6 +842,8 @@ int mateIn(int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
+	DebugAssert(position, colour);
+
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 	position.ReportDepth(distanceFromRoot);

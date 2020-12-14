@@ -826,35 +826,16 @@ bool MoveIsLegal(Position& position, const Move& move)
 	return true;
 }
 
+/*
+This function does not work for casteling moves. They are tested for legality their creation.
+*/
 bool MovePutsSelfInCheck(Position& position, const Move & move)
 {
-	Pieces fromPiece = position.GetSquare(move.GetFrom());
-	Pieces toPiece = position.GetSquare(move.GetTo());
-	Pieces epPiece = N_PIECES;
+	assert(move.GetFlag() != KING_CASTLE);
+	assert(move.GetFlag() != QUEEN_CASTLE);
 
-	position.SetSquare(move.GetTo(), fromPiece);
-	position.ClearSquare(move.GetFrom());
-
-	if (move.GetFlag() == EN_PASSANT)
-	{
-		epPiece = position.GetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
-		position.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
-	}
-
-	bool InCheck = IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn());							//CANNOT use 'king' in place of GetKing because the king may have moved.
-
-	if (move.GetFlag() == EN_PASSANT)
-	{
-		position.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
-		position.SetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), epPiece);
-	}
-
-	position.SetSquare(move.GetFrom(), fromPiece);
-
-	if (toPiece != N_PIECES)
-		position.SetSquare(move.GetTo(), toPiece);
-	else
-		position.ClearSquare(move.GetTo());
-
-	return InCheck;
+	position.ApplyMoveQuick(move);
+	bool ret = IsInCheck(position, position.GetTurn());
+	position.RevertMoveQuick();
+	return ret;
 }

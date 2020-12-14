@@ -535,6 +535,9 @@ void Position::ApplyMoveQuick(Move move)
 
 	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
 	ClearSquare(move.GetFrom());
+
+	if (move.GetFlag() == EN_PASSANT)
+		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 }
 
 void Position::RevertMoveQuick()
