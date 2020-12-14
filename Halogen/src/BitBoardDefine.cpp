@@ -299,7 +299,7 @@ unsigned int GetBitCount(uint64_t bb)
 unsigned int AlgebraicToPos(std::string str)
 {
 	if (str == "-")
-		return -1;
+		return N_SQUARES;
 
 	assert(str.length() >= 2);
 

@@ -349,7 +349,7 @@ uint64_t Position::GenerateZobristKey() const
 	if (GetCanCastleBlackQueenside())
 		Key ^= ZobristTable.at(12 * 64 + 4);
 
-	if (GetEnPassant() <= SQ_H8)														//no ep = -1 which wraps around to a very large number
+	if (GetEnPassant() <= SQ_H8)
 	{
 		Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));
 	}

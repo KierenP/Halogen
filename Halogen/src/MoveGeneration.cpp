@@ -317,6 +317,8 @@ void PawnDoublePushes(Position& position, std::vector<Move>& moves, uint64_t pin
 
 void PawnEnPassant(Position& position, std::vector<Move>& moves)
 {
+	assert(position.GetEnPassant() != -1);
+
 	if (position.GetEnPassant() <= SQ_H8)
 	{
 		if (position.GetTurn() == WHITE)
