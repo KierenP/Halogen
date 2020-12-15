@@ -66,6 +66,7 @@ protected:
 	void NextTurn();
 	void Increment50Move() { SetFiftyMoveCount(GetFiftyMoveCount() + 1); }
 	void Reset50Move() { SetFiftyMoveCount(0); }
+	const BoardParamiterData& GetPreviousParamiters();
 
 	//The only function like this, because we need to be able to do this when detecting 50 move repititions
 	unsigned int GetPreviousFiftyMove(unsigned int index) const { return PreviousParamiters.at(index).m_FiftyMoveCount; }

@@ -29,6 +29,12 @@ void BoardParamiters::NextTurn()
 	SetTurn(!GetTurn());
 }
 
+const BoardParamiterData& BoardParamiters::GetPreviousParamiters()
+{
+	size_t size = PreviousParamiters.size();
+	return PreviousParamiters[size - 2];
+}
+
 void BoardParamiters::InitParamiters()
 {
 	PreviousParamiters = { BoardParamiterData() };
