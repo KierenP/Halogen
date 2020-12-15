@@ -359,13 +359,11 @@ uint64_t Position::GenerateZobristKey() const
 
 uint64_t Position::IncrementZobristKey(Move move)
 {
-	const BoardParamiterData& prev = GetPreviousParamiters();
-
 	//Change of turn
 	key ^= ZobristTable[12 * 64];	//because who's turn it is changed
 
-	if (prev.m_EnPassant <= SQ_H8)
-		key ^= ZobristTable[(12 * 64 + 5 + GetFile(prev.m_EnPassant))];		//undo the previous ep square
+	if (PrevGetEnPassant() <= SQ_H8)
+		key ^= ZobristTable[(12 * 64 + 5 + GetFile(PrevGetEnPassant()))];		//undo the previous ep square
 
 	if (move.IsUninitialized()) return key;	//null move
 
@@ -387,13 +385,13 @@ uint64_t Position::IncrementZobristKey(Move move)
 		key ^= ZobristTable[GetCapturePiece() * 64 + move.GetTo()];
 
 	//Castling
-	if (GetCanCastleWhiteKingside() != prev.m_WhiteKingCastle)					//if casteling rights changed, flip that one
+	if (GetCanCastleWhiteKingside() != PrevGetCanCastleWhiteKingside())					//if casteling rights changed, flip that one
 		key ^= ZobristTable[12 * 64 + 1];
-	if (GetCanCastleWhiteQueenside() != prev.m_WhiteQueenCastle)
+	if (GetCanCastleWhiteQueenside() != PrevGetCanCastleWhiteQueenside())
 		key ^= ZobristTable[12 * 64 + 2];
-	if (GetCanCastleBlackKingside() != prev.m_BlackKingCastle)
+	if (GetCanCastleBlackKingside() != PrevGetCanCastleBlackKingside())
 		key ^= ZobristTable[12 * 64 + 3];
-	if (GetCanCastleBlackQueenside() != prev.m_BlackQueenCastle)
+	if (GetCanCastleBlackQueenside() != PrevGetCanCastleBlackQueenside())
 		key ^= ZobristTable[12 * 64 + 4];
 
 	if (move.GetFlag() == KING_CASTLE)

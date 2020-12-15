@@ -57,6 +57,13 @@ public:
 
 protected:
 
+	//Functions for the Zobrist key incremental updates
+	Square PrevGetEnPassant() const { return (Current - 1)->m_EnPassant; }
+	bool PrevGetCanCastleWhiteKingside() const { return (Current - 1)->m_WhiteKingCastle; }
+	bool PrevGetCanCastleWhiteQueenside() const { return (Current - 1)->m_WhiteQueenCastle; }
+	bool PrevGetCanCastleBlackKingside() const { return (Current - 1)->m_BlackKingCastle; }
+	bool PrevGetCanCastleBlackQueenside() const { return (Current - 1)->m_BlackQueenCastle; }
+
 	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
 	void SaveParamiters();
 	void RestorePreviousParamiters();
