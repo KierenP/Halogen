@@ -58,7 +58,7 @@ void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, u
 void UpdateScore(int newScore, int& Score, Move& bestMove, std::vector<Move>& moves, const size_t& i);
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
-int see(Position& position, int square, bool side);
+int see(Position& position, Square square, Players side);
 int seeCapture(Position& position, const Move& move); //Don't send this an en passant move!
 
 void InitSearch();
@@ -222,7 +222,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 		});
 }
 
-int see(Position& position, int square, bool side)
+int see(Position& position, Square square, Players side)
 {
 	int value = 0;
 	Move capture = GetSmallestAttackerMove(position, square, side);
@@ -243,7 +243,7 @@ int seeCapture(Position& position, const Move& move)
 {
 	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
 
-	bool side = position.GetTurn();
+	Players side = position.GetTurn();
 
 	int value = 0;
 	int captureValue = PieceValues(position.GetSquare(move.GetTo()));
@@ -376,7 +376,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	return search;
 }
 
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
+void DebugAssert(const Position& position, int colour)
 {
 #ifdef _DEBUG
 	/*Add any code in here that tests the position for validity*/
@@ -384,6 +384,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	position.GetKing(BLACK);
 	assert((colour == 1 && position.GetTurn() == WHITE) || (colour == -1 && position.GetTurn() == BLACK));
 #endif 
+}
+
+SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
+{
+	DebugAssert(position, colour);
 
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
@@ -602,7 +607,7 @@ unsigned int ProbeTBRoot(const Position& position)
 		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
 		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
 		position.GetFiftyMoveCount(),
-		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetCanCastleBlackKingside() * TB_CASTLING_k + position.GetCanCastleBlackQueenside() * TB_CASTLING_q + position.GetCanCastleWhiteKingside() * TB_CASTLING_K + position.GetCanCastleWhiteQueenside() * TB_CASTLING_Q,
 		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
 		position.GetTurn(),
 		NULL);
@@ -618,7 +623,7 @@ unsigned int ProbeTBSearch(const Position& position)
 		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
 		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
 		0,
-		position.CanCastleBlackKingside() * TB_CASTLING_k + position.CanCastleBlackQueenside() * TB_CASTLING_q + position.CanCastleWhiteKingside() * TB_CASTLING_K + position.CanCastleWhiteQueenside() * TB_CASTLING_Q,
+		position.GetCanCastleBlackKingside() * TB_CASTLING_k + position.GetCanCastleBlackQueenside() * TB_CASTLING_q + position.GetCanCastleWhiteKingside() * TB_CASTLING_K + position.GetCanCastleWhiteQueenside() * TB_CASTLING_Q,
 		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
 		position.GetTurn());
 }
@@ -675,7 +680,7 @@ SearchResult UseRootTBScore(unsigned int result, int staticEval)
 	else
 		assert(0);
 
-	Move move(TB_GET_FROM(result), TB_GET_TO(result), flag);
+	Move move(static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
 
 	return { score, move };
 }
@@ -837,6 +842,8 @@ int mateIn(int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
+	DebugAssert(position, colour);
+
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 	position.ReportDepth(distanceFromRoot);
@@ -871,7 +878,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 	if (moves.size() == 0)
 		return staticScore;
-		
+
 	OrderMoves(moves, position, distanceFromRoot, locals);
 
 	for (size_t i = 0; i < moves.size(); i++)

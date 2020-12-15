@@ -12,7 +12,7 @@ Move::Move()
 	orderScore = 0;
 }
 
-Move::Move(unsigned int from, unsigned int to, unsigned int flag)
+Move::Move(Square from, Square to, MoveFlag flag)
 {
 	assert(from < 64);
 	assert(to < 64);
@@ -25,7 +25,7 @@ Move::Move(unsigned int from, unsigned int to, unsigned int flag)
 	SetFlag(flag);
 }
 
-Move::Move(unsigned short bits)
+Move::Move(uint16_t bits)
 {
 	data = bits;
 }
@@ -34,19 +34,19 @@ Move::~Move()
 {
 }
 
-unsigned int Move::GetFrom() const
+Square Move::GetFrom() const
 {
-	return (data & FROM_MASK);
+	return static_cast<Square>(data & FROM_MASK);
 }
 
-unsigned int Move::GetTo() const
+Square Move::GetTo() const
 {
-	return (data & TO_MASK) >> 6;
+	return static_cast<Square>((data & TO_MASK) >> 6);
 }
 
-unsigned int Move::GetFlag() const
+MoveFlag Move::GetFlag() const
 {
-	return (data & FLAG_MASK) >> 12;
+	return static_cast<MoveFlag>((data & FLAG_MASK) >> 12);
 }
 
 bool Move::IsPromotion() const
@@ -94,19 +94,19 @@ void Move::Reset()
 	data = 0;
 }
 
-void Move::SetFrom(unsigned int from)
+void Move::SetFrom(Square from)
 {
 	data &= ~FROM_MASK;
 	data |= from;
 }
 
-void Move::SetTo(unsigned int to)
+void Move::SetTo(Square to)
 {
 	data &= ~TO_MASK;
 	data |= to << 6;
 }
 
-void Move::SetFlag(unsigned int flag)
+void Move::SetFlag(MoveFlag flag)
 {
 	data &= ~FLAG_MASK;
 	data |= flag << 12;

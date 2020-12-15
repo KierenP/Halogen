@@ -37,6 +37,11 @@ const int index64[64] = {
    13, 18,  8, 12,  7,  6,  5, 63
 };
 
+Players operator!(const Players& val)
+{
+	return val == WHITE ? BLACK : WHITE;
+}
+
 void BBInit()
 {
 	UNIVERCE = 0xffffffffffffffff;
@@ -184,6 +189,34 @@ unsigned int Piece(unsigned int piecetype, unsigned int colour)
 	return piecetype + N_PIECE_TYPES * colour;
 }
 
+Pieces Piece(PieceTypes type, Players colour)
+{
+	assert(type < N_PIECE_TYPES);
+	assert(colour < N_PLAYERS);
+
+	return static_cast<Pieces>(type + N_PIECE_TYPES * colour);
+}
+
+Square GetPosition(File file, Rank rank)
+{
+	assert(file < N_FILES);
+	assert(file < N_RANKS);
+
+	return static_cast<Square>(rank * 8 + file);
+}
+
+File GetFile(Square square)
+{
+	assert(square < N_SQUARES);
+	return static_cast<File>(square % 8);
+}
+
+Rank GetRank(Square square)
+{
+	assert(square < N_SQUARES);
+	return static_cast<Rank>(square / 8);
+}
+
 unsigned int GetFile(unsigned int square)
 {
 	assert(square < N_SQUARES);
@@ -266,7 +299,7 @@ unsigned int GetBitCount(uint64_t bb)
 unsigned int AlgebraicToPos(std::string str)
 {
 	if (str == "-")
-		return -1;
+		return N_SQUARES;
 
 	assert(str.length() >= 2);
 
