@@ -144,33 +144,6 @@ enum GameStages
 	N_STAGES
 };
 
-//From https://stackoverflow.com/questions/261963/how-can-i-iterate-over-an-enum
-
-template < typename C, C beginVal, C endVal>
-class Iterator {
-	typedef typename std::underlying_type<C>::type val_t;
-	int val;
-public:
-	Iterator(const C& f) : val(static_cast<val_t>(f)) {}
-	Iterator() : val(static_cast<val_t>(beginVal)) {}
-	Iterator operator++() {
-		++val;
-		return *this;
-	}
-	C operator*() { return static_cast<C>(val); }
-	Iterator begin() { return *this; } //default ctor is good
-	Iterator end() {
-		static const Iterator endIter = ++Iterator(endVal); // cache it
-		return endIter;
-	}
-	bool operator!=(const Iterator& i) { return val != i.val; }
-};
-
-//Add typedefs here for any enums you are tring to iterate over
-typedef Iterator<Pieces, Pieces::BLACK_PAWN, Pieces::WHITE_KING> PieceIterator;
-typedef Iterator<Square, Square::SQ_A1, Square::SQ_H8> SquareIterator;
-
-
 void BBInit();
 char PieceToChar(unsigned int piece);
 unsigned int Piece(unsigned int piecetype, unsigned int colour);

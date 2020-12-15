@@ -214,9 +214,9 @@ void Position::Print() const
 
 	char Letter[N_SQUARES];
 
-	for (Square i : SquareIterator())
+	for (int i = 0; i < N_SQUARES; i++)
 	{
-		Letter[i] = PieceToChar(GetSquare(i));
+		Letter[i] = PieceToChar(GetSquare(static_cast<Square>(i)));
 	}
 
 	for (int i = 0; i < N_SQUARES; i++)
@@ -328,9 +328,9 @@ uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
 
-	for (Pieces i : PieceIterator())
+	for (int i = 0; i < N_PIECES; i++)
 	{
-		uint64_t bitboard = GetPieceBB(i);
+		uint64_t bitboard = GetPieceBB(static_cast<Pieces>(i));
 		while (bitboard != 0)
 		{
 			Key ^= ZobristTable.at(i * 64 + LSPpop(bitboard));
