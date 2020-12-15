@@ -144,10 +144,10 @@ bool BitBoard::IsOccupied(Square square, Players colour) const
 
 Pieces BitBoard::GetSquare(Square square) const
 {
-	for (Pieces i : PieceIterator())
+	for (int i = 0; i < N_PIECES; i++)
 	{
-		if ((GetPieceBB(i) & SquareBB[square]) != 0)
-			return i;
+		if ((GetPieceBB(static_cast<Pieces>(i)) & SquareBB[square]) != 0)
+			return static_cast<Pieces>(i);
 	}
 
 	return N_PIECES;
