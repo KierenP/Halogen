@@ -13,6 +13,13 @@ POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
+pgo:
+	rm -f *.gcda
+	$(CC) -fprofile-generate $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
+	./$(EXE) bench
+	$(CC) -fprofile-use $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
+	rm -f *.gcda
+
 default:
 	$(CC) $(CFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
 	
@@ -23,9 +30,4 @@ release:
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(POPCNTFLAGS) -o $(EXE)$(VER)-x64-popcnt-avx2.exe
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(PEXTFLAGS) -o $(EXE)$(VER)-x64-pext-avx2.exe
 	
-pgo:
-	rm -f *.gcda
-	$(CC) -fprofile-generate $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
-	./$(EXE) bench
-	$(CC) -fprofile-use $(PGOFLAGS) $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
-	rm -f *.gcda
+
