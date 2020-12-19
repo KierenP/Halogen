@@ -427,19 +427,14 @@ uint64_t Position::IncrementZobristKey(Move move)
 std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 {
 	std::array<int16_t, INPUT_NEURONS> ret;
-	size_t index = 0;
 
-	//TODO: iterate over enum and remove static cast
-	for (int side = WHITE; side >= BLACK; side--)
+	for (int i = 0; i < N_PIECES; i++)
 	{
-		for (int piece = PAWN; piece <= KING; piece++)
-		{
-			uint64_t bb = GetPieceBB(static_cast<Pieces>(Piece(piece, side)));
+		uint64_t bb = GetPieceBB(static_cast<Pieces>(i));
 
-			for (int sq = 0; sq < N_SQUARES; sq++)
-			{
-				ret[index++] = ((bb & SquareBB[sq]) != 0);
-			}
+		for (int sq = 0; sq < N_SQUARES; sq++)
+		{
+			ret[modifier(i * 64 + sq)] = ((bb & SquareBB[sq]) != 0);
 		}
 	}
 
