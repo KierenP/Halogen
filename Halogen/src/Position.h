@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BoardParamiters.h"
+#include "BoardParameters.h"
 #include "BitBoard.h"
 #include "Zobrist.h"
 #include "Network.h"
@@ -16,7 +16,7 @@ constexpr size_t NodeCountChunk = 1 << 12;
 This class holds all the data required to define a chess board position, as well as some functions to manipulate and extract this data in convienient ways.
 */
 
-class Position : public BoardParamiters, public BitBoard
+class Position : public BoardParameters, public BitBoard
 {
 public:
 	Position();																									
@@ -74,7 +74,7 @@ private:
 	uint64_t IncrementZobristKey(Move move);	
 
 	std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
-	deltaArray& CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input paramiter
+	deltaArray& CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input parameter
 
 	static size_t modifier(size_t index);								//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
 

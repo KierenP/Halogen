@@ -1,49 +1,49 @@
-#include "BoardParamiters.h"
+#include "BoardParameters.h"
 
-BoardParamiters::BoardParamiters()
+BoardParameters::BoardParameters()
 {
-	InitParamiters();
+	InitParameters();
 }
 
-BoardParamiters::~BoardParamiters()
+BoardParameters::~BoardParameters()
 {
 }
 
-void BoardParamiters::WhiteCastled()
+void BoardParameters::WhiteCastled()
 {
 	SetCanCastleWhiteKingside(false);
 	SetCanCastleWhiteQueenside(false);
 	SetHasCastledWhite(true);
 }
 
-void BoardParamiters::BlackCastled()
+void BoardParameters::BlackCastled()
 {
 	SetCanCastleBlackKingside(false);
 	SetCanCastleBlackQueenside(false);
 	SetHasCastledBlack(true);
 }
 
-void BoardParamiters::NextTurn()
+void BoardParameters::NextTurn()
 {
 	SetTurnCount(GetTurnCount() + 1);
 	SetTurn(!GetTurn());
 }
 
-const BoardParamiterData& BoardParamiters::GetPreviousParamiters()
+const BoardParameterData& BoardParameters::GetPreviousParameters()
 {
-	size_t size = PreviousParamiters.size();
-	return PreviousParamiters[size - 2];
+	size_t size = PreviousParameters.size();
+	return PreviousParameters[size - 2];
 }
 
-void BoardParamiters::InitParamiters()
+void BoardParameters::InitParameters()
 {
-	PreviousParamiters = { BoardParamiterData() };
-	Current = PreviousParamiters.begin();
+	PreviousParameters = { BoardParameterData() };
+	Current = PreviousParameters.begin();
 }
 
-bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
+bool BoardParameters::InitialiseParametersFromFen(std::vector<std::string> fen)
 {
-	InitParamiters();
+	InitParameters();
 
 	if (fen[1] == "w")
 		SetTurn(WHITE);
@@ -71,21 +71,21 @@ bool BoardParamiters::InitialiseParamitersFromFen(std::vector<std::string> fen)
 	return true;
 }
 
-void BoardParamiters::SaveParamiters()
+void BoardParameters::SaveParameters()
 {
-	PreviousParamiters.emplace_back(*Current);
-	Current = --PreviousParamiters.end();		//Current might be invalidated by the above line if reallocation occurs
+	PreviousParameters.emplace_back(*Current);
+	Current = --PreviousParameters.end();		//Current might be invalidated by the above line if reallocation occurs
 }
 
-void BoardParamiters::RestorePreviousParamiters()
+void BoardParameters::RestorePreviousParameters()
 {
-	assert(PreviousParamiters.size() != 0);
+	assert(PreviousParameters.size() != 0);
 
 	Current--;
-	PreviousParamiters.pop_back();	//the iterator should never be invalitated by this
+	PreviousParameters.pop_back();	//the iterator should never be invalitated by this
 }
 
-void BoardParamiters::UpdateCastleRights(Move move)
+void BoardParameters::UpdateCastleRights(Move move)
 {
 	if (move.GetFrom() == SQ_E1 || move.GetTo() == SQ_E1)			//Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
 	{
@@ -120,7 +120,7 @@ void BoardParamiters::UpdateCastleRights(Move move)
 	}
 }
 
-BoardParamiterData::BoardParamiterData()
+BoardParameterData::BoardParameterData()
 {
 	m_CurrentTurn = WHITE;
 	m_WhiteKingCastle = false;

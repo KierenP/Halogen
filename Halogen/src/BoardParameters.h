@@ -3,9 +3,9 @@
 #include "Move.h"
 #include <vector>
 
-struct BoardParamiterData
+struct BoardParameterData
 {
-	BoardParamiterData();
+	BoardParameterData();
 
 	Square m_CaptureSquare;
 	Pieces m_CapturePiece;
@@ -23,11 +23,11 @@ struct BoardParamiterData
 	bool m_BlackQueenCastle;
 };
 
-class BoardParamiters
+class BoardParameters
 {
 public:
-	BoardParamiters();
-	virtual ~BoardParamiters() = 0;
+	BoardParameters();
+	virtual ~BoardParameters() = 0;
 
 	unsigned int GetTurnCount() const { return Current->m_TurnCount; }
 	Players GetTurn() const { return Current->m_CurrentTurn; }
@@ -64,25 +64,25 @@ protected:
 	bool PrevGetCanCastleBlackKingside() const { return (Current - 1)->m_BlackKingCastle; }
 	bool PrevGetCanCastleBlackQueenside() const { return (Current - 1)->m_BlackQueenCastle; }
 
-	bool InitialiseParamitersFromFen(std::vector<std::string> fen);
-	void SaveParamiters();
-	void RestorePreviousParamiters();
+	bool InitialiseParametersFromFen(std::vector<std::string> fen);
+	void SaveParameters();
+	void RestorePreviousParameters();
 	void UpdateCastleRights(Move move);
 	void WhiteCastled();
 	void BlackCastled();
 	void NextTurn();
 	void Increment50Move() { SetFiftyMoveCount(GetFiftyMoveCount() + 1); }
 	void Reset50Move() { SetFiftyMoveCount(0); }
-	const BoardParamiterData& GetPreviousParamiters();
+	const BoardParameterData& GetPreviousParameters();
 
 	//The only function like this, because we need to be able to do this when detecting 50 move repititions
-	unsigned int GetPreviousFiftyMove(unsigned int index) const { return PreviousParamiters.at(index).m_FiftyMoveCount; }
+	unsigned int GetPreviousFiftyMove(unsigned int index) const { return PreviousParameters.at(index).m_FiftyMoveCount; }
 
-	void InitParamiters();
+	void InitParameters();
 
 private:
 
-	std::vector<BoardParamiterData> PreviousParamiters = { BoardParamiterData() };
-	std::vector<BoardParamiterData>::iterator Current = PreviousParamiters.begin();
+	std::vector<BoardParameterData> PreviousParameters = { BoardParameterData() };
+	std::vector<BoardParameterData>::iterator Current = PreviousParameters.begin();
 };
 
