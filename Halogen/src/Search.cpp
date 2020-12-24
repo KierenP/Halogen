@@ -376,24 +376,14 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	return search;
 }
 
-void DebugAssert(const Position& position, int colour)
-{
-	/*Add any code in here that tests the position for validity*/
-	position.GetKing(WHITE);	//this has internal asserts
-	position.GetKing(BLACK);
-	assert((colour == 1 && position.GetTurn() == WHITE) || (colour == -1 && position.GetTurn() == BLACK));
-}
-
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
-#ifdef _DEBUG
-	DebugAssert(position, colour);
-#endif 
-
+	//Set up search
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 	position.ReportDepth(distanceFromRoot);
 
+	//See if we should abort the search
 	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
 	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
@@ -401,10 +391,17 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	//check for draw
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position, distanceFromRoot)) return 0;
+	
+	/*
+	TODO: This MUST be fixed eventually. Luckly usually when 
+	EGTB is used it is also used for adjudication and so Halogen never
+	actually probes at the root. The call is not thread safe and needs
+	to occur before the search even starts
+	*/
 
+	//Probe TB at root
 	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
-		//at root
 		unsigned int result = ProbeTBRoot(position);
 		if (result != TB_RESULT_FAILED)
 		{
@@ -414,9 +411,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
+	//Probe TB in search
 	if (distanceFromRoot > 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
-		//not root
 		unsigned int result = ProbeTBSearch(position);
 		if (result != TB_RESULT_FAILED)
 		{
@@ -426,7 +423,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 	}
 
-	/*Query the transpotition table*/
+	//Query the transpotition table
 	if (!IsPV(beta, alpha)) 
 	{
 		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
@@ -434,7 +431,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		{
 			tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 
-			if (!position.CheckForRep(distanceFromRoot, 2))
+			if (!position.CheckForRep(distanceFromRoot, 2))	//Don't take scores from the TT if there's a two-fold repitition
 				if (UseTransposition(entry, distanceFromRoot, alpha, beta)) 
 					return SearchResult(entry.GetScore(), entry.GetMove());
 		}
@@ -442,7 +439,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	bool InCheck = IsInCheck(position);
 
-	/*Drop into quiescence search*/
+	//Drop into quiescence search
 	if (depthRemaining <= 0 && !InCheck)
 	{ 
 		return Quiescence(position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
@@ -450,9 +447,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
+	//Static null move pruning
 	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
-	/*Null move pruning*/
+	//Null move pruning
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
 	{
 		unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent + std::min(3, (staticScore - beta) / Null_beta_quotent);
@@ -465,6 +463,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		{
 			if (beta < matedIn(MAX_DEPTH) || depthRemaining >= 10)
 			{
+				//Do verification search for high depths
 				SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
 				if (result.GetScore() >= beta)
 					return result;
@@ -482,12 +481,17 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (alpha >= beta)
 		return alpha;
 
-	Move bestMove = Move();	//used for adding to transposition table later
+	//Set up search variables
+	Move bestMove = Move();	
 	int Score = LowINF;
 	int a = alpha;
 	int b = beta;
 
-	/*If a hash move exists, search with that move first and hope we can get a cutoff*/
+	/*
+	TODO: This needs to be replaced with a staged move generation and is way overdue.
+	*/
+
+	//If a hash move exists, search with that move first and hope we can get a cutoff
 	Move hashMove = GetHashMove(position, distanceFromRoot);
 	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100 && MoveIsLegal(position, hashMove))	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
 	{
@@ -524,18 +528,22 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		b = a + 1;				//Set a new zero width window
 	}
 
+	//Generate the legal moves
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
 
+	//Checkmate or stalemate 
 	if (moves.size() == 0)
 	{
 		return TerminalScore(position, distanceFromRoot);
 	}
 
+	//Fifty move rule
 	if (position.GetFiftyMoveCount() >= 100) return 0;	//must make sure its not already checkmate
 	
 	OrderMoves(moves, position, distanceFromRoot, locals);
 
+	//Rebel style IID. Don't ask why this helps but it does.
 	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
@@ -622,7 +630,7 @@ unsigned int ProbeTBSearch(const Position& position)
 		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
 		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
 		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-		0,
+		0,																			//TODO: this is wrong.
 		position.GetCanCastleBlackKingside() * TB_CASTLING_k + position.GetCanCastleBlackQueenside() * TB_CASTLING_q + position.GetCanCastleWhiteKingside() * TB_CASTLING_K + position.GetCanCastleWhiteQueenside() * TB_CASTLING_Q,
 		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
 		position.GetTurn());
@@ -842,10 +850,6 @@ int mateIn(int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
-#ifdef _DEBUG
-	DebugAssert(position, colour);
-#endif 
-
 	locals.PvTable[distanceFromRoot].clear();
 	if (position.NodesSearchedAddToThreadTotal()) sharedData.AddNodeChunk();
 	position.ReportDepth(distanceFromRoot);

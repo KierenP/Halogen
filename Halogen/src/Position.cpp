@@ -14,7 +14,7 @@ Position::~Position()
 void Position::ApplyMove(Move move)
 {
 	PreviousKeys.push_back(key);
-	SaveParamiters();
+	SaveParameters();
 	SaveBoard();
 	SetEnPassant(N_SQUARES);
 	Increment50Move();
@@ -174,7 +174,7 @@ void Position::RevertMove()
 	assert(PreviousKeys.size() > 0);
 
 	RestorePreviousBoard();
-	RestorePreviousParamiters();
+	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
 	ApplyInverseDelta(incrementalDepth);
@@ -183,7 +183,7 @@ void Position::RevertMove()
 void Position::ApplyNullMove()
 {
 	PreviousKeys.push_back(key);
-	SaveParamiters();
+	SaveParameters();
 	SetEnPassant(N_SQUARES);
 	SetCaptureSquare(N_SQUARES);
 	SetCapturePiece(N_PIECES);
@@ -203,7 +203,7 @@ void Position::RevertNullMove()
 {
 	assert(PreviousKeys.size() > 0);
 
-	RestorePreviousParamiters();
+	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
 }
@@ -256,7 +256,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	if (!InitialiseBoardFromFen(fen))
 		return false;
 
-	if (!InitialiseParamitersFromFen(fen))
+	if (!InitialiseParametersFromFen(fen))
 		return false;
 
 	key = GenerateZobristKey();
@@ -315,7 +315,7 @@ void Position::Reset()
 	EvaluatedPositions = 0;
 
 	ResetBoard();
-	InitParamiters();
+	InitParameters();
 }
 
 uint64_t Position::GetPreviousKey(size_t index)
