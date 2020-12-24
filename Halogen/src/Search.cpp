@@ -68,7 +68,7 @@ void InitSearch();
 void MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount, int maxSearchDepth)
 {
 	//Probe TB at root
-	/*if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		unsigned int result = ProbeTBRoot(position);
 		if (result != TB_RESULT_FAILED)
@@ -76,7 +76,7 @@ void MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsig
 			PrintBestMove(GetTBMove(result));
 			return;
 		}
-	}*/
+	}
 
 	InitSearch();
 
