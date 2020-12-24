@@ -48,8 +48,11 @@ enum Score
 	HighINF = 30000,
 	LowINF = -30000,
 
-	MateScore = -10000,
-	Draw = 0
+	MATED = -10000,
+	TB_LOSS_SCORE = -5000,
+	DRAW = 0,
+	TB_WIN_SCORE = 5000,
+	MATE = 10000
 };
 
 struct Killer
@@ -109,7 +112,7 @@ private:
 
 extern TranspositionTable tTable;
 
-Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
+void MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount = 1, int maxSearchDepth = MAX_DEPTH);
 uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
 void DepthSearch(const Position& position, int maxSearchDepth);
 void MateSearch(const Position& position, int searchTime, int mate);
