@@ -4,6 +4,7 @@ Position::Position()
 {
 	key = EMPTY;
 	StartingPosition();
+	Zeta.resize(MAX_DEPTH + 1);
 }
 
 Position::~Position()
@@ -96,7 +97,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	ApplyDelta(CalculateMoveDelta(move), Zeta, incrementalDepth);
+	ApplyDelta(CalculateMoveDelta(move), Zeta);
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -166,7 +167,7 @@ void Position::ApplyMove(std::string strmove)
 	}
 
 	ApplyMove(Move(prev, next, flag));
-	RecalculateIncremental(GetInputLayer(), Zeta, incrementalDepth);
+	RecalculateIncremental(GetInputLayer(), Zeta);
 }
 
 void Position::RevertMove()
@@ -177,7 +178,7 @@ void Position::RevertMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	ApplyInverseDelta(incrementalDepth);
+	ApplyInverseDelta(Zeta);
 }
 
 void Position::ApplyNullMove()
@@ -239,7 +240,7 @@ void Position::Print() const
 void Position::StartingPosition()
 {
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
-	RecalculateIncremental(GetInputLayer(), Zeta, incrementalDepth);
+	RecalculateIncremental(GetInputLayer(), Zeta);
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
@@ -260,7 +261,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 		return false;
 
 	key = GenerateZobristKey();
-	RecalculateIncremental(GetInputLayer(), Zeta, incrementalDepth);
+	RecalculateIncremental(GetInputLayer(), Zeta);
 
 	return true;
 }
@@ -534,7 +535,7 @@ void Position::RevertMoveQuick()
 
 int16_t Position::GetEvaluation()
 {
-	return QuickEval(Zeta, incrementalDepth);
+	return QuickEval(Zeta);
 }
 
 bool Position::CheckForRep(int distanceFromRoot, int maxReps)

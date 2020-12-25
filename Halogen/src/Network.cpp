@@ -41,12 +41,9 @@ void NetworkInit()
     delete[] OutputBias;
 }
 
-void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, size_t& incrementalDepth)
+void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
 {
-    incrementalDepth = 0;
-
-    for (size_t i = 0; i <= MAX_DEPTH; i++)
-        Zeta[i] = {};
+    Zeta.resize(1);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         Zeta[0][i] = (*hiddenBias)[i];
@@ -56,33 +53,32 @@ void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::arra
             Zeta[0][i] += inputs[j] * (*hiddenWeights)[j][i];
 }
 
-void ApplyDelta(deltaArray& update, std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, size_t& incrementalDepth)
+void ApplyDelta(deltaArray& update, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
 {
-    incrementalDepth++;
-    Zeta[incrementalDepth] = Zeta[incrementalDepth - 1];
+    Zeta.push_back(Zeta.back());
 
     for (size_t i = 0; i < update.size; i++)
     {
         if (update.deltas[i].delta == 1)
             for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta[incrementalDepth][j] += (*hiddenWeights)[update.deltas[i].index][j];
+                Zeta.back()[j] += (*hiddenWeights)[update.deltas[i].index][j];
         else
             for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta[incrementalDepth][j] -= (*hiddenWeights)[update.deltas[i].index][j];
+                Zeta.back()[j] -= (*hiddenWeights)[update.deltas[i].index][j];
     }
 }
 
-void ApplyInverseDelta(size_t& incrementalDepth)
+void ApplyInverseDelta(std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
 {
-    --incrementalDepth;
+    Zeta.pop_back();
 }
 
-int16_t QuickEval(const std::array<std::array<int16_t, HIDDEN_NEURONS>, MAX_DEPTH + 1>& Zeta, const size_t& incrementalDepth)
+int16_t QuickEval(const std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
 {
     int32_t output = (*outputBias) * PRECISION;
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        output += std::max(int16_t(0), Zeta[incrementalDepth][i]) * (*outputWeights)[i];
+        output += std::max(int16_t(0), Zeta.back()[i]) * (*outputWeights)[i];
 
     return output / SQUARE_PRECISION;
 }
