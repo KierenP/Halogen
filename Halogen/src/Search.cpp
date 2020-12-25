@@ -1026,12 +1026,12 @@ ThreadSharedData::ThreadSharedData(unsigned int threads, bool NoOutput) : curren
 	noOutput = NoOutput;
 	lowestAlpha = 0;
 	highestBeta = 0;
+	threadlocalData.resize(threads);
 
 	for (unsigned int i = 0; i < threads; i++)
 	{
 		searchDepth.push_back(0);
 		ThreadWantsToStop.push_back(false);
-		threadlocalData.push_back({});
 	}
 }
 
