@@ -46,10 +46,12 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 int Reduction(int depth, int i);
 int matedIn(int distanceFromRoot);
 int mateIn(int distanceFromRoot);
+int TBLossIn(int distanceFromRoot);
+int TBWinIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
 unsigned int ProbeTBSearch(const Position& position);
-SearchResult UseSearchTBScore(unsigned int result, int staticEval);
-SearchResult UseRootTBScore(unsigned int result, int staticEval);
+SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
+Move GetTBMove(unsigned int result);
 
 void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID, int maxTime, int allocatedTimeMs, int maxSearchDepth = MAX_DEPTH, int mateScore =0, SearchData locals = SearchData());
 SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID, Timer& searchTime);
@@ -63,8 +65,19 @@ int seeCapture(Position& position, const Move& move); //Don't send this an en pa
 
 void InitSearch();
 
-Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount, int maxSearchDepth)
+void MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsigned int AllocatedTimeMs, unsigned int threadCount, int maxSearchDepth)
 {
+	//Probe TB at root
+	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	{
+		unsigned int result = ProbeTBRoot(position);
+		if (result != TB_RESULT_FAILED)
+		{
+			PrintBestMove(GetTBMove(result));
+			return;
+		}
+	}
+
 	InitSearch();
 
 	std::vector<std::thread> threads;
@@ -81,7 +94,6 @@ Move MultithreadedSearch(const Position& position, unsigned int maxTimeMs, unsig
 	}
 
 	PrintBestMove(sharedData.GetBestMove());
-	return sharedData.GetBestMove();
 }
 
 uint64_t BenchSearch(const Position& position, int maxSearchDepth)
@@ -277,9 +289,9 @@ void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int scor
 	if (isCheckmate)
 	{
 		if (score > 0)
-			std::cout << " score mate " << ((-abs(score) -MateScore) + 1) / 2;
+			std::cout << " score mate " << ((MATE - abs(score)) + 1) / 2;
 		else
-			std::cout << " score mate " << -((-abs(score) - MateScore) + 1) / 2;
+			std::cout << " score mate " << -((MATE - abs(score)) + 1) / 2;
 	}
 	else
 	{
@@ -342,7 +354,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 		sharedData.ReportResult(depth, searchTime.ElapsedMs(), score, alpha, beta, position, search.GetMove(), locals);
 		prevScore = score;
 
-		if ((-Score::MateScore) - abs(score) <= 2 * mateScore) break;
+		if ((MATE) - abs(score) <= 2 * mateScore) break;
 	}
 }
 
@@ -384,42 +396,48 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	position.ReportDepth(distanceFromRoot);
 
 	//See if we should abort the search
-	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;										//we must check later that we don't let this score pollute the transposition table
-	if (sharedData.ThreadAbort(initialDepth)) return -1;												//another thread has finished searching this depth: ABORT!
-	if (distanceFromRoot >= MAX_DEPTH) return 0;														//If we are 100 moves from root I think we can assume its a drawn position
+	if (initialDepth > 1 && locals.AbortSearch(position.GetNodes())) return -1;			//Am I out of time?
+	if (sharedData.ThreadAbort(initialDepth)) return -1;								//Has this depth been finished by another thread?
+	if (distanceFromRoot >= MAX_DEPTH) return 0;										//Have we reached max depth?
 
 	//check for draw
 	if (DeadPosition(position)) return 0;
 	if (CheckForRep(position, distanceFromRoot)) return 0;
 	
-	/*
-	TODO: This MUST be fixed eventually. Luckly usually when 
-	EGTB is used it is also used for adjudication and so Halogen never
-	actually probes at the root. The call is not thread safe and needs
-	to occur before the search even starts
-	*/
-
-	//Probe TB at root
-	if (distanceFromRoot == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
-	{
-		unsigned int result = ProbeTBRoot(position);
-		if (result != TB_RESULT_FAILED)
-		{
-			position.addTbHit();
-			if (position.TbHitaddToThreadTotal()) sharedData.AddTBHitChunk();
-			return UseRootTBScore(result, colour * EvaluatePositionNet(position, locals.evalTable));
-		}
-	}
+	int Score = LowINF;
+	int MaxScore = HighINF;
 
 	//Probe TB in search
-	if (distanceFromRoot > 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	if (   distanceFromRoot > 0   
+		&& position.GetFiftyMoveCount() == 0 
+		&& GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		unsigned int result = ProbeTBSearch(position);
 		if (result != TB_RESULT_FAILED)
 		{
 			position.addTbHit();
 			if (position.TbHitaddToThreadTotal()) sharedData.AddTBHitChunk();
-			return UseSearchTBScore(result, colour * EvaluatePositionNet(position, locals.evalTable));
+			auto probe = UseSearchTBScore(result, distanceFromRoot);
+
+			if (probe.GetScore() == 0)
+				return probe;
+			if (probe.GetScore() >= TBWinIn(MAX_DEPTH) && probe.GetScore() >= beta)
+				return probe;
+			if (probe.GetScore() <= TBLossIn(MAX_DEPTH) && probe.GetScore() <= alpha)
+				return probe;
+
+			if (IsPV(beta, alpha)) 
+			{
+				if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
+				{
+					Score = probe.GetScore();
+					alpha = std::max(alpha, probe.GetScore());
+				}
+				else
+				{
+					MaxScore = probe.GetScore();
+				}
+			}
 		}
 	}
 
@@ -461,7 +479,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		if (score >= beta)
 		{
-			if (beta < matedIn(MAX_DEPTH) || depthRemaining >= 10)
+			if (beta < matedIn(MAX_DEPTH) || depthRemaining >= 10)	//TODO: I'm not sure about this first condition
 			{
 				//Do verification search for high depths
 				SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
@@ -483,7 +501,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	//Set up search variables
 	Move bestMove = Move();	
-	int Score = LowINF;
 	int a = alpha;
 	int b = beta;
 
@@ -599,6 +616,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		b = a + 1;				//Set a new zero width window
 	}
 
+	Score = std::min(Score, MaxScore);
+
 	if (!locals.AbortSearch(position.GetNodes()) && !sharedData.ThreadAbort(initialDepth))
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
@@ -630,49 +649,34 @@ unsigned int ProbeTBSearch(const Position& position)
 		position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
 		position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
 		position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-		0,																			//TODO: this is wrong.
+		position.GetFiftyMoveCount(),											
 		position.GetCanCastleBlackKingside() * TB_CASTLING_k + position.GetCanCastleBlackQueenside() * TB_CASTLING_q + position.GetCanCastleWhiteKingside() * TB_CASTLING_K + position.GetCanCastleWhiteQueenside() * TB_CASTLING_Q,
 		position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
 		position.GetTurn());
 }
 
-SearchResult UseSearchTBScore(unsigned int result, int staticEval)
+SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 {
 	int score = -1;
 
 	if (result == TB_LOSS)
-		score = -5000 + staticEval / 10;
+		score = -5000 + distanceFromRoot;
 	else if (result == TB_BLESSED_LOSS)
-		score = 0 + std::min(-1, staticEval / 100);
+		score = 0;
 	else if (result == TB_DRAW)
 		score = 0;
 	else if (result == TB_CURSED_WIN)
-		score = std::max(1, staticEval / 100);
+		score = 0;
 	else if (result == TB_WIN)
-		score = 5000 + staticEval / 10;
+		score = 5000 - distanceFromRoot;
 	else
 		assert(0);
 
 	return score;
 }
 
-SearchResult UseRootTBScore(unsigned int result, int staticEval)
+Move GetTBMove(unsigned int result)
 {
-	int score = -1;
-
-	if (TB_GET_WDL(result) == TB_LOSS)
-		score = -5000 + staticEval / 10;
-	else if (TB_GET_WDL(result) == TB_BLESSED_LOSS)
-		score = 0 + std::min(-1, staticEval / 100);
-	else if (TB_GET_WDL(result) == TB_DRAW)
-		score = 0;
-	else if (TB_GET_WDL(result) == TB_CURSED_WIN)
-		score = 0 + std::max(1, staticEval / 100);
-	else if (TB_GET_WDL(result) == TB_WIN)
-		score = 5000 + staticEval / 10;
-	else
-		assert(0);
-
 	int flag = -1;
 
 	if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
@@ -688,9 +692,7 @@ SearchResult UseRootTBScore(unsigned int result, int staticEval)
 	else
 		assert(0);
 
-	Move move(static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
-
-	return { score, move };
+	return Move(static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
 }
 
 void UpdateAlpha(int Score, int& a, std::vector<Move>& moves, const size_t& i, unsigned int distanceFromRoot, SearchData& locals)
@@ -834,18 +836,28 @@ int TerminalScore(const Position& position, int distanceFromRoot)
 	}
 	else
 	{
-		return (Draw);
+		return (DRAW);
 	}
 }
 
 int matedIn(int distanceFromRoot)
 {
-	return (MateScore) + (distanceFromRoot);
+	return MATED + distanceFromRoot;
 }
 
 int mateIn(int distanceFromRoot)
 {
-	return -(MateScore) - (distanceFromRoot);
+	return MATE - distanceFromRoot;
+}
+
+int TBLossIn(int distanceFromRoot)
+{
+	return TB_LOSS_SCORE + distanceFromRoot;
+}
+
+int TBWinIn(int distanceFromRoot)
+{
+	return TB_WIN_SCORE - distanceFromRoot;
 }
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
