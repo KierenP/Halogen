@@ -262,9 +262,6 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	key = GenerateZobristKey();
 	RecalculateIncremental(GetInputLayer(), Zeta, incrementalDepth);
 
-	nodesSearched = 0;
-	tbHits = 0;
-
 	return true;
 }
 
@@ -538,28 +535,6 @@ void Position::RevertMoveQuick()
 int16_t Position::GetEvaluation()
 {
 	return QuickEval(Zeta, incrementalDepth);
-}
-
-bool Position::NodesSearchedAddToThreadTotal()
-{
-	if (nodesSearched > NodeCountChunk)
-	{
-		nodesSearched -= NodeCountChunk;
-		return true;
-	}
-
-	return false;
-}
-
-bool Position::TbHitaddToThreadTotal()
-{
-	if (tbHits > NodeCountChunk)
-	{
-		tbHits -= NodeCountChunk;
-		return true;
-	}
-
-	return false;
 }
 
 bool Position::CheckForRep(int distanceFromRoot, int maxReps)

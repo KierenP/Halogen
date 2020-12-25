@@ -49,13 +49,6 @@ public:
 
 	int16_t GetEvaluation();
 
-	void addTbHit() { tbHits++; }
-	void addNode() { nodesSearched++; }
-	bool NodesSearchedAddToThreadTotal();
-	bool TbHitaddToThreadTotal();
-
-	size_t GetNodes() { return nodesSearched; }
-
 	bool CheckForRep(int distanceFromRoot, int maxReps);
 
 	void ResetSeldepth() { selDepth = 0; }
@@ -63,8 +56,7 @@ public:
 	int GetSelDepth() const { return selDepth; }
 
 private:
-	size_t nodesSearched;
-	size_t tbHits;
+	//TODO: move this to be inside of SearchData
 	int selDepth;
 
 	uint64_t key;
