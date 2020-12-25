@@ -70,7 +70,10 @@ struct SearchData
 	EvalCacheTable evalTable;
 	SearchTimeManage timeManage;
 
-	bool AbortSearch(size_t nodes);
+	uint64_t tbHits = 0;
+	uint64_t nodes = 0;
+
+	bool AbortSearch();
 	bool ContinueSearch();
 };
 
@@ -87,11 +90,10 @@ public:
 	void ReportWantsToStop(unsigned int threadID);
 	int GetAspirationScore();
 	
-	uint64_t getTBHits() const { return tbHits; }
-	uint64_t getNodes() const { return nodes; }
+	uint64_t getTBHits() const;
+	uint64_t getNodes() const;
 
-	void AddNodeChunk() { nodes += NodeCountChunk; }
-	void AddTBHitChunk() { tbHits += NodeCountChunk; }
+	SearchData& GetData(unsigned int threadID);
 
 private:
 	std::mutex ioMutex;
@@ -103,9 +105,9 @@ private:
 	int highestBeta;
 	bool noOutput;									//Do not write anything to the concole
 
-	uint64_t tbHits;
-	uint64_t nodes;
+	std::vector<SearchData> threadlocalData;
 
+	//TODO: probably put this inside of SearchData
 	std::vector<unsigned int> searchDepth;			//what depth is each thread currently searching?
 	std::vector<bool> ThreadWantsToStop;			//Threads signal here that they want to stop searching, but will keep going until all threads want to stop
 };
