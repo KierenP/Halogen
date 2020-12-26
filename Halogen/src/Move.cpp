@@ -8,8 +8,6 @@ const unsigned int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
 
 Move::Move()
 {
-	data = 0;
-	orderScore = 0;
 }
 
 Move::Move(Square from, Square to, MoveFlag flag)
@@ -18,8 +16,6 @@ Move::Move(Square from, Square to, MoveFlag flag)
 	assert(to < 64);
 	assert(flag < 16);
 
-	data = 0;
-	orderScore = 0;
 	SetFrom(from);
 	SetTo(to);
 	SetFlag(flag);

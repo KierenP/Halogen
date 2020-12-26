@@ -70,7 +70,7 @@ void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() > 1);
 
-	Current--;
+	--Current;
 	previousBoards.pop_back();
 }
 

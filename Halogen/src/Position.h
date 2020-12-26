@@ -40,16 +40,13 @@ public:
 
 	void Reset();
 
-	size_t GetPreviousKeysSize() const { return PreviousKeys.size(); }
-	uint64_t GetPreviousKey(size_t index);
-
 	/*Seriously, don't use these functions outside of static exchange evaluation*/
 	void ApplyMoveQuick(Move move);	//does ApplyMove functionality but much quicker.
 	void RevertMoveQuick();			//does RevertMove functionality but much quicker.
 
 	int16_t GetEvaluation();
 
-	bool CheckForRep(int distanceFromRoot, int maxReps);
+	bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
 	void ResetSeldepth() { selDepth = 0; }
 	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }

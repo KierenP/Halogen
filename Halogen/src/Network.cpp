@@ -53,7 +53,7 @@ void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::vect
             Zeta[0][i] += inputs[j] * (*hiddenWeights)[j][i];
 }
 
-void ApplyDelta(deltaArray& update, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
+void ApplyDelta(const deltaArray& update, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta)
 {
     Zeta.push_back(Zeta.back());
 

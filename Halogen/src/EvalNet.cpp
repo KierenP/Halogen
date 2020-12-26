@@ -6,6 +6,8 @@ int pieceValueVector[N_STAGES][N_PIECE_TYPES] = { {91, 532, 568, 715, 1279, 5000
 constexpr int TEMPO = 10;
 
 void NetworkScaleAdjustment(int& eval);
+void TempoAdjustment(int& eval, const Position& position);
+void NoPawnAdjustment(int& eval, const Position& position);
 
 int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
 {
@@ -25,12 +27,12 @@ int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
     return std::min(4000, std::max(-4000, eval));
 }
 
-void TempoAdjustment(int& eval, Position& position)
+void TempoAdjustment(int& eval, const Position& position)
 {
     eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
 }
 
-void NoPawnAdjustment(int& eval, Position& position)
+void NoPawnAdjustment(int& eval, const Position& position)
 {
     if (eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0)
         eval /= 2;
