@@ -121,7 +121,7 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
 	return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals)
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const
 {
 	std::vector<Move> pv = locals.PvTable[0];
 
@@ -174,7 +174,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 	std::cout << std::endl;
 }
 
-bool SearchLimits::CheckTimeLimit()
+bool SearchLimits::CheckTimeLimit() const
 {
 	if (KeepSearching == false)
 		return true;
@@ -196,7 +196,7 @@ bool SearchLimits::CheckTimeLimit()
 	return periodicTimeLimit;
 }
 
-bool SearchLimits::CheckDepthLimit(int depth)
+bool SearchLimits::CheckDepthLimit(int depth) const
 {
 	if (KeepSearching == false)
 		return true;
@@ -210,7 +210,7 @@ bool SearchLimits::CheckDepthLimit(int depth)
 	return depth > std::min(static_cast<int>(MAX_DEPTH), depthLimit);
 }
 
-bool SearchLimits::CheckMateLimit(int score)
+bool SearchLimits::CheckMateLimit(int score) const
 {
 	if (KeepSearching == false)
 		return true;
@@ -224,7 +224,7 @@ bool SearchLimits::CheckMateLimit(int score)
 	return (MATE) - abs(score) <= 2 * mateLimit;
 }
 
-bool SearchLimits::CheckContinueSearch()
+bool SearchLimits::CheckContinueSearch() const
 {
 	if (IsInfinite)
 		return true;

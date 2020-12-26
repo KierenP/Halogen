@@ -23,10 +23,10 @@ class SearchLimits
 public:
 	SearchLimits() : SearchTimeManager(0, 0) {};
 
-	bool CheckTimeLimit();
-	bool CheckDepthLimit(int depth);
-	bool CheckMateLimit(int score);
-	bool CheckContinueSearch();
+	bool CheckTimeLimit() const;
+	bool CheckDepthLimit(int depth) const;
+	bool CheckMateLimit(int score) const;
+	bool CheckContinueSearch() const;
 
 	void SetTimeLimits(int maxTime, int allocatedTime);
 	void SetInfinite();
@@ -38,7 +38,7 @@ public:
 private:
 
 	SearchTimeManage SearchTimeManager;
-	int PeriodicCheck = 0;
+	mutable int PeriodicCheck = 0;
 
 	int depthLimit = -1;
 	int mateLimit = -1;
@@ -48,7 +48,7 @@ private:
 	bool depthLimitEnabled = false;
 	bool mateLimitEnabled = false;
 
-	bool periodicTimeLimit = false;
+	mutable bool periodicTimeLimit = false;
 };
 
 struct SearchData
@@ -100,7 +100,7 @@ public:
 	SearchData& GetData(unsigned int threadID);
 
 private:
-	void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals);
+	void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const;
 
 	std::mutex ioMutex;
 	unsigned int threadCount;

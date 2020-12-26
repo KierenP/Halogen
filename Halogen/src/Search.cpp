@@ -22,7 +22,7 @@ constexpr int FutilityMaxDepth = 10;
 int FutilityMargins[FutilityMaxDepth];		//[depth]
 int LMR_reduction[64][64] = {};				//[depth][move number]
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals);
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const SearchData& locals);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
@@ -126,7 +126,7 @@ void InitSearch()
 	}
 }
 
-void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, SearchData& locals)
+void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRoot, const SearchData& locals)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.

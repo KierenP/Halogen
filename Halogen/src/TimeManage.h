@@ -35,13 +35,10 @@ public:
 
 	void Start();
 	void Restart();
-	int ElapsedMs();
+	int ElapsedMs() const;
 
 private:
-	double ElapsedTime;
-
 	double Begin;
-	double End;
 };
 
 class SearchTimeManage
@@ -50,9 +47,9 @@ public:
 	SearchTimeManage(int maxTime, int allocatedTime);
 	~SearchTimeManage();
 
-	bool ContinueSearch();
-	bool AbortSearch();		//Is the remaining time all used up?
-	int ElapsedMs() { return timer.ElapsedMs(); }
+	bool ContinueSearch() const;
+	bool AbortSearch() const;		//Is the remaining time all used up?
+	int ElapsedMs() const { return timer.ElapsedMs(); }
 
 private:
 	Timer timer;
