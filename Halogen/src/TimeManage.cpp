@@ -30,11 +30,14 @@ int Timer::ElapsedMs()
 	return ElapsedTime;
 }
 
-SearchTimeManage::SearchTimeManage() : timer(Timer())
+SearchTimeManage::SearchTimeManage(int maxTime, int allocatedTime) : timer(Timer())
 {
-	BufferTime = 100;
-	AllocatedSearchTimeMS = 0;
-	MaxTimeMS = 0;
+	timer.Restart();
+	timer.Start();
+	AllocatedSearchTimeMS = allocatedTime;
+	MaxTimeMS = maxTime;
+
+	BufferTime = 100;	//TODO: Make this a constant somewhere and reduce its value
 }
 
 SearchTimeManage::~SearchTimeManage()
@@ -43,21 +46,11 @@ SearchTimeManage::~SearchTimeManage()
 
 bool SearchTimeManage::ContinueSearch()
 {
-	return (AllocatedSearchTimeMS == MaxTimeMS || timer.ElapsedMs() < AllocatedSearchTimeMS / 2);	//if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort search early
+	//if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort search early
+	return (AllocatedSearchTimeMS == MaxTimeMS || timer.ElapsedMs() < AllocatedSearchTimeMS / 2);	
 }
 
-bool SearchTimeManage::AbortSearch(uint64_t nodes)
+bool SearchTimeManage::AbortSearch()
 {
-	if ((nodes & 0x3FF) == 0)
-		CacheShouldStop = (timer.ElapsedMs() > (AllocatedSearchTimeMS)) || (timer.ElapsedMs() > (MaxTimeMS - BufferTime));
-
-	return (!KeepSearching || CacheShouldStop);
-}
-
-void SearchTimeManage::StartSearch(int maxTime, int allocatedTime)
-{
-	timer.Restart();
-	timer.Start();
-	AllocatedSearchTimeMS = allocatedTime;
-	MaxTimeMS = maxTime;
+	return (timer.ElapsedMs() > (std::min)(AllocatedSearchTimeMS, MaxTimeMS - BufferTime));
 }

@@ -6,10 +6,6 @@
 #include "Network.h"
 #include <sstream>
 
-#ifdef _MSC_VER 
-#define NOMINMAX
-#endif 
-
 constexpr size_t NodeCountChunk = 1 << 12;
 
 /*
