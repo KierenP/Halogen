@@ -29,12 +29,6 @@ void BoardParameters::NextTurn()
 	SetTurn(!GetTurn());
 }
 
-const BoardParameterData& BoardParameters::GetPreviousParameters()
-{
-	size_t size = PreviousParameters.size();
-	return PreviousParameters[size - 2];
-}
-
 void BoardParameters::InitParameters()
 {
 	PreviousParameters = { BoardParameterData() };
@@ -81,7 +75,7 @@ void BoardParameters::RestorePreviousParameters()
 {
 	assert(PreviousParameters.size() != 0);
 
-	Current--;
+	--Current;
 	PreviousParameters.pop_back();	//the iterator should never be invalitated by this
 }
 

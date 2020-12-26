@@ -28,7 +28,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals, const ThreadSharedData& sharedData);
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
-bool CheckForRep(Position& position, int distanceFromRoot);
+bool CheckForRep(const Position& position, int distanceFromRoot);
 bool LMR(bool InCheck, const Position& position);
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
@@ -37,7 +37,7 @@ bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
-int extension(Position & position, int alpha, int beta);
+int extension(const Position & position, int alpha, int beta);
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
 Move GetHashMove(const Position& position, int distanceFromRoot);
 void AddKiller(Move move, int distanceFromRoot, std::vector<Killer>& KillerMoves);
@@ -744,12 +744,12 @@ bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 	return false;
 }
 
-bool CheckForRep(Position& position, int distanceFromRoot)
+bool CheckForRep(const Position& position, int distanceFromRoot)
 {
 	return position.CheckForRep(distanceFromRoot, 3);
 }
 
-int extension(Position& position, int alpha, int beta)
+int extension(const Position& position, int alpha, int beta)
 {
 	int extension = 0;
 

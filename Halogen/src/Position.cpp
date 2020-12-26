@@ -316,12 +316,6 @@ void Position::Reset()
 	InitParameters();
 }
 
-uint64_t Position::GetPreviousKey(size_t index)
-{
-	assert(index < PreviousKeys.size());
-	return PreviousKeys.at(index);
-}
-
 uint64_t Position::GenerateZobristKey() const
 {
 	uint64_t Key = EMPTY;
@@ -538,7 +532,7 @@ int16_t Position::GetEvaluation()
 	return QuickEval(Zeta);
 }
 
-bool Position::CheckForRep(int distanceFromRoot, int maxReps)
+bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
 {
 	int totalRep = 1;
 	uint64_t current = GetZobristKey();

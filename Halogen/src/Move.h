@@ -44,7 +44,7 @@ public:
 
 	void Reset();
 
-	int orderScore;
+	int orderScore = 0;
 
 	uint16_t GetBits() const { return data; }
 
@@ -55,7 +55,7 @@ private:
 	void SetFlag(MoveFlag flag);
 
 	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
-	uint16_t data;
+	uint16_t data = 0;
 };
 
 struct MoveBits
