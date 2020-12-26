@@ -4,7 +4,6 @@ Position::Position()
 {
 	key = EMPTY;
 	StartingPosition();
-	Zeta.resize(MAX_DEPTH + 1);
 }
 
 Position::~Position()
