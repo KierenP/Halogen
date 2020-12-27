@@ -24,11 +24,10 @@ jobs:
           cd Halogen
           cd src
           make sanitize
-          ls
           
       - name: Run builds
         run: |
-          Halogen_undefined.exe bench 10
-          Halogen_address.exe bench 10
+          .\Halogen_undefined.exe bench 10
+          .\Halogen_address.exe bench 10
 
 
