@@ -297,6 +297,9 @@ int main(int argc, char* argv[])
 		else cout << "Unknown command" << endl;
 
 		Line = "";
+
+		if (argc != 1)	//Temporary fix to quit after a command line UCI argument is done
+			break;
 	}
 
 	if (searchThread.joinable())
