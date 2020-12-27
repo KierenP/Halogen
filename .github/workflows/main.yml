@@ -1,10 +1,6 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the action will run. 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
   push:
   pull_request:
 
@@ -23,13 +19,15 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
-      - name: Create a PGO build of Halogen
+      - name: Create builds
         run: |
           cd Halogen
           cd src
           make sanitize
           ls
+          
+      - name: Run builds
+        run: |
           Halogen_undefined.exe bench 10
           Halogen_address.exe bench 10
 
