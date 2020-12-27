@@ -29,7 +29,8 @@ jobs:
         run: |
           cd Halogen
           cd src
-          ./Halogen_address.exe bench 8
-          ./Halogen_address.exe go movetime 10000
+          ./Halogen_address.exe bench 8 2>&1
+          ./Halogen_address.exe go depth 12 2>&1
+          ./Halogen_address.exe go movetime 10000 2>&1
           
           
