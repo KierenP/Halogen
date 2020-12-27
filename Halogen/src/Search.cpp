@@ -62,7 +62,7 @@ int seeCapture(Position& position, const Move& move); //Don't send this an en pa
 
 void InitSearch();
 
-void MultithreadedSearch(const Position& position, unsigned int threadCount, const SearchLimits& limits)
+uint64_t SearchThread(const Position& position, unsigned int threadCount, const SearchLimits& limits)
 {
 	//Probe TB at root
 	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
@@ -71,7 +71,7 @@ void MultithreadedSearch(const Position& position, unsigned int threadCount, con
 		if (result != TB_RESULT_FAILED)
 		{
 			PrintBestMove(GetTBMove(result));
-			return;
+			return 0;
 		}
 	}
 
@@ -82,7 +82,7 @@ void MultithreadedSearch(const Position& position, unsigned int threadCount, con
 
 	for (unsigned int i = 0; i < threadCount; i++)
 	{
-		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i); })); 
+		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i); }));
 	}
 
 	for (size_t i = 0; i < threads.size(); i++)
@@ -91,21 +91,7 @@ void MultithreadedSearch(const Position& position, unsigned int threadCount, con
 	}
 
 	PrintBestMove(sharedData.GetBestMove());
-}
-
-uint64_t BenchSearch(const Position& position, int maxSearchDepth)
-{
-	//TODO: this likely can be removed and MultithreadedSearch used instead for bench searches
-
-	InitSearch();
-	tTable.ResetTable();
-	SearchLimits limits;
-	limits.SetDepthLimit(maxSearchDepth);
-	ThreadSharedData sharedData(limits, 1, true);
-	
-	SearchPosition(position, sharedData, 0);
-
-	return sharedData.getNodes();
+	return sharedData.getNodes();				//Used by bench searches. Otherwise is discarded.
 }
 
 void InitSearch()

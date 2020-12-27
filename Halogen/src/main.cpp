@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 			if (searchThread.joinable())
 				searchThread.join();
 
-			searchThread = thread([=, &limits, &position] {MultithreadedSearch(position, ThreadCount, limits); });
+			searchThread = thread([=, &limits, &position] {SearchThread(position, ThreadCount, limits); });
 		}
 
 		else if (token == "setoption")
@@ -465,8 +465,10 @@ void Bench()
 			break;
 		}
 
-		uint64_t nodes = BenchSearch(position, 12);
-		nodeCount += nodes;
+		SearchLimits limits;
+		limits.SetDepthLimit(16);
+		tTable.ResetTable();
+		nodeCount += SearchThread(position, 1, limits);
 	}
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;

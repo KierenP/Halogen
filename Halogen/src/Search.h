@@ -39,5 +39,4 @@ private:
 	Move m_move;
 };
 
-void MultithreadedSearch(const Position& position, unsigned int threadCount, const SearchLimits& limits);
-uint64_t BenchSearch(const Position& position, int maxSearchDepth = MAX_DEPTH);
+uint64_t SearchThread(const Position& position, unsigned int threadCount, const SearchLimits& limits);
