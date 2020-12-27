@@ -53,7 +53,7 @@ private:
 
 struct SearchData
 {
-	SearchData(const SearchLimits& limits);
+	SearchData(const SearchLimits& Limits);
 
 //--------------------------------------------------------------------------------------------
 private:

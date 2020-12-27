@@ -8,7 +8,7 @@ void PerftSuite();
 void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
-void Bench();
+void Bench(int depth = 16);
 
 string version = "9";  
 
@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
 	unsigned int ThreadCount = 1;
 
 	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
+	if (argc == 3 && strcmp(argv[1], "bench") == 0) { Bench(atoi(argv[2])); return 0; }
 
 	while (getline(cin, Line))
 	{
@@ -449,7 +450,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 	return nodeCount;
 }
 
-void Bench()
+void Bench(int depth)
 {
 	Timer timer;
 	timer.Start();
@@ -466,7 +467,7 @@ void Bench()
 		}
 
 		SearchLimits limits;
-		limits.SetDepthLimit(16);
+		limits.SetDepthLimit(depth);
 		tTable.ResetTable();
 		nodeCount += SearchThread(position, 1, limits);
 	}

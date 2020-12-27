@@ -2,7 +2,7 @@
 
 TranspositionTable tTable;
 
-SearchData::SearchData(const SearchLimits& limits) : HistoryMatrix {}, limits(limits)
+SearchData::SearchData(const SearchLimits& Limits) : HistoryMatrix {}, limits(Limits)
 {
 	PvTable.resize(MAX_DEPTH);
 	KillerMoves.resize(MAX_DEPTH);

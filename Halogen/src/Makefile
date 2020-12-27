@@ -30,4 +30,7 @@ release:
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(POPCNTFLAGS) -o $(EXE)$(VER)-x64-popcnt-avx2.exe
 	$(CC) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(PEXTFLAGS) -o $(EXE)$(VER)-x64-pext-avx2.exe
 	
+sanitize:
+	$(CC) -O0 -fsanitize=undefined $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_undefined.exe
+	$(CC) -O0 -fsanitize=address   $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_address.exe
 
