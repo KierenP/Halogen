@@ -36,10 +36,13 @@ int main(int argc, char* argv[])
 
 	unsigned int ThreadCount = 1;
 
-	if (argc == 2 && strcmp(argv[1], "bench") == 0) { Bench(); return 0; }	//currently only supports bench from command line for openBench integration
-	if (argc == 3 && strcmp(argv[1], "bench") == 0) { Bench(atoi(argv[2])); return 0; }
+	for (int i = 1; i < argc; i++)	//read any command line input as a regular UCI instruction
+	{
+		Line += argv[i];
+		Line += " ";
+	}
 
-	while (getline(cin, Line))
+	while (Line != "" || getline(cin, Line))
 	{
 		istringstream iss(Line);
 		string token;
@@ -281,10 +284,19 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 
+		else if (token == "bench")
+		{
+			if (iss >> token)
+				Bench(stoi(token));
+			else
+				Bench();
+		}
+
 		//Non uci commands
 		else if (token == "print") position.Print();
-		else if (token == "bench") Bench();
 		else cout << "Unknown command" << endl;
+
+		Line = "";
 	}
 
 	return 0;
