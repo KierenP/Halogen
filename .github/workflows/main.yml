@@ -27,41 +27,12 @@ jobs:
           
       - name: Address sanitizer
         run: |
-          cat << EOF > game.exp
-          set timeout 240
-          spawn ./Halogen/src/Halogen_address.exe
-
-          send "uci\n"
-          expect "uciok"
-
-          send "ucinewgame\n"
-          send "position startpos\n"
-          send "isready\n"
-          expect "readyok"
-          send "go movetime 10000\n"
-          expect "bestmove"
-
-          send "position startpos moves e2e4 e7e6\n"
-          send "isready\n"
-          expect "readyok"
-          send "go movetime 10000\n"
-          expect "bestmove"
-
-          send "ucinewgame"
-          send "isready\n"
-          expect "readyok"
-          send "position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1\n"
-          send "isready\n"
-          expect "readyok"
-          send "go depth 20\n"
-          expect "bestmove"
-
-          send "quit\n"
-          expect eof
-          EOF
+          cd Halogen
+          cd src
+          ./Halogen__address.exe bench 8
+          quit
+          ./Halogen__address.exe go movetime 10000
+          quit
           
-          expect game.exp 2>&1 | grep -A50 "AddressSanitizer:"
-
-          rm game.exp
 
 
