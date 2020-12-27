@@ -18,13 +18,11 @@ jobs:
 
       - name: Create PGO build
         run: |
-          cd Halogen
-          cd src
-          make
+           ./Halogen/src make
           
       - name: Run bench
         run: |
-          ./Halogen bench
+          ./Halogen/src/Halogen bench
 
   Sanitizer:
     # The type of runner that the job will run on
@@ -37,9 +35,7 @@ jobs:
 
       - name: Create sanitizer builds
         run: |
-          cd Halogen
-          cd src
-          make sanitize
+          ./Halogen/src make sanitize
           
       - name: Address sanitizer
         run: |
