@@ -39,4 +39,4 @@ private:
 	Move m_move;
 };
 
-uint64_t SearchThread(const Position& position, unsigned int threadCount, const SearchLimits& limits);
+uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits);

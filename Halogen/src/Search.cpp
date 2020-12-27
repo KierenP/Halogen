@@ -62,7 +62,7 @@ int seeCapture(Position& position, const Move& move); //Don't send this an en pa
 
 void InitSearch();
 
-uint64_t SearchThread(const Position& position, unsigned int threadCount, const SearchLimits& limits)
+uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits)
 {
 	//Probe TB at root
 	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)

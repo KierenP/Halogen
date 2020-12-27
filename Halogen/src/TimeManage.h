@@ -10,7 +10,10 @@ extern std::atomic<bool> KeepSearching;
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 static inline double get_time_point() {
-	return (double)(GetTickCount());
+	LARGE_INTEGER time, freq;
+	(!QueryPerformanceFrequency(&freq));
+	QueryPerformanceCounter(&time);
+	return (double)time.QuadPart * 1000 / freq.QuadPart;
 }
 #else
 #include <sys/time.h>
