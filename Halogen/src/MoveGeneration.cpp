@@ -808,15 +808,12 @@ bool MoveIsLegal(Position& position, const Move& move)
 		std::vector<Move> moves;
 		CastleMoves(position, moves);
 
-		bool present = false;
 		for (size_t i = 0; i < moves.size(); i++)
 		{
 			if (moves[i] == move)
-				present = true;
+				return true;
 		}
-
-		if (!present)
-			return false;
+		return false;
 	}
 
 	/*Move puts me in check*/
