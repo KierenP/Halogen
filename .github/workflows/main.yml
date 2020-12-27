@@ -27,7 +27,7 @@ jobs:
           
       - name: Address sanitizer
         run: |
-          ./Halogen/src/Halogen_address.exe bench 8 2>&1 | grep -A50 "AddressSanitizer:"
+          ./Halogen/src/Halogen_address.exe bench 8
           if test $? == 0
           then
               echo "Bench test failed"
