@@ -27,8 +27,6 @@ jobs:
           
       - name: Address sanitizer
         run: |
-          ./Halogen/src/Halogen_address.exe bench 8
-
           cat << EOF > game.exp
           set timeout 240
           spawn ./Halogen/src/Halogen_address.exe
