@@ -19,7 +19,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Create builds
+      - name: Create sanitizer builds
         run: |
           cd Halogen
           cd src
@@ -47,4 +47,9 @@ jobs:
           ./Halogen_undefined.exe go wtime 5000 btime 5000 movestogo 20 2>&1
           ./Halogen_undefined.exe go wtime 5000 btime 5000 2>&1
           
-          
+      - name: Openbench integration test
+        run: |
+          cd Halogen
+          cd src
+          make
+          ./Halogen bench
