@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <limits>
 #include <type_traits>
+#include <algorithm>
 
 #ifdef _MSC_VER
 #include <intrin.h>

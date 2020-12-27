@@ -200,7 +200,7 @@ Pieces Piece(PieceTypes type, Players colour)
 Square GetPosition(File file, Rank rank)
 {
 	assert(file < N_FILES);
-	assert(file < N_RANKS);
+	assert(rank < N_RANKS);
 
 	return static_cast<Square>(rank * 8 + file);
 }
@@ -359,7 +359,7 @@ uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 	line += 2 * (((rank & 7) - 1) >> 58);			/* b1g1 if same rank */
 	line += (((rank - file) & 15) - 1) & b2g7;		/* b2g7 if same diagonal */
 	line += (((rank + file) & 15) - 1) & h1b7;		/* h1b7 if same antidiag */
-	line *= btwn & -btwn;							/* mul acts like shift by smaller square */
+	line = int64_t(uint64_t(line) << (std::min)(sq1, sq2));							
 	return line & btwn;								/* return the bits on that line in-between */
 }
 
