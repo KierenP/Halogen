@@ -25,12 +25,14 @@ jobs:
           cd src
           make sanitize
           make default
+          ls
           
       - name: Address sanitizer
         run: |
           cd Halogen
           cd src
+          ./Halogen_address.exe bench 8
           ./Halogen go movetime 10000
           ./Halogen_address.exe go movetime 10000
-          ./Halogen_address.exe bench 8
+          
           
