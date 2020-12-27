@@ -8,6 +8,7 @@
 
 #ifdef _MSC_VER
 #include <intrin.h>
+#define NOMINMAX
 #endif
 
 extern bool HASH_ENABLE;

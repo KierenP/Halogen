@@ -93,12 +93,15 @@ int main(int argc, char* argv[])
 
 		else if (token == "go")
 		{
+			SearchLimits limits;
+
 			int wtime = 0;
 			int btime = 0;
 			int winc = 0;
 			int binc = 0;
-			int searchTime = 0;
 			int movestogo = 0;
+
+			int searchTime = 0;
 			int depth = 0;
 			int mate = 0;
 
@@ -108,31 +111,53 @@ int main(int argc, char* argv[])
 				else if (token == "btime")	iss >> btime;
 				else if (token == "winc")	iss >> winc;
 				else if (token == "binc")	iss >> binc;
-				else if (token == "movetime") iss >> searchTime;
-				else if (token == "infinite") searchTime = 2147483647;
 				else if (token == "movestogo") iss >> movestogo;
-				else if (token == "depth") iss >> depth;
-				else if (token == "mate") iss >> mate;
+
+				else if (token == "mate")
+				{
+					iss >> mate;
+					limits.SetMateLimit(mate);
+				}
+
+				else if (token == "depth")
+				{
+					iss >> depth;
+					limits.SetDepthLimit(depth);
+				}
+
+				else if (token == "infinite")
+				{
+					limits.SetInfinite();
+				}
+
+				else if (token == "movetime")
+				{
+					iss >> searchTime;
+					limits.SetTimeLimits(searchTime, searchTime);
+				}
+			}
+
+			int myTime = position.GetTurn() ? wtime : btime;
+			int myInc = position.GetTurn() ? winc : binc;
+
+			if (myTime != 0)
+			{
+				int AllocatedTime = 0;
+
+				if (movestogo != 0)
+					AllocatedTime = myTime / (movestogo + 1) * 3 / 2;	//repeating time control
+				else if (myInc != 0)
+					AllocatedTime = myTime / 16 + myInc;				//increment time control
+				else
+					AllocatedTime = myTime / 20;						//sudden death time control
+
+				limits.SetTimeLimits(myTime, AllocatedTime);
 			}
 
 			if (searchThread.joinable())
 				searchThread.join();
 
-			int myTime = position.GetTurn() ? wtime : btime;
-			int myInc  = position.GetTurn() ? winc : binc;
-
-			if (mate != 0)
-				searchThread = thread([=, &position] {MateSearch(position, searchTime, mate); });
-			else if (depth != 0) 										
-				searchThread = thread([=, &position] {DepthSearch(position, depth); });															//fixed depth search
-			else if (searchTime != 0) 							
-				searchThread = thread([=, &position] {MultithreadedSearch(position, searchTime, searchTime, ThreadCount); });					//fixed time search
-			else if (movestogo != 0)		
-				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / (movestogo + 1) * 3 / 2, ThreadCount); });	//repeating time control
-			else if (myInc != 0)
-				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 16 + myInc, ThreadCount); });				//increment time control
-			else 
-				searchThread = thread([=, &position] {MultithreadedSearch(position, myTime, myTime / 20, ThreadCount); });						//sudden death time control
+			searchThread = thread([=, &limits, &position] {MultithreadedSearch(position, ThreadCount, limits); });
 		}
 
 		else if (token == "setoption")

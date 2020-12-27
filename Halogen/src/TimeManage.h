@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 #include <iostream>
+#include <algorithm>
 
 extern std::atomic<bool> KeepSearching;
 
@@ -34,25 +35,21 @@ public:
 
 	void Start();
 	void Restart();
-	int ElapsedMs();
+	int ElapsedMs() const;
 
 private:
-	double ElapsedTime;
-
 	double Begin;
-	double End;
 };
 
 class SearchTimeManage
 {
 public:
-	SearchTimeManage();
+	SearchTimeManage(int maxTime, int allocatedTime);
 	~SearchTimeManage();
 
-	bool ContinueSearch();	//Should I search to another depth, or stop with what ive got?
-	bool AbortSearch(uint64_t nodes);		//should I attempt to stop searching right now? Nodes is passed because we only want to check the exact time every 1000 nodes or so
-
-	void StartSearch(int maxTime, int allocatedTime);	//pass the allowed search time maximum in milliseconds
+	bool ContinueSearch() const;
+	bool AbortSearch() const;		//Is the remaining time all used up?
+	int ElapsedMs() const { return timer.ElapsedMs(); }
 
 private:
 	Timer timer;
