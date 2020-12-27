@@ -24,6 +24,8 @@ jobs:
           cd Halogen
           cd src
           make sanitize
+          make default
+          ls
           
       - name: Run builds
         run: |
