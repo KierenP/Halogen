@@ -28,11 +28,6 @@ jobs:
       - name: Address sanitizer
         run: |
           ./Halogen/src/Halogen_address.exe bench 8
-          if test $? == 0
-          then
-              echo "Bench test failed"
-              exit 1
-          fi
 
           cat << EOF > game.exp
           set timeout 240
@@ -66,13 +61,8 @@ jobs:
           send "quit\n"
           expect eof
           EOF
-
+          
           expect game.exp 2>&1 | grep -A50 "AddressSanitizer:"
-          if test $? == 0
-          then
-              echo "Game test failed"
-              exit 1
-          fi
 
           rm game.exp
 
