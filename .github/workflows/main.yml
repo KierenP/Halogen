@@ -25,6 +25,8 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Create a PGO build of Halogen
-        run: make
+        run: |
+          cd Halogen\src\
+          make
 
 
