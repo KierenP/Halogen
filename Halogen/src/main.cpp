@@ -299,6 +299,9 @@ int main(int argc, char* argv[])
 		Line = "";
 	}
 
+	if (searchThread.joinable())
+		searchThread.join();
+
 	return 0;
 }
 
