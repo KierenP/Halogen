@@ -2,8 +2,8 @@
 
 /*Tuneable search constants*/
 
-double LMR_constant = -0.23;
-double LMR_coeff    =  0.71;
+double LMR_constant = -1.26;
+double LMR_coeff = 0.84;
 
 int Null_constant = 4;
 int Null_depth_quotent = 6;
@@ -132,6 +132,7 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 
 	Note that typically the maximum value of the history matrix does not exceed 1,000,000 after a minute
 	and as such we choose 1m to be the maximum allowed value
+
 	*/
 
 	Move TTmove = GetHashMove(position, distanceFromRoot);
