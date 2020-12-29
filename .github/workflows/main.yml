@@ -9,8 +9,26 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
+  OpenBench:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Create PGO build
+        run: |
+         cd Halogen
+         cd src
+         make
+          
+      - name: Run bench
+        run: |
+         cd Halogen
+         cd src
+         ./Halogen bench
+
+  Sanitizer:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -19,7 +37,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Create builds
+      - name: Create sanitizer builds
         run: |
           cd Halogen
           cd src
@@ -46,5 +64,4 @@ jobs:
           ./Halogen_undefined.exe go wtime 5000 btime 5000 winc 1000 binc 1000 2>&1
           ./Halogen_undefined.exe go wtime 5000 btime 5000 movestogo 20 2>&1
           ./Halogen_undefined.exe go wtime 5000 btime 5000 2>&1
-          
-          
+
