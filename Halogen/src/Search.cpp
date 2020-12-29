@@ -132,7 +132,6 @@ void OrderMoves(std::vector<Move>& moves, Position& position, int distanceFromRo
 
 	Note that typically the maximum value of the history matrix does not exceed 1,000,000 after a minute
 	and as such we choose 1m to be the maximum allowed value
-
 	*/
 
 	Move TTmove = GetHashMove(position, distanceFromRoot);
