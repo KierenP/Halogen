@@ -415,6 +415,47 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int a = alpha;
 	int b = beta;
 
+	/*
+	TODO: This needs to be replaced with a staged move generation and is way overdue.
+	*/
+
+	//If a hash move exists, search with that move first and hope we can get a cutoff
+	Move hashMove = GetHashMove(position, distanceFromRoot);
+	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100 && MoveIsLegal(position, hashMove))	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	{
+		locals.AddNode();
+		position.ApplyMove(hashMove);
+		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
+		int extendedDepth = depthRemaining + extension(position, alpha, beta);
+		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+		position.RevertMove();
+
+		if (newScore > Score)
+		{
+			Score = newScore;
+			bestMove = hashMove;
+		}
+
+		if (Score > a)
+		{
+			a = Score;
+			UpdatePV(hashMove, distanceFromRoot, locals.PvTable);
+		}
+
+		if (a >= beta) //Fail high cutoff
+		{
+			AddKiller(hashMove, distanceFromRoot, locals.KillerMoves);
+			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix, position.GetTurn());
+
+			if (!locals.limits.CheckTimeLimit() && !(sharedData.ThreadAbort(initialDepth)))
+				AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
+
+			return SearchResult(Score, bestMove);
+		}
+
+		b = a + 1;				//Set a new zero width window
+	}
+
 	//Generate the legal moves
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
@@ -431,13 +472,16 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	OrderMoves(moves, position, distanceFromRoot, locals);
 
 	//Rebel style IID. Don't ask why this helps but it does.
-	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
 	bool FutileNode = (depthRemaining < FutilityMaxDepth) && (staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a);
 
 	for (size_t i = 0; i < moves.size(); i++)	
 	{
+		if (moves[i] == hashMove)
+			continue;
+
 		locals.AddNode();
 
 		//futility pruning
