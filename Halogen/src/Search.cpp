@@ -3,7 +3,7 @@
 /*Tuneable search constants*/
 
 double LMR_constant = -1.26;
-double LMR_coeff    =  0.84;
+double LMR_coeff = 0.84;
 
 int Null_constant = 4;
 int Null_depth_quotent = 6;
@@ -15,6 +15,9 @@ int Futility_constant = 100;
 int Aspiration_window = 15;
 
 int Delta_margin = 200;
+
+int SNMP_depth = 7;
+int SNMP_coeff = 119;
 
 /*----------------*/
 
@@ -377,7 +380,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	//Static null move pruning
-	if (depthRemaining <= 2 && staticScore - 150 * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
+	if (depthRemaining <= SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
 	//Null move pruning
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
