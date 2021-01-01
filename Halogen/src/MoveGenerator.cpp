@@ -54,6 +54,9 @@ bool MoveGenerator::Next(Move& move)
 		}
 		else
 		{
+			if (quiescence)
+				return false;
+
 			stage = Stage::GIVE_KILLER_1;
 		}
 	}
