@@ -180,15 +180,17 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 {
 	position.ReportDepth(distanceFromRoot);
 
+	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
+	locals.PvTable[distanceFromRoot].clear();
+
 	//See if we should abort the search
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
 	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
-	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 	if (CheckForRep(position, distanceFromRoot)) return 0;				//Have we had a draw by repitition?
 	if (position.GetFiftyMoveCount() > 100) return 0;					//cannot use >= as it could currently be checkmate which would count as a win
 	
-	locals.PvTable[distanceFromRoot].clear();
+	
 	int Score = LowINF;
 	int MaxScore = HighINF;
 
@@ -602,7 +604,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	position.ReportDepth(distanceFromRoot);
 
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;
-	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
+	if (sharedData.ThreadAbort(initialDepth)) return -1;						//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
 
 	std::vector<Move> moves;
@@ -627,14 +629,12 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	Move bestmove;
 	int Score = staticScore;
 
-	int searchedMoves = 0;
 	MoveGenerator gen(position, distanceFromRoot, locals, true);
 	Move move;
 
 	while (gen.Next(move))
 	{
 		locals.AddNode();
-		searchedMoves++;
 
 		int SEE = 0;
 		if (move.GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions

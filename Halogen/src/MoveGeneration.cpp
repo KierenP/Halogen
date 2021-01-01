@@ -2,6 +2,7 @@
 
 void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);
 void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);	//captures and/or promotions
+void AddQuietMoves(Position& position, std::vector<Move>& moves, uint64_t pinned);
 
 //Pawn moves
 void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned);
@@ -68,6 +69,12 @@ void QuiescenceMoves(Position& position, std::vector<Move>& moves)
 {
 	moves.reserve(15);
 	AddQuiescenceMoves(position, moves, PinnedMask(position));
+}
+
+void QuietMoves(Position& position, std::vector<Move>& moves)
+{
+	moves.reserve(40);
+	AddQuietMoves(position, moves, PinnedMask(position));
 }
 
 void AddQuiescenceMoves(Position& position, std::vector<Move>& moves, uint64_t pinned)
@@ -208,6 +215,12 @@ void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 
 void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t pinned)
 {
+	AddQuietMoves(position, moves, pinned);
+	AddQuiescenceMoves(position, moves, pinned);
+}
+
+void AddQuietMoves(Position& position, std::vector<Move>& moves, uint64_t pinned)
+{
 	PawnPushes(position, moves, pinned);
 	PawnDoublePushes(position, moves, pinned);
 	CastleMoves(position, moves);
@@ -218,7 +231,6 @@ void GenerateLegalMoves(Position& position, std::vector<Move>& moves, uint64_t p
 	for (uint64_t pieces = position.GetPieceBB(ROOK, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, static_cast<Square>(LSPpop(pieces)), RookAttacks, true, pinned));
 	for (uint64_t pieces = position.GetPieceBB(KING, position.GetTurn()); pieces != 0; GenerateQuietMoves(position, moves, static_cast<Square>(LSPpop(pieces)), KingAttacks, false, pinned));
 
-	AddQuiescenceMoves(position, moves, pinned);
 }
 
 void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned)

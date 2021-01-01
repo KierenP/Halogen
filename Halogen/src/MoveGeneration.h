@@ -4,6 +4,7 @@
 
 void LegalMoves(Position& position, std::vector<Move>& moves);
 void QuiescenceMoves(Position& position, std::vector<Move>& moves);
+void QuietMoves(Position& position, std::vector<Move>& moves);
 
 bool IsSquareThreatened(const Position & position, Square square, Players colour);		//will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 bool IsInCheck(const Position& position, Players colour);
