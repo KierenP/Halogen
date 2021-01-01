@@ -263,6 +263,20 @@ int main(int argc, char* argv[])
 				iss >> token;
 				Delta_margin = stoi(token);
 			}
+
+			else if (token == "SNMP_depth")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				SNMP_depth = stoi(token);
+			}
+
+			else if (token == "SNMP_coeff")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				SNMP_coeff = stoi(token);
+			}
 		}
 
 		else if (token == "perft")

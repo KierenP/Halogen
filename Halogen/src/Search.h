@@ -24,6 +24,9 @@ extern int Aspiration_window;
 
 extern int Delta_margin;
 
+extern int SNMP_depth;
+extern int SNMP_coeff;
+
 /*----------------*/
 
 struct SearchResult

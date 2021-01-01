@@ -3,7 +3,7 @@
 /*Tuneable search constants*/
 
 double LMR_constant = -1.26;
-double LMR_coeff    =  0.84;
+double LMR_coeff = 0.84;
 
 int Null_constant = 4;
 int Null_depth_quotent = 6;
@@ -15,6 +15,9 @@ int Futility_constant = 100;
 int Aspiration_window = 15;
 
 int Delta_margin = 200;
+
+int SNMP_depth = 7;
+int SNMP_coeff = 119;
 
 /*----------------*/
 
@@ -377,7 +380,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	//Static null move pruning
-	if (depthRemaining == 1 && staticScore - 200 >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
+	if (depthRemaining <= SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
 	//Null move pruning
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
@@ -415,6 +418,47 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int a = alpha;
 	int b = beta;
 
+	/*
+	TODO: This needs to be replaced with a staged move generation and is way overdue.
+	*/
+
+	//If a hash move exists, search with that move first and hope we can get a cutoff
+	Move hashMove = GetHashMove(position, distanceFromRoot);
+	if (!hashMove.IsUninitialized() && position.GetFiftyMoveCount() < 100 && MoveIsLegal(position, hashMove))	//if its 50 move rule we need to skip this and figure out if its checkmate or draw below
+	{
+		locals.AddNode();
+		position.ApplyMove(hashMove);
+		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
+		int extendedDepth = depthRemaining + extension(position, alpha, beta);
+		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+		position.RevertMove();
+
+		if (newScore > Score)
+		{
+			Score = newScore;
+			bestMove = hashMove;
+		}
+
+		if (Score > a)
+		{
+			a = Score;
+			UpdatePV(hashMove, distanceFromRoot, locals.PvTable);
+		}
+
+		if (a >= beta) //Fail high cutoff
+		{
+			AddKiller(hashMove, distanceFromRoot, locals.KillerMoves);
+			AddHistory(hashMove, depthRemaining, locals.HistoryMatrix, position.GetTurn());
+
+			if (!locals.limits.CheckTimeLimit() && !(sharedData.ThreadAbort(initialDepth)))
+				AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
+
+			return SearchResult(Score, bestMove);
+		}
+
+		b = a + 1;				//Set a new zero width window
+	}
+
 	//Generate the legal moves
 	std::vector<Move> moves;
 	LegalMoves(position, moves);
@@ -431,13 +475,16 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	OrderMoves(moves, position, distanceFromRoot, locals);
 
 	//Rebel style IID. Don't ask why this helps but it does.
-	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+	if (hashMove.IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
 	bool FutileNode = (depthRemaining < FutilityMaxDepth) && (staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a);
 
 	for (size_t i = 0; i < moves.size(); i++)	
 	{
+		if (moves[i] == hashMove)
+			continue;
+
 		locals.AddNode();
 
 		//futility pruning
@@ -449,7 +496,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		int extendedDepth = depthRemaining + extension(position, alpha, beta);
 
 		//late move reductions
-		if (LMR(InCheck, position) && i > 3)
+		if (i > 3)
 		{
 			int reduction = Reduction(depthRemaining, static_cast<int>(i));
 			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
