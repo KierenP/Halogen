@@ -1,7 +1,6 @@
 #pragma once
 
-#include "SearchData.h"
-#include "MoveGeneration.h"
+#include "MoveGenerator.h"
 #include "tbprobe.h"
 #include <ctime>
 #include <algorithm>
