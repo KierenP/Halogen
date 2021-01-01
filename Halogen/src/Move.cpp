@@ -80,6 +80,16 @@ bool Move::operator==(const Move & rhs) const
 	return (data == rhs.data);
 }
 
+bool Move::operator<(const Move& rhs) const
+{
+	return orderScore < rhs.orderScore;
+}
+
+bool Move::operator>(const Move& rhs) const
+{
+	return orderScore > rhs.orderScore;
+}
+
 bool Move::IsUninitialized() const
 {
 	return (data == 0);

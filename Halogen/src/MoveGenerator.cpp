@@ -121,6 +121,14 @@ bool MoveGenerator::Next(Move& move)
 	return false;
 }
 
+void selection_sort(std::vector<Move>& v)
+{
+	for (auto it = v.begin(); it != v.end(); ++it)
+	{
+		std::iter_swap(it, std::max_element(it, v.end()));
+	}
+}
+
 void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 {
 	/*
@@ -203,10 +211,7 @@ void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 		}
 	}
 
-	std::stable_sort(moves.begin(), moves.end(), [](const Move& a, const Move& b)
-		{
-			return a.orderScore > b.orderScore;
-		});
+	selection_sort(moves);
 }
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)
