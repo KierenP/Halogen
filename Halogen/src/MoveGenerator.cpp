@@ -10,26 +10,102 @@ bool MoveGenerator::Next(Move& move)
 {
 	if (stage == Stage::TT_MOVE)
 	{
-		move = GetHashMove(position, distanceFromRoot);
-		stage = Stage::GEN_OTHERS;
-		
-		if (!move.IsUninitialized())
+		TTmove = GetHashMove(position, distanceFromRoot);
+		stage = Stage::GEN_LOUD;
+
+		if (MoveIsLegal(position, TTmove))
+		{
+			move = TTmove;
 			return true;
+		}
 	}
 
-	if (stage == Stage::GEN_OTHERS)
+	if (stage == Stage::GEN_LOUD)
 	{
-		if (quiescence)
-			QuiescenceMoves(position, legalMoves);
+		if (!quiescence && IsInCheck(position))
+		{
+			LegalMoves(position, legalMoves);	//contains a special function for generating moves when in check which is quicker
+		}
 		else
-			LegalMoves(position, legalMoves);
+		{
+			QuiescenceMoves(position, legalMoves);
+		}
 
 		OrderMoves(legalMoves);
 		current = legalMoves.begin();
-		stage = Stage::GIVE_OTHERS;
+
+		if (!quiescence && IsInCheck(position))
+		{
+			stage = Stage::GIVE_QUIET;
+		}
+		else
+		{
+			stage = Stage::GIVE_GOOD_LOUD;
+		}
 	}
 
-	if (stage == Stage::GIVE_OTHERS)
+	if (stage == Stage::GIVE_GOOD_LOUD)
+	{
+		if (current != legalMoves.end() && current->orderScore >= 8000000)
+		{
+			move = *current;
+			++current;
+			return true;
+		}
+		else
+		{
+			stage = Stage::GIVE_KILLER_1;
+		}
+	}
+
+	if (stage == Stage::GIVE_KILLER_1)
+	{
+		Killer1 = locals.KillerMoves[distanceFromRoot][0];
+		stage = Stage::GIVE_KILLER_2;
+
+		if (MoveIsLegal(position, Killer1))
+		{
+			move = Killer1;
+			return true;
+		}
+	}
+
+	if (stage == Stage::GIVE_KILLER_2)
+	{
+		Killer2 = locals.KillerMoves[distanceFromRoot][1];
+		stage = Stage::GIVE_BAD_LOUD;
+
+		if (MoveIsLegal(position, Killer2))
+		{
+			move = Killer2;
+			return true;
+		}
+	}
+
+	if (stage == Stage::GIVE_BAD_LOUD)
+	{
+		if (current != legalMoves.end())
+		{
+			move = *current;
+			++current;
+			return true;
+		}
+		else
+		{
+			stage = Stage::GEN_QUIET;
+		}
+	}
+
+	if (stage == Stage::GEN_QUIET)
+	{
+		legalMoves.clear();
+		QuietMoves(position, legalMoves);
+		OrderMoves(legalMoves);
+		current = legalMoves.begin();
+		stage = Stage::GIVE_QUIET;
+	}
+
+	if (stage == Stage::GIVE_QUIET)
 	{
 		if (current != legalMoves.end())
 		{
@@ -61,8 +137,6 @@ void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 	and as such we choose 1m to be the maximum allowed value
 	*/
 
-	Move TTmove = GetHashMove(position, distanceFromRoot);
-
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		//Hash move
@@ -70,7 +144,19 @@ void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 		{
 			moves.erase(moves.begin() + i);
 			i--;
-			continue; 
+		}
+
+		//Killers
+		else if (moves[i] == Killer1)
+		{
+			moves.erase(moves.begin() + i);
+			i--;
+		}
+
+		else if (moves[i] == Killer2)
+		{
+			moves.erase(moves.begin() + i);
+			i--;
 		}
 
 		//Promotions
@@ -105,17 +191,6 @@ void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 			{
 				moves[i].orderScore = 6000000 + SEE;
 			}
-		}
-
-		//Killers
-		else if (moves[i] == locals.KillerMoves[distanceFromRoot][0])
-		{
-			moves[i].orderScore = 7500000;
-		}
-
-		else if (moves[i] == locals.KillerMoves[distanceFromRoot][1])
-		{
-			moves[i].orderScore = 6500000;
 		}
 
 		//Quiet

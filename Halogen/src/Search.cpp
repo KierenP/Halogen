@@ -602,7 +602,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	position.ReportDepth(distanceFromRoot);
 
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;
-	if (sharedData.ThreadAbort(initialDepth)) return -1;									//another thread has finished searching this depth: ABORT!
+	if (sharedData.ThreadAbort(initialDepth)) return -1;						//another thread has finished searching this depth: ABORT!
 	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
 
 	std::vector<Move> moves;
@@ -627,14 +627,12 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	Move bestmove;
 	int Score = staticScore;
 
-	int searchedMoves = 0;
 	MoveGenerator gen(position, distanceFromRoot, locals, true);
 	Move move;
 
 	while (gen.Next(move))
 	{
 		locals.AddNode();
-		searchedMoves++;
 
 		int SEE = 0;
 		if (move.GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
