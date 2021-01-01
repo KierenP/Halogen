@@ -43,6 +43,7 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\Move.cpp" />
     <ClCompile Include="..\src\MoveGeneration.cpp" />
+    <ClCompile Include="..\src\MoveGenerator.cpp" />
     <ClCompile Include="..\src\Network.cpp" />
     <ClCompile Include="..\src\Position.cpp" />
     <ClCompile Include="..\src\Search.cpp" />
@@ -62,6 +63,7 @@
     <ClInclude Include="..\src\EvalNet.h" />
     <ClInclude Include="..\src\Move.h" />
     <ClInclude Include="..\src\MoveGeneration.h" />
+    <ClInclude Include="..\src\MoveGenerator.h" />
     <ClInclude Include="..\src\Network.h" />
     <ClInclude Include="..\src\Position.h" />
     <ClInclude Include="..\src\Search.h" />
