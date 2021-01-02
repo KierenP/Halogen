@@ -592,12 +592,15 @@ int TBWinIn(int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
-	locals.PvTable[distanceFromRoot].clear();
 	position.ReportDepth(distanceFromRoot);
 
-	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;
-	if (sharedData.ThreadAbort(initialDepth)) return -1;						//another thread has finished searching this depth: ABORT!
-	if (distanceFromRoot >= MAX_DEPTH) return 0;								//If we are 100 moves from root I think we can assume its a drawn position
+	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
+	locals.PvTable[distanceFromRoot].clear();
+
+	//See if we should abort the search
+	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
+	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
+	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 
 	std::vector<Move> moves;
 
