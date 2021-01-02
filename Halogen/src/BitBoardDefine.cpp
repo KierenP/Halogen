@@ -10,8 +10,6 @@ uint64_t DiagonalBB[N_DIAGONALS];
 uint64_t AntiDiagonalBB[N_ANTI_DIAGONALS];
 
 uint64_t betweenArray[64][64];
-uint64_t PassedPawnMaskWhite[N_SQUARES];
-uint64_t PassedPawnMaskBlack[N_SQUARES];
 
 uint64_t RookAttacks[N_SQUARES];
 uint64_t KnightAttacks[N_SQUARES];
@@ -20,9 +18,6 @@ uint64_t QueenAttacks[N_SQUARES];
 uint64_t KingAttacks[N_SQUARES];
 uint64_t WhitePawnAttacks[N_SQUARES];
 uint64_t BlackPawnAttacks[N_SQUARES];
-
-uint64_t allBitsBelow[N_SQUARES];
-uint64_t allBitsAbove[N_SQUARES];
 
 bool HASH_ENABLE = true;
 
@@ -114,38 +109,12 @@ void BBInit()
 
 	for (int i = 0; i < 64; i++)
 	{
-		for (int j = 0; j < i; j++)
-		{
-			allBitsBelow[i] |= SquareBB[j];
-		}
-	}
-
-	for (int i = 0; i < 64; i++)
-	{
-		for (int j = 63; j > i; j--)
-		{
-			allBitsAbove[i] |= SquareBB[j];
-		}
-	}
-
-	for (int i = 0; i < 64; i++)
-	{
-		PassedPawnMaskWhite[i] = EMPTY;
-		PassedPawnMaskBlack[i] = EMPTY;
 		KingAttacks[i] = EMPTY;
 		WhitePawnAttacks[i] = EMPTY;
 		BlackPawnAttacks[i] = EMPTY;
 
 		for (int j = 0; j < 64; j++)
 		{
-			if (AbsFileDiff(i, j) <= 1)													//adjacent files or same file
-			{
-				if (GetRank(j) > GetRank(i))											//Ahead of i
-					PassedPawnMaskWhite[i] ^= SquareBB[j];
-				if (GetRank(j) < GetRank(i))											//behind of i
-					PassedPawnMaskBlack[i] ^= SquareBB[j];
-			}
-
 			if (AbsFileDiff(i, j) <= 1 && AbsRankDiff(i, j) <= 1)
 			{
 				if (i != j)

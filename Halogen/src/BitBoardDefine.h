@@ -177,8 +177,6 @@ extern uint64_t FileBB[N_FILES];
 extern uint64_t SquareBB[N_SQUARES];
 extern uint64_t DiagonalBB[N_DIAGONALS];
 extern uint64_t AntiDiagonalBB[N_ANTI_DIAGONALS];
-extern uint64_t PassedPawnMaskWhite[N_SQUARES];
-extern uint64_t PassedPawnMaskBlack[N_SQUARES];
 
 extern const int index64[64];
 extern uint64_t betweenArray[64][64];
@@ -190,9 +188,6 @@ extern uint64_t QueenAttacks[N_SQUARES];
 extern uint64_t KingAttacks[N_SQUARES];
 extern uint64_t WhitePawnAttacks[N_SQUARES];
 extern uint64_t BlackPawnAttacks[N_SQUARES];
-
-extern uint64_t allBitsBelow[N_SQUARES];
-extern uint64_t allBitsAbove[N_SQUARES];
 
 int LSPpop(uint64_t &bb);
 int LSB(uint64_t bb);
