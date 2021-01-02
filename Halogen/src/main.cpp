@@ -501,7 +501,7 @@ void Bench(int depth)
 		SearchLimits limits;
 		limits.SetDepthLimit(depth);
 		tTable.ResetTable();
-		nodeCount += SearchThread(position, 1, limits);
+		nodeCount += SearchThread(position, 1, limits, true);
 	}
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;

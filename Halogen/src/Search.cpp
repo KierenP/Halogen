@@ -58,7 +58,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void InitSearch();
 
-uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits)
+uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits, bool noOutput)
 {
 	//Probe TB at root
 	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
@@ -74,7 +74,7 @@ uint64_t SearchThread(const Position& position, unsigned int threadCount, Search
 	InitSearch();
 
 	std::vector<std::thread> threads;
-	ThreadSharedData sharedData(limits, threadCount);
+	ThreadSharedData sharedData(limits, threadCount, noOutput);
 
 	for (unsigned int i = 0; i < threadCount; i++)
 	{
