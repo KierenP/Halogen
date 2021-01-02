@@ -136,7 +136,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="perftsuite.txt">
+    <Text Include="..\src\perftsuite.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>
