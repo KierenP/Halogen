@@ -602,21 +602,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 
-	std::vector<Move> moves;
-
-	/*Check for checkmate*/
-	if (IsInCheck(position))
-	{
-		LegalMoves(position, moves);
-
-		if (moves.size() == 0)
-		{
-			return TerminalScore(position, distanceFromRoot);
-		}
-
-		moves.clear();
-	}
-
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
