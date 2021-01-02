@@ -3,7 +3,10 @@
 MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence) :
 	position(Position), distanceFromRoot(DistanceFromRoot), locals(Locals), quiescence(Quiescence)
 {
-	stage = Stage::TT_MOVE;
+	if (quiescence)
+		stage = Stage::GEN_LOUD;
+	else
+		stage = Stage::TT_MOVE;
 }
 
 bool MoveGenerator::Next(Move& move)
