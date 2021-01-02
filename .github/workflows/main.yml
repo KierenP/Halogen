@@ -27,6 +27,19 @@ jobs:
          cd Halogen
          cd src
          ./Halogen bench
+         
+  Release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Create static compiles
+        run: |
+         cd Halogen
+         cd src
+         make release
 
   Sanitizer:
     # The type of runner that the job will run on
