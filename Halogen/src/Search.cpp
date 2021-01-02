@@ -28,7 +28,6 @@ int LMR_reduction[64][64] = {};				//[depth][move number]
 void PrintBestMove(Move Best);
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
-bool LMR(bool InCheck, const Position& position);
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
 bool IsEndGame(const Position& position);
@@ -498,13 +497,6 @@ int extension(const Position& position, int alpha, int beta)
 	}
 
 	return extension;
-}
-
-bool LMR(bool InCheck, const Position& position)
-{
-	return !InCheck
-		&& !IsEndGame(position)
-		&& !IsInCheck(position);
 }
 
 bool FutilityMoveGivesCheck(Position& position, Move move)
