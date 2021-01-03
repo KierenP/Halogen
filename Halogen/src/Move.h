@@ -36,6 +36,7 @@ public:
 	bool IsPromotion() const;
 	bool IsCapture() const;
 
+	void Print(std::string& str) const;
 	void Print() const;
 
 	bool operator==(const Move& rhs) const;

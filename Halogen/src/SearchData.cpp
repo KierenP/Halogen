@@ -46,8 +46,8 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
-		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+		//if (!noOutput)
+		//	PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 
 		threadDepthCompleted = depth;
 		currentBestMove = move;
@@ -123,55 +123,54 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
 
 void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const
 {
+	/*
+	Here we avoid excessive use of std::cout and instead append to a string in order
+	to output only once at the end. This causes a noticeable speedup for very fast
+	time controls.
+	*/
+
 	std::vector<Move> pv = locals.PvTable[0];
 
 	if (pv.size() == 0)
 		pv.push_back(move);
 
-	std::cout
-		<< "info depth " << depth							//the depth of search
-		<< " seldepth " << position.GetSelDepth();			//the selective depth (for example searching further for checks and captures)
+	std::string infoString = "";
+
+	infoString += "info depth " + std::to_string(depth);					//the depth of search
+	infoString += " seldepth " + std::to_string(position.GetSelDepth());	//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
 	{
 		if (score > 0)
-			std::cout << " score mate " << ((MATE - abs(score)) + 1) / 2;
+			infoString += " score mate " + std::to_string(((MATE - abs(score)) + 1) / 2);
 		else
-			std::cout << " score mate " << -((MATE - abs(score)) + 1) / 2;
+			infoString += " score mate " + std::to_string(-((MATE - abs(score)) + 1) / 2);
 	}
 	else
 	{
-		std::cout << " score cp " << score;						//The score in hundreths of a pawn (a 1 pawn advantage is +100)	
+		infoString += " score cp " + std::to_string(score);						//The score in hundreths of a pawn (a 1 pawn advantage is +100)	
 	}
 
 	if (score <= alpha)
-		std::cout << " upperbound";
+		infoString += " upperbound";
 	if (score >= beta)
-		std::cout << " lowerbound";
+		infoString += " lowerbound";
 
-	std::cout
-		<< " time " << Time																	//Time in ms
-		<< " nodes " << getNodes()
-		<< " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
-		<< " tbhits " << getTBHits();
+	infoString += " time " + std::to_string(static_cast<int>(Time));												//Time in ms
+	infoString += " nodes " + std::to_string(getNodes());
+	infoString += " nps " + std::to_string(int(getNodes() / std::max(int(Time), 1) * 1000));
+	infoString += " hashfull " + std::to_string(tTable.GetCapacity(position.GetTurnCount()));						//thousondths full
+	infoString += " tbhits " + std::to_string(getTBHits());
 
-#if defined(_MSC_VER) && !defined(NDEBUG)	
-	//these lines are for debug and not part of official uci protocol
-	std::cout													
-		<< " string thread " << std::this_thread::get_id()
-		<< " evalHitRate " << locals.evalTable.hits * 1000 / std::max(locals.evalTable.hits + locals.evalTable.misses, uint64_t(1));
-#endif
-
-	std::cout << " pv ";										//the current best line found
+	infoString += " pv ";														//the current best line found
 
 	for (size_t i = 0; i < pv.size(); i++)
 	{
-		pv[i].Print();
-		std::cout << " ";
+		pv[i].Print(infoString);
+		infoString += " ";
 	}
 
-	std::cout << std::endl;
+	std::cout << infoString << "\n";
 }
 
 bool SearchLimits::CheckTimeLimit() const
