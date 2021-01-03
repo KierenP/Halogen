@@ -2,6 +2,7 @@
 #include "BitBoardDefine.h"
 #include <iostream>
 #include <assert.h>
+#include <sstream>
 
 enum MoveFlag
 {
@@ -36,7 +37,7 @@ public:
 	bool IsPromotion() const;
 	bool IsCapture() const;
 
-	void Print(std::string& str) const;
+	void Print(std::stringstream& ss) const;
 	void Print() const;
 
 	bool operator==(const Move& rhs) const;
