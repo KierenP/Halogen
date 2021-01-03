@@ -134,43 +134,44 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 	if (pv.size() == 0)
 		pv.push_back(move);
 
-	std::string infoString = "";
+	std::stringstream ss;
 
-	infoString += "info depth " + std::to_string(depth);					//the depth of search
-	infoString += " seldepth " + std::to_string(position.GetSelDepth());	//the selective depth (for example searching further for checks and captures)
+	ss	<< "info depth " << depth							//the depth of search
+		<< " seldepth " << position.GetSelDepth();			//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
 	{
 		if (score > 0)
-			infoString += " score mate " + std::to_string(((MATE - abs(score)) + 1) / 2);
+			ss << " score mate " << ((MATE - abs(score)) + 1) / 2;
 		else
-			infoString += " score mate " + std::to_string(-((MATE - abs(score)) + 1) / 2);
+			ss << " score mate " << -((MATE - abs(score)) + 1) / 2;
 	}
 	else
 	{
-		infoString += " score cp " + std::to_string(score);						//The score in hundreths of a pawn (a 1 pawn advantage is +100)	
+		ss << " score cp " << score;						//The score in hundreths of a pawn (a 1 pawn advantage is +100)	
 	}
 
 	if (score <= alpha)
-		infoString += " upperbound";
+		ss << " upperbound";
 	if (score >= beta)
-		infoString += " lowerbound";
+		ss << " lowerbound";
 
-	infoString += " time " + std::to_string(static_cast<int>(Time));												//Time in ms
-	infoString += " nodes " + std::to_string(getNodes());
-	infoString += " nps " + std::to_string(int(getNodes() / std::max(int(Time), 1) * 1000));
-	infoString += " hashfull " + std::to_string(tTable.GetCapacity(position.GetTurnCount()));						//thousondths full
-	infoString += " tbhits " + std::to_string(getTBHits());
+	ss	<< " time " << Time																	//Time in ms
+		<< " nodes " << getNodes()
+		<< " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
+		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
+		<< " tbhits " << getTBHits();
 
-	infoString += " pv ";														//the current best line found
+	ss << " pv ";														//the current best line found
 
 	for (size_t i = 0; i < pv.size(); i++)
 	{
-		pv[i].Print(infoString);
-		infoString += " ";
+		pv[i].Print(ss);
+		ss << " ";
 	}
 
-	std::cout << infoString << "\n";
+	ss << "\n";
+	std::cout << ss.str();
 }
 
 bool SearchLimits::CheckTimeLimit() const
