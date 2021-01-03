@@ -46,8 +46,8 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
 	if (alpha < score && score < beta && threadDepthCompleted < depth)
 	{
-		//if (!noOutput)
-		//	PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+		if (!noOutput)
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 
 		threadDepthCompleted = depth;
 		currentBestMove = move;
