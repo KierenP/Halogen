@@ -189,7 +189,7 @@ extern uint64_t KingAttacks[N_SQUARES];
 extern uint64_t WhitePawnAttacks[N_SQUARES];
 extern uint64_t BlackPawnAttacks[N_SQUARES];
 
-int LSPpop(uint64_t &bb);
+int LSBpop(uint64_t &bb);
 int LSB(uint64_t bb);
 
 uint64_t inBetween(unsigned int sq1, unsigned int sq2);	//return the bb of the squares in between (exclusive) the two squares

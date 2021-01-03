@@ -297,7 +297,7 @@ unsigned int ColourOfPiece(unsigned int piece)
 	return piece / N_PIECE_TYPES;
 }
 
-int LSPpop(uint64_t &bb)
+int LSBpop(uint64_t &bb)
 {
 	assert(bb != 0);
 
