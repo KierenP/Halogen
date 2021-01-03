@@ -55,24 +55,31 @@ bool Move::IsCapture() const
 	return ((data & CAPTURE_MASK) != 0);
 }
 
-void Move::Print() const
+void Move::Print(std::string& str) const
 {
 	Square prev = GetFrom();
 	Square current = GetTo();
 
-	std::cout << (char)(GetFile(prev) + 'a') << GetRank(prev) + 1 << (char)(GetFile(current) + 'a') << GetRank(current) + 1;	//+1 to make it from 1-8 and not 0-7
+	str += (char)(GetFile(prev) + 'a') + std::to_string(GetRank(prev) + 1) + (char)(GetFile(current) + 'a') + std::to_string(GetRank(current) + 1);	//+1 to make it from 1-8 and not 0-7
 
 	if (IsPromotion())
 	{
 		if (GetFlag() == KNIGHT_PROMOTION || GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			std::cout << "n";
+			str += "n";
 		if (GetFlag() == BISHOP_PROMOTION || GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			std::cout << "b";
+			str += "b";
 		if (GetFlag() == QUEEN_PROMOTION || GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			std::cout << "q";
+			str += "q";
 		if (GetFlag() == ROOK_PROMOTION || GetFlag() == ROOK_PROMOTION_CAPTURE)
-			std::cout << "r";
+			str += "r";
 	}
+}
+
+void Move::Print() const
+{
+	std::string str;
+	Print(str);
+	std::cout << str;
 }
 
 bool Move::operator==(const Move & rhs) const
