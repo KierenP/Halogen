@@ -9,11 +9,6 @@ MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const Sea
 		stage = Stage::TT_MOVE;
 }
 
-void select_next_best(std::vector<ExtendedMove>& v, std::vector<ExtendedMove>::iterator& it)
-{
-	std::iter_swap(it, std::max_element(it, v.end()));
-}
-
 bool MoveGenerator::Next(Move& move)
 {
 	if (stage == Stage::TT_MOVE)
