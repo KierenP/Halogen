@@ -33,12 +33,12 @@ public:
 	int GetDepth() const { return depth; }
 	EntryType GetCutoff() const { return cutoff; }
 	char GetHalfMove() const { return halfmove; }
-	Move GetMove() const { return Move(bestMove.data); }
+	Move GetMove() const { return bestMove; }
 
 private:
 	/*Arranged to minimize padding*/
 	uint64_t key;			//8 bytes
-	MoveBits bestMove;		//2 bytes 
+	Move bestMove;			//2 bytes 
 	short int score;		//2 bytes
 	char depth;				//1 bytes
 	EntryType cutoff;		//1 bytes

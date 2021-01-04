@@ -21,11 +21,6 @@ Move::Move(Square from, Square to, MoveFlag flag)
 	SetFlag(flag);
 }
 
-Move::Move(uint16_t bits)
-{
-	data = bits;
-}
-
 Move::~Move()
 {
 }
@@ -82,19 +77,9 @@ void Move::Print() const
 	std::cout << str.str();
 }
 
-bool Move::operator==(const Move & rhs) const
+bool Move::operator==(const Move& rhs) const
 {
 	return (data == rhs.data);
-}
-
-bool Move::operator<(const Move& rhs) const
-{
-	return orderScore < rhs.orderScore;
-}
-
-bool Move::operator>(const Move& rhs) const
-{
-	return orderScore > rhs.orderScore;
 }
 
 bool Move::IsUninitialized() const

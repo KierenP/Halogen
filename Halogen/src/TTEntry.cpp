@@ -3,7 +3,6 @@
 TTEntry::TTEntry()
 {
 	key = EMPTY;
-	bestMove.data = 0;
 	score = -1;
 	depth = -1;
 	cutoff = EntryType::EMPTY_ENTRY;
@@ -16,7 +15,7 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int curre
 	assert(Depth < CHAR_MAX && Depth > CHAR_MIN);
 
 	key = ZobristKey;
-	bestMove.data = best.GetBits();
+	bestMove = best;
 	score = static_cast<short>(Score);
 	depth = static_cast<char>(Depth);
 	cutoff = Cutoff;
@@ -38,7 +37,7 @@ void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 
 void TTEntry::Reset()
 {
-	bestMove.data = 0;
+	bestMove.Reset();
 	key = EMPTY;
 	score = -1;
 	depth = -1;

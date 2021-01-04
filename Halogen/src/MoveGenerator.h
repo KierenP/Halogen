@@ -13,15 +13,30 @@ enum class Stage
 	GEN_QUIET, GIVE_QUIET
 };
 
+struct ExtendedMove
+{
+	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : score(_score), move(_move), SEE(_SEE) {}
+
+	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
+	bool operator>(const ExtendedMove& rhs) const { return score < rhs.score; };
+
+	int score;
+	Move move;
+	short int SEE;
+};
+
 class MoveGenerator
 {
 public:
 	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiessence);
 	bool Next(Move& move);	//returns false if no more legal moves
+	int GetSEE() { return (current - 1)->SEE; }
 
 private:
-	void OrderMoves(std::vector<Move>& moves);
+	void OrderMoves(std::vector<ExtendedMove>& moves);
 	
+	void CreateExtendedMoveVector(const std::vector<Move>& moves);
+
 	//Data needed for use in ordering or generating moves
 	Position& position;
 	int distanceFromRoot;
@@ -30,8 +45,8 @@ private:
 
 	//Data uses for keeping track of internal values
 	Stage stage;
-	std::vector<Move> legalMoves;
-	std::vector<Move>::iterator current;
+	std::vector<ExtendedMove> legalMoves;
+	std::vector<ExtendedMove>::iterator current;
 
 	Move TTmove;
 	Move Killer1;
