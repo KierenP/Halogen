@@ -27,11 +27,15 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (!quiescence && IsInCheck(position))
 		{
-			LegalMoves(position, legalMoves);	//contains a special function for generating moves when in check which is quicker
+			std::vector<Move> moves;
+			LegalMoves(position, moves);	//contains a special function for generating moves when in check which is quicker
+			CreateExtendedMoveVector(moves);
 		}
 		else
 		{
-			QuiescenceMoves(position, legalMoves);
+			std::vector<Move> moves;
+			QuiescenceMoves(position, moves);
+			CreateExtendedMoveVector(moves);
 		}
 
 		OrderMoves(legalMoves);
@@ -49,19 +53,17 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
 	{
-		if (current != legalMoves.end() && current->orderScore >= 8000000)
+		if (current != legalMoves.end() && current->SEE >= 0)
 		{
-			move = *current;
+			move = current->move;
 			++current;
 			return true;
 		}
-		else
-		{
-			if (quiescence)
-				return false;
 
-			stage = Stage::GIVE_KILLER_1;
-		}
+		if (quiescence)
+			return false;
+
+		stage = Stage::GIVE_KILLER_1;
 	}
 
 	if (stage == Stage::GIVE_KILLER_1)
@@ -92,7 +94,7 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (current != legalMoves.end())
 		{
-			move = *current;
+			move = current->move;
 			++current;
 			return true;
 		}
@@ -104,8 +106,9 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		legalMoves.clear();
-		QuietMoves(position, legalMoves);
+		std::vector<Move> moves;
+		QuietMoves(position, moves);
+		CreateExtendedMoveVector(moves);
 		OrderMoves(legalMoves);
 		current = legalMoves.begin();
 		stage = Stage::GIVE_QUIET;
@@ -115,7 +118,7 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (current != legalMoves.end())
 		{
-			move = *current;
+			move = current->move;
 			++current;
 			return true;
 		}
@@ -124,7 +127,7 @@ bool MoveGenerator::Next(Move& move)
 	return false;
 }
 
-void selection_sort(std::vector<Move>& v)
+void selection_sort(std::vector<ExtendedMove>& v)
 {
 	for (auto it = v.begin(); it != v.end(); ++it)
 	{
@@ -132,7 +135,7 @@ void selection_sort(std::vector<Move>& v)
 	}
 }
 
-void MoveGenerator::OrderMoves(std::vector<Move>& moves)
+void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 {
 	/*
 	We want to order the moves such that the best moves are more likely to be further towards the front.
@@ -154,67 +157,80 @@ void MoveGenerator::OrderMoves(std::vector<Move>& moves)
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		//Hash move
-		if (moves[i] == TTmove)
+		if (moves[i].move == TTmove)
 		{
 			moves.erase(moves.begin() + i);
 			i--;
 		}
 
 		//Killers
-		else if (moves[i] == Killer1)
+		else if (moves[i].move == Killer1)
 		{
 			moves.erase(moves.begin() + i);
 			i--;
 		}
 
-		else if (moves[i] == Killer2)
+		else if (moves[i].move == Killer2)
 		{
 			moves.erase(moves.begin() + i);
 			i--;
 		}
 
 		//Promotions
-		else if (moves[i].IsPromotion())
+		else if (moves[i].move.IsPromotion())
 		{
-			if (moves[i].GetFlag() == QUEEN_PROMOTION || moves[i].GetFlag() == QUEEN_PROMOTION_CAPTURE)
+			if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
 			{
-				moves[i].orderScore = 9000000;
+				moves[i].score = 9000000;
 			}
 			else
 			{
-				moves[i].orderScore = -1;
+				moves[i].score = -1;
+				moves[i].SEE = -1;
 			}
 		}
 
 		//Captures
-		else if (moves[i].IsCapture())
+		else if (moves[i].move.IsCapture())
 		{
 			int SEE = 0;
 
-			if (moves[i].GetFlag() != EN_PASSANT)
+			if (moves[i].move.GetFlag() != EN_PASSANT)
 			{
-				SEE = seeCapture(position, moves[i]);
+				SEE = seeCapture(position, moves[i].move);
 			}
 
 			if (SEE >= 0)
 			{
-				moves[i].orderScore = 8000000 + SEE;
+				moves[i].score = 8000000 + SEE;
 			}
 
 			if (SEE < 0)
 			{
-				moves[i].orderScore = 6000000 + SEE;
+				moves[i].score = 6000000 + SEE;
 			}
+
+			moves[i].SEE = SEE;
 		}
 
 		//Quiet
 		else
 		{
-			moves[i].orderScore = std::min(1000000U, locals.HistoryMatrix[position.GetTurn()][moves[i].GetFrom()][moves[i].GetTo()]);
+			moves[i].score = std::min(1000000U, locals.HistoryMatrix[position.GetTurn()][moves[i].move.GetFrom()][moves[i].move.GetTo()]);
 		}
 	}
 
 	selection_sort(moves);
+}
+
+void MoveGenerator::CreateExtendedMoveVector(const std::vector<Move>& moves)
+{
+	legalMoves.clear();
+	legalMoves.reserve(moves.size());
+	for (const auto& it : moves)
+	{
+		legalMoves.emplace_back(it);
+	}
 }
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)

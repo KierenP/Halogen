@@ -622,15 +622,11 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	{
 		locals.AddNode();
 
-		int SEE = 0;
-		if (move.GetFlag() == CAPTURE) //seeCapture doesn't work for ep or promotions
-		{
-			SEE = seeCapture(position, move);
-		}
+		int SEE = gen.GetSEE();
 
 		if (move.IsPromotion())
 		{
-			SEE += PieceValues(WHITE_QUEEN);
+			SEE = PieceValues(WHITE_QUEEN);
 		}
 
 		if (staticScore + SEE + Delta_margin < alpha) 						//delta pruning

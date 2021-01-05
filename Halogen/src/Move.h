@@ -27,7 +27,6 @@ class Move
 public:
 	Move();
 	Move(Square from, Square to, MoveFlag flag);
-	Move(uint16_t bits);
 	~Move();
 
 	Square GetFrom() const;
@@ -41,30 +40,18 @@ public:
 	void Print() const;
 
 	bool operator==(const Move& rhs) const;
-	bool operator<(const Move& rhs) const;
-	bool operator>(const Move& rhs) const;
 
 	bool IsUninitialized() const;
 
 	void Reset();
 
-	int orderScore = 0;
-
-	uint16_t GetBits() const { return data; }
-
 private:
-
 	void SetFrom(Square from);
 	void SetTo(Square to);
 	void SetFlag(MoveFlag flag);
 
 	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
 	uint16_t data = 0;
-};
-
-struct MoveBits
-{
-	uint16_t data;
 };
 
 
