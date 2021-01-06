@@ -18,7 +18,7 @@ jobs:
           cd Halogen
           cd src
           make sanitize
-          SonarSource/sonarcloud-github-action@master
+          sonarSource/sonarcloud-github-action@master
         #uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
