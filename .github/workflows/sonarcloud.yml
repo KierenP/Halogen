@@ -60,4 +60,4 @@ jobs:
         ECHO PATH=%PATH%
         ECHO DIR %cd%\build\
         DIR %cd%\build\
-        sonar-scanner.bat -Dsonar.cfamily.build-wrapper-output=%cd%\build\bw_output
+        sonar-scanner.bat -Dsonar.host.url=https://sonarcloud.io -Dsonar.cfamily.build-wrapper-output=%cd%\build\bw_output
