@@ -186,8 +186,7 @@ extern uint64_t RookAttacks[N_SQUARES];
 extern uint64_t BishopAttacks[N_SQUARES];
 extern uint64_t QueenAttacks[N_SQUARES];
 extern uint64_t KingAttacks[N_SQUARES];
-extern uint64_t WhitePawnAttacks[N_SQUARES];
-extern uint64_t BlackPawnAttacks[N_SQUARES];
+extern uint64_t PawnAttacks[N_SQUARES][N_SQUARES];
 
 int LSBpop(uint64_t &bb);
 int LSB(uint64_t bb);

@@ -16,8 +16,7 @@ uint64_t KnightAttacks[N_SQUARES];
 uint64_t BishopAttacks[N_SQUARES];
 uint64_t QueenAttacks[N_SQUARES];
 uint64_t KingAttacks[N_SQUARES];
-uint64_t WhitePawnAttacks[N_SQUARES];
-uint64_t BlackPawnAttacks[N_SQUARES];
+uint64_t PawnAttacks[N_SQUARES][N_SQUARES];
 
 bool HASH_ENABLE = true;
 
@@ -119,8 +118,8 @@ void BBInit()
 	for (int i = 0; i < 64; i++)
 	{
 		KingAttacks[i] = EMPTY;
-		WhitePawnAttacks[i] = EMPTY;
-		BlackPawnAttacks[i] = EMPTY;
+		PawnAttacks[WHITE][i] = EMPTY;
+		PawnAttacks[BLACK][i] = EMPTY;
 
 		for (int j = 0; j < 64; j++)
 		{
@@ -134,11 +133,11 @@ void BBInit()
 
 			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1)		//either side one ahead
 			{
-				WhitePawnAttacks[i] ^= SquareBB[j];
+				PawnAttacks[WHITE][i] ^= SquareBB[j];
 			}
 			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1)		//either side one behind
 			{
-				BlackPawnAttacks[i] ^= SquareBB[j];
+				PawnAttacks[BLACK][i] ^= SquareBB[j];
 			}
 
 			if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
