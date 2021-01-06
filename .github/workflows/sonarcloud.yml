@@ -38,7 +38,7 @@ jobs:
       shell: cmd
       run: |
         SET PATH=%PATH%;%cd%\build\build-wrapper-win-x86
-        build-wrapper-win-x86-64 --out-dir ${{ github.workspace }}\src make
+        build-wrapper-win-x86-64 --out-dir ${{ github.workspace }}\src ls
     - name: Prepare Sonar Scanner
       shell: bash
       run: |
