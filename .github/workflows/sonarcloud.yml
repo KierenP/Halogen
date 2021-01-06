@@ -39,6 +39,9 @@ jobs:
       run: |
         SET PATH=%PATH%;%cd%\build\build-wrapper-win-x86
         ls
+        cd Halogen
+        cd src
+        ls
         build-wrapper-win-x86-64 --out-dir Halogen\src make
     - name: Prepare Sonar Scanner
       shell: bash
