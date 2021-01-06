@@ -1,22 +1,59 @@
-name: Build
+name: CI Checks
 on:
   push:
-    branches:
-      - master
+    branches: [ main ]
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [ main ]
+  workflow_dispatch:
+    # Allow manual trigger for debugging the workflow.
+env:
+  SONAR_WRAPPER_URL: https://sonarcloud.io/static/cpp/build-wrapper-win-x86.zip
+  SONAR_SCANNER_URL: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.4.0.2170-windows.zip
 jobs:
-  sonarcloud:
-    name: SonarCloud
-    runs-on: ubuntu-latest
+  CIChecks:
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-        with:
-          # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 0
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
+    - name: Checkout branch
+      uses: actions/checkout@master
+      with:
+        # Disabling shallow clone is required to report the correct blame information.
+        fetch-depth: 0
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: Environment
+      shell: bash
+      run: |
+        mkdir -p build
+        org="$(cut -d/ -f1 <<< "$GITHUB_REPOSITORY")"
+        repo="$(cut -d/ -f2 <<< "$GITHUB_REPOSITORY")"
+        echo "SONAR_ORGANIZATION=${org}" >> "$GITHUB_ENV"
+        echo "SONAR_PROJECT_KEY=${org}_${repo}" >> "$GITHUB_ENV"
+    - name: Install Sonar Scanner
+      run: |
+        Invoke-WebRequest -Uri "${{ env.SONAR_WRAPPER_URL }}" -OutFile build/build-wrapper.zip
+        Invoke-WebRequest -Uri "${{ env.SONAR_SCANNER_URL }}" -OutFile build/sonar-scanner.zip
+        Expand-Archive -LiteralPath build/build-wrapper.zip -DestinationPath build
+        Expand-Archive -LiteralPath build/sonar-scanner.zip -DestinationPath build
+    - name: Build with Sonar Wrapper
+      shell: cmd
+      run: |
+        SET PATH=%PATH%;%cd%\build\build-wrapper-win-x86
+        build-wrapper-win-x86-64 --out-dir build\bw_output build-all.bat
+    - name: Prepare Sonar Scanner
+      shell: bash
+      run: |
+        set -x
+        cd build
+        ls -la bw_output
+        mv sonar-scanner-*-windows sonar-scanner
+    - name: Sonar Scanner
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      shell: cmd
+      run: |
+        SET PATH=%PATH%;%cd%\build\sonar-scanner\bin
+        ECHO PATH=%PATH%
+        ECHO DIR %cd%\build\bw_output\
+        DIR %cd%\build\bw_output\
+        sonar-scanner.bat -Dsonar.cfamily.build-wrapper-output=%cd%\build\bw_output
