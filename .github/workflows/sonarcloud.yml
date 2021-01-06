@@ -38,7 +38,7 @@ jobs:
       shell: cmd
       run: |
         SET PATH=%PATH%;%cd%\build\build-wrapper-win-x86
-        build-wrapper-win-x86-64 --out-dir Halogen\src make
+        build-wrapper-win-x86-64 --out-dir ${{ github.workspace }}/repo\Halogen\src make
     - name: Prepare Sonar Scanner
       shell: bash
       run: |
