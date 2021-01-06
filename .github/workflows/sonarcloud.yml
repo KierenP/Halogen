@@ -42,7 +42,7 @@ jobs:
         cd Halogen
         cd src
         ls
-        build-wrapper-win-x86-64 --out-dir build make
+        build-wrapper-win-x86-64 --out-dir build make default
     - name: Prepare Sonar Scanner
       shell: bash
       run: |
