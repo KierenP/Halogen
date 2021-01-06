@@ -1,4 +1,4 @@
-name: CI Checks
+name: SonarCloud Checks
 on:
   push:
     branches: [ main ]
@@ -37,8 +37,10 @@ jobs:
     - name: Build with Sonar Wrapper
       shell: cmd
       run: |
+        cd Halogen
+        cd src
         SET PATH=%PATH%;%cd%\build\build-wrapper-win-x86
-        build-wrapper-win-x86-64 --out-dir build\bw_output build-all.bat
+        build-wrapper-win-x86-64 --out-dir build\bw_output make
     - name: Prepare Sonar Scanner
       shell: bash
       run: |
