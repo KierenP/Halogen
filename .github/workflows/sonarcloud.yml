@@ -42,13 +42,13 @@ jobs:
         cd Halogen
         cd src
         ls
-        build-wrapper-win-x86-64 --out-dir build\bw_output make default
+        build-wrapper-win-x86-64 --out-dir build make default
     - name: Prepare Sonar Scanner
       shell: bash
       run: |
         set -x
         cd build
-        ls -la bw_output
+        #ls -la bw_output
         mv sonar-scanner-*-windows sonar-scanner
     - name: Sonar Scanner
       env:
@@ -58,6 +58,6 @@ jobs:
       run: |
         SET PATH=%PATH%;%cd%\build\sonar-scanner\bin
         ECHO PATH=%PATH%
-        ECHO DIR %cd%\build\bw_output\
-        DIR %cd%\build\bw_output\
+        ECHO DIR %cd%\build\
+        DIR %cd%\build\
         sonar-scanner.bat -Dsonar.cfamily.build-wrapper-output=%cd%\build\bw_output
