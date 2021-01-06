@@ -1,9 +1,9 @@
 name: CI Checks
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
     # Allow manual trigger for debugging the workflow.
 env:
