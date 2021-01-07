@@ -350,7 +350,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			break;
 		}
 
-		AddHistory(move, position, locals, depthRemaining, false);
 		b = a + 1;				//Set a new zero width window
 	}
 

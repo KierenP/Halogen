@@ -260,5 +260,5 @@ void SearchLimits::SetMateLimit(int moves)
 
 void HistoryTable::AddHistory(Players size, Square from, Square to, int change)
 {
-	Get(size, from, to) += 32 * change - Get(size, from, to) * abs(change) / 512;
+	Get(size, from, to) += change;
 }
