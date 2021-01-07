@@ -2,7 +2,7 @@
 
 TranspositionTable tTable;
 
-SearchData::SearchData(const SearchLimits& Limits) : HistoryMatrix {}, limits(Limits)
+SearchData::SearchData(const SearchLimits& Limits) : limits(Limits)
 {
 	PvTable.resize(MAX_DEPTH);
 	KillerMoves.resize(MAX_DEPTH);
@@ -256,4 +256,9 @@ void SearchLimits::SetMateLimit(int moves)
 {
 	mateLimit = moves;
 	mateLimitEnabled = true;
+}
+
+void HistoryTable::AddHistory(Players size, Square from, Square to, int change)
+{
+	Get(size, from, to) += 32 * change - Get(size, from, to) * abs(change) / 512;
 }
