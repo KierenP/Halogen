@@ -333,30 +333,15 @@ void PawnEnPassant(Position& position, std::vector<Move>& moves)
 {
 	if (position.GetEnPassant() <= SQ_H8)
 	{
-		if (position.GetTurn() == WHITE)
+		uint64_t potentialAttackers = PawnAttacks[!position.GetTurn()][position.GetEnPassant()] & position.GetPieceBB(Piece(PAWN, position.GetTurn()));
+
+		while (potentialAttackers != 0)
 		{
-			uint64_t potentialAttackers = BlackPawnAttacks[position.GetEnPassant()] & position.GetPieceBB(WHITE_PAWN);			//if a black pawn could capture me from the ep square, I can capture on the ep square
-			while (potentialAttackers != 0)
-			{
-				Square start = static_cast<Square>(LSBpop(potentialAttackers));
+			Square start = static_cast<Square>(LSBpop(potentialAttackers));
 
-				Move move(start, position.GetEnPassant(), EN_PASSANT);
-				if (!MovePutsSelfInCheck(position, move))
-					moves.push_back(move);
-			}
-		}
-
-		if (position.GetTurn() == BLACK)
-		{
-			uint64_t potentialAttackers = WhitePawnAttacks[position.GetEnPassant()] & position.GetPieceBB(BLACK_PAWN);			//if a white pawn could capture me from the ep square, I can capture on the ep square
-			while (potentialAttackers != 0)
-			{
-				Square start = static_cast<Square>(LSBpop(potentialAttackers));
-
-				Move move(start, position.GetEnPassant(), EN_PASSANT);
-				if (!MovePutsSelfInCheck(position, move))
-					moves.push_back(move);
-			}
+			Move move(start, position.GetEnPassant(), EN_PASSANT);
+			if (!MovePutsSelfInCheck(position, move))
+				moves.push_back(move);
 		}
 	}
 }
@@ -500,17 +485,8 @@ bool IsSquareThreatened(const Position& position, Square square, Players colour)
 	if ((KnightAttacks[square] & position.GetPieceBB(KNIGHT, !colour)) != 0)
 		return true;
 
-	if (colour == WHITE)
-	{
-		if ((WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN)) != 0)
-			return true;
-	}
-
-	if (colour == BLACK)
-	{
-		if ((BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN)) != 0)
-			return true;
-	}
+	if ((PawnAttacks[colour][square] & position.GetPieceBB(Piece(PAWN, !colour))) != 0)
+		return true;
 
 	if ((KingAttacks[square] & position.GetPieceBB(KING, !colour)) != 0)					//if I can attack the enemy king he can attack me
 		return true;
@@ -560,18 +536,8 @@ uint64_t GetThreats(const Position& position, Square square, Players colour)
 	uint64_t threats = EMPTY;
 
 	threats |= (KnightAttacks[square] & position.GetPieceBB(KNIGHT, !colour));
-
-	if (colour == WHITE)
-	{
-		threats |= (WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN));
-	}
-
-	if (colour == BLACK)
-	{
-		threats |= (BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN));
-	}
-
-	threats |= (KingAttacks[square] & position.GetPieceBB(KING, !colour));					//if I can attack the enemy king he can attack me
+	threats |= (PawnAttacks[colour][square] & position.GetPieceBB(Piece(PAWN, !colour)));
+	threats |= (KingAttacks[square] & position.GetPieceBB(KING, !colour));
 
 	uint64_t Pieces = position.GetAllPieces();
 
@@ -606,17 +572,7 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 {
 	assert(square < N_SQUARES);
 
-	uint64_t pawnmask = 0;
-	if (colour == BLACK)
-	{
-		pawnmask = (WhitePawnAttacks[square] & position.GetPieceBB(BLACK_PAWN));
-	}
-
-	if (colour == WHITE)
-	{
-		pawnmask = (BlackPawnAttacks[square] & position.GetPieceBB(WHITE_PAWN));
-	}
-
+	uint64_t pawnmask = PawnAttacks[!colour][square] & position.GetPieceBB(Piece(PAWN, colour));
 	if (pawnmask != 0)
 	{
 		return(Move(static_cast<Square>(LSBpop(pawnmask)), square, CAPTURE));
