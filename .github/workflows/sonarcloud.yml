@@ -1,4 +1,4 @@
-name: CI Checks
+name: SonarCloud
 on:
   push:
     branches: [ master ]
@@ -18,8 +18,6 @@ jobs:
       with:
         # Disabling shallow clone is required to report the correct blame information.
         fetch-depth: 0
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
     - name: Environment
       shell: bash
       run: |
@@ -48,7 +46,6 @@ jobs:
       run: |
         set -x
         cd build
-        #ls -la bw_output
         mv sonar-scanner-*-windows sonar-scanner
     - name: Sonar Scanner
       env:
