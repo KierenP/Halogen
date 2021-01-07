@@ -1,7 +1,9 @@
 name: SonarCloud
 on:
   push:
+    branches: [ master ]
   pull_request:
+    branches: [ master ]
 
   workflow_dispatch:
     # Allow manual trigger for debugging the workflow.
