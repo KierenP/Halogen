@@ -146,25 +146,12 @@ void selection_sort(std::vector<ExtendedMove>& v)
 	}
 }
 
+const int16_t SCORE_QUEEN_PROMOTION = 30000;
+const int16_t SCORE_CAPTURE			= 20000;
+const int16_t SCORE_UNDER_PROMOTION = -1;
+
 void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 {
-	/*
-	We want to order the moves such that the best moves are more likely to be further towards the front.
-
-	The order is as follows:
-
-	1. Hash move												= 10m
-	2. Queen Promotions											= 9m
-	3. Winning captures											= +8m
-	4. Killer moves												= ~7m
-	5. Losing captures											= -6m
-	6. Quiet moves (further sorted by history matrix values)	= 0-1m
-	7. Underpromotions											= -1
-
-	Note that typically the maximum value of the history matrix does not exceed 1,000,000 after a minute
-	and as such we choose 1m to be the maximum allowed value
-	*/
-
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		//Hash move
@@ -192,11 +179,11 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		{
 			if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
 			{
-				moves[i].score = 9000000;
+				moves[i].score = SCORE_QUEEN_PROMOTION;
 			}
 			else
 			{
-				moves[i].score = -1;
+				moves[i].score = SCORE_UNDER_PROMOTION;
 				moves[i].SEE = -1;
 			}
 		}
@@ -211,23 +198,14 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 				SEE = seeCapture(position, moves[i].move);
 			}
 
-			if (SEE >= 0)
-			{
-				moves[i].score = 8000000 + SEE;
-			}
-
-			if (SEE < 0)
-			{
-				moves[i].score = 6000000 + SEE;
-			}
-
+			moves[i].score = SCORE_CAPTURE + SEE;
 			moves[i].SEE = SEE;
 		}
 
 		//Quiet
 		else
 		{
-			moves[i].score = std::min<int>(1000000, locals.History.Get(position.GetTurn(), moves[i].move.GetFrom(), moves[i].move.GetTo()));
+			moves[i].score = locals.History.Get(position.GetTurn(), moves[i].move.GetFrom(), moves[i].move.GetTo());
 		}
 	}
 
@@ -238,10 +216,8 @@ void MoveGenerator::CreateExtendedMoveVector(const std::vector<Move>& moves)
 {
 	legalMoves.clear();
 	legalMoves.reserve(moves.size());
-	for (const auto& it : moves)
-	{
-		legalMoves.emplace_back(it);
-	}
+
+	std::copy(moves.begin(), moves.end(), std::back_inserter(legalMoves));
 }
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)

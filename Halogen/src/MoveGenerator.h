@@ -15,22 +15,22 @@ enum class Stage
 
 struct ExtendedMove
 {
-	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : score(_score), move(_move), SEE(_SEE) {}
+	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
 
 	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
 	bool operator>(const ExtendedMove& rhs) const { return score < rhs.score; };
 
-	int score;
 	Move move;
-	short int SEE;
+	int16_t score;
+	int16_t SEE;
 };
 
 class MoveGenerator
 {
 public:
-	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiessence);
+	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
 	bool Next(Move& move);	//returns false if no more legal moves
-	int GetSEE() { return (current - 1)->SEE; }
+	int GetSEE() const { return (current - 1)->SEE; }
 
 	void AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const;
 

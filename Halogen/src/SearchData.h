@@ -33,7 +33,7 @@ public:
 	void SetDepthLimit(int depth);
 	void SetMateLimit(int moves);
 
-	int ElapsedTime() {	return SearchTimeManager.ElapsedMs(); }
+	int ElapsedTime() const { return SearchTimeManager.ElapsedMs(); }
 
 private:
 
@@ -53,19 +53,19 @@ private:
 
 struct HistoryTable
 {
-	int32_t Get(Players side, Square from, Square to) const { return table.at(side).at(from).at(to); }
+	int16_t Get(Players side, Square from, Square to) const { return table.at(side).at(from).at(to); }
 	void AddHistory(Players side, Square from, Square to, int change);
 
 private:
 	//table[side][from][to]
-	std::array<std::array<std::array<int32_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> table = {};
+	std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> table = {};
 
-	int32_t& Get(Players side, Square from, Square to) { return table.at(side).at(from).at(to); }
+	int16_t& Get(Players side, Square from, Square to) { return table.at(side).at(from).at(to); }
 };
 
 struct SearchData
 {
-	SearchData(const SearchLimits& Limits);
+	explicit SearchData(const SearchLimits& Limits);
 
 //--------------------------------------------------------------------------------------------
 private:
@@ -97,7 +97,7 @@ private:
 class ThreadSharedData
 {
 public:
-	ThreadSharedData(const SearchLimits& limits, unsigned int threads = 1, bool NoOutput = false);
+	explicit ThreadSharedData(const SearchLimits& limits, unsigned int threads = 1, bool NoOutput = false);
 	~ThreadSharedData();
 
 	Move GetBestMove();

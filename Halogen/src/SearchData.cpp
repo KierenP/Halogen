@@ -97,22 +97,14 @@ int ThreadSharedData::GetAspirationScore()
 
 uint64_t ThreadSharedData::getTBHits() const
 {
-	uint64_t ret = 0;
-
-	for (auto& x : threadlocalData)
-		ret += x.tbHits;
-
-	return ret;
+	return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0),
+		[](uint64_t sum, const SearchData& data) { return sum + data.tbHits; });
 }
 
 uint64_t ThreadSharedData::getNodes() const
 {
-	uint64_t ret = 0;
-
-	for (auto& x : threadlocalData)
-		ret += x.nodes;
-
-	return ret;
+	return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0), 
+		[](uint64_t sum, const SearchData& data) { return sum + data.nodes; });
 }
 
 SearchData& ThreadSharedData::GetData(unsigned int threadID)

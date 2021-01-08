@@ -11,7 +11,7 @@ extern std::atomic<bool> KeepSearching;
 #include <windows.h>
 static inline double get_time_point() {
 	LARGE_INTEGER time, freq;
-	(!QueryPerformanceFrequency(&freq));
+	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&time);
 	return (double)time.QuadPart * 1000 / freq.QuadPart;
 }
