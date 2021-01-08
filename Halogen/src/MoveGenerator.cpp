@@ -131,9 +131,10 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
 {
 	Locals.History.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
 
-	for (auto it = legalMoves.begin(); it != current - 1 && it != legalMoves.end(); ++it)
+	for (auto const& m : legalMoves)
 	{
-		Locals.History.AddHistory(position.GetTurn(), it->move.GetFrom(), it->move.GetTo(), -depthRemaining * depthRemaining);
+		if (m.move == move) break;
+		Locals.History.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
 	}
 }
 
