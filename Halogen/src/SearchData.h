@@ -53,14 +53,14 @@ private:
 
 struct HistoryTable
 {
-	int32_t Get(Players size, Square from, Square to) const { return table.at(size).at(from).at(to); }
-	void AddHistory(Players size, Square from, Square to, int change);
+	int32_t Get(Players side, Square from, Square to) const { return table.at(side).at(from).at(to); }
+	void AddHistory(Players side, Square from, Square to, int change);
 
 private:
 	//table[side][from][to]
 	std::array<std::array<std::array<int32_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> table = {};
 
-	int32_t& Get(Players size, Square from, Square to) { return table.at(size).at(from).at(to); }
+	int32_t& Get(Players side, Square from, Square to) { return table.at(side).at(from).at(to); }
 };
 
 struct SearchData

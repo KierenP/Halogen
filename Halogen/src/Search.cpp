@@ -37,7 +37,7 @@ void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
 int extension(const Position & position, int alpha, int beta);
 void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>& KillerMoves);
-void AddHistory(const Move& move, const Position& position, SearchData& locals, int depthRemaining, bool cutoff);
+void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 int Reduction(int depth, int i);
 int matedIn(int distanceFromRoot);
@@ -346,7 +346,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		if (a >= beta) //Fail high cutoff
 		{
 			AddKiller(move, distanceFromRoot, locals.KillerMoves);
-			AddHistory(move, position, locals, depthRemaining, true);
+			AddHistory(gen, move, locals, depthRemaining);
 			break;
 		}
 
@@ -669,9 +669,9 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>
 	}
 }
 
-void AddHistory(const Move& move, const Position& position, SearchData& locals, int depthRemaining, bool cutoff)
+void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
 {
 	if (move.IsCapture() || move.IsPromotion()) return;
-	locals.History.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), (cutoff ? 1 : -1) * depthRemaining * depthRemaining);
+	gen.AdjustHistory(move, locals, depthRemaining);
 }
 

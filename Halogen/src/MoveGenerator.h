@@ -32,6 +32,8 @@ public:
 	bool Next(Move& move);	//returns false if no more legal moves
 	int GetSEE() { return (current - 1)->SEE; }
 
+	void AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const;
+
 private:
 	void OrderMoves(std::vector<ExtendedMove>& moves);
 	
