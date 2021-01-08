@@ -127,6 +127,16 @@ bool MoveGenerator::Next(Move& move)
 	return false;
 }
 
+void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
+{
+	Locals.History.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
+
+	for (auto it = legalMoves.begin(); it != current - 1 && it != legalMoves.end(); ++it)
+	{
+		Locals.History.AddHistory(position.GetTurn(), it->move.GetFrom(), it->move.GetTo(), -depthRemaining * depthRemaining);
+	}
+}
+
 void selection_sort(std::vector<ExtendedMove>& v)
 {
 	for (auto it = v.begin(); it != v.end(); ++it)

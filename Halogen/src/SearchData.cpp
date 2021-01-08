@@ -258,7 +258,7 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void HistoryTable::AddHistory(Players size, Square from, Square to, int change)
+void HistoryTable::AddHistory(Players side, Square from, Square to, int change)
 {
-	Get(size, from, to) += change;
+	Get(side, from, to) += 32 * change - Get(side, from, to) * abs(change) / 512;
 }
