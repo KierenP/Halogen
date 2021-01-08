@@ -51,6 +51,18 @@ private:
 	mutable bool periodicTimeLimit = false;
 };
 
+struct HistoryTable
+{
+	int32_t Get(Players size, Square from, Square to) const { return table.at(size).at(from).at(to); }
+	void AddHistory(Players size, Square from, Square to, int change);
+
+private:
+	//table[side][from][to]
+	std::array<std::array<std::array<int32_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> table = {};
+
+	int32_t& Get(Players size, Square from, Square to) { return table.at(size).at(from).at(to); }
+};
+
 struct SearchData
 {
 	SearchData(const SearchLimits& Limits);
@@ -62,8 +74,9 @@ private:
 
 public:
 	std::vector<std::vector<Move>> PvTable;
-	std::vector<std::array<Move, 2>> KillerMoves;							//2 moves indexed by distanceFromRoot
-	unsigned int HistoryMatrix[N_PLAYERS][N_SQUARES][N_SQUARES];			//first index is from square and 2nd index is to square
+	std::vector<std::array<Move, 2>> KillerMoves;					//2 moves indexed by distanceFromRoot
+	HistoryTable History;
+	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
 
