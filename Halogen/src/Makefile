@@ -4,7 +4,7 @@ OUTPUT 	= ../../../$(EXE)$(VER)
 EXE 	= Halogen
 LIBS    = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 
-WFLAGS = -Wall -Wextra -Wshadow -std=c++14
+WFLAGS = -Wall -Wextra -Wshadow -std=c++17
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize
 PGOFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native

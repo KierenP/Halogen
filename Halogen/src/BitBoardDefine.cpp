@@ -1,16 +1,5 @@
 #include "BitBoardDefine.h"
 
-uint64_t EMPTY;
-uint64_t UNIVERCE;
-
-uint64_t RankBB[N_RANKS];
-uint64_t FileBB[N_FILES];
-uint64_t SquareBB[N_SQUARES];
-uint64_t DiagonalBB[N_DIAGONALS];
-uint64_t AntiDiagonalBB[N_ANTI_DIAGONALS];
-
-uint64_t betweenArray[64][64];
-
 uint64_t RookAttacks[N_SQUARES];
 uint64_t KnightAttacks[N_SQUARES];
 uint64_t BishopAttacks[N_SQUARES];
@@ -18,9 +7,7 @@ uint64_t QueenAttacks[N_SQUARES];
 uint64_t KingAttacks[N_SQUARES];
 uint64_t PawnAttacks[N_SQUARES][N_SQUARES];
 
-bool HASH_ENABLE = true;
-
-const int index64[64] = {
+constexpr std::array<int, N_SQUARES> index64 = {
 	0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
    54, 58, 35, 52, 50, 42, 21, 44,
@@ -47,74 +34,6 @@ void InitSliderAttacks(Magic m[64], uint64_t* table, const int steps[4]);
 
 void BBInit()
 {
-	UNIVERCE = 0xffffffffffffffff;
-	EMPTY = 0;
-
-	//A loop didnt work, and if these have a problem debugging is hard so they were hard coded
-	RankBB[RANK_1] = 0xff;
-	RankBB[RANK_2] = 0xff00;
-	RankBB[RANK_3] = 0xff0000;
-	RankBB[RANK_4] = 0xff000000;
-	RankBB[RANK_5] = 0xff00000000;
-	RankBB[RANK_6] = 0xff0000000000;
-	RankBB[RANK_7] = 0xff000000000000;
-	RankBB[RANK_8] = 0xff00000000000000;
-
-	FileBB[FILE_H] = 0x8080808080808080;
-	FileBB[FILE_G] = 0x4040404040404040;
-	FileBB[FILE_F] = 0x2020202020202020;
-	FileBB[FILE_E] = 0x1010101010101010;
-	FileBB[FILE_D] = 0x808080808080808;
-	FileBB[FILE_C] = 0x404040404040404;
-	FileBB[FILE_B] = 0x202020202020202;
-	FileBB[FILE_A] = 0x101010101010101;
-
-	DiagonalBB[DIAG_A1H8] = 0x8040201008040201;
-	DiagonalBB[DIAG_A2G8] = 0x4020100804020100;
-	DiagonalBB[DIAG_A3F8] = 0x2010080402010000;
-	DiagonalBB[DIAG_A4E8] = 0x1008040201000000;
-	DiagonalBB[DIAG_A5D8] = 0x804020100000000;
-	DiagonalBB[DIAG_A6C8] = 0x402010000000000;
-	DiagonalBB[DIAG_A7B8] = 0x201000000000000;
-	DiagonalBB[DIAG_A8A8] = 0x100000000000000;
-	DiagonalBB[DIAG_B1H7] = 0x80402010080402;
-	DiagonalBB[DIAG_C1H6] = 0x804020100804;
-	DiagonalBB[DIAG_D1H5] = 0x8040201008;
-	DiagonalBB[DIAG_E1H4] = 0x80402010;
-	DiagonalBB[DIAG_F1H3] = 0x804020;
-	DiagonalBB[DIAG_G1H2] = 0x8040;
-	DiagonalBB[DIAG_H1H1] = 0x80;
-
-	AntiDiagonalBB[DIAG_H8H8] = 0x8000000000000000;
-	AntiDiagonalBB[DIAG_G8H7] = 0x4080000000000000;
-	AntiDiagonalBB[DIAG_F8H6] = 0x2040800000000000;
-	AntiDiagonalBB[DIAG_E8H5] = 0x1020408000000000;
-	AntiDiagonalBB[DIAG_D8H4] = 0x810204080000000;
-	AntiDiagonalBB[DIAG_C8H3] = 0x408102040800000;
-	AntiDiagonalBB[DIAG_B8H2] = 0x204081020408000;
-	AntiDiagonalBB[DIAG_A8H1] = 0x102040810204080;
-	AntiDiagonalBB[DIAG_A7G1] = 0x1020408102040;
-	AntiDiagonalBB[DIAG_A6F1] = 0x10204081020;
-	AntiDiagonalBB[DIAG_A5E1] = 0x102040810;
-	AntiDiagonalBB[DIAG_A4D1] = 0x1020408;
-	AntiDiagonalBB[DIAG_A3C1] = 0x10204;
-	AntiDiagonalBB[DIAG_A2B1] = 0x102;
-	AntiDiagonalBB[DIAG_A1A1] = 0x1;
-
-	for (int i = SQ_A1; i < N_SQUARES; i++)
-	{
-		uint64_t Bit = 1;
-		SquareBB[i] = Bit << i;
-	}
-
-	for (int i = 0; i < 64; i++)
-	{
-		for (int j = 0; j < 64; j++)
-		{
-			betweenArray[i][j] = inBetween(i, j);
-		}
-	}
-
 	for (int i = 0; i < 64; i++)
 	{
 		KingAttacks[i] = EMPTY;
@@ -327,36 +246,9 @@ int LSB(uint64_t bb)
 #endif
 }
 
-//Not my code
-uint64_t inBetween(unsigned int sq1, unsigned int sq2)
-{
-	const uint64_t a2a7 = uint64_t(0x0001010101010100);
-	const uint64_t b2g7 = uint64_t(0x0040201008040200);
-	const uint64_t h1b7 = uint64_t(0x0002040810204080); /* Thanks Dustin, g2b7 did not work for c1-a3 */
-	int64_t btwn, line, rank, file;
-
-	btwn = (UNIVERCE << sq1) ^ (UNIVERCE << sq2);
-	file = (sq2 & 7) - (sq1 & 7);
-	rank = ((sq2 | 7) - sq1) >> 3;
-	line = ((file & 7) - 1) & a2a7;					/* a2a7 if same file */
-	line += 2 * (((rank & 7) - 1) >> 58);			/* b1g1 if same rank */
-	line += (((rank - file) & 15) - 1) & b2g7;		/* b2g7 if same diagonal */
-	line += (((rank + file) & 15) - 1) & h1b7;		/* h1b7 if same antidiag */
-	line = int64_t(uint64_t(line) << (std::min)(sq1, sq2));							
-	return line & btwn;								/* return the bits on that line in-between */
-}
-
-uint64_t inBetweenCache(unsigned int from, unsigned int to)
-{
-	assert(from < N_SQUARES);
-	assert(to < N_SQUARES);
-
-	return betweenArray[from][to];
-}
-
 bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
 {
-	return (inBetweenCache(from, to) & pieces) == 0;
+	return (betweenArray[from][to] & pieces) == 0;
 }
 
 //--------------------------------------------------------------------------

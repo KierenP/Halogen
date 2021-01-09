@@ -6,13 +6,12 @@
 #include <limits>
 #include <type_traits>
 #include <algorithm>
+#include <array>
 
 #ifdef _MSC_VER
 #include <intrin.h>
 #define NOMINMAX
 #endif
-
-extern bool HASH_ENABLE;
 
 enum Square
 {
@@ -169,17 +168,96 @@ Square GetPosition(File file, Rank rank);
 File GetFile(Square square);
 Rank GetRank(Square square);
 
-extern uint64_t EMPTY;
-extern uint64_t UNIVERCE;
+constexpr uint64_t EMPTY = 0;
+constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 
-extern uint64_t RankBB[N_RANKS];
-extern uint64_t FileBB[N_FILES];
-extern uint64_t SquareBB[N_SQUARES];
-extern uint64_t DiagonalBB[N_DIAGONALS];
-extern uint64_t AntiDiagonalBB[N_ANTI_DIAGONALS];
+namespace BitBoardInit	//so these don't polute the global scope
+{
+	constexpr std::array<uint64_t, N_RANKS> Rank()
+	{
+		std::array<uint64_t, N_RANKS> ret {};
+		for (size_t i = 0; i < N_RANKS; i++)
+			ret[i] = 0xffULL << (8 * i);
+		return ret;
+	}
 
-extern const int index64[64];
-extern uint64_t betweenArray[64][64];
+	constexpr std::array<uint64_t, N_FILES> File()
+	{
+		std::array<uint64_t, N_FILES> ret {};
+		for (size_t i = 0; i < N_FILES; i++)
+			ret[i] = 0x101010101010101 << i;
+		return ret;
+	}
+
+	constexpr std::array<uint64_t, N_SQUARES> Square()
+	{
+		std::array<uint64_t, N_SQUARES> ret {};
+		for (size_t i = 0; i < N_SQUARES; i++)
+			ret[i] = 1ULL << i;
+		return ret;
+	}
+
+	constexpr std::array<uint64_t, N_DIAGONALS> Diagonal()
+	{
+		std::array<uint64_t, N_DIAGONALS> ret { 0x100000000000000 };
+		for (size_t i = 1; i < N_DIAGONALS; i++)
+			if (i > N_DIAGONALS / 2)
+				ret[i] = (ret[i - 1] >> 8);
+			else
+				ret[i] = (ret[i - 1] << 1) | (ret[i - 1] >> 8);
+		return ret;
+	}
+
+	constexpr std::array<uint64_t, N_ANTI_DIAGONALS> AntiDiagonal()
+	{
+		std::array<uint64_t, N_ANTI_DIAGONALS> ret {0x8000000000000000 };
+		for (size_t i = 1; i < N_ANTI_DIAGONALS; i++)
+			if (i > N_ANTI_DIAGONALS / 2)
+				ret[i] = (ret[i - 1] >> 8);
+			else
+				ret[i] = (ret[i - 1] >> 1) | (ret[i - 1] >> 8);
+		return ret;
+	}
+
+	//Not my code, slightly modified
+	constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
+	{
+		const uint64_t a2a7 = uint64_t(0x0001010101010100);
+		const uint64_t b2g7 = uint64_t(0x0040201008040200);
+		const uint64_t h1b7 = uint64_t(0x0002040810204080); /* Thanks Dustin, g2b7 did not work for c1-a3 */
+		uint64_t btwn = 0, line = 0, rank = 0, file = 0;
+
+		btwn = (UNIVERSE << sq1) ^ (UNIVERSE << sq2);
+		file = (sq2 & 7) - (sq1 & 7);
+		rank = ((sq2 | 7) - sq1) >> 3;
+		line = ((file & 7) - 1) & a2a7; /* a2a7 if same file */
+		line += 2 * (((rank & 7) - 1) >> 58); /* b1g1 if same rank */
+		line += (((rank - file) & 15) - 1) & b2g7; /* b2g7 if same diagonal */
+		line += (((rank + file) & 15) - 1) & h1b7; /* h1b7 if same antidiag */
+		line = int64_t(uint64_t(line) << (std::min)(sq1, sq2)); /* shift by smaller square */
+		return line & btwn;   /* return the bits on that line in-between */
+	}
+
+	constexpr std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> BetweenArray()
+	{
+		std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> ret{};
+		for (int i = 0; i < 64; i++)
+		{
+			for (int j = 0; j < 64; j++)
+			{
+				ret[i][j] = inBetween(i, j);
+			}
+		}
+		return ret;
+	}
+}
+
+constexpr std::array<uint64_t, N_RANKS> RankBB = BitBoardInit::Rank();
+constexpr std::array<uint64_t, N_FILES> FileBB = BitBoardInit::File();
+constexpr std::array<uint64_t, N_SQUARES> SquareBB = BitBoardInit::Square();
+constexpr std::array<uint64_t, N_DIAGONALS> DiagonalBB = BitBoardInit::Diagonal();
+constexpr std::array<uint64_t, N_ANTI_DIAGONALS> AntiDiagonalBB = BitBoardInit::AntiDiagonal();
+constexpr std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> betweenArray = BitBoardInit::BetweenArray();
 
 extern uint64_t KnightAttacks[N_SQUARES];
 extern uint64_t RookAttacks[N_SQUARES];
@@ -191,8 +269,6 @@ extern uint64_t PawnAttacks[N_SQUARES][N_SQUARES];
 int LSBpop(uint64_t &bb);
 int LSB(uint64_t bb);
 
-uint64_t inBetween(unsigned int sq1, unsigned int sq2);	//return the bb of the squares in between (exclusive) the two squares
-uint64_t inBetweenCache(unsigned int from, unsigned int to);
 bool mayMove(unsigned int from, unsigned int to, uint64_t pieces);
 
 const unsigned int MAX_DEPTH = 100;
@@ -209,7 +285,7 @@ const unsigned int MAX_DEPTH = 100;
 // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
 #define AttackIndex(sq, occ, table) (((occ & table[sq].mask) * table[sq].magic) >> table[sq].shift)
 
-static const uint64_t RookMagics[64] = {
+constexpr uint64_t RookMagics[64] = {
 	0xA180022080400230ull, 0x0040100040022000ull, 0x0080088020001002ull, 0x0080080280841000ull,
 	0x4200042010460008ull, 0x04800A0003040080ull, 0x0400110082041008ull, 0x008000A041000880ull,
 	0x10138001A080C010ull, 0x0000804008200480ull, 0x00010011012000C0ull, 0x0022004128102200ull,
@@ -228,7 +304,7 @@ static const uint64_t RookMagics[64] = {
 	0x411FFFDDFFDBF4D6ull, 0x0801000804000603ull, 0x0003FFEF27EEBE74ull, 0x7645FFFECBFEA79Eull,
 };
 
-static const uint64_t BishopMagics[64] = {
+constexpr uint64_t BishopMagics[64] = {
 	0xFFEDF9FD7CFCFFFFull, 0xFC0962854A77F576ull, 0x5822022042000000ull, 0x2CA804A100200020ull,
 	0x0204042200000900ull, 0x2002121024000002ull, 0xFC0A66C64A7EF576ull, 0x7FFDFDFCBD79FFFFull,
 	0xFC0846A64A34FFF6ull, 0xFC087A874A3CF7F6ull, 0x1001080204002100ull, 0x1810080489021800ull,
