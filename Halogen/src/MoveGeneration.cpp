@@ -97,7 +97,7 @@ uint64_t PinnedMask(const Position& position)
 {
 	Players turn = position.GetTurn();
 	Square king = position.GetKing(turn);
-	if (IsSquareThreatened(position, king, turn)) return UNIVERCE;
+	if (IsSquareThreatened(position, king, turn)) return UNIVERSE;
 
 	uint64_t mask = EMPTY;
 	uint64_t possiblePins = QueenAttacks[king] & position.GetPiecesColour(turn);
@@ -198,7 +198,7 @@ void BlockThreat(Position& position, std::vector<Move>& moves, uint64_t threats)
 
 	if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT) return;	//cant block non-sliders. Also cant be threatened by enemy king
 
-	uint64_t blockSquares = inBetweenCache(threatSquare, position.GetKing(position.GetTurn()));
+	uint64_t blockSquares = betweenArray[threatSquare][position.GetKing(position.GetTurn())];
 
 	while (blockSquares != 0)
 	{
@@ -259,7 +259,7 @@ void PawnPushes(Position& position, std::vector<Move>& moves, uint64_t pinned)
 		Square end = static_cast<Square>(LSBpop(pawnPushes));
 		Move move(static_cast<Square>(end - foward), end, QUIET);
 
-		if (!(pinned & SquareBB[end- foward]) || !MovePutsSelfInCheck(position, move))
+		if (!(pinned & SquareBB[end - foward]) || !MovePutsSelfInCheck(position, move))
 			moves.push_back(move);
 	}
 }
@@ -796,9 +796,9 @@ uint64_t AttackBB(Square sq, uint64_t occupied)
 		case KNIGHT:	return KnightAttacks[sq];
 		case KING:		return KingAttacks[sq];
 		case BISHOP:	return BishopTable[sq].attacks[AttackIndex(sq, occupied, BishopTable)];
-		case ROOK:		return   RookTable[sq].attacks[AttackIndex(sq, occupied, RookTable)];
+		case ROOK:		return RookTable[sq].attacks[AttackIndex(sq, occupied, RookTable)];
 		case QUEEN:		return AttackBB<ROOK>(sq, occupied) | AttackBB<BISHOP>(sq, occupied);
-		default:		throw std::invalid_argument("piecetype is argument is invalid"); return 0;
+		default:		throw std::invalid_argument("piecetype is argument is invalid");
 	}
 }
 

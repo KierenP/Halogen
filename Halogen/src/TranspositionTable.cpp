@@ -26,9 +26,6 @@ bool CheckEntry(const TTEntry& entry, uint64_t key)
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
 {
-	if (!HASH_ENABLE)
-		return;
-
 	size_t hash = HashFunction(ZobristKey);
 
 	if (Score > 9000)	//checkmate node
