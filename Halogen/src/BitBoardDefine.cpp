@@ -1,12 +1,5 @@
 #include "BitBoardDefine.h"
 
-uint64_t RookAttacks[N_SQUARES];
-uint64_t KnightAttacks[N_SQUARES];
-uint64_t BishopAttacks[N_SQUARES];
-uint64_t QueenAttacks[N_SQUARES];
-uint64_t KingAttacks[N_SQUARES];
-uint64_t PawnAttacks[N_SQUARES][N_SQUARES];
-
 constexpr std::array<int, N_SQUARES> index64 = {
 	0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
@@ -34,40 +27,6 @@ void InitSliderAttacks(Magic m[64], uint64_t* table, const int steps[4]);
 
 void BBInit()
 {
-	for (int i = 0; i < 64; i++)
-	{
-		KingAttacks[i] = EMPTY;
-		PawnAttacks[WHITE][i] = EMPTY;
-		PawnAttacks[BLACK][i] = EMPTY;
-
-		for (int j = 0; j < 64; j++)
-		{
-			if (AbsFileDiff(i, j) <= 1 && AbsRankDiff(i, j) <= 1)
-			{
-				if (i != j)
-				{
-					KingAttacks[i] ^= SquareBB[j];
-				}
-			}
-
-			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1)		//either side one ahead
-			{
-				PawnAttacks[WHITE][i] ^= SquareBB[j];
-			}
-			if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1)		//either side one behind
-			{
-				PawnAttacks[BLACK][i] ^= SquareBB[j];
-			}
-
-			if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
-				KnightAttacks[i] |= SquareBB[j];
-		}
-
-		RookAttacks[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];		//All the spaces in the same rank and file but not the starting square
-		BishopAttacks[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];
-		QueenAttacks[i] = RookAttacks[i] | BishopAttacks[i];
- 	}
-
 	const int BSteps[4] = { 7, 9, -7, -9 };
 	const int RSteps[4] = { 8, 1, -8, -1 };
 
@@ -107,84 +66,12 @@ Square GetPosition(File file, Rank rank)
 	return static_cast<Square>(rank * 8 + file);
 }
 
-File GetFile(Square square)
-{
-	assert(square < N_SQUARES);
-	return static_cast<File>(square % 8);
-}
-
-Rank GetRank(Square square)
-{
-	assert(square < N_SQUARES);
-	return static_cast<Rank>(square / 8);
-}
-
-unsigned int GetFile(unsigned int square)
-{
-	assert(square < N_SQUARES);
-
-	return square % 8;
-}
-
-unsigned int GetRank(unsigned int square)
-{
-	assert(square < N_SQUARES);
-
-	return square / 8;
-}
-
 unsigned int GetPosition(unsigned int file, unsigned int rank)
 {
 	assert(file < N_FILES);
 	assert(file < N_RANKS);
 
 	return rank * 8 + file;
-}
-
-unsigned int AbsRankDiff(unsigned int sq1, unsigned int sq2)
-{
-	assert(sq1 < N_SQUARES);
-	assert(sq2 < N_SQUARES);
-
-	return abs(static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2)));
-}
-
-unsigned int AbsFileDiff(unsigned int sq1, unsigned int sq2)
-{
-	assert(sq1 < N_SQUARES);
-	assert(sq2 < N_SQUARES);
-
-	return abs(static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2)));
-}
-
-int RankDiff(unsigned int sq1, unsigned int sq2)
-{
-	assert(sq1 < N_SQUARES);
-	assert(sq2 < N_SQUARES);
-
-	return static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2));
-}
-
-int FileDiff(unsigned int sq1, unsigned int sq2)
-{
-	assert(sq1 < N_SQUARES);
-	assert(sq2 < N_SQUARES);
-
-	return static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2));
-}
-
-unsigned int GetDiagonal(unsigned int square)
-{
-	assert(square < N_SQUARES);
-
-	return (RANK_8 - GetRank(square)) + GetFile(square);
-}
-
-unsigned int GetAntiDiagonal(unsigned int square)
-{
-	assert(square < N_SQUARES);
-
-	return RANK_8 + FILE_H - GetRank(square) - GetFile(square);
 }
 
 unsigned int GetBitCount(uint64_t bb)
@@ -244,11 +131,6 @@ int LSB(uint64_t bb)
 	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 #endif
-}
-
-bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
-{
-	return (betweenArray[from][to] & pieces) == 0;
 }
 
 //--------------------------------------------------------------------------
