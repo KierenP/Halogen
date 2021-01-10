@@ -2,8 +2,8 @@
 
 /*Tuneable search constants*/
 
-double LMR_constant = -1.26;
-double LMR_coeff = 0.84;
+double LMR_constant = -1.76;
+double LMR_coeff = 1.03;
 
 int Null_constant = 4;
 int Null_depth_quotent = 6;
