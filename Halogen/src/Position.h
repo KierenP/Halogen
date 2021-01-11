@@ -63,12 +63,7 @@ private:
 
 	static size_t modifier(size_t index);					//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
 
-	size_t EvaluatedPositions = 0;
-
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
-
-	//Values for keeping the network updated
-	std::vector<std::array<int16_t, HIDDEN_NEURONS>> Zeta;
-	size_t incrementalDepth = 0;
+	Network net;
 };
 

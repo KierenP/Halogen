@@ -34,14 +34,22 @@ struct deltaArray
     deltaPoint deltas[4];
 };
 
-extern std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS>* hiddenWeights;
-extern std::array<int16_t, HIDDEN_NEURONS>* hiddenBias;
-extern std::array<int16_t, HIDDEN_NEURONS>* outputWeights;
-extern int16_t* outputBias;
+class Network
+{
+public:
+    void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs);
+    void ApplyDelta(const deltaArray& update);  //incrementally update the connections between input layer and first hidden layer
+    void ApplyInverseDelta();                   //for un-make moves
+    int16_t QuickEval() const;                  //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
 
-void RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta);
-void ApplyDelta(const deltaArray& update, std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta);  //incrementally update the connections between input layer and first hidden layer
-void ApplyInverseDelta(std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta);                     //for un-make moves
-int16_t QuickEval(const std::vector<std::array<int16_t, HIDDEN_NEURONS>>& Zeta);                    //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
+    static void Init();
 
-void NetworkInit();
+private:
+    std::vector<std::array<int16_t, HIDDEN_NEURONS>> Zeta;
+
+    static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;
+    static std::array<int16_t, HIDDEN_NEURONS> hiddenBias;
+    static std::array<int16_t, HIDDEN_NEURONS> outputWeights;
+    static int16_t outputBias;
+};
+
