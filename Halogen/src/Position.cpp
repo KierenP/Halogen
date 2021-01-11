@@ -96,7 +96,7 @@ void Position::ApplyMove(Move move)
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	ApplyDelta(CalculateMoveDelta(move), Zeta);
+	net.ApplyDelta(CalculateMoveDelta(move));
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -166,7 +166,7 @@ void Position::ApplyMove(std::string strmove)
 	}
 
 	ApplyMove(Move(prev, next, flag));
-	RecalculateIncremental(GetInputLayer(), Zeta);
+	net.RecalculateIncremental(GetInputLayer());
 }
 
 void Position::RevertMove()
@@ -177,7 +177,7 @@ void Position::RevertMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	ApplyInverseDelta(Zeta);
+	net.ApplyInverseDelta();
 }
 
 void Position::ApplyNullMove()
@@ -239,7 +239,7 @@ void Position::Print() const
 void Position::StartingPosition()
 {
 	InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
-	RecalculateIncremental(GetInputLayer(), Zeta);
+	net.RecalculateIncremental(GetInputLayer());
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
@@ -260,7 +260,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 		return false;
 
 	key = GenerateZobristKey();
-	RecalculateIncremental(GetInputLayer(), Zeta);
+	net.RecalculateIncremental(GetInputLayer());
 
 	return true;
 }
@@ -309,7 +309,6 @@ void Position::Reset()
 {
 	PreviousKeys.clear();
 	key = EMPTY;
-	EvaluatedPositions = 0;
 
 	ResetBoard();
 	InitParameters();
@@ -528,7 +527,7 @@ void Position::RevertMoveQuick()
 
 int16_t Position::GetEvaluation()
 {
-	return QuickEval(Zeta);
+	return net.QuickEval();
 }
 
 bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
