@@ -38,10 +38,6 @@ SOFTWARE.
 #endif
 #include "tbprobe.h"
 
-#ifdef __cplusplus
-using namespace std;
-#endif
-
 #define TB_PIECES 7
 #define TB_HASHBITS  (TB_PIECES < 7 ?  11 : 12)
 #define TB_MAX_PIECE (TB_PIECES < 7 ? 254 : 650)
@@ -67,6 +63,10 @@ typedef size_t map_t;
 #define FD HANDLE
 #define FD_ERR INVALID_HANDLE_VALUE
 typedef HANDLE map_t;
+#endif
+
+#ifdef __cplusplus
+using namespace std;
 #endif
 
 #define DECOMP64

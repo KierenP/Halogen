@@ -47,7 +47,7 @@ void NetworkScaleAdjustment(int& eval)
 
 int PieceValues(unsigned int Piece, GameStages GameStage)
 {
-    return pieceValueVector[GameStage][Piece % N_PIECE_TYPES];
+    return pieceValueVector[GameStage][GetPieceType(static_cast<Pieces>(Piece))];
 }
 
 bool DeadPosition(const Position& position)

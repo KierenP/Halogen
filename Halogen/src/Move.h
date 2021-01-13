@@ -11,7 +11,11 @@ enum MoveFlag
 	KING_CASTLE,					
 	QUEEN_CASTLE,					
 	CAPTURE,						
-	EN_PASSANT,						
+	EN_PASSANT = 5,				
+
+	DONT_USE_1 = 6,
+	DONT_USE_2 = 7,
+
 	KNIGHT_PROMOTION = 8,			
 	BISHOP_PROMOTION,				
 	ROOK_PROMOTION,					
@@ -44,6 +48,9 @@ public:
 	bool IsUninitialized() const;
 
 	void Reset();
+
+	Move(uint16_t _data) { data = _data; }
+	uint16_t GetData() { return data; }
 
 private:
 	void SetFrom(Square from);

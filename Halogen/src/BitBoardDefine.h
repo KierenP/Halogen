@@ -154,6 +154,11 @@ unsigned int GetBitCount(uint64_t bb);
 unsigned int AlgebraicToPos(std::string str);
 unsigned int ColourOfPiece(unsigned int piece);
 
+constexpr PieceTypes GetPieceType(Pieces piece)
+{
+	return static_cast<PieceTypes>(piece % N_PIECE_TYPES);
+}
+
 constexpr File GetFile(Square square)
 {
 	assert(square < N_SQUARES);
