@@ -151,7 +151,8 @@ int main(int argc, char* argv[])
 				if (movestogo != 0)
 					AllocatedTime = myTime / (movestogo + 1) * 3 / 2;	//repeating time control
 				else if (myInc != 0)
-					AllocatedTime = myTime / 16 + myInc;				//increment time control
+					// use a greater proportion of remaining time as the game continues, so that we use it all up and get to just increment
+					AllocatedTime = myTime * (1 + position.GetTurnCount() / 40.0) / 16 + myInc;	//increment time control
 				else
 					AllocatedTime = myTime / 20;						//sudden death time control
 
