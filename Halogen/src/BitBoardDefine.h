@@ -439,7 +439,7 @@ constexpr bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
 	return (betweenArray[from][to] & pieces) == 0;
 }
 
-const unsigned int MAX_DEPTH = 100;
+const int MAX_DEPTH = 100;
 
 //--------------------------------------------------------------------------
 //Below code adapted with permission from Terje, author of Weiss.

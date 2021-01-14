@@ -470,14 +470,14 @@ uint64_t Perft(unsigned int depth, Position& position)
 	vector<Move> moves;
 	LegalMoves(position, moves);
 
-	for (int i = 0; i < UINT16_MAX; i++)
+	/*for (int i = 0; i < UINT16_MAX; i++)
 	{
 		Move test(i);
 		bool legal = MoveIsLegal(position, test);
 
 		bool present = false;
 
-		for (int j = 0; j < moves.size(); j++)
+		for (size_t j = 0; j < moves.size(); j++)
 		{
 			if (moves[j].GetData() == i)
 				present = true;
@@ -492,7 +492,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 			std::cout << test.GetFrom() << " " << test.GetTo() << " " << test.GetFlag() << std::endl;
 			std::cout << MoveIsLegal(position, test);
 		}
-	}
+	}*/
 
 	if (depth == 1)
 		return moves.size();
