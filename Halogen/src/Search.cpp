@@ -146,9 +146,11 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 
 SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
 {
-	int alpha = prevScore - std::max(1, Aspiration_window + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-	int beta = prevScore + std::max(1, Aspiration_window + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-	SearchResult search = { 0 };
+	int delta = Aspiration_window;
+
+	int alpha = prevScore - std::max(1, delta + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	int beta  = prevScore + std::max(1, delta + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	SearchResult search = 0;
 
 	while (true)
 	{
@@ -162,14 +164,17 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 		if (search.GetScore() <= alpha)
 		{
 			sharedData.ReportResult(depth, locals.limits.ElapsedTime(), alpha, alpha, beta, position, search.GetMove(), locals);
-			alpha = std::max(int(LowINF), prevScore - abs(prevScore - alpha) * 4);
+			beta = (alpha + beta) / 2;
+			alpha = std::max<int>(MATED, alpha - delta);
 		}
 
 		if (search.GetScore() >= beta)
 		{
 			sharedData.ReportResult(depth, locals.limits.ElapsedTime(), beta, alpha, beta, position, search.GetMove(), locals);
-			beta = std::min(int(HighINF), prevScore + abs(prevScore - beta) * 4);
+			beta = std::min<int>(MATE, beta + delta);
 		}
+
+		delta = delta + delta / 2;
 	} 
 
 	return search;
