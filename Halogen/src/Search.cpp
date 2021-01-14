@@ -61,7 +61,7 @@ void InitSearch();
 uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits, bool noOutput)
 {
 	//Probe TB at root
-	if (position.GetFiftyMoveCount() == 0 && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+	if (GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
 	{
 		unsigned int result = ProbeTBRoot(position);
 		if (result != TB_RESULT_FAILED)
@@ -121,7 +121,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 	int beta = HighINF;
 	int prevScore = 0;
 
-	for (int depth = 1; true; depth++)	
+	for (int depth = 1; depth < MAX_DEPTH; depth++)	
 	{
 		if (sharedData.GetData(threadID).limits.CheckDepthLimit(depth)) break;
 
@@ -188,7 +188,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 	if (CheckForRep(position, distanceFromRoot)) return 0;				//Have we had a draw by repitition?
 	if (position.GetFiftyMoveCount() > 100) return 0;					//cannot use >= as it could currently be checkmate which would count as a win
-	
 	
 	int Score = LowINF;
 	int MaxScore = HighINF;
