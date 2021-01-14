@@ -148,8 +148,8 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 {
 	int delta = Aspiration_window;
 
-	int alpha = prevScore - std::max(1, delta + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
-	int beta  = prevScore + std::max(1, delta + ((threadID % 2 == 0) ? 1 : -1) * int(4.0 * log2(threadID + 1)));
+	int alpha = prevScore - delta;
+	int beta  = prevScore + delta;
 	SearchResult search = 0;
 
 	while (true)
