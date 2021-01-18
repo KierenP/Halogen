@@ -675,7 +675,7 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>
 
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
 {
-	if (move.IsCapture() || move.IsPromotion()) return;
+	if (depthRemaining > 20 || move.IsCapture() || move.IsPromotion()) return;
 	gen.AdjustHistory(move, locals, depthRemaining);
 }
 
