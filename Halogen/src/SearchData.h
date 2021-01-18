@@ -94,10 +94,16 @@ private:
 //--------------------------------------------------------------------------------------------
 };
 
+struct SearchParameters
+{
+	int threads = 1;
+	int multiPV = 0;
+};
+
 class ThreadSharedData
 {
 public:
-	explicit ThreadSharedData(const SearchLimits& limits, unsigned int threads = 1, bool NoOutput = false);
+	ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput = false);
 	~ThreadSharedData();
 
 	Move GetBestMove();
@@ -106,6 +112,9 @@ public:
 	void ReportDepth(unsigned int depth, unsigned int threadID);
 	void ReportWantsToStop(unsigned int threadID);
 	int GetAspirationScore();
+	int GetMultiPVSetting() const { return param.multiPV; };
+	int GetMultiPVCount(int depth) const;
+	bool MultiPVExcludeMove(int depth, Move move) const;
 
 	uint64_t getTBHits() const;
 	uint64_t getNodes() const;
@@ -114,9 +123,9 @@ public:
 
 private:
 	void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const;
+	bool MultiPVExcludeMoveUnlocked(int depth, Move move) const;
 
-	std::mutex ioMutex;
-	unsigned int threadCount;
+	mutable std::mutex ioMutex;
 	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
 	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
 	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
@@ -124,7 +133,10 @@ private:
 	int highestBeta;
 	bool noOutput;									//Do not write anything to the concole
 
+	SearchParameters param;
+
 	std::vector<SearchData> threadlocalData;
+	std::vector<std::vector<Move>> MultiPVExclusion;//[depth][multiPV] Moves that we ignore at the root for MPV mode
 
 	//TODO: probably put this inside of SearchData
 	std::vector<unsigned int> searchDepth;			//what depth is each thread currently searching?

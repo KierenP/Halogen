@@ -8,21 +8,18 @@ SearchData::SearchData(const SearchLimits& Limits) : limits(Limits)
 	KillerMoves.resize(MAX_DEPTH);
 }
 
-ThreadSharedData::ThreadSharedData(const SearchLimits& limits, unsigned int threads, bool NoOutput) : currentBestMove()
+ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput) : param(parameters)
 {
-	threadCount = threads;
 	threadDepthCompleted = 0;
 	prevScore = 0;
 	noOutput = NoOutput;
 	lowestAlpha = 0;
 	highestBeta = 0;
-
-	for (unsigned int i = 0; i < threads; i++)
-	{
-		searchDepth.push_back(0);
-		ThreadWantsToStop.push_back(false);
-		threadlocalData.emplace_back(limits);
-	}
+	currentBestMove = {};
+	searchDepth.resize(param.threads, 0);
+	ThreadWantsToStop.resize(param.threads, false);
+	threadlocalData.resize(param.threads, SearchData(limits));
+	MultiPVExclusion.resize(MAX_DEPTH);
 }
 
 ThreadSharedData::~ThreadSharedData()
@@ -37,14 +34,15 @@ Move ThreadSharedData::GetBestMove()
 
 bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
 {
-	return initialDepth <= threadDepthCompleted;
+	return initialDepth <= threadDepthCompleted && GetMultiPVCount(initialDepth) >= GetMultiPVSetting();
 }
 
 void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals)
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 
-	if (alpha < score && score < beta && threadDepthCompleted < depth)
+	
+	if (alpha < score && score < beta && depth > threadDepthCompleted)
 	{
 		if (!noOutput)
 			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
@@ -54,15 +52,25 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 		prevScore = score;
 		lowestAlpha = score;
 		highestBeta = score;
+		MultiPVExclusion.at(depth).push_back(move);
 	}
 
-	if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && threadDepthCompleted == depth - 1)
+	
+	if (alpha < score && score < beta && depth == threadDepthCompleted && GetMultiPVCount(depth) < GetMultiPVSetting() && !MultiPVExcludeMoveUnlocked(depth, move))
+	{
+		if (!noOutput)
+			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+
+		MultiPVExclusion.at(depth).push_back(move);
+	}
+
+	if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 		lowestAlpha = alpha;
 	}
 
-	if (score > highestBeta && score >= beta && !noOutput && Time > 5000 && threadDepthCompleted == depth - 1)
+	if (score > highestBeta && score >= beta && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
 	{
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 		highestBeta = beta;
@@ -93,6 +101,23 @@ int ThreadSharedData::GetAspirationScore()
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 	return prevScore;
+}
+
+int ThreadSharedData::GetMultiPVCount(int depth) const
+{
+	//can't lock, this is used during search
+	return MultiPVExclusion.at(depth).size();
+}
+
+bool ThreadSharedData::MultiPVExcludeMove(int depth, Move move) const
+{
+	std::lock_guard<std::mutex> lg(ioMutex);
+	return std::find(MultiPVExclusion.at(depth).begin(), MultiPVExclusion.at(depth).end(), move) != MultiPVExclusion.at(depth).end();
+}
+
+bool ThreadSharedData::MultiPVExcludeMoveUnlocked(int depth, Move move) const
+{
+	return std::find(MultiPVExclusion.at(depth).begin(), MultiPVExclusion.at(depth).end(), move) != MultiPVExclusion.at(depth).end();
 }
 
 uint64_t ThreadSharedData::getTBHits() const
@@ -153,6 +178,9 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 		<< " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
 		<< " hashfull " << tTable.GetCapacity(position.GetTurnCount())						//thousondths full
 		<< " tbhits " << getTBHits();
+
+	if (param.multiPV > 0)
+		ss << " multipv " << GetMultiPVCount(depth) + 1;
 
 	ss << " pv ";														//the current best line found
 
