@@ -367,7 +367,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	Score = std::min(Score, MaxScore);
 
-	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))	//MultiPV issues here
+	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);

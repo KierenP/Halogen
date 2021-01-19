@@ -49,8 +49,8 @@ public:
 
 	void Reset();
 
-	Move(uint16_t _data) { data = _data; }
-	uint16_t GetData() { return data; }
+	//Move(uint16_t _data) { data = _data; }
+	//uint16_t GetData() { return data; }
 
 private:
 	void SetFrom(Square from);
