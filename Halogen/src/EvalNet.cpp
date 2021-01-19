@@ -9,7 +9,7 @@ void NetworkScaleAdjustment(int& eval);
 void TempoAdjustment(int& eval, const Position& position);
 void NoPawnAdjustment(int& eval, const Position& position);
 
-int EvaluatePositionNet(Position& position, EvalCacheTable& evalTable)
+int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
 {
     int eval;
 

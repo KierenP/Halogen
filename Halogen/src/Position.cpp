@@ -525,7 +525,7 @@ void Position::RevertMoveQuick()
 	RestorePreviousBoard();
 }
 
-int16_t Position::GetEvaluation()
+int16_t Position::GetEvaluation() const
 {
 	return net.QuickEval();
 }

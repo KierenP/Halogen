@@ -40,7 +40,7 @@ public:
 	void ApplyMoveQuick(Move move);	//does ApplyMove functionality but much quicker.
 	void RevertMoveQuick();			//does RevertMove functionality but much quicker.
 
-	int16_t GetEvaluation();
+	int16_t GetEvaluation() const;
 
 	bool CheckForRep(int distanceFromRoot, int maxReps) const;
 

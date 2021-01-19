@@ -106,12 +106,12 @@ public:
 	ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput = false);
 	~ThreadSharedData();
 
-	Move GetBestMove();
-	unsigned int GetDepth();
+	Move GetBestMove() const;
+	unsigned int GetDepth() const;
 	bool ThreadAbort(unsigned int initialDepth) const;
 	void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals);
 	void ReportWantsToStop(unsigned int threadID);
-	int GetAspirationScore();
+	int GetAspirationScore() const;
 	int GetMultiPVSetting() const { return param.multiPV; };
 	int GetMultiPVCount() const;
 	bool MultiPVExcludeMove(Move move) const;
