@@ -16,10 +16,8 @@ ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParam
 	lowestAlpha = 0;
 	highestBeta = 0;
 	currentBestMove = {};
-	searchDepth.resize(param.threads, 0);
 	ThreadWantsToStop.resize(param.threads, false);
 	threadlocalData.resize(param.threads, SearchData(limits));
-	MultiPVExclusion.resize(MAX_DEPTH);
 }
 
 ThreadSharedData::~ThreadSharedData()
@@ -32,36 +30,37 @@ Move ThreadSharedData::GetBestMove()
 	return currentBestMove;
 }
 
+unsigned int ThreadSharedData::GetDepth()
+{
+	std::lock_guard<std::mutex> lg(ioMutex);
+	return threadDepthCompleted + 1;
+}
+
 bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
 {
-	return initialDepth <= threadDepthCompleted && GetMultiPVCount(initialDepth) >= GetMultiPVSetting();
+	return initialDepth <= threadDepthCompleted;
 }
 
 void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals)
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
 
-	
-	if (alpha < score && score < beta && depth > threadDepthCompleted)
+	if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
 	{
 		if (!noOutput)
 			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 
-		threadDepthCompleted = depth;
 		currentBestMove = move;
 		prevScore = score;
 		lowestAlpha = score;
 		highestBeta = score;
-		MultiPVExclusion.at(depth).push_back(move);
-	}
+		MultiPVExclusion.push_back(move);
 
-	
-	if (alpha < score && score < beta && depth == threadDepthCompleted && GetMultiPVCount(depth) < GetMultiPVSetting() && !MultiPVExcludeMoveUnlocked(depth, move))
-	{
-		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
-
-		MultiPVExclusion.at(depth).push_back(move);
+		if (GetMultiPVCount() >= GetMultiPVSetting())
+		{
+			threadDepthCompleted = depth;
+			MultiPVExclusion.clear();
+		}
 	}
 
 	if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
@@ -75,12 +74,6 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 		highestBeta = beta;
 	}
-}
-
-void ThreadSharedData::ReportDepth(unsigned int depth, unsigned int threadID)
-{
-	std::lock_guard<std::mutex> lg(ioMutex);
-	searchDepth[threadID] = depth;
 }
 
 void ThreadSharedData::ReportWantsToStop(unsigned int threadID)
@@ -103,21 +96,21 @@ int ThreadSharedData::GetAspirationScore()
 	return prevScore;
 }
 
-int ThreadSharedData::GetMultiPVCount(int depth) const
+int ThreadSharedData::GetMultiPVCount() const
 {
 	//can't lock, this is used during search
-	return MultiPVExclusion.at(depth).size();
+	return MultiPVExclusion.size();
 }
 
-bool ThreadSharedData::MultiPVExcludeMove(int depth, Move move) const
+bool ThreadSharedData::MultiPVExcludeMove(Move move) const
 {
 	std::lock_guard<std::mutex> lg(ioMutex);
-	return std::find(MultiPVExclusion.at(depth).begin(), MultiPVExclusion.at(depth).end(), move) != MultiPVExclusion.at(depth).end();
+	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
 }
 
-bool ThreadSharedData::MultiPVExcludeMoveUnlocked(int depth, Move move) const
+bool ThreadSharedData::MultiPVExcludeMoveUnlocked(Move move) const
 {
-	return std::find(MultiPVExclusion.at(depth).begin(), MultiPVExclusion.at(depth).end(), move) != MultiPVExclusion.at(depth).end();
+	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
 }
 
 uint64_t ThreadSharedData::getTBHits() const
@@ -180,7 +173,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 		<< " tbhits " << getTBHits();
 
 	if (param.multiPV > 0)
-		ss << " multipv " << GetMultiPVCount(depth) + 1;
+		ss << " multipv " << GetMultiPVCount() + 1;
 
 	ss << " pv ";														//the current best line found
 

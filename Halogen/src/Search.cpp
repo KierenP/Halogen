@@ -121,13 +121,13 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 	int beta = HighINF;
 	int prevScore = 0;
 
-	for (int depth = 1; depth < MAX_DEPTH;)	
+	while (sharedData.GetDepth() < MAX_DEPTH)
 	{
+		int depth = sharedData.GetDepth();
+
 		if (sharedData.GetData(threadID).limits.CheckDepthLimit(depth)) break;
 		if (!sharedData.GetData(threadID).limits.CheckContinueSearch())
 			sharedData.ReportWantsToStop(threadID);
-
-		sharedData.ReportDepth(depth, threadID);
 
 		SearchResult search = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
 		int score = search.GetScore();
@@ -140,9 +140,6 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 		prevScore = score;
 
 		if (sharedData.GetData(threadID).limits.CheckMateLimit(score)) break;
-
-		if (sharedData.GetMultiPVCount(depth) >= sharedData.GetMultiPVSetting())	//Done all multi-PVs for this depth
-			depth++;
 	}
 }
 
@@ -308,7 +305,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
 	{
-		if (distanceFromRoot == 0 && sharedData.MultiPVExcludeMove(initialDepth, move))
+		if (distanceFromRoot == 0 && sharedData.MultiPVExcludeMove(move))
 			continue;
 
 		noLegalMoves = false;
