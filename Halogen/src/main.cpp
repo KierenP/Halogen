@@ -33,8 +33,7 @@ int main(int argc, char* argv[])
 
 	Position position;
 	thread searchThread;
-
-	unsigned int ThreadCount = 1;
+	SearchParameters parameters;
 
 	for (int i = 1; i < argc; i++)	//read any command line input as a regular UCI instruction
 	{
@@ -57,6 +56,7 @@ int main(int argc, char* argv[])
 			cout << "option name Hash type spin default 2 min 2 max 262144" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 256" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
+			cout << "option name MultiPV type spin default 1 min 1 max 500" << endl;
 			cout << "uciok" << endl;
 		}
 
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 			if (searchThread.joinable())
 				searchThread.join();
 
-			searchThread = thread([=, &position] {SearchThread(position, ThreadCount, limits); });
+			searchThread = thread([=, &position] {SearchThread(position, parameters, limits); });
 		}
 
 		else if (token == "setoption")
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 			{
 				iss >> token; //'value'
 				iss >> token;
-				ThreadCount = stoi(token);
+				parameters.threads = stoi(token);
 			}
 
 			else if (token == "SyzygyPath")
@@ -200,6 +200,13 @@ int main(int argc, char* argv[])
 
 				tb_init(token.c_str());
 				TestSyzygy();
+			}
+
+			else if (token == "MultiPV")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				parameters.multiPV = stoi(token);
 			}
 
 			else if (token == "LMR_constant")
@@ -514,6 +521,7 @@ void Bench(int depth)
 
 	uint64_t nodeCount = 0;
 	Position position;
+	SearchParameters parameters;
 
 	for (size_t i = 0; i < benchMarkPositions.size(); i++)
 	{
@@ -526,7 +534,7 @@ void Bench(int depth)
 		SearchLimits limits;
 		limits.SetDepthLimit(depth);
 		tTable.ResetTable();
-		nodeCount += SearchThread(position, 1, limits, false);
+		nodeCount += SearchThread(position, parameters, limits, false);
 	}
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;

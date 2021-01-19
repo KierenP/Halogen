@@ -58,7 +58,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void InitSearch();
 
-uint64_t SearchThread(const Position& position, unsigned int threadCount, SearchLimits limits, bool noOutput)
+uint64_t SearchThread(const Position& position, const SearchParameters& parameters, const SearchLimits& limits, bool noOutput)
 {
 	//Probe TB at root
 	if (GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
@@ -74,9 +74,9 @@ uint64_t SearchThread(const Position& position, unsigned int threadCount, Search
 	InitSearch();
 
 	std::vector<std::thread> threads;
-	ThreadSharedData sharedData(limits, threadCount, noOutput);
+	ThreadSharedData sharedData(limits, parameters, noOutput);
 
-	for (unsigned int i = 0; i < threadCount; i++)
+	for (int i = 0; i < parameters.threads; i++)
 	{
 		threads.emplace_back(std::thread([=, &sharedData] {SearchPosition(position, sharedData, i); }));
 	}
@@ -121,14 +121,13 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 	int beta = HighINF;
 	int prevScore = 0;
 
-	for (int depth = 1; depth < MAX_DEPTH; depth++)	
+	while (sharedData.GetDepth() < MAX_DEPTH)
 	{
-		if (sharedData.GetData(threadID).limits.CheckDepthLimit(depth)) break;
+		int depth = sharedData.GetDepth();
 
+		if (sharedData.GetData(threadID).limits.CheckDepthLimit(depth)) break;
 		if (!sharedData.GetData(threadID).limits.CheckContinueSearch())
 			sharedData.ReportWantsToStop(threadID);
-
-		sharedData.ReportDepth(depth, threadID);
 
 		SearchResult search = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
 		int score = search.GetScore();
@@ -306,6 +305,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
 	{
+		if (distanceFromRoot == 0 && sharedData.MultiPVExcludeMove(move))
+			continue;
+
 		noLegalMoves = false;
 		locals.AddNode();
 
@@ -337,7 +339,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		}
 
 		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
-		if (newScore > a && newScore < beta && searchedMoves >= 1)
+		if (newScore > a && newScore < beta && searchedMoves >= 1)	//MultiPV issues here
 		{	
 			newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 		}
@@ -365,7 +367,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	Score = std::min(Score, MaxScore);
 
-	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))
+	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))	//MultiPV issues here
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
