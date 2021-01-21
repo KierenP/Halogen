@@ -222,11 +222,11 @@ void MoveGenerator::CreateExtendedMoveVector(const std::vector<Move>& moves)
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)
 {
-	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
+	TTEntry hash = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 
 	if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
 	{
-		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+		tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 		return hash.GetMove();
 	}
 
@@ -235,11 +235,11 @@ Move GetHashMove(const Position& position, int depthRemaining, int distanceFromR
 
 Move GetHashMove(const Position& position, int distanceFromRoot)
 {
-	TTEntry hash = tTable.GetEntry(position.GetZobristKey());
+	TTEntry hash = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 
 	if (CheckEntry(hash, position.GetZobristKey()))
 	{
-		tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+		tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 		return hash.GetMove();
 	}
 
