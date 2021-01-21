@@ -45,7 +45,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 {
 	std::scoped_lock lock(ioMutex);
 
-	if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
+	if (alpha < score && score < beta && depth > threadDepthCompleted && (!MultiPVExcludeMoveUnlocked(move) || move.IsUninitialized()))	//if uninitialized, MultiPV setting was higher than the number of legal moves
 	{
 		if (!noOutput)
 			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
