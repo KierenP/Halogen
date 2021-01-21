@@ -50,10 +50,14 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 		if (!noOutput)
 			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
 
-		currentBestMove = move;
-		prevScore = score;
-		lowestAlpha = score;
-		highestBeta = score;
+		if (GetMultiPVCount() == 0)
+		{
+			currentBestMove = move;
+			prevScore = score;
+			lowestAlpha = score;
+			highestBeta = score;
+		}
+
 		MultiPVExclusion.push_back(move);
 
 		if (GetMultiPVCount() >= GetMultiPVSetting())
