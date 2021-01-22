@@ -3,7 +3,8 @@
 #include "BitBoardDefine.h"
 #include <climits>
 
-const unsigned int HALF_MOVE_MODULO = 16;
+constexpr unsigned int HALF_MOVE_MODULO = 16;
+constexpr size_t BucketSize = 4;
 
 enum class EntryType : char {
 	EMPTY_ENTRY,
@@ -13,26 +14,26 @@ enum class EntryType : char {
 };
 
 //16 bytes
-struct TTEntry
+class TTEntry
 {
 public:
 	TTEntry();
 	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff);
 	~TTEntry();
 
-	bool IsAncient(unsigned int currenthalfmove, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO)); }
+	bool IsAncient(unsigned int currentTurnCount, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currentTurnCount - distanceFromRoot) % (HALF_MOVE_MODULO)); }
 
-	void SetHalfMove(int currenthalfmove, int distanceFromRoot) { halfmove = CalculateHalfMove(currenthalfmove, distanceFromRoot); }	//halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of the search
+	void SetHalfMove(int currentTurnCount, int distanceFromRoot) { halfmove = CalculateAge(currentTurnCount, distanceFromRoot); }	//halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of the search
 	void MateScoreAdjustment(int distanceFromRoot);
 	void Reset();
 
-	static uint8_t CalculateHalfMove(int currenthalfmove, int distanceFromRoot) { return (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
+	static uint8_t CalculateAge(int currenthalfmove, int distanceFromRoot) { return (currenthalfmove - distanceFromRoot) % (HALF_MOVE_MODULO); }
 
 	uint64_t GetKey() const { return key; }
 	int GetScore() const { return score; }
 	int GetDepth() const { return depth; }
 	EntryType GetCutoff() const { return cutoff; }
-	char GetHalfMove() const { return halfmove; }
+	char GetAge() const { return halfmove; }
 	Move GetMove() const { return bestMove; }
 
 private:
@@ -48,6 +49,6 @@ private:
 struct TTBucket
 {
 	void Reset();
-	TTEntry entry[4];
+	std::array<TTEntry, BucketSize> entry;
 };
 

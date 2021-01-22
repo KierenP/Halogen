@@ -232,10 +232,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	//Query the transpotition table
 	if (!IsPV(beta, alpha)) 
 	{
-		TTEntry entry = tTable.GetEntry(position.GetZobristKey());
+		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
 		{
-			tTable.SetNonAncient(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+			tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
 
 			if (!position.CheckForRep(distanceFromRoot, 2))	//Don't take scores from the TT if there's a two-fold repitition
 				if (UseTransposition(entry, distanceFromRoot, alpha, beta)) 
@@ -478,8 +478,6 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 
 bool UseTransposition(TTEntry& entry, int distanceFromRoot, int alpha, int beta)
 {
-	entry.MateScoreAdjustment(distanceFromRoot);	//this MUST be done
-
 	if (entry.GetCutoff() == EntryType::EXACT) return true;
 
 	int NewAlpha = alpha;

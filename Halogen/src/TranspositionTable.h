@@ -5,13 +5,11 @@
 #include <algorithm>
 #include "TTEntry.h"
 
-const unsigned int mutex_frequency = 1024;					//how many entries per mutex
-
 class TranspositionTable
 {
 public:
-	TranspositionTable();
-	~TranspositionTable();
+	TranspositionTable() { SetSize(32);	};
+	~TranspositionTable() = default;
 
 	size_t GetSize() const { return table.size(); }
 	int GetCapacity(int halfmove) const;
@@ -19,14 +17,13 @@ public:
 	void ResetTable();
 	void SetSize(uint64_t MB);	//will wipe the table and reconstruct a new empty table with a set size. units in MB!
 	void AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff);
-	TTEntry GetEntry(uint64_t key);	//you MUST do mate score adjustment if you are using this score in the alpha beta search! for move ordering there is no need
-
-	void SetNonAncient(uint64_t key, int halfmove, int distanceFromRoot);
-
-	uint64_t HashFunction(const uint64_t& key) const;
+	TTEntry GetEntry(uint64_t key, int distanceFromRoot);
+	void ResetAge(uint64_t key, int halfmove, int distanceFromRoot);
 	void PreFetch(uint64_t key) const;
 
 private:
+	uint64_t HashFunction(const uint64_t& key) const;
+
 	std::vector<TTBucket> table;
 };
 

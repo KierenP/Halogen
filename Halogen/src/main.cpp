@@ -26,10 +26,7 @@ int main(int argc, char* argv[])
 	string Line;					//to read the command given by the GUI
 	cout.setf(ios::unitbuf);		// Make sure that the outputs are sent straight away to the GUI
 
-	//EvaluateDebug();				//uncomment for debug purposes. Must be run in debug mode to work
 	//PerftSuite();
-
-	tTable.SetSize(1);
 
 	Position position;
 	thread searchThread;
@@ -53,7 +50,7 @@ int main(int argc, char* argv[])
 			cout << "id name Halogen " << version << endl;
 			cout << "id author Kieren Pearson" << endl;
 			cout << "option name Clear Hash type button" << endl;
-			cout << "option name Hash type spin default 2 min 2 max 262144" << endl;
+			cout << "option name Hash type spin default 32 min 1 max 262144" << endl;
 			cout << "option name Threads type spin default 1 min 1 max 256" << endl;
 			cout << "option name SyzygyPath type string default <empty>" << endl;
 			cout << "option name MultiPV type spin default 1 min 1 max 500" << endl;
