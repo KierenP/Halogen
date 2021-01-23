@@ -1,6 +1,14 @@
 # Halogen Chess engine
 
-A c++ chess engine that implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
+-----------------------------------
+**About**
+
+Halogen is a powerful, world-class program capable of analysing and playing chess. It currently is ranked within the top 30 chess engines of all time.
+
+-----------------------------------
+**Details**
+
+Written in c++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
 
 Halogen development is currently supported on the [Openbench](http://chess.grantnet.us/) framework. OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source Sequential Probability Ratio Testing (SPRT) framework designed for self-play testing of engines. OpenBench makes use of distributed computing, allowing anyone to contribute CPU time to further the development of some of the world's most powerful engines.
 
@@ -12,9 +20,6 @@ Since Halogen 7, Halogen has used a neural network for its evaluation function. 
 
 Halogen is not a stand alone application and should be used with any popular chess gui that supports the [UCI](http://wbec-ridderkerk.nl/html/UCIProtocol.html) protocol. [Arena](http://www.playwitharena.de/) chess is a good choice.
 
-
 -----------------------------------
 
-Check it out on the CCRL Blitz rating list: [Link](https://ccrl.chessdom.com/ccrl/404/cgi/compare_engines.cgi?family=Halogen&print=Rating+list&print=Results+table&print=LOS+table&print=Ponder+hit+table&print=Eval+difference+table&print=Comopp+gamenum+table&print=Overlap+table&print=Score+with+common+opponents)
-
-Halogen is currently ranked 31st in the international CCRL Blitz leaderboards [Link](https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?class=Single-CPU+engines&print=Rating+list&print=Results+table&print=LOS+table&table_size=12&cross_tables_for_best_versions_only=1)
+Halogen is currently ranked 31st in the international CCRL Blitz leaderboards [Link](https://www.computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?class=Single-CPU+engines&print=Rating+list&print=Results+table&print=LOS+table&table_size=12&cross_tables_for_best_versions_only=1)
