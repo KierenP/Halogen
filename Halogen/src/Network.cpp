@@ -7,7 +7,7 @@ std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
 int16_t Network::outputBias = {};
 
 template<typename T, size_t SIZE>
-std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
+[[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
 {
     std::array<T, SIZE> ret;
 
@@ -73,6 +73,41 @@ void Network::ApplyInverseDelta()
 int16_t Network::QuickEval() const
 {
     int32_t output = outputBias * PRECISION;
-    DotProduct<int32_t>(ReLU(Zeta.back()), outputWeights, output);
+    DotProduct(ReLU(Zeta.back()), outputWeights, output);
     return output / SQUARE_PRECISION;
+}
+
+void QuantizationAnalysis()
+{
+    auto Data = reinterpret_cast<float*>(label);
+
+    float weight = 0;
+
+    //hidden bias
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //hidden weight
+    for (size_t i = 0; i < INPUT_NEURONS; i++)
+        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+            weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //output bias
+    weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //output weights
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
 }
