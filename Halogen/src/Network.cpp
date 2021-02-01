@@ -1,5 +1,5 @@
 #include "Network.h"
-#include "halogen-x256-eb873cf4.nn"
+#include "epoch5.net"
 
 std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
