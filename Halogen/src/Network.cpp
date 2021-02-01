@@ -6,42 +6,44 @@ std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
 int16_t Network::outputBias = {};
 
+template<typename T, size_t SIZE>
+[[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
+{
+    std::array<T, SIZE> ret;
+
+    for (size_t i = 0; i < SIZE; i++)
+        ret[i] = std::max(T(0), source[i]);
+    
+    return ret;
+}
+
+template<typename T_out, typename T_in, size_t SIZE>
+void DotProduct(const std::array<T_in, SIZE>& a, const std::array<T_in, SIZE>& b, T_out& output)
+{
+    for (size_t i = 0; i < SIZE; i++)
+        output += a[i] * b[i];
+}
+
 void Network::Init()
 {
-    auto* HiddenWeights = new float[INPUT_NEURONS * HIDDEN_NEURONS];
-    auto* HiddenBias    = new float[HIDDEN_NEURONS];
-    auto* OutputWeights = new float[HIDDEN_NEURONS];
-    auto* OutputBias    = new float[1];
+    auto Data = reinterpret_cast<float*>(label);
 
-    memcpy(HiddenBias,    &label[0],                                                                     sizeof(float) * HIDDEN_NEURONS);
-    memcpy(HiddenWeights, &label[(HIDDEN_NEURONS) * sizeof(float)],                                      sizeof(float) * INPUT_NEURONS * HIDDEN_NEURONS);
-    memcpy(OutputBias,    &label[(HIDDEN_NEURONS + INPUT_NEURONS * HIDDEN_NEURONS) * sizeof(float)],     sizeof(float) * 1);
-    memcpy(OutputWeights, &label[(HIDDEN_NEURONS + INPUT_NEURONS * HIDDEN_NEURONS + 1) * sizeof(float)], sizeof(float) * HIDDEN_NEURONS);
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        hiddenBias[i] = (int16_t)round(*Data++ * PRECISION);
 
     for (size_t i = 0; i < INPUT_NEURONS; i++)
         for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = (int16_t)round(HiddenWeights[i * HIDDEN_NEURONS + j] * PRECISION);
+            hiddenWeights[i][j] = (int16_t)round(*Data++ * PRECISION);
+
+    outputBias = (int16_t)round(*Data++ * PRECISION);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        hiddenBias[i] = (int16_t)round(HiddenBias[i] * PRECISION);
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        outputWeights[i] = (int16_t)round(OutputWeights[i] * PRECISION);
-
-    outputBias = (int16_t)round(OutputBias[0] * PRECISION);
-
-    delete[] HiddenWeights;
-    delete[] HiddenBias;
-    delete[] OutputWeights;
-    delete[] OutputBias;
+        outputWeights[i] = (int16_t)round(*Data++ * PRECISION);
 }
 
 void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
 {
-    Zeta.resize(1);
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        Zeta[0][i] = hiddenBias[i];
+    Zeta = { hiddenBias };
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         for (size_t j = 0; j < INPUT_NEURONS; j++)
@@ -71,9 +73,41 @@ void Network::ApplyInverseDelta()
 int16_t Network::QuickEval() const
 {
     int32_t output = outputBias * PRECISION;
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        output += std::max(int16_t(0), Zeta.back()[i]) * outputWeights[i];
-
+    DotProduct(ReLU(Zeta.back()), outputWeights, output);
     return output / SQUARE_PRECISION;
 }
+
+/*void QuantizationAnalysis()
+{
+    auto Data = reinterpret_cast<float*>(label);
+
+    float weight = 0;
+
+    //hidden bias
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //hidden weight
+    for (size_t i = 0; i < INPUT_NEURONS; i++)
+        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+            weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //output bias
+    weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+
+    //output weights
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        weight = std::max(weight, abs(*Data++));
+
+    std::cout << weight << std::endl;
+    weight = 0;
+}*/
