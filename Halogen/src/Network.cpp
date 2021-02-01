@@ -77,7 +77,7 @@ int16_t Network::QuickEval() const
     return output / SQUARE_PRECISION;
 }
 
-void QuantizationAnalysis()
+/*void QuantizationAnalysis()
 {
     auto Data = reinterpret_cast<float*>(label);
 
@@ -110,4 +110,4 @@ void QuantizationAnalysis()
 
     std::cout << weight << std::endl;
     weight = 0;
-}
+}*/
