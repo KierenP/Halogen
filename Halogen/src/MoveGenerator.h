@@ -18,7 +18,7 @@ struct ExtendedMove
 	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
 
 	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
-	bool operator>(const ExtendedMove& rhs) const { return score < rhs.score; };
+	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
 
 	Move move;
 	int16_t score;
