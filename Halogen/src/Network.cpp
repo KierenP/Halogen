@@ -41,7 +41,7 @@ void Network::Init()
         outputWeights[i] = (int16_t)round(*Data++ * PRECISION);
 }
 
-void Network::RecalculateIncremental(std::array<int16_t, INPUT_NEURONS> inputs)
+void Network::RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs)
 {
     Zeta = { hiddenBias };
 

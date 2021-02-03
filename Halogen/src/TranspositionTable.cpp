@@ -91,7 +91,7 @@ void TranspositionTable::ResetTable()
 {
 	for (size_t i = 0; i < table.size(); i++)
 	{
-		table.at(i).Reset();
+		table[i].Reset();
 	}
 }
 
