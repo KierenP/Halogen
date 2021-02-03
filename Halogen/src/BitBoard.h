@@ -35,7 +35,7 @@ public:
 
 protected:
 	void ResetBoard();
-	bool InitialiseBoardFromFen(std::vector<std::string> fen);
+	bool InitialiseBoardFromFen(const std::vector<std::string> &fen);
 
 	void SaveBoard();
 	void RestorePreviousBoard();

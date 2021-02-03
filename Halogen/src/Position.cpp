@@ -116,7 +116,7 @@ void Position::ApplyMove(Move move)
 	//In order to see if CalculateMoveDelta() works
 }
 
-void Position::ApplyMove(std::string strmove)
+void Position::ApplyMove(const std::string& strmove)
 {
 	Square prev = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
 	Square next = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
@@ -265,7 +265,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	return true;
 }
 
-bool Position::InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount)
+bool Position::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
 {
 	std::vector<std::string> splitFen;
 	splitFen.push_back(board);

@@ -15,7 +15,7 @@ void BitBoard::ResetBoard()
 	Current = previousBoards.begin();
 }
 
-bool BitBoard::InitialiseBoardFromFen(std::vector<std::string> fen)
+bool BitBoard::InitialiseBoardFromFen(const std::vector<std::string> &fen)
 {
 	ResetBoard();
 
