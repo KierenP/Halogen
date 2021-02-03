@@ -448,11 +448,11 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves.at(i));
+		position.ApplyMove(moves[i]);
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
 		position.RevertMove();
 
-		moves.at(i).Print();
+		moves[i].Print();
 		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
@@ -503,7 +503,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves.at(i));
+		position.ApplyMove(moves[i]);
 		nodeCount += Perft(depth - 1, position);
 		position.RevertMove();
 	}
