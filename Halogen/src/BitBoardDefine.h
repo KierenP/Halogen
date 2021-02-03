@@ -146,11 +146,11 @@ enum GameStages
 };
 
 void BBInit();
+int GetBitCount(uint64_t bb);
 
 char PieceToChar(unsigned int piece);
 unsigned int Piece(unsigned int piecetype, unsigned int colour);
 unsigned int GetPosition(unsigned int file, unsigned int rank);
-unsigned int GetBitCount(uint64_t bb);
 unsigned int AlgebraicToPos(std::string str);
 unsigned int ColourOfPiece(unsigned int piece);
 

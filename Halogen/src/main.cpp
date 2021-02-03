@@ -12,8 +12,6 @@ void Bench(int depth = 16);
 
 string version = "9";  
 
-void TestSyzygy();
-
 int main(int argc, char* argv[])
 {
 	PrintVersion();
@@ -196,7 +194,6 @@ int main(int argc, char* argv[])
 				iss >> token;
 
 				tb_init(token.c_str());
-				TestSyzygy();
 			}
 
 			else if (token == "MultiPV")
@@ -349,44 +346,6 @@ void PrintVersion()
 #else
 	cout << " UNKNOWN COMPILATION" << endl;
 #endif
-}
-
-void TestSyzygy()
-{
-#ifdef DEBUG
-	Position testPosition;
-	testPosition.InitialiseFromFen("8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1");
-	unsigned int result = tb_probe_wdl(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
-		testPosition.GetPieceBB(WHITE_KING) | testPosition.GetPieceBB(BLACK_KING),
-		testPosition.GetPieceBB(WHITE_QUEEN) | testPosition.GetPieceBB(BLACK_QUEEN),
-		testPosition.GetPieceBB(WHITE_ROOK) | testPosition.GetPieceBB(BLACK_ROOK),
-		testPosition.GetPieceBB(WHITE_BISHOP) | testPosition.GetPieceBB(BLACK_BISHOP),
-		testPosition.GetPieceBB(WHITE_KNIGHT) | testPosition.GetPieceBB(BLACK_KNIGHT),
-		testPosition.GetPieceBB(WHITE_PAWN) | testPosition.GetPieceBB(BLACK_PAWN),
-		testPosition.GetFiftyMoveCount(),
-		testPosition.CanCastleBlackKingside() * TB_CASTLING_k + testPosition.CanCastleBlackQueenside() * TB_CASTLING_q + testPosition.CanCastleWhiteKingside() * TB_CASTLING_K + testPosition.CanCastleWhiteQueenside() * TB_CASTLING_Q,
-		testPosition.GetEnPassant() <= SQ_H8 ? testPosition.GetEnPassant() : 0,
-		testPosition.GetTurn());
-	assert(result == TB_BLESSED_LOSS);
-
-	result = tb_probe_root(testPosition.GetWhitePieces(), testPosition.GetBlackPieces(),
-		testPosition.GetPieceBB(WHITE_KING) | testPosition.GetPieceBB(BLACK_KING),
-		testPosition.GetPieceBB(WHITE_QUEEN) | testPosition.GetPieceBB(BLACK_QUEEN),
-		testPosition.GetPieceBB(WHITE_ROOK) | testPosition.GetPieceBB(BLACK_ROOK),
-		testPosition.GetPieceBB(WHITE_BISHOP) | testPosition.GetPieceBB(BLACK_BISHOP),
-		testPosition.GetPieceBB(WHITE_KNIGHT) | testPosition.GetPieceBB(BLACK_KNIGHT),
-		testPosition.GetPieceBB(WHITE_PAWN) | testPosition.GetPieceBB(BLACK_PAWN),
-		testPosition.GetFiftyMoveCount(),
-		testPosition.CanCastleBlackKingside() * TB_CASTLING_k + testPosition.CanCastleBlackQueenside() * TB_CASTLING_q + testPosition.CanCastleWhiteKingside() * TB_CASTLING_K + testPosition.CanCastleWhiteQueenside() * TB_CASTLING_Q,
-		testPosition.GetEnPassant() <= SQ_H8 ? testPosition.GetEnPassant() : 0,
-		testPosition.GetTurn(),
-		NULL);
-
-	assert(TB_GET_WDL(result) == TB_BLESSED_LOSS);
-	assert(TB_GET_FROM(result) == SQ_C2);
-	assert(TB_GET_TO(result) == SQ_C1);
-	assert(TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT);
-#endif 
 }
 
 void PerftSuite()

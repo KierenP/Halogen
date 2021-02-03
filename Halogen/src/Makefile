@@ -1,5 +1,5 @@
 CC 		= g++
-SRC 	= *.cpp
+SRC 	= *.cpp Pyrrhic/tbprobe.cpp
 OUTPUT 	= ../../../$(EXE)$(VER)
 EXE 	= Halogen
 LIBS    = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
