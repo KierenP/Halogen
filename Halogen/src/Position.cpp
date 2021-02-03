@@ -62,26 +62,18 @@ void Position::ApplyMove(Move move)
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;
 	case KNIGHT_PROMOTION:
-		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
-		break;
-	case BISHOP_PROMOTION:
-		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
-		break;
-	case ROOK_PROMOTION:
-		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
-		break;
-	case QUEEN_PROMOTION:
-		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
-		break;
 	case KNIGHT_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
 		break;
+	case BISHOP_PROMOTION:
 	case BISHOP_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
 		break;
+	case ROOK_PROMOTION:
 	case ROOK_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
 		break;
+	case QUEEN_PROMOTION:
 	case QUEEN_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
 		break;
