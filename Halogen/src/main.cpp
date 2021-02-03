@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 		Line += " ";
 	}
 
-	while (Line != "" || getline(cin, Line))
+	while (!Line.empty() || getline(cin, Line))
 	{
 		istringstream iss(Line);
 		string token;
@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
 		else if (token == "print") position.Print();
 		else cout << "Unknown command" << endl;
 
-		Line = "";
+		Line.clear();
 
 		if (argc != 1)	//Temporary fix to quit after a command line UCI argument is done
 			break;

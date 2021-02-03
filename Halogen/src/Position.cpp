@@ -293,7 +293,7 @@ bool Position::InitialiseFromFen(std::string fen)
 	{
 		std::string stub;
 		iss >> stub;
-		if (stub != "")
+		if (!stub.empty())
 			splitFen[i] = (stub);
 	}
 
