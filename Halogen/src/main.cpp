@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 		Line += " ";
 	}
 
-	while (Line != "" || getline(cin, Line))
+	while (!Line.empty() || getline(cin, Line))
 	{
 		istringstream iss(Line);
 		string token;
@@ -312,7 +312,7 @@ int main(int argc, char* argv[])
 		else if (token == "print") position.Print();
 		else cout << "Unknown command" << endl;
 
-		Line = "";
+		Line.clear();
 
 		if (argc != 1)	//Temporary fix to quit after a command line UCI argument is done
 			break;
@@ -407,11 +407,11 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves.at(i));
+		position.ApplyMove(moves[i]);
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
 		position.RevertMove();
 
-		moves.at(i).Print();
+		moves[i].Print();
 		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
@@ -462,7 +462,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves.at(i));
+		position.ApplyMove(moves[i]);
 		nodeCount += Perft(depth - 1, position);
 		position.RevertMove();
 	}

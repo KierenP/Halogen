@@ -62,26 +62,18 @@ void Position::ApplyMove(Move move)
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;
 	case KNIGHT_PROMOTION:
-		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
-		break;
-	case BISHOP_PROMOTION:
-		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
-		break;
-	case ROOK_PROMOTION:
-		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
-		break;
-	case QUEEN_PROMOTION:
-		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
-		break;
 	case KNIGHT_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
 		break;
+	case BISHOP_PROMOTION:
 	case BISHOP_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
 		break;
+	case ROOK_PROMOTION:
 	case ROOK_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
 		break;
+	case QUEEN_PROMOTION:
 	case QUEEN_PROMOTION_CAPTURE:
 		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
 		break;
@@ -116,7 +108,7 @@ void Position::ApplyMove(Move move)
 	//In order to see if CalculateMoveDelta() works
 }
 
-void Position::ApplyMove(std::string strmove)
+void Position::ApplyMove(const std::string& strmove)
 {
 	Square prev = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
 	Square next = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
@@ -265,7 +257,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
 	return true;
 }
 
-bool Position::InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount)
+bool Position::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
 {
 	std::vector<std::string> splitFen;
 	splitFen.push_back(board);
@@ -293,7 +285,7 @@ bool Position::InitialiseFromFen(std::string fen)
 	{
 		std::string stub;
 		iss >> stub;
-		if (stub != "")
+		if (!stub.empty())
 			splitFen[i] = (stub);
 	}
 

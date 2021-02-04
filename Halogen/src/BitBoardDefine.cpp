@@ -85,7 +85,7 @@ int GetBitCount(uint64_t bb)
 #endif
 }
 
-unsigned int AlgebraicToPos(std::string str)
+unsigned int AlgebraicToPos(const std::string &str)
 {
 	if (str == "-")
 		return N_SQUARES;

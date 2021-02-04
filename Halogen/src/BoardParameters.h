@@ -64,7 +64,7 @@ protected:
 	bool PrevGetCanCastleBlackKingside() const { return (Current - 1)->m_BlackKingCastle; }
 	bool PrevGetCanCastleBlackQueenside() const { return (Current - 1)->m_BlackQueenCastle; }
 
-	bool InitialiseParametersFromFen(std::vector<std::string> fen);
+	bool InitialiseParametersFromFen(const std::vector<std::string> &fen);
 	void SaveParameters();
 	void RestorePreviousParameters();
 	void UpdateCastleRights(Move move);

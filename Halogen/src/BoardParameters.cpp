@@ -35,7 +35,7 @@ void BoardParameters::InitParameters()
 	Current = PreviousParameters.begin();
 }
 
-bool BoardParameters::InitialiseParametersFromFen(std::vector<std::string> fen)
+bool BoardParameters::InitialiseParametersFromFen(const std::vector<std::string> &fen)
 {
 	InitParameters();
 

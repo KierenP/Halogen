@@ -19,7 +19,7 @@ public:
 	~Position();
 
 	void ApplyMove(Move move);
-	void ApplyMove(std::string strmove);
+	void ApplyMove(const std::string &strmove);
 	void RevertMove();
 
 	void ApplyNullMove();
@@ -29,7 +29,8 @@ public:
 
 	void StartingPosition();
 	bool InitialiseFromFen(std::vector<std::string> fen);
-	bool InitialiseFromFen(std::string board, std::string turn, std::string castle, std::string ep, std::string fiftyMove, std::string turnCount); //Returns true after sucsessful execution, false otherwise
+	//Returns true after sucsessful execution, false otherwise
+	bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
 	bool InitialiseFromFen(std::string fen);
 
 	uint64_t GetZobristKey() const;
