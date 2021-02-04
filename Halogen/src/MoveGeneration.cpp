@@ -23,9 +23,6 @@ void CastleMoves(const Position& position, std::vector<Move>& moves);
 bool MovePutsSelfInCheck(Position& position, const Move& move);
 uint64_t PinnedMask(const Position& position);
 
-template <PieceTypes pieceType>
-uint64_t AttackBB(Square sq, uint64_t occupied);
-
 //special generators for when in check
 void KingEvasions(Position& position, std::vector<Move>& moves);						//move the king out of danger	(single or multi threat)
 void KingCapturesEvade(Position& position, std::vector<Move>& moves);			//use only for multi threat with king evasions
@@ -802,23 +799,3 @@ bool MovePutsSelfInCheck(Position& position, const Move & move)
 	position.RevertMoveQuick();
 	return ret;
 }
-
-//--------------------------------------------------------------------------
-//Below code adapted with permission from Terje, author of Weiss.
-
-// Returns the attack bitboard for a piece of piecetype on square sq
-template <PieceTypes pieceType>
-uint64_t AttackBB(Square sq, uint64_t occupied) 
-{
-	switch (pieceType) 
-	{
-		case KNIGHT:	return KnightAttacks[sq];
-		case KING:		return KingAttacks[sq];
-		case BISHOP:	return BishopTable[sq].attacks[AttackIndex(sq, occupied, BishopTable)];
-		case ROOK:		return RookTable[sq].attacks[AttackIndex(sq, occupied, RookTable)];
-		case QUEEN:		return AttackBB<ROOK>(sq, occupied) | AttackBB<BISHOP>(sq, occupied);
-		default:		throw std::invalid_argument("piecetype is argument is invalid");
-	}
-}
-
-//--------------------------------------------------------------------------

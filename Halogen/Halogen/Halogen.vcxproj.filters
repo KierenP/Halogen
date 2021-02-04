@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Pyrrhic">
+      <UniqueIdentifier>{d9fc7209-05bf-4ab5-96b2-1c924bb9c3c2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\BitBoard.cpp">
@@ -48,9 +51,6 @@
     <ClCompile Include="..\src\Zobrist.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\tbprobe.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\EvalNet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -68,6 +68,12 @@
     </ClCompile>
     <ClCompile Include="..\src\MoveGenerator.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Pyrrhic\tbchess.cpp">
+      <Filter>Pyrrhic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Pyrrhic\tbprobe.cpp">
+      <Filter>Pyrrhic</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,15 +110,6 @@
     <ClInclude Include="..\src\Benchmark.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\stdendian.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tbconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tbprobe.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\EvalNet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -133,6 +130,15 @@
     </ClInclude>
     <ClInclude Include="..\src\MoveGenerator.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Pyrrhic\tbprobe.h">
+      <Filter>Pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Pyrrhic\tbconfig.h">
+      <Filter>Pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Pyrrhic\stdendian.h">
+      <Filter>Pyrrhic</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

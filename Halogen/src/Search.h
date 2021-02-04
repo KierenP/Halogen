@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Pyrrhic/tbprobe.h"
 #include "MoveGenerator.h"
-#include "tbprobe.h"
 #include <ctime>
 #include <algorithm>
 #include <thread>

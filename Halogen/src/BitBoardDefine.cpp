@@ -74,7 +74,7 @@ unsigned int GetPosition(unsigned int file, unsigned int rank)
 	return rank * 8 + file;
 }
 
-unsigned int GetBitCount(uint64_t bb)
+int GetBitCount(uint64_t bb)
 {
 #if defined(_MSC_VER) && defined(USE_POPCNT) && defined(_WIN64)
 	return __popcnt64(bb);
