@@ -85,7 +85,6 @@
     <ClInclude Include="..\src\TranspositionTable.h" />
     <ClInclude Include="..\src\TTEntry.h" />
     <ClInclude Include="..\src\Zobrist.h" />
-    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\perftsuite.txt" />

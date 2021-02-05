@@ -113,9 +113,6 @@
     <ClInclude Include="..\src\EvalNet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Network.h">
       <Filter>Header Files</Filter>
     </ClInclude>
