@@ -665,16 +665,10 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>& KillerMoves)
 {
-	if (move.IsCapture() || move.IsPromotion() || move == KillerMoves[distanceFromRoot][0]) return;
+	if (move.IsCapture() || move.IsPromotion() || KillerMoves[distanceFromRoot][0] == move) return;
 
-	if (move == KillerMoves[distanceFromRoot][1])
-	{
-		std::swap(KillerMoves[distanceFromRoot][0], KillerMoves[distanceFromRoot][1]);
-	}
-	else
-	{
-		KillerMoves[distanceFromRoot][1] = move;	//replace the 2nd one
-	}
+	KillerMoves[distanceFromRoot][1] = KillerMoves[distanceFromRoot][0];
+	KillerMoves[distanceFromRoot][0] = move;
 }
 
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
