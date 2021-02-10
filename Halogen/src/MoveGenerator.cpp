@@ -205,7 +205,7 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		//Quiet
 		else
 		{
-			moves[i].score = locals.History.Get(position.GetTurn(), moves[i].move.GetFrom(), moves[i].move.GetTo());
+			moves[i].score = locals.History[position.GetTurn()][moves[i].move.GetFrom()][moves[i].move.GetTo()];
 		}
 	}
 

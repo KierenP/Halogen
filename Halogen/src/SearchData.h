@@ -51,16 +51,14 @@ private:
 	mutable bool periodicTimeLimit = false;
 };
 
+//[side][from][to]
 struct HistoryTable
 {
-	int16_t Get(Players side, Square from, Square to) const { return table.at(side).at(from).at(to); }
+	const std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>& operator[] (Players side) const { return table[side]; }
 	void AddHistory(Players side, Square from, Square to, int change);
 
 private:
-	//table[side][from][to]
 	std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> table = {};
-
-	int16_t& Get(Players side, Square from, Square to) { return table.at(side).at(from).at(to); }
 };
 
 struct SearchData
