@@ -10,12 +10,7 @@ SearchData::SearchData(const SearchLimits& Limits) : limits(Limits)
 
 ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput) : param(parameters)
 {
-	threadDepthCompleted = 0;
-	prevScore = 0;
 	noOutput = NoOutput;
-	lowestAlpha = 0;
-	highestBeta = 0;
-	currentBestMove = {};
 	ThreadWantsToStop.resize(param.threads, false);
 	threadlocalData.resize(param.threads, SearchData(limits));
 }
