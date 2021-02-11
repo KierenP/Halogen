@@ -2,7 +2,7 @@
 #include "BitBoardDefine.h"
 #include <vector>
 
-typedef std::array<uint64_t, N_PIECES> BitBoardData;
+using BitBoardData = std::array<uint64_t, N_PIECES>;
 
 class BitBoard
 {

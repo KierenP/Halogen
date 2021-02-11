@@ -31,8 +31,8 @@ uint64_t AttackBB(Square sq, uint64_t occupied = EMPTY)
 	{
 	case KNIGHT:	return KnightAttacks[sq];
 	case KING:		return KingAttacks[sq];
-	case BISHOP:	return BishopTable[sq].attacks[AttackIndex(sq, occupied, BishopTable)];
-	case ROOK:		return RookTable[sq].attacks[AttackIndex(sq, occupied, RookTable)];
+	case BISHOP:	return bishopTable.AttackMask(sq, occupied);
+	case ROOK:		return rookTable.AttackMask(sq, occupied);
 	case QUEEN:		return AttackBB<ROOK>(sq, occupied) | AttackBB<BISHOP>(sq, occupied);
 	default:		throw std::invalid_argument("piecetype is argument is invalid");
 	}
