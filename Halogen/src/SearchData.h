@@ -21,8 +21,6 @@ enum Score
 class SearchLimits
 {
 public:
-	SearchLimits() : SearchTimeManager(0, 0) {};
-
 	bool CheckTimeLimit() const;
 	bool CheckDepthLimit(int depth) const;
 	bool CheckMateLimit(int score) const;
@@ -36,7 +34,6 @@ public:
 	int ElapsedTime() const { return SearchTimeManager.ElapsedMs(); }
 
 private:
-
 	SearchTimeManage SearchTimeManager;
 	mutable int PeriodicCheck = 0;
 
@@ -124,11 +121,11 @@ private:
 	bool MultiPVExcludeMoveUnlocked(Move move) const;
 
 	mutable std::mutex ioMutex;
-	unsigned int threadDepthCompleted;				//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
+	unsigned int threadDepthCompleted = 0;			//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
 	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
-	int prevScore;									//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
-	int lowestAlpha;
-	int highestBeta;
+	int prevScore = 0;								//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+	int lowestAlpha = 0;
+	int highestBeta = 0;
 	bool noOutput;									//Do not write anything to the concole
 
 	SearchParameters param;

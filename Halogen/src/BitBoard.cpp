@@ -1,18 +1,11 @@
 #include "BitBoard.h"
 #include <stdexcept>
 
-BitBoard::BitBoard()
-{
-}
-
-BitBoard::~BitBoard()
-{
-}
+BitBoard::~BitBoard() = default;
 
 void BitBoard::ResetBoard()
 {
 	previousBoards = { BitBoardData() };
-	Current = previousBoards.begin();
 }
 
 bool BitBoard::InitialiseBoardFromFen(const std::vector<std::string> &fen)
@@ -62,21 +55,13 @@ bool BitBoard::InitialiseBoardFromFen(const std::vector<std::string> &fen)
 
 void BitBoard::SaveBoard()
 {
-	previousBoards.emplace_back(*Current);
-	Current = --previousBoards.end();		//Current might be invalidated by the above line if reallocation occurs
+	previousBoards.emplace_back(previousBoards.back());
 }
 
 void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() > 1);
-
-	--Current;
 	previousBoards.pop_back();
-}
-
-BitBoardData::BitBoardData() : m_Bitboard {0}
-{
-
 }
 
 uint64_t BitBoard::GetPiecesColour(Players colour) const
@@ -95,12 +80,12 @@ void BitBoard::SetSquare(Square square, Pieces piece)
 	ClearSquare(square);
 
 	if (piece < N_PIECES)	//it is possible we might set a square to be empty using this function rather than using the ClearSquare function below. 
-		Current->m_Bitboard[piece] |= SquareBB[square];
+		previousBoards.back()[piece] |= SquareBB[square];
 }
 
 uint64_t BitBoard::GetPieceBB(Pieces piece) const
 {
-	return Current->m_Bitboard[piece];
+	return previousBoards.back()[piece];
 }
 
 void BitBoard::ClearSquare(Square square)
@@ -109,7 +94,7 @@ void BitBoard::ClearSquare(Square square)
 
 	for (int i = 0; i < N_PIECES; i++)
 	{
-		Current->m_Bitboard[i] &= ~SquareBB[square];
+		previousBoards.back()[i] &= ~SquareBB[square];
 	}
 }
 

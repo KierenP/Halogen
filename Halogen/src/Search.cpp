@@ -26,7 +26,7 @@ int FutilityMargins[FutilityMaxDepth];		//[depth]
 int LMR_reduction[64][64] = {};				//[depth][move number]
 
 void PrintBestMove(Move Best);
-bool UseTransposition(TTEntry& entry, int alpha, int beta);
+bool UseTransposition(const TTEntry& entry, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
@@ -480,7 +480,7 @@ void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& P
 		PvTable[distanceFromRoot].insert(PvTable[distanceFromRoot].end(), PvTable[distanceFromRoot + 1].begin(), PvTable[distanceFromRoot + 1].end());
 }
 
-bool UseTransposition(TTEntry& entry, int alpha, int beta)
+bool UseTransposition(const TTEntry& entry, int alpha, int beta)
 {
 	if (entry.GetCutoff() == EntryType::EXACT) return true;
 

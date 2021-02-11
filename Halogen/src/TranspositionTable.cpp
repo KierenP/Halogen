@@ -45,7 +45,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 	table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))] = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
-TTEntry TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot)
+TTEntry TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot) const
 {
 	size_t index = HashFunction(key);
 

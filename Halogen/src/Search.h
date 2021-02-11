@@ -30,14 +30,14 @@ extern int SNMP_coeff;
 
 struct SearchResult
 {
-	SearchResult(int score, Move move = Move()) : m_score(score), m_move(move) {}
+	SearchResult(short score, Move move = Move()) : m_score(score), m_move(move) {}
 	~SearchResult() {}
 
 	int GetScore() const { return m_score; }
 	Move GetMove() const { return m_move; }
 
 private:
-	int m_score;
+	short m_score;
 	Move m_move;
 };
 

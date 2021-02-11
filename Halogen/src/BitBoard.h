@@ -2,16 +2,11 @@
 #include "BitBoardDefine.h"
 #include <vector>
 
-struct BitBoardData
-{
-	BitBoardData();
-	uint64_t m_Bitboard[N_PIECES];
-};
+typedef std::array<uint64_t, N_PIECES> BitBoardData;
 
 class BitBoard
 {
 public:
-	BitBoard();
 	virtual ~BitBoard() = 0;
 
 	Pieces GetSquare(Square square) const;
@@ -42,6 +37,5 @@ protected:
 
 private:
 	std::vector<BitBoardData> previousBoards = { BitBoardData() };
-	std::vector<BitBoardData>::iterator Current = previousBoards.begin();
 };
 

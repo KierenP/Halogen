@@ -33,22 +33,18 @@ static inline double get_time_point() {
 class Timer
 {
 public:
-	Timer();
-	~Timer();
-
 	void Start();
 	void Restart();
 	int ElapsedMs() const;
 
 private:
-	double Begin;
+	double Begin = 0;
 };
 
 class SearchTimeManage
 {
 public:
-	SearchTimeManage(int maxTime, int allocatedTime);
-	~SearchTimeManage();
+	SearchTimeManage(int maxTime = 0, int allocatedTime = 0);
 
 	bool ContinueSearch() const;
 	bool AbortSearch() const;		//Is the remaining time all used up?
