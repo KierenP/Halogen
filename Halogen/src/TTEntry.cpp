@@ -22,11 +22,6 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int curre
 	SetHalfMove(currentTurnCount, distanceFromRoot);
 }
 
-
-TTEntry::~TTEntry()
-{
-}
-
 void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 {
 	if (score > 9000)	//checkmate node

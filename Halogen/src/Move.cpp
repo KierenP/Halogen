@@ -21,9 +21,7 @@ Move::Move(Square from, Square to, MoveFlag flag)
 	SetFlag(flag);
 }
 
-Move::~Move()
-{
-}
+
 
 Square Move::GetFrom() const
 {

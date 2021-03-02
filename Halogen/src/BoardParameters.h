@@ -5,29 +5,32 @@
 
 struct BoardParameterData
 {
-	BoardParameterData();
+	Square m_CaptureSquare = N_SQUARES;
+	Pieces m_CapturePiece = N_PIECES;
+	Square m_EnPassant = N_SQUARES;
+	unsigned int m_FiftyMoveCount = 0;
+	unsigned int m_TurnCount = 1;
 
-	Square m_CaptureSquare;
-	Pieces m_CapturePiece;
-	Square m_EnPassant;
-	unsigned int m_FiftyMoveCount;
-	unsigned int m_TurnCount;
+	bool m_HasCastledWhite = false;
+	bool m_HasCastledBlack = false;
 
-	bool m_HasCastledWhite;
-	bool m_HasCastledBlack;
-
-	Players m_CurrentTurn;
-	bool m_WhiteKingCastle;
-	bool m_WhiteQueenCastle;
-	bool m_BlackKingCastle;
-	bool m_BlackQueenCastle;
+	Players m_CurrentTurn = N_PLAYERS;
+	bool m_WhiteKingCastle = false;
+	bool m_WhiteQueenCastle = false;
+	bool m_BlackKingCastle = false;
+	bool m_BlackQueenCastle = false;
 };
 
 class BoardParameters
 {
 public:
-	BoardParameters();
+	BoardParameters() = default;
 	virtual ~BoardParameters() = 0;
+
+	BoardParameters(const BoardParameters&) = default;
+	BoardParameters(BoardParameters&&) = default;
+	BoardParameters& operator=(const BoardParameters&) = default;
+	BoardParameters& operator=(BoardParameters&&) = default;
 
 	unsigned int GetTurnCount() const { return Current->m_TurnCount; }
 	Players GetTurn() const { return Current->m_CurrentTurn; }

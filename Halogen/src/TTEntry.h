@@ -19,7 +19,6 @@ class TTEntry
 public:
 	TTEntry();
 	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff);
-	~TTEntry();
 
 	bool IsAncient(unsigned int currentTurnCount, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currentTurnCount - distanceFromRoot) % (HALF_MOVE_MODULO)); }
 

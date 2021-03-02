@@ -16,7 +16,6 @@ class Position : public BoardParameters, public BitBoard
 {
 public:
 	Position();																									
-	~Position();
 
 	void ApplyMove(Move move);
 	void ApplyMove(const std::string &strmove);
@@ -53,7 +52,7 @@ private:
 	//TODO: move this to be inside of SearchData
 	int selDepth;
 
-	uint64_t key;
+	uint64_t key = EMPTY;
 	std::vector<uint64_t> PreviousKeys;
 
 	uint64_t GenerateZobristKey() const;
