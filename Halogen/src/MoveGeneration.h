@@ -2,6 +2,10 @@
 #include "Position.h"
 #include "EvalNet.h"
 
+// normally we would just generate a vector of Move, but later
+// we need to convert that vector to a vector of ExtendedMove. 
+// This is expensive, and its actually better to just create
+// the ExtendedMove vector from the start.
 struct ExtendedMove
 {
 	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
