@@ -27,28 +27,17 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (!quiescence && IsInCheck(position))
 		{
-			std::vector<Move> moves;
-			LegalMoves(position, moves);	//contains a special function for generating moves when in check which is quicker
-			CreateExtendedMoveVector(moves);
-		}
-		else
-		{
-			std::vector<Move> moves;
-			QuiescenceMoves(position, moves);
-			CreateExtendedMoveVector(moves);
-		}
-
-		OrderMoves(legalMoves);
-		current = legalMoves.begin();
-
-		if (!quiescence && IsInCheck(position))
-		{
+			LegalMoves(position, legalMoves);	//contains a special function for generating moves when in check which is quicker
 			stage = Stage::GIVE_QUIET;
 		}
 		else
 		{
+			QuiescenceMoves(position, legalMoves);
 			stage = Stage::GIVE_GOOD_LOUD;
 		}
+
+		OrderMoves(legalMoves);
+		current = legalMoves.begin();
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
@@ -106,9 +95,8 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		std::vector<Move> moves;
-		QuietMoves(position, moves);
-		CreateExtendedMoveVector(moves);
+		legalMoves.clear();
+		QuietMoves(position, legalMoves);
 		OrderMoves(legalMoves);
 		current = legalMoves.begin();
 		stage = Stage::GIVE_QUIET;
@@ -145,8 +133,6 @@ void selection_sort(std::vector<ExtendedMove>& v)
 		std::iter_swap(it, std::max_element(it, v.end()));
 	}
 }
-
-
 
 constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
 								91, 532, 568, 715, 1279, 5000 };
@@ -215,14 +201,6 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 	}
 
 	selection_sort(moves);
-}
-
-void MoveGenerator::CreateExtendedMoveVector(const std::vector<Move>& moves)
-{
-	legalMoves.clear();
-	legalMoves.reserve(moves.size());
-
-	std::copy(moves.begin(), moves.end(), std::back_inserter(legalMoves));
 }
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)

@@ -13,18 +13,6 @@ enum class Stage
 	GEN_QUIET, GIVE_QUIET
 };
 
-struct ExtendedMove
-{
-	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
-
-	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
-	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
-
-	Move move;
-	int16_t score;
-	int16_t SEE;
-};
-
 class MoveGenerator
 {
 public:
@@ -36,8 +24,6 @@ public:
 
 private:
 	void OrderMoves(std::vector<ExtendedMove>& moves);
-	
-	void CreateExtendedMoveVector(const std::vector<Move>& moves);
 
 	//Data needed for use in ordering or generating moves
 	Position& position;
