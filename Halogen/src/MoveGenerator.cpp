@@ -146,12 +146,17 @@ void selection_sort(std::vector<ExtendedMove>& v)
 	}
 }
 
-const int16_t SCORE_QUEEN_PROMOTION = 30000;
-const int16_t SCORE_CAPTURE			= 20000;
-const int16_t SCORE_UNDER_PROMOTION = -1;
+
+
+constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
+								91, 532, 568, 715, 1279, 5000 };
 
 void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 {
+	static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
+	static constexpr int16_t SCORE_CAPTURE = 20000;
+	static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
+
 	for (size_t i = 0; i < moves.size(); i++)
 	{
 		//Hash move
@@ -180,11 +185,11 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 			if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
 			{
 				moves[i].score = SCORE_QUEEN_PROMOTION;
+				moves[i].SEE = PieceValues[QUEEN];
 			}
 			else
 			{
 				moves[i].score = SCORE_UNDER_PROMOTION;
-				moves[i].SEE = -1;
 			}
 		}
 
@@ -253,7 +258,7 @@ int see(Position& position, Square square, Players side)
 
 	if (!capture.IsUninitialized())
 	{
-		int captureValue = PieceValues(position.GetSquare(capture.GetTo()));
+		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
 
 		position.ApplyMoveQuick(capture);
 		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
@@ -270,7 +275,7 @@ int seeCapture(Position& position, const Move& move)
 	Players side = position.GetTurn();
 
 	int value = 0;
-	int captureValue = PieceValues(position.GetSquare(move.GetTo()));
+	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
 
 	position.ApplyMoveQuick(move);
 	value = captureValue - see(position, move.GetTo(), !side);

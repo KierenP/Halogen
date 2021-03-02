@@ -45,11 +45,6 @@ void NetworkScaleAdjustment(int& eval)
     eval = eval * 94 / 100;
 }
 
-int PieceValues(unsigned int Piece, GameStages GameStage)
-{
-    return pieceValueVector[GameStage][GetPieceType(static_cast<Pieces>(Piece))];
-}
-
 bool DeadPosition(const Position& position)
 {
     if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
