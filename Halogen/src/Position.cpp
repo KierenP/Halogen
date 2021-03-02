@@ -2,13 +2,7 @@
 
 Position::Position()
 {
-	key = EMPTY;
 	StartingPosition();
-}
-
-Position::~Position()
-{
-
 }
 
 void Position::ApplyMove(Move move)

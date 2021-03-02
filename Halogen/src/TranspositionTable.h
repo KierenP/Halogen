@@ -9,7 +9,6 @@ class TranspositionTable
 {
 public:
 	TranspositionTable() { SetSize(32);	};
-	~TranspositionTable() = default;
 
 	size_t GetSize() const { return table.size(); }
 	int GetCapacity(int halfmove) const;

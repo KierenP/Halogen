@@ -15,10 +15,6 @@ ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParam
 	threadlocalData.resize(param.threads, SearchData(limits));
 }
 
-ThreadSharedData::~ThreadSharedData()
-{
-}
-
 Move ThreadSharedData::GetBestMove() const
 {
 	std::scoped_lock lock(ioMutex);
@@ -270,7 +266,7 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void HistoryTable::AddHistory(Players side, Square from, Square to, int change)
+void SearchData::AddHistory(Players side, Square from, Square to, int change)
 {
-	table[side][from][to] += 32 * change - table[side][from][to] * abs(change) / 512;
+	History[side][from][to] += 32 * change - History[side][from][to] * abs(change) / 512;
 }

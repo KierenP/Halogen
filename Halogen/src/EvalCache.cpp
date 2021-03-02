@@ -4,12 +4,7 @@ constexpr size_t TableSize = 65536;
 
 EvalCacheTable::EvalCacheTable()
 {
-	for (size_t i = 0; i < TableSize; i++)
-		table.push_back({});
-}
-
-EvalCacheTable::~EvalCacheTable()
-{
+	table.resize(TableSize);
 }
 
 void EvalCacheTable::AddEntry(uint64_t key, int eval)

@@ -15,7 +15,6 @@ class EvalCacheTable
 {
 public:
 	EvalCacheTable();
-	~EvalCacheTable();
 
 	void AddEntry(uint64_t key, int eval);
 	bool GetEntry(uint64_t key, int& eval);

@@ -31,7 +31,6 @@ extern int SNMP_coeff;
 struct SearchResult
 {
 	SearchResult(short score, Move move = Move()) : m_score(score), m_move(move) {}
-	~SearchResult() {}
 
 	int GetScore() const { return m_score; }
 	Move GetMove() const { return m_move; }

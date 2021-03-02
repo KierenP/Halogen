@@ -1,13 +1,6 @@
 #include "BoardParameters.h"
 
-BoardParameters::BoardParameters()
-{
-	InitParameters();
-}
-
-BoardParameters::~BoardParameters()
-{
-}
+BoardParameters::~BoardParameters() = default;
 
 void BoardParameters::WhiteCastled()
 {
