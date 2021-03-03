@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 			if (searchThread.joinable())
 				searchThread.join();
 
-			searchThread = thread([=, &limits] {SearchThread(position, parameters, limits); });
+			searchThread = thread([=] {SearchThread(position, parameters, limits); });
 		}
 
 		else if (token == "setoption")
