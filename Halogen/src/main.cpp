@@ -402,16 +402,16 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	clock_t before = clock();
 
 	uint64_t nodeCount = 0;
-	vector<Move> moves;
+	vector<ExtendedMove> moves;
 	LegalMoves(position, moves);
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves[i]);
+		position.ApplyMove(moves[i].move);
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
 		position.RevertMove();
 
-		moves[i].Print();
+		moves[i].move.Print();
 		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
@@ -430,7 +430,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
 	uint64_t nodeCount = 0;
-	vector<Move> moves;
+	vector<ExtendedMove> moves;
 	LegalMoves(position, moves);
 
 	/*for (int i = 0; i < UINT16_MAX; i++)
@@ -462,7 +462,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves[i]);
+		position.ApplyMove(moves[i].move);
 		nodeCount += Perft(depth - 1, position);
 		position.RevertMove();
 	}

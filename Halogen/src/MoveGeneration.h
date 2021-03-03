@@ -2,9 +2,26 @@
 #include "Position.h"
 #include "EvalNet.h"
 
-void LegalMoves(Position& position, std::vector<Move>& moves);
-void QuiescenceMoves(Position& position, std::vector<Move>& moves);
-void QuietMoves(Position& position, std::vector<Move>& moves);
+// normally we would just generate a vector of Move, but later
+// we need to convert that vector to a vector of ExtendedMove. 
+// This is expensive, and its actually better to just create
+// the ExtendedMove vector from the start.
+struct ExtendedMove
+{
+	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
+	ExtendedMove(Square from, Square to, MoveFlag flag) : move(from, to, flag), score(0), SEE(0) {}
+
+	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
+	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
+
+	Move move;
+	int16_t score;
+	int16_t SEE;
+};
+
+void LegalMoves(Position& position, std::vector<ExtendedMove>& moves);
+void QuiescenceMoves(Position& position, std::vector<ExtendedMove>& moves);
+void QuietMoves(Position& position, std::vector<ExtendedMove>& moves);
 
 bool IsSquareThreatened(const Position & position, Square square, Players colour);		//will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 bool IsInCheck(const Position& position, Players colour);
