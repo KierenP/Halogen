@@ -58,7 +58,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void InitSearch();
 
-uint64_t SearchThread(const Position& position, const SearchParameters& parameters, const SearchLimits& limits, bool noOutput)
+uint64_t SearchThread(Position position, SearchParameters parameters, const SearchLimits& limits, bool noOutput)
 {
 	//Probe TB at root
 	if (GetBitCount(position.GetAllPieces()) <= TB_LARGEST 
@@ -74,6 +74,11 @@ uint64_t SearchThread(const Position& position, const SearchParameters& paramete
 			return 0;
 		}
 	}
+
+	//Limit the MultiPV setting to be at most the number of legal moves
+	std::vector<ExtendedMove> moves;
+	LegalMoves(position, moves);
+	parameters.multiPV = std::min<int>(parameters.multiPV, moves.size());
 
 	InitSearch();
 
