@@ -10,7 +10,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "9";  
+string version = "10";
 
 int main(int argc, char* argv[])
 {
@@ -331,8 +331,12 @@ void PrintVersion()
 #if defined(_WIN64) or defined(__x86_64__)
 	cout << " x64";
 
-	#if defined(USE_POPCNT)
+	#if defined(USE_POPCNT) && !defined(USE_PEXT)
 		cout << " POPCNT";
+	#endif 
+
+	#if defined(USE_PEXT)
+		cout << " PEXT";
 	#endif 
 
 	#if defined(USE_AVX2)

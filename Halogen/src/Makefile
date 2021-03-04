@@ -6,12 +6,12 @@ LIBS    = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++17
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize -fno-use-linker-plugin
 PGOFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
-AVX2FLAGS   = -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
+AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
 pgo:
 	rm -f *.gcda
