@@ -49,6 +49,7 @@ public:
 	bool ContinueSearch() const;
 	bool AbortSearch() const;		//Is the remaining time all used up?
 	int ElapsedMs() const { return timer.ElapsedMs(); }
+	void PanicTime() { AllocatedSearchTimeMS *= 1.1; }
 
 private:
 	Timer timer;

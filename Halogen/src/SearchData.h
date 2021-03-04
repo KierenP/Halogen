@@ -32,6 +32,7 @@ public:
 	void SetMateLimit(int moves);
 
 	int ElapsedTime() const { return SearchTimeManager.ElapsedMs(); }
+	void PanicTime() { SearchTimeManager.PanicTime(); }
 
 private:
 	SearchTimeManage SearchTimeManager;
