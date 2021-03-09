@@ -39,6 +39,10 @@ void Network::Init()
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         outputWeights[i] = (int16_t)round(*Data++ * PRECISION);
+
+    //Swap the first half with last half to swap white and black inputs
+    //Because Andrew's trainer goes WHITE, BLACK but Halogen goes BLACK, WHITE
+    std::rotate(hiddenWeights.begin(), hiddenWeights.begin() + hiddenWeights.size() / 2, hiddenWeights.end());
 }
 
 void Network::RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs)
