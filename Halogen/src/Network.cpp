@@ -1,10 +1,12 @@
 #include "Network.h"
-#include "epoch655.net"
+#include "epoch134.net"
 
 std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
 int16_t Network::outputBias = {};
+
+void QuantizationAnalysis();
 
 template<typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
@@ -77,7 +79,7 @@ int16_t Network::QuickEval() const
     return output / SQUARE_PRECISION;
 }
 
-/*void QuantizationAnalysis()
+void QuantizationAnalysis()
 {
     auto Data = reinterpret_cast<float*>(label);
 
@@ -110,4 +112,4 @@ int16_t Network::QuickEval() const
 
     std::cout << weight << std::endl;
     weight = 0;
-}*/
+}
