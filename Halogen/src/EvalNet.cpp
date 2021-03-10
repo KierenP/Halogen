@@ -63,21 +63,10 @@ void TempoAdjustment(int& eval, const Position& position)
 
 void NoPawnAdjustment(int& eval, const Position& position)
 {
-    static constexpr int PieceValues[] = { 100, 300, 300, 500, 900, 0 };
-
-    Players stronger = eval > 0 ? WHITE : BLACK;
-
-    int material = 0;
-    material += PieceValues[KNIGHT] * (GetBitCount(position.GetPieceBB(Piece(KNIGHT, stronger))) - GetBitCount(position.GetPieceBB(Piece(KNIGHT, !stronger))));
-    material += PieceValues[BISHOP] * (GetBitCount(position.GetPieceBB(Piece(BISHOP, stronger))) - GetBitCount(position.GetPieceBB(Piece(BISHOP, !stronger))));
-    material += PieceValues[ROOK] * (GetBitCount(position.GetPieceBB(Piece(ROOK, stronger))) - GetBitCount(position.GetPieceBB(Piece(ROOK, !stronger))));
-    material += PieceValues[QUEEN] * (GetBitCount(position.GetPieceBB(Piece(QUEEN, stronger))) - GetBitCount(position.GetPieceBB(Piece(QUEEN, !stronger))));
-
-    if ((eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0) || 
-        (eval < 0 && position.GetPieceBB(PAWN, BLACK) == 0))
-    {
+    if (eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0)
         eval /= 2;
-    }
+    if (eval < 0 && position.GetPieceBB(PAWN, BLACK) == 0)
+        eval /= 2;
 }
 
 void NetworkScaleAdjustment(int& eval)
