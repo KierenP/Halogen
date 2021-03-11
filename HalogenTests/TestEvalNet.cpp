@@ -34,17 +34,7 @@ namespace EvalNet
 			ZobristInit();
 		}
 
-		TEST_METHOD(NoPawnInsufficent)
-		{
-			Position position;
-			position.InitialiseFromFen("k1n5/8/8/8/8/8/8/K2R4 w - - 0 1");
-
-			int value = 100;
-			NoPawnAdjustment(value, position);
-			Assert::AreEqual(100 / 8, value);
-		}
-
-		TEST_METHOD(NoPawnSufficent)
+		TEST_METHOD(Insufficent)
 		{
 			Position position;
 			position.InitialiseFromFen("k7/8/8/8/8/8/8/K2R4 w - - 0 1");
