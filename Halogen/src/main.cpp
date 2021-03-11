@@ -1,6 +1,5 @@
 #include "Benchmark.h"
 #include "Search.h"
-#include <thread>
 
 using namespace::std; 
 
