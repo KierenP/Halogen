@@ -6,8 +6,6 @@ std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
 int16_t Network::outputBias = {};
 
-void QuantizationAnalysis();
-
 template<typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
 {
@@ -79,7 +77,7 @@ int16_t Network::QuickEval() const
     return output / SQUARE_PRECISION;
 }
 
-void QuantizationAnalysis()
+/*void QuantizationAnalysis()
 {
     auto Data = reinterpret_cast<float*>(label);
 
@@ -112,4 +110,4 @@ void QuantizationAnalysis()
 
     std::cout << weight << std::endl;
     weight = 0;
-}
+}*/
