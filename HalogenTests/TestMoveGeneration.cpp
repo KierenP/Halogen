@@ -33,7 +33,6 @@ namespace MoveGeneration
 	public:
 		Perft()
 		{
-			ZobristInit();
 			BBInit();
 			Network::Init();
 		}

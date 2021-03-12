@@ -62,7 +62,6 @@
     <ClCompile Include="..\src\TimeManage.cpp" />
     <ClCompile Include="..\src\TranspositionTable.cpp" />
     <ClCompile Include="..\src\TTEntry.cpp" />
-    <ClCompile Include="..\src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Benchmark.h" />

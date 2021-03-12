@@ -48,9 +48,6 @@
     <ClCompile Include="..\src\TTEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Zobrist.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\EvalNet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -17,7 +17,6 @@
 #include "..\Halogen\src\TimeManage.cpp"
 #include "..\Halogen\src\TranspositionTable.cpp"
 #include "..\Halogen\src\TTEntry.cpp"
-#include "..\Halogen\src\Zobrist.cpp"
 #include "..\Halogen\src\Pyrrhic\tbprobe.cpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -29,11 +28,6 @@ namespace EvalNet
 	TEST_CLASS(noPawnAdjustment)
 	{
 	public:
-		noPawnAdjustment()
-		{
-			ZobristInit();
-		}
-
 		TEST_METHOD(Insufficent)
 		{
 			Position position;
@@ -76,11 +70,6 @@ namespace EvalNet
 	TEST_CLASS(tempoAdjustment)
 	{
 	public:
-		tempoAdjustment()
-		{
-			ZobristInit();
-		}
-
 		TEST_METHOD(White)
 		{
 			Position position;
@@ -105,11 +94,6 @@ namespace EvalNet
 	TEST_CLASS(deadPosition)
 	{
 	public:
-		deadPosition()
-		{
-			ZobristInit();
-		}
-
 		TEST_METHOD(KvK)
 		{
 			Position position;
