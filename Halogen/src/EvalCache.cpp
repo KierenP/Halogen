@@ -13,7 +13,7 @@ void EvalCacheTable::AddEntry(uint64_t key, int eval)
 	table[key % TableSize].eval = eval;
 }
 
-bool EvalCacheTable::GetEntry(uint64_t key, int& eval)
+bool EvalCacheTable::GetEntry(uint64_t key, int& eval) const
 {
 	if (table[key % TableSize].key != key)
 	{
