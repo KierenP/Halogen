@@ -21,9 +21,6 @@ public:
 
 	void Reset();
 
-	uint64_t hits = 0;
-	uint64_t misses = 0;
-
 private:
 	std::vector<EvalCacheEntry> table;
 };

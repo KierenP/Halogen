@@ -46,8 +46,6 @@ public:
 
 	bool IsUninitialized() const;
 
-	void Reset();
-
 private:
 	void SetFrom(Square from);
 	void SetTo(Square to);

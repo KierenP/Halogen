@@ -168,7 +168,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="TestEvalCache.cpp" />
     <ClCompile Include="TestEvalNet.cpp" />
+    <ClCompile Include="TestMoveGeneration.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Halogen\Halogen\Halogen.vcxproj">
