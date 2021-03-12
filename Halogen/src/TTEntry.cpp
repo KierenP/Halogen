@@ -32,7 +32,7 @@ void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 
 void TTEntry::Reset()
 {
-	bestMove.Reset();
+	bestMove = Move();
 	key = EMPTY;
 	score = -1;
 	depth = -1;
