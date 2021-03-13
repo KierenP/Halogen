@@ -11,7 +11,6 @@ int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable);
 namespace UnitTestEvalNet
 {
 	void NoPawnAdjustment(int& eval, const Position& position);
-	void NetworkScaleAdjustment(int& eval);
 	void TempoAdjustment(int& eval, const Position& position);
 }
 

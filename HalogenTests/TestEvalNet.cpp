@@ -55,24 +55,6 @@ namespace EvalNet
 		}
 	};
 
-	TEST_CLASS(networkScaleAdjustment)
-	{
-	public:
-		TEST_METHOD(SmallValue)
-		{
-			int value = 20;
-			NetworkScaleAdjustment(value);
-			Assert::AreEqual(18, value);
-		}
-
-		TEST_METHOD(LargeValue)
-		{
-			int value = 2000;
-			NetworkScaleAdjustment(value);
-			Assert::AreEqual(1880, value);
-		}
-	};
-
 	TEST_CLASS(tempoAdjustment)
 	{
 	public:

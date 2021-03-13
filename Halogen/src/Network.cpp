@@ -6,6 +6,11 @@ std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
 int16_t Network::outputBias = {};
 
+constexpr int16_t MAX_VALUE = 128;
+constexpr int16_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / MAX_VALUE;
+constexpr int32_t SQUARE_PRECISION = (int32_t)PRECISION * PRECISION;
+constexpr double SCALE_FACTOR = 0.94;   //Found empirically to maximize elo
+
 template<typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
 {
@@ -35,10 +40,10 @@ void Network::Init()
         for (size_t j = 0; j < HIDDEN_NEURONS; j++)
             hiddenWeights[i][j] = (int16_t)round(*Data++ * PRECISION);
 
-    outputBias = (int16_t)round(*Data++ * PRECISION);
+    outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * PRECISION);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        outputWeights[i] = (int16_t)round(*Data++ * PRECISION);
+        outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * PRECISION);
 
     //Swap the first half with last half to swap white and black inputs
     //Because Andrew's trainer goes WHITE, BLACK but Halogen goes BLACK, WHITE
