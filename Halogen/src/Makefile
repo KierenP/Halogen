@@ -33,4 +33,7 @@ release:
 sanitize:
 	$(CC) -O0 -fsanitize=undefined $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_undefined.exe
 	$(CC) -O0 -fsanitize=address   $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_address.exe
+	
+sonarcloud:
+	$(CC) -O3 $(WFLAGS) -DNDEBUG -flto $(SRC) $(LIBS) $(POPCNTFLAGS) -o $(EXE)
 
