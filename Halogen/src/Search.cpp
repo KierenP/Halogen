@@ -643,9 +643,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		if (SEE < 0)														//prune bad captures
 			break;
 
-		if (SEE <= 0 && position.GetCaptureSquare() != move.GetTo())		//prune equal captures that aren't recaptures
-			continue;
-
 		if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
 			break;
 
