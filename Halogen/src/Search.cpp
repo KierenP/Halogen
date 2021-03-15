@@ -625,7 +625,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	
-	Move bestmove;
+	Move bestmove = Move::invalid;
 	int Score = staticScore;
 
 	MoveGenerator gen(position, distanceFromRoot, locals, true);
