@@ -160,7 +160,7 @@ static uint64_t GetLeastValuableAttacker(Position& position, uint64_t attackers,
 		capturing = Piece(PieceTypes(i), side);
 		uint64_t pieces = position.GetPieceBB(capturing) & attackers;
 		if (pieces)
-			return 1ull << LSB(pieces);
+			return pieces & ~pieces;
 	}
 	return 0;
 }
