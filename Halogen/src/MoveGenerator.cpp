@@ -258,7 +258,7 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 
 			if (GetFlag(moves[i].move) != EN_PASSANT)
 			{
-				SEE = see(position, moves[i].move);
+				SEE = seeCapture(position, moves[i].move);
 			}
 
 			moves[i].score = SCORE_CAPTURE + SEE;
