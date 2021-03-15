@@ -43,7 +43,3 @@ private:
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
 Move GetHashMove(const Position& position, int distanceFromRoot);
-
-int see(Position&, Move);
-int see(Position& position, Square square, Players side);
-int seeCapture(Position& position, const Move& move); //Don't send this an en passant move!
