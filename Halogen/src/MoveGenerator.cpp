@@ -137,6 +137,78 @@ void selection_sort(std::vector<ExtendedMove>& v)
 constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
 								91, 532, 568, 715, 1279, 5000 };
 
+static uint64_t AttackersToSq(Position& position, Square sq)
+{
+	uint64_t pawn_mask = (position.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
+	pawn_mask |= (position.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
+	
+	uint64_t bishops   = position.GetPieceBB<QUEEN>() | position.GetPieceBB<BISHOP>();
+	uint64_t rooks     = position.GetPieceBB<QUEEN>() | position.GetPieceBB<ROOK>();
+	uint64_t occ       = position.GetAllPieces();
+
+	return (pawn_mask & position.GetPieceBB<PAWN>())
+		| (AttackBB<KNIGHT>(sq) & position.GetPieceBB<KNIGHT>())
+		| (AttackBB<KING>(sq) & position.GetPieceBB<KING>())
+		| (AttackBB<BISHOP>(sq, occ) & bishops)
+		| (AttackBB<ROOK>(sq, occ) & rooks);
+}
+
+static uint64_t GetLeastValuableAttacker(Position& position, uint64_t attackers, Pieces& capturing, Players side)
+{
+	for (int i = 0; i < 6; i++)
+	{
+		capturing = Piece(PieceTypes(i), side);
+		uint64_t pieces = position.GetPieceBB(capturing) & attackers;
+		if (pieces)
+			return 1ull << LSB(pieces);
+	}
+	return 0;
+}
+
+int see(Position& position, Move move)
+{
+	Square from = move.GetFrom();
+	Square to   = move.GetTo();
+
+	int scores[32]{ 0 };
+	int index = 0;
+
+	auto capturing = position.GetSquare(from);
+	auto captured = position.GetSquare(to);
+	auto attacker = ColourOfPiece(capturing);
+
+	uint64_t from_set = (1ull << from);
+	uint64_t occ = position.GetAllPieces(), bishops = 0, rooks = 0;
+
+	bishops = rooks = position.GetPieceBB<QUEEN>();
+	bishops |= position.GetPieceBB<BISHOP>();
+	rooks |= position.GetPieceBB<ROOK>();
+
+	uint64_t attack_def = AttackersToSq(position, to);
+	scores[index] = PieceValues[captured];
+
+	do
+	{
+		index++;
+		attacker = !attacker;
+		scores[index] = PieceValues[capturing] - scores[index - 1];
+
+		if (-scores[index - 1] < 0 && scores[index] < 0)
+			break;
+
+		attack_def ^= from_set;
+		occ ^= from_set;
+
+		attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
+		from_set = GetLeastValuableAttacker(position, attack_def, capturing, Players(attacker));
+	} while (from_set);
+	while (--index)
+	{
+		scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
+	}
+	return scores[0];
+}
+
 void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 {
 	static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
@@ -186,7 +258,7 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 
 			if (moves[i].move.GetFlag() != EN_PASSANT)
 			{
-				SEE = seeCapture(position, moves[i].move);
+				SEE = see(position, moves[i].move);
 			}
 
 			moves[i].score = SCORE_CAPTURE + SEE;

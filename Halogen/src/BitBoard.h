@@ -31,6 +31,12 @@ public:
 
 	Square GetKing(Players colour) const;
 
+	template<PieceTypes type>
+	uint64_t GetPieceBB()
+	{
+		return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK);
+	}
+
 	void SetSquare(Square square, Pieces piece);
 	void ClearSquare(Square square);
 
