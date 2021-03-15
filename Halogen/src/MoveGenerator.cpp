@@ -117,12 +117,12 @@ bool MoveGenerator::Next(Move& move)
 
 void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
 {
-	Locals.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
+	Locals.AddHistory(position.GetTurn(), GetFrom(move), GetTo(move), depthRemaining * depthRemaining);
 
-	for (auto const& m : legalMoves)
+	for (auto m : legalMoves)
 	{
 		if (m.move == move) break;
-		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
+		Locals.AddHistory(position.GetTurn(), GetFrom(m.move), GetTo(m.move), -depthRemaining * depthRemaining);
 	}
 }
 
@@ -167,8 +167,8 @@ static uint64_t GetLeastValuableAttacker(Position& position, uint64_t attackers,
 
 int see(Position& position, Move move)
 {
-	Square from = move.GetFrom();
-	Square to   = move.GetTo();
+	Square from = GetFrom(move);
+	Square to   = GetTo(move);
 
 	int scores[32]{ 0 };
 	int index = 0;
@@ -238,9 +238,9 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		}
 
 		//Promotions
-		else if (moves[i].move.IsPromotion())
+		else if (isPromotion(moves[i].move))
 		{
-			if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+			if (GetFlag(moves[i].move) == QUEEN_PROMOTION || GetFlag(moves[i].move) == QUEEN_PROMOTION_CAPTURE)
 			{
 				moves[i].score = SCORE_QUEEN_PROMOTION;
 				moves[i].SEE = PieceValues[QUEEN];
@@ -252,11 +252,11 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		}
 
 		//Captures
-		else if (moves[i].move.IsCapture())
+		else if (IsCapture(moves[i].move))
 		{
 			int SEE = 0;
 
-			if (moves[i].move.GetFlag() != EN_PASSANT)
+			if (GetFlag(moves[i].move) != EN_PASSANT)
 			{
 				SEE = see(position, moves[i].move);
 			}
@@ -268,7 +268,7 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		//Quiet
 		else
 		{
-			moves[i].score = locals.History[position.GetTurn()][moves[i].move.GetFrom()][moves[i].move.GetTo()];
+			moves[i].score = locals.History[position.GetTurn()][GetFrom(moves[i].move)][GetTo(moves[i].move)];
 		}
 	}
 
@@ -306,9 +306,9 @@ int see(Position& position, Square square, Players side)
 	int value = 0;
 	Move capture = GetSmallestAttackerMove(position, square, side);
 
-	if (!capture.IsUninitialized())
+	if (capture)
 	{
-		int captureValue = PieceValues[position.GetSquare(capture.GetTo())];
+		int captureValue = PieceValues[position.GetSquare(GetTo(capture))];
 
 		position.ApplyMoveQuick(capture);
 		value = std::max(0, captureValue - see(position, square, !side));	// Do not consider captures if they lose material, therefor max zero 
@@ -320,15 +320,15 @@ int see(Position& position, Square square, Players side)
 
 int seeCapture(Position& position, const Move& move)
 {
-	assert(move.GetFlag() == CAPTURE);	//Don't seeCapture with promotions or en_passant!
+	assert(GetFlag(move) == CAPTURE);	//Don't seeCapture with promotions or en_passant!
 
 	Players side = position.GetTurn();
 
 	int value = 0;
-	int captureValue = PieceValues[position.GetSquare(move.GetTo())];
+	int captureValue = PieceValues[position.GetSquare(GetTo(move))];
 
 	position.ApplyMoveQuick(move);
-	value = captureValue - see(position, move.GetTo(), !side);
+	value = captureValue - see(position, GetTo(move), !side);
 	position.RevertMoveQuick();
 
 	return value;

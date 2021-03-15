@@ -174,7 +174,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 
 	for (size_t i = 0; i < pv.size(); i++)
 	{
-		pv[i].Print(ss);
+		PrintMove(pv[i], ss);
 		ss << " ";
 	}
 

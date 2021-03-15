@@ -26,33 +26,39 @@ enum MoveFlag
 	QUEEN_PROMOTION_CAPTURE			
 };
 
-class Move
-{
-public:
-	Move();
-	Move(Square from, Square to, MoveFlag flag);
-
-	Square GetFrom() const;
-	Square GetTo() const;
-	MoveFlag GetFlag() const;
-
-	bool IsPromotion() const;
-	bool IsCapture() const;
-
-	void Print(std::stringstream& ss) const;
-	void Print() const;
-
-	bool operator==(const Move& rhs) const;
-
-	bool IsUninitialized() const;
-
-private:
-	void SetFrom(Square from);
-	void SetTo(Square to);
-	void SetFlag(MoveFlag flag);
-
-	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
-	uint16_t data = 0;
+enum Move : uint16_t {
+	invalid
 };
 
+#define CreateMove(from, to, flag) (Move(((from)) | ((to) << 6) | ((flag) << 12)))
 
+constexpr Square GetFrom(Move move)
+{
+	return static_cast<Square>(move & 0b111111);
+}
+
+constexpr Square GetTo(Move move)
+{
+	return static_cast<Square>((move >> 6) & 0b111111);
+}
+
+constexpr MoveFlag GetFlag(Move move)
+{
+	return static_cast<MoveFlag>((move >> 12) & 0b1111);
+}
+
+constexpr bool isPromotion(Move move)
+{
+	return move & (1ull << 15);
+}
+
+constexpr bool IsCapture(Move move)
+{
+	return move & (1ull << 14);
+}
+
+void PrintMove(Move, std::ostream& ss);
+inline void PrintMove(Move move)
+{
+	PrintMove(move, std::cout);
+}

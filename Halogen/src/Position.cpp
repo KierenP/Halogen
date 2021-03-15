@@ -13,10 +13,10 @@ void Position::ApplyMove(Move move)
 	SetEnPassant(N_SQUARES);
 	Increment50Move();
 
-	if (move.IsCapture())
+	if (IsCapture(move))
 	{
-		SetCaptureSquare(move.GetTo());
-		SetCapturePiece(GetSquare(move.GetTo()));	//will fail with en passant, but that currently doesn't matter
+		SetCaptureSquare(GetTo(move));
+		SetCapturePiece(GetSquare(GetTo(move)));	//will fail with en passant, but that currently doesn't matter
 	}
 	else
 	{
@@ -24,9 +24,9 @@ void Position::ApplyMove(Move move)
 		SetCapturePiece(N_PIECES);
 	}
 
-	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	SetSquare(GetTo(move), GetSquare(GetFrom(move)));
 
-	if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
+	if (GetFlag(move) == KING_CASTLE || GetFlag(move) == QUEEN_CASTLE)
 	{
 		if (GetTurn() == WHITE)
 			WhiteCastled();
@@ -34,51 +34,51 @@ void Position::ApplyMove(Move move)
 			BlackCastled();
 	}
 
-	if (move.GetFlag() == KING_CASTLE)
+	if (GetFlag(move) == KING_CASTLE)
 	{
-		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
-		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
+		SetSquare(GetPosition(FILE_F, GetRank(GetFrom(move))), GetSquare(GetPosition(FILE_H, GetRank(GetFrom(move)))));
+		ClearSquare(GetPosition(FILE_H, GetRank(GetFrom(move))));
 	}
 
-	if (move.GetFlag() == QUEEN_CASTLE)
+	if (GetFlag(move) == QUEEN_CASTLE)
 	{
-		SetSquare(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
-		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
+		SetSquare(GetPosition(FILE_D, GetRank(GetFrom(move))), GetSquare(GetPosition(FILE_A, GetRank(GetFrom(move)))));
+		ClearSquare(GetPosition(FILE_A, GetRank(GetFrom(move))));
 	}
 
 	//for some special moves we need to do other things
-	switch (move.GetFlag())
+	switch (GetFlag(move))
 	{
 	case PAWN_DOUBLE_MOVE:
-		SetEnPassant(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2));			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
+		SetEnPassant(static_cast<Square>((GetTo(move) + GetFrom(move)) / 2));			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
 		break;
 	case EN_PASSANT:
-		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		ClearSquare(GetPosition(GetFile(GetTo(move)), GetRank(GetFrom(move))));
 		break;
 	case KNIGHT_PROMOTION:
 	case KNIGHT_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
+		SetSquare(GetTo(move), Piece(KNIGHT, GetTurn()));
 		break;
 	case BISHOP_PROMOTION:
 	case BISHOP_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
+		SetSquare(GetTo(move), Piece(BISHOP, GetTurn()));
 		break;
 	case ROOK_PROMOTION:
 	case ROOK_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
+		SetSquare(GetTo(move), Piece(ROOK, GetTurn()));
 		break;
 	case QUEEN_PROMOTION:
 	case QUEEN_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
+		SetSquare(GetTo(move), Piece(QUEEN, GetTurn()));
 		break;
 	default:
 		break;
 	}
 
-	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
+	if (IsCapture(move) || GetSquare(GetTo(move)) == Piece(PAWN, GetTurn()) || isPromotion(move))
 		Reset50Move();
 
-	ClearSquare(move.GetFrom());
+	ClearSquare(GetFrom(move));
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
@@ -151,7 +151,7 @@ void Position::ApplyMove(const std::string& strmove)
 			flag = static_cast<MoveFlag>(flag + CAPTURE);	//might be slow, but don't care.
 	}
 
-	ApplyMove(Move(prev, next, flag));
+	ApplyMove(CreateMove(prev, next, flag));
 	net.RecalculateIncremental(GetInputLayer());
 }
 
@@ -176,7 +176,7 @@ void Position::ApplyNullMove()
 	Increment50Move();
 
 	NextTurn();
-	IncrementZobristKey(Move());
+	IncrementZobristKey(Move::invalid);
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -341,24 +341,24 @@ uint64_t Position::IncrementZobristKey(Move move)
 	if (PrevGetEnPassant() <= SQ_H8)
 		key ^= ZobristTable[(12 * 64 + 5 + GetFile(PrevGetEnPassant()))];		//undo the previous ep square
 
-	if (move.IsUninitialized()) return key;	//null move
+	if (!move) return key;	//null move
 
-	if (!move.IsPromotion())
+	if (!isPromotion(move))
 	{
-		key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetFrom()];	//toggle the square we left
-		key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetTo()];	//toggle the arriving square
+		key ^= ZobristTable[GetSquare(GetTo(move)) * 64 + GetFrom(move)];	//toggle the square we left
+		key ^= ZobristTable[GetSquare(GetTo(move)) * 64 + GetTo(move)];	//toggle the arriving square
 	}
 
 	//En Passant
-	if (move.GetFlag() == EN_PASSANT)
-		key ^= ZobristTable[Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];	//remove the captured piece
+	if (GetFlag(move) == EN_PASSANT)
+		key ^= ZobristTable[Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(GetTo(move)), GetRank(GetFrom(move)))];	//remove the captured piece
 
 	if (GetEnPassant() <= SQ_H8)
 		key ^= ZobristTable[12 * 64 + 5 + GetFile(GetEnPassant())];									//apply new EP
 
 	//Captures
-	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-		key ^= ZobristTable[GetCapturePiece() * 64 + move.GetTo()];
+	if ((IsCapture(move)) && (GetFlag(move) != EN_PASSANT))
+		key ^= ZobristTable[GetCapturePiece() * 64 + GetTo(move)];
 
 	//Castling
 	if (GetCanCastleWhiteKingside() != PrevGetCanCastleWhiteKingside())					//if casteling rights changed, flip that one
@@ -370,31 +370,31 @@ uint64_t Position::IncrementZobristKey(Move move)
 	if (GetCanCastleBlackQueenside() != PrevGetCanCastleBlackQueenside())
 		key ^= ZobristTable[12 * 64 + 4];
 
-	if (move.GetFlag() == KING_CASTLE)
+	if (GetFlag(move) == KING_CASTLE)
 	{
-		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()))];
-		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_H, GetRank(GetFrom(move)))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_F, GetRank(GetFrom(move)))];
 	}
 
-	if (move.GetFlag() == QUEEN_CASTLE)
+	if (GetFlag(move) == QUEEN_CASTLE)
 	{
-		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()))];
-		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_A, GetRank(GetFrom(move)))];
+		key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_D, GetRank(GetFrom(move)))];
 	}
 
 	//Promotions
-	if (move.IsPromotion())
+	if (isPromotion(move))
 	{
-		key ^= ZobristTable[Piece(PAWN, !GetTurn()) * 64 + move.GetFrom()];
+		key ^= ZobristTable[Piece(PAWN, !GetTurn()) * 64 + GetFrom(move)];
 
-		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			key ^= ZobristTable[Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo()];
-		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			key ^= ZobristTable[Piece(BISHOP, !GetTurn()) * 64 + move.GetTo()];
-		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			key ^= ZobristTable[Piece(ROOK, !GetTurn()) * 64 + move.GetTo()];
-		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			key ^= ZobristTable[Piece(QUEEN, !GetTurn()) * 64 + move.GetTo()];
+		if (GetFlag(move) == KNIGHT_PROMOTION || GetFlag(move) == KNIGHT_PROMOTION_CAPTURE)
+			key ^= ZobristTable[Piece(KNIGHT, !GetTurn()) * 64 + GetTo(move)];
+		if (GetFlag(move) == BISHOP_PROMOTION || GetFlag(move) == BISHOP_PROMOTION_CAPTURE)
+			key ^= ZobristTable[Piece(BISHOP, !GetTurn()) * 64 + GetTo(move)];
+		if (GetFlag(move) == ROOK_PROMOTION || GetFlag(move) == ROOK_PROMOTION_CAPTURE)
+			key ^= ZobristTable[Piece(ROOK, !GetTurn()) * 64 + GetTo(move)];
+		if (GetFlag(move) == QUEEN_PROMOTION || GetFlag(move) == QUEEN_PROMOTION_CAPTURE)
+			key ^= ZobristTable[Piece(QUEEN, !GetTurn()) * 64 + GetTo(move)];
 	}
 
 	return key;
@@ -420,62 +420,62 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 deltaArray& Position::CalculateMoveDelta(Move move)
 {
 	delta.size = 0;
-	if (move.IsUninitialized()) return delta;		//null move
+	if (!move) return delta;		//null move
 
-	if (!move.IsPromotion())
+	if (!isPromotion(move))
 	{
-		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetFrom();			//toggle the square we left
+		delta.deltas[delta.size].index = GetSquare(GetTo(move)) * 64 + GetFrom(move);			//toggle the square we left
 		delta.deltas[delta.size++].delta = -1;
-		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetTo();			//toggle the arriving square
+		delta.deltas[delta.size].index = GetSquare(GetTo(move)) * 64 + GetTo(move);			//toggle the arriving square
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//En Passant
-	if (move.GetFlag() == EN_PASSANT)
+	if (GetFlag(move) == EN_PASSANT)
 	{
-		delta.deltas[delta.size].index = Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));	//remove the captured piece
+		delta.deltas[delta.size].index = Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(GetTo(move)), GetRank(GetFrom(move)));	//remove the captured piece
 		delta.deltas[delta.size++].delta = -1;
 	}
 
 	//Captures
-	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
+	if ((IsCapture(move)) && (GetFlag(move) != EN_PASSANT))
 	{
-		delta.deltas[delta.size].index = GetCapturePiece() * 64 + move.GetTo();
+		delta.deltas[delta.size].index = GetCapturePiece() * 64 + GetTo(move);
 		delta.deltas[delta.size++].delta = -1;
 	}
 
-	if (move.GetFlag() == KING_CASTLE)
+	if (GetFlag(move) == KING_CASTLE)
 	{
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_H, GetRank(GetFrom(move)));
 		delta.deltas[delta.size++].delta = -1;
 
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_F, GetRank(GetFrom(move)));
 		delta.deltas[delta.size++].delta = 1;
 	}
 
-	if (move.GetFlag() == QUEEN_CASTLE)
+	if (GetFlag(move) == QUEEN_CASTLE)
 	{
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_A, GetRank(GetFrom(move)));
 		delta.deltas[delta.size++].delta = -1;
 
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(GetFrom(move)))) * 64 + GetPosition(FILE_D, GetRank(GetFrom(move)));
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//Promotions
-	if (move.IsPromotion())
+	if (isPromotion(move))
 	{
-		delta.deltas[delta.size].index = Piece(PAWN, !GetTurn()) * 64 + move.GetFrom();
+		delta.deltas[delta.size].index = Piece(PAWN, !GetTurn()) * 64 + GetFrom(move);
 		delta.deltas[delta.size++].delta = -1;
 
-		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(BISHOP, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(ROOK, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(QUEEN, !GetTurn()) * 64 + move.GetTo();
+		if (GetFlag(move) == KNIGHT_PROMOTION || GetFlag(move) == KNIGHT_PROMOTION_CAPTURE)
+			delta.deltas[delta.size].index = Piece(KNIGHT, !GetTurn()) * 64 + GetTo(move);
+		if (GetFlag(move) == BISHOP_PROMOTION || GetFlag(move) == BISHOP_PROMOTION_CAPTURE)
+			delta.deltas[delta.size].index = Piece(BISHOP, !GetTurn()) * 64 + GetTo(move);
+		if (GetFlag(move) == ROOK_PROMOTION || GetFlag(move) == ROOK_PROMOTION_CAPTURE)
+			delta.deltas[delta.size].index = Piece(ROOK, !GetTurn()) * 64 + GetTo(move);
+		if (GetFlag(move) == QUEEN_PROMOTION || GetFlag(move) == QUEEN_PROMOTION_CAPTURE)
+			delta.deltas[delta.size].index = Piece(QUEEN, !GetTurn()) * 64 + GetTo(move);
 
 		delta.deltas[delta.size++].delta = 1;
 	}
@@ -487,11 +487,11 @@ void Position::ApplyMoveQuick(Move move)
 {
 	SaveBoard();
 
-	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
-	ClearSquare(move.GetFrom());
+	SetSquare(GetTo(move), GetSquare(GetFrom(move)));
+	ClearSquare(GetFrom(move));
 
-	if (move.GetFlag() == EN_PASSANT)
-		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+	if (GetFlag(move) == EN_PASSANT)
+		ClearSquare(GetPosition(GetFile(GetTo(move)), GetRank(GetFrom(move))));
 }
 
 void Position::RevertMoveQuick()

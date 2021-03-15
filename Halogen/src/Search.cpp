@@ -120,7 +120,7 @@ void InitSearch()
 void PrintBestMove(Move Best)
 {
 	std::cout << "bestmove ";
-	Best.Print();
+	PrintMove(Best);
 	std::cout << std::endl;
 }
 
@@ -300,20 +300,20 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return alpha;
 
 	//Set up search variables
-	Move bestMove = Move();	
+	Move bestMove = Move::invalid;	
 	int a = alpha;
 	int b = beta;
 	int searchedMoves;
 	bool noLegalMoves = true;
 
 	//Rebel style IID. Don't ask why this helps but it does.
-	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+	if (!GetHashMove(position, distanceFromRoot) && depthRemaining > 3)
 		depthRemaining--;
 
 	bool FutileNode = (depthRemaining < FutilityMaxDepth) && (staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a);
 
 	MoveGenerator gen(position, distanceFromRoot, locals, false);
-	Move move;
+	Move move = Move::invalid;
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
 	{
@@ -450,7 +450,7 @@ Move GetTBMove(unsigned int result)
 	else
 		assert(0);
 
-	return Move(static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
+	return CreateMove(static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
 }
 
 void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals)
@@ -529,8 +529,8 @@ bool FutilityMoveGivesCheck(Position& position, Move move)
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck)
 {
 	return !IsPV(beta, alpha)
-		&& !move.IsCapture() 
-		&& !move.IsPromotion() 
+		&& !IsCapture(move) 
+		&& !isPromotion(move) 
 		&& !IsInCheck
 		&& !FutilityMoveGivesCheck(position, move);
 }
@@ -629,7 +629,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	int Score = staticScore;
 
 	MoveGenerator gen(position, distanceFromRoot, locals, true);
-	Move move;
+	Move move = Move::invalid;
 
 	while (gen.Next(move))
 	{
@@ -643,7 +643,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 		if (SEE < 0)														//prune bad captures
 			break;
 
-		if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
+		if (isPromotion(move) && !(GetFlag(move) == QUEEN_PROMOTION || GetFlag(move) == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
 			break;
 
 		position.ApplyMove(move);
@@ -662,7 +662,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>& KillerMoves)
 {
-	if (move.IsCapture() || move.IsPromotion() || KillerMoves[distanceFromRoot][0] == move) return;
+	if (IsCapture(move) || isPromotion(move) || KillerMoves[distanceFromRoot][0] == move) return;
 
 	KillerMoves[distanceFromRoot][1] = KillerMoves[distanceFromRoot][0];
 	KillerMoves[distanceFromRoot][0] = move;
@@ -670,7 +670,7 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>
 
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
 {
-	if (depthRemaining > 20 || move.IsCapture() || move.IsPromotion()) return;
+	if (depthRemaining > 20 || IsCapture(move) || isPromotion(move)) return;
 	gen.AdjustHistory(move, locals, depthRemaining);
 }
 

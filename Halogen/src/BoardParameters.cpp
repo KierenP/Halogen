@@ -74,34 +74,34 @@ void BoardParameters::RestorePreviousParameters()
 
 void BoardParameters::UpdateCastleRights(Move move)
 {
-	if (move.GetFrom() == SQ_E1 || move.GetTo() == SQ_E1)			//Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
+	if (GetFrom(move) == SQ_E1 || GetTo(move) == SQ_E1)			//Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
 	{
 		SetCanCastleWhiteKingside(false);
 		SetCanCastleWhiteQueenside(false);
 	}
 
-	if (move.GetFrom() == SQ_E8 || move.GetTo() == SQ_E8)
+	if (GetFrom(move) == SQ_E8 || GetTo(move) == SQ_E8)
 	{
 		SetCanCastleBlackKingside(false);
 		SetCanCastleBlackQueenside(false);
 	}
 
-	if (move.GetFrom() == SQ_A1 || move.GetTo() == SQ_A1)
+	if (GetFrom(move) == SQ_A1 || GetTo(move) == SQ_A1)
 	{
 		SetCanCastleWhiteQueenside(false);
 	}
 
-	if (move.GetFrom() == SQ_A8 || move.GetTo() == SQ_A8)
+	if (GetFrom(move) == SQ_A8 || GetTo(move) == SQ_A8)
 	{
 		SetCanCastleBlackQueenside(false);
 	}
 
-	if (move.GetFrom() == SQ_H1 || move.GetTo() == SQ_H1)
+	if (GetFrom(move) == SQ_H1 || GetTo(move) == SQ_H1)
 	{
 		SetCanCastleWhiteKingside(false);
 	}
 
-	if (move.GetFrom() == SQ_H8 || move.GetTo() == SQ_H8)
+	if (GetFrom(move) == SQ_H8 || GetTo(move) == SQ_H8)
 	{
 		SetCanCastleBlackKingside(false);
 	}

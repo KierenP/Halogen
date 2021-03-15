@@ -151,7 +151,7 @@ void AppendLegalMoves(Square from, uint64_t to, Position& position, MoveFlag fla
 	while (to != 0)
 	{
 		Square target = static_cast<Square>(LSBpop(to));
-		Move move(from, target, flag);
+		Move move = CreateMove(from, target, flag);
 		if (!(pinned & SquareBB[from]) || !MovePutsSelfInCheck(position, move))
 			moves.emplace_back(move);
 	}
@@ -163,7 +163,7 @@ void AppendLegalMoves(uint64_t from, Square to, Position& position, MoveFlag fla
 	while (from != 0)
 	{
 		Square source = static_cast<Square>(LSBpop(from));
-		Move move(source, to, flag);
+		Move move = CreateMove(source, to, flag);
 		if (!(pinned & SquareBB[source]) || !MovePutsSelfInCheck(position, move))
 			moves.emplace_back(move);
 	}
@@ -255,7 +255,7 @@ void PawnPushes(Position& position, std::vector<ExtendedMove>& moves, uint64_t p
 		Square end = static_cast<Square>(LSBpop(pawnPushes));
 		Square start = static_cast<Square>(end - foward);
 
-		Move move(start, end, QUIET);
+		Move move = CreateMove(start, end, QUIET);
 
 		if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck(position, move))
 			moves.emplace_back(move);
@@ -286,7 +286,7 @@ void PawnPromotions(Position& position, std::vector<ExtendedMove>& moves, uint64
 		Square end = static_cast<Square>(LSBpop(pawnPromotions));
 		Square start = static_cast<Square>(end - foward);
 
-		Move move(start, end, KNIGHT_PROMOTION);
+		Move move = CreateMove(start, end, KNIGHT_PROMOTION);
 		if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(position, move))
 			continue;
 
@@ -323,7 +323,7 @@ void PawnDoublePushes(Position& position, std::vector<ExtendedMove>& moves, uint
 		Square end = static_cast<Square>(LSBpop(targets));
 		Square start = static_cast<Square>(end - foward);
 
-		Move move(start, end, PAWN_DOUBLE_MOVE);
+		Move move = CreateMove(start, end, PAWN_DOUBLE_MOVE);
 
 		if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck(position, move))
 			moves.emplace_back(move);
@@ -367,7 +367,7 @@ void PawnCaptures(Position& position, std::vector<ExtendedMove>& moves, uint64_t
 		Square end = static_cast<Square>(LSBpop(leftAttack));
 		Square start = static_cast<Square>(end - fowardleft);
 
-		Move move(start, end, CAPTURE);
+		Move move = CreateMove(start, end, CAPTURE);
 		if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(position, move))
 			continue;
 
@@ -387,7 +387,7 @@ void PawnCaptures(Position& position, std::vector<ExtendedMove>& moves, uint64_t
 		Square end = static_cast<Square>(LSBpop(rightAttack));
 		Square start = static_cast<Square>(end - fowardright);
 
-		Move move(start, end, CAPTURE);
+		Move move = CreateMove(start, end, CAPTURE);
 		if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(position, move))
 			continue;
 
@@ -552,13 +552,13 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 	uint64_t pawnmask = PawnAttacks[!colour][square] & position.GetPieceBB(Piece(PAWN, colour));
 	if (pawnmask != 0)
 	{
-		return Move(static_cast<Square>(LSBpop(pawnmask)), square, CAPTURE);
+		return CreateMove(static_cast<Square>(LSBpop(pawnmask)), square, CAPTURE);
 	}
 
 	uint64_t knightmask = (KnightAttacks[square] & position.GetPieceBB(KNIGHT, colour));
 	if (knightmask != 0)
 	{
-		return Move(static_cast<Square>(LSBpop(knightmask)), square, CAPTURE);
+		return CreateMove(static_cast<Square>(LSBpop(knightmask)), square, CAPTURE);
 	}
 
 	uint64_t Pieces = position.GetAllPieces();
@@ -568,7 +568,7 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 	{
 		Square start = static_cast<Square>(LSBpop(bishops));
 		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
+			return CreateMove(start, square, CAPTURE);
 	}
 
 	uint64_t rook = position.GetPieceBB(ROOK, colour) & RookAttacks[square];
@@ -576,7 +576,7 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 	{
 		Square start = static_cast<Square>(LSBpop(rook));
 		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
+			return CreateMove(start, square, CAPTURE);
 	}
 
 	uint64_t queen = position.GetPieceBB(QUEEN, colour) & QueenAttacks[square];
@@ -584,13 +584,13 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 	{
 		Square start = static_cast<Square>(LSBpop(queen));
 		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
+			return CreateMove(start, square, CAPTURE);
 	}
 
 	uint64_t kingmask = (KingAttacks[square] & position.GetPieceBB(KING, colour));
 	if (kingmask != 0)
 	{
-		return Move(static_cast<Square>(LSBpop(kingmask)), square, CAPTURE);
+		return CreateMove(static_cast<Square>(LSBpop(kingmask)), square, CAPTURE);
 	}
 
 	return {};
@@ -599,13 +599,13 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 bool MoveIsLegal(Position& position, const Move& move)
 {
 	/*Obvious check first*/
-	if (move.IsUninitialized())
+	if ((move == 0))
 		return false;
 
-	Pieces piece = position.GetSquare(move.GetFrom());
+	Pieces piece = position.GetSquare(GetFrom(move));
 
 	/*Make sure there's a piece to be moved*/
-	if (position.GetSquare(move.GetFrom()) == N_PIECES)
+	if (position.GetSquare(GetFrom(move)) == N_PIECES)
 		return false;
 
 	/*Make sure the piece are are moving is ours*/
@@ -613,11 +613,11 @@ bool MoveIsLegal(Position& position, const Move& move)
 		return false;
 
 	/*Make sure we aren't capturing our own piece*/
-	if (position.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(position.GetSquare(move.GetTo())) == position.GetTurn())
+	if (position.GetSquare(GetTo(move)) != N_PIECES && ColourOfPiece(position.GetSquare(GetTo(move))) == position.GetTurn())
 		return false;
 
 	/*We don't use these flags*/
-	if (move.GetFlag() == DONT_USE_1 || move.GetFlag() == DONT_USE_2)
+	if (GetFlag(move) == DONT_USE_1 || GetFlag(move) == DONT_USE_2)
 		return false;
 
 	uint64_t allPieces = position.GetAllPieces();
@@ -625,7 +625,7 @@ bool MoveIsLegal(Position& position, const Move& move)
 	/*Anything in the way of sliding pieces?*/
 	if (piece == WHITE_BISHOP || piece == BLACK_BISHOP || piece == WHITE_ROOK || piece == BLACK_ROOK || piece == WHITE_QUEEN || piece == BLACK_QUEEN)
 	{
-		if (!mayMove(move.GetFrom(), move.GetTo(), allPieces))
+		if (!mayMove(GetFrom(move), GetTo(move), allPieces))
 			return false;
 	}
 
@@ -636,34 +636,34 @@ bool MoveIsLegal(Position& position, const Move& move)
 		Rank startingRank = piece == WHITE_PAWN ? RANK_2 : RANK_7;
 
 		//pawn push
-		if (RankDiff(move.GetTo(), move.GetFrom()) == forward && FileDiff(move.GetFrom(), move.GetTo()) == 0)
+		if (RankDiff(GetTo(move), GetFrom(move)) == forward && FileDiff(GetFrom(move), GetTo(move)) == 0)
 		{
-			if (position.IsOccupied(move.GetTo()))			//Something in the way!
+			if (position.IsOccupied(GetTo(move)))			//Something in the way!
 				return false;
 		}
 
 		//pawn double push
-		else if (RankDiff(move.GetTo(), move.GetFrom()) == forward * 2 && FileDiff(move.GetFrom(), move.GetTo()) == 0)
+		else if (RankDiff(GetTo(move), GetFrom(move)) == forward * 2 && FileDiff(GetFrom(move), GetTo(move)) == 0)
 		{
-			if (GetRank(move.GetFrom()) != startingRank)	//double move not from starting rank
+			if (GetRank(GetFrom(move)) != startingRank)	//double move not from starting rank
 				return false;
-			if (position.IsOccupied(move.GetTo()))			//something on target square
+			if (position.IsOccupied(GetTo(move)))			//something on target square
 				return false;
-			if (!position.IsEmpty(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2)))	//something in between
+			if (!position.IsEmpty(static_cast<Square>((GetTo(move) + GetFrom(move)) / 2)))	//something in between
 				return false;
 		}
 
 		//pawn capture (not EP)
-		else if (RankDiff(move.GetTo(), move.GetFrom()) == forward && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1 && position.GetEnPassant() != move.GetTo())	
+		else if (RankDiff(GetTo(move), GetFrom(move)) == forward && AbsFileDiff(GetFrom(move), GetTo(move)) == 1 && position.GetEnPassant() != GetTo(move))	
 		{
-			if (position.IsEmpty(move.GetTo()))				//nothing there to capture
+			if (position.IsEmpty(GetTo(move)))				//nothing there to capture
 				return false;
 		}
 
 		//pawn capture (EP)
-		else if (RankDiff(move.GetTo(), move.GetFrom()) == forward && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1 && position.GetEnPassant() == move.GetTo())
+		else if (RankDiff(GetTo(move), GetFrom(move)) == forward && AbsFileDiff(GetFrom(move), GetTo(move)) == 1 && position.GetEnPassant() == GetTo(move))
 		{
-			if (position.IsEmpty(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))))	//nothing there to capture
+			if (position.IsEmpty(GetPosition(GetFile(GetTo(move)), GetRank(GetFrom(move)))))	//nothing there to capture
 				return false;
 		}
 
@@ -676,36 +676,36 @@ bool MoveIsLegal(Position& position, const Move& move)
 	/*Check the pieces can actually move as required*/
 	if (piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
 	{
-		if ((SquareBB[move.GetTo()] & KnightAttacks[move.GetFrom()]) == 0)
+		if ((SquareBB[GetTo(move)] & KnightAttacks[GetFrom(move)]) == 0)
 			return false;
 	}
 
-	if ((piece == WHITE_KING || piece == BLACK_KING) && !(move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE))
+	if ((piece == WHITE_KING || piece == BLACK_KING) && !(GetFlag(move) == KING_CASTLE || GetFlag(move) == QUEEN_CASTLE))
 	{
-		if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
+		if ((SquareBB[GetTo(move)] & KingAttacks[GetFrom(move)]) == 0)
 			return false;
 	}
 
 	if (piece == WHITE_ROOK || piece == BLACK_ROOK)
 	{
-		if ((SquareBB[move.GetTo()] & RookAttacks[move.GetFrom()]) == 0)
+		if ((SquareBB[GetTo(move)] & RookAttacks[GetFrom(move)]) == 0)
 			return false;
 	}
 
 	if (piece == WHITE_BISHOP || piece == BLACK_BISHOP)
 	{
-		if ((SquareBB[move.GetTo()] & BishopAttacks[move.GetFrom()]) == 0)
+		if ((SquareBB[GetTo(move)] & BishopAttacks[GetFrom(move)]) == 0)
 			return false;
 	}
 
 	if (piece == WHITE_QUEEN || piece == BLACK_QUEEN)
 	{
-		if ((SquareBB[move.GetTo()] & QueenAttacks[move.GetFrom()]) == 0)
+		if ((SquareBB[GetTo(move)] & QueenAttacks[GetFrom(move)]) == 0)
 			return false;
 	}
 
 	/*For castle moves, just generate them and see if we find a match*/
-	if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
+	if (GetFlag(move) == KING_CASTLE || GetFlag(move) == QUEEN_CASTLE)
 	{
 		std::vector<ExtendedMove> moves;
 		CastleMoves(position, moves);
@@ -724,57 +724,57 @@ bool MoveIsLegal(Position& position, const Move& move)
 	MoveFlag flag = QUIET;
 
 	//Captures
-	if (position.IsOccupied(move.GetTo()))
+	if (position.IsOccupied(GetTo(move)))
 		flag = CAPTURE;
 
 	//Double pawn moves
-	if (AbsRankDiff(move.GetFrom(), move.GetTo()) == 2)
-		if (position.GetSquare(move.GetFrom()) == WHITE_PAWN || position.GetSquare(move.GetFrom()) == BLACK_PAWN)
+	if (AbsRankDiff(GetFrom(move), GetTo(move)) == 2)
+		if (position.GetSquare(GetFrom(move)) == WHITE_PAWN || position.GetSquare(GetFrom(move)) == BLACK_PAWN)
 			flag = PAWN_DOUBLE_MOVE;
 
 	//En passant
-	if (move.GetTo() == position.GetEnPassant())
-		if (position.GetSquare(move.GetFrom()) == WHITE_PAWN || position.GetSquare(move.GetFrom()) == BLACK_PAWN)
+	if (GetTo(move) == position.GetEnPassant())
+		if (position.GetSquare(GetFrom(move)) == WHITE_PAWN || position.GetSquare(GetFrom(move)) == BLACK_PAWN)
 			flag = EN_PASSANT;
 
 	//Castling
-	if (move.GetFrom() == SQ_E1 && move.GetTo() == SQ_G1 && position.GetSquare(move.GetFrom()) == WHITE_KING)
+	if (GetFrom(move) == SQ_E1 && GetTo(move) == SQ_G1 && position.GetSquare(GetFrom(move)) == WHITE_KING)
 		flag = KING_CASTLE;
 
-	if (move.GetFrom() == SQ_E1 && move.GetTo() == SQ_C1 && position.GetSquare(move.GetFrom()) == WHITE_KING)
+	if (GetFrom(move) == SQ_E1 && GetTo(move) == SQ_C1 && position.GetSquare(GetFrom(move)) == WHITE_KING)
 		flag = QUEEN_CASTLE;
 
-	if (move.GetFrom() == SQ_E8 && move.GetTo() == SQ_G8 && position.GetSquare(move.GetFrom()) == BLACK_KING)
+	if (GetFrom(move) == SQ_E8 && GetTo(move) == SQ_G8 && position.GetSquare(GetFrom(move)) == BLACK_KING)
 		flag = KING_CASTLE;
 
-	if (move.GetFrom() == SQ_E8 && move.GetTo() == SQ_C8 && position.GetSquare(move.GetFrom()) == BLACK_KING)
+	if (GetFrom(move) == SQ_E8 && GetTo(move) == SQ_C8 && position.GetSquare(GetFrom(move)) == BLACK_KING)
 		flag = QUEEN_CASTLE;
 
 	//Promotion
-	if (   (position.GetSquare(move.GetFrom()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_8) 
-		|| (position.GetSquare(move.GetFrom()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_1))
+	if (   (position.GetSquare(GetFrom(move)) == WHITE_PAWN && GetRank(GetTo(move)) == RANK_8) 
+		|| (position.GetSquare(GetFrom(move)) == BLACK_PAWN && GetRank(GetTo(move)) == RANK_1))
 	{
-		if (position.IsOccupied(move.GetTo()))
+		if (position.IsOccupied(GetTo(move)))
 		{
-			if (move.GetFlag() != KNIGHT_PROMOTION_CAPTURE
-			 && move.GetFlag() != ROOK_PROMOTION_CAPTURE
-			 && move.GetFlag() != QUEEN_PROMOTION_CAPTURE
-			 && move.GetFlag() != BISHOP_PROMOTION_CAPTURE)
+			if (GetFlag(move) != KNIGHT_PROMOTION_CAPTURE
+			 && GetFlag(move) != ROOK_PROMOTION_CAPTURE
+			 && GetFlag(move) != QUEEN_PROMOTION_CAPTURE
+			 && GetFlag(move) != BISHOP_PROMOTION_CAPTURE)
 				return false;
 		}
 		else
 		{
-			if (move.GetFlag() != KNIGHT_PROMOTION
-			 && move.GetFlag() != ROOK_PROMOTION
-			 && move.GetFlag() != QUEEN_PROMOTION
-			 && move.GetFlag() != BISHOP_PROMOTION)
+			if (GetFlag(move) != KNIGHT_PROMOTION
+			 && GetFlag(move) != ROOK_PROMOTION
+			 && GetFlag(move) != QUEEN_PROMOTION
+			 && GetFlag(move) != BISHOP_PROMOTION)
 				return false;
 		}
 	}
 	else
 	{
 		//check the decided on flag matches
-		if (flag != move.GetFlag())
+		if (flag != GetFlag(move))
 			return false;
 	}
 	//-----------------------------
@@ -791,8 +791,8 @@ This function does not work for casteling moves. They are tested for legality th
 */
 bool MovePutsSelfInCheck(Position& position, const Move & move)
 {
-	assert(move.GetFlag() != KING_CASTLE);
-	assert(move.GetFlag() != QUEEN_CASTLE);
+	assert(GetFlag(move) != KING_CASTLE);
+	assert(GetFlag(move) != QUEEN_CASTLE);
 
 	position.ApplyMoveQuick(move);
 	bool ret = IsInCheck(position, position.GetTurn());

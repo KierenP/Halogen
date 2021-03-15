@@ -435,7 +435,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
 		position.RevertMove();
 
-		moves[i].move.Print();
+		PrintMove(moves[i].move);
 		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}

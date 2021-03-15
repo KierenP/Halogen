@@ -9,12 +9,13 @@
 struct ExtendedMove
 {
 	ExtendedMove(const Move _move, const int _score = 0, const short int _SEE = 0) : move(_move), score(_score), SEE(_SEE) {}
-	ExtendedMove(Square from, Square to, MoveFlag flag) : move(from, to, flag), score(0), SEE(0) {}
+	ExtendedMove(Square from, Square to, MoveFlag flag) 
+		: move(CreateMove(from, to, flag)), score(0), SEE(0) {}
 
 	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
 	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
 
-	Move move;
+	Move move = Move::invalid;
 	int16_t score;
 	int16_t SEE;
 };
