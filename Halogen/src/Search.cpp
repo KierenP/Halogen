@@ -509,11 +509,8 @@ int extension(const Position& position, int alpha, int beta)
 {
 	int extension = 0;
 
-	if (IsPV(beta, alpha))
-	{
-		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
-			extension += 1;
-	}
+	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
+		extension += 1;
 
 	return extension;
 }
