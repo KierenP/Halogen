@@ -202,7 +202,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 	if (CheckForRep(position, distanceFromRoot)							//Have we had a draw by repitition?
 		|| position.GetFiftyMoveCount() > 100)							//cannot use >= as it could currently be checkmate which would count as a win
-		return 8 - (locals.GetThreadNodes() & 0b1111);
+		return 8 - (locals.GetThreadNodes() & 0b1111);					//as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with permission from Koivisto authors. 
 	
 	int Score = LowINF;
 	int MaxScore = HighINF;
