@@ -199,8 +199,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
 	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
 
-	if (DeadPosition(position)											//Is this position a dead draw?
-		|| CheckForRep(position, distanceFromRoot)						//Have we had a draw by repitition?
+	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
+	if (CheckForRep(position, distanceFromRoot)							//Have we had a draw by repitition?
 		|| position.GetFiftyMoveCount() > 100)							//cannot use >= as it could currently be checkmate which would count as a win
 		return 8 - locals.GetThreadNodes() & 0b1111;
 	
