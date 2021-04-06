@@ -244,7 +244,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	//Query the transpotition table
-	if (true /*!IsPV(beta, alpha)*/) 
+	if (!IsPV(beta, alpha)) 
 	{
 		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
