@@ -198,9 +198,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	//See if we should abort the search
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
 	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
-	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
-	if (CheckForRep(position, distanceFromRoot)) return 0;				//Have we had a draw by repitition?
-	if (position.GetFiftyMoveCount() > 100) return 0;					//cannot use >= as it could currently be checkmate which would count as a win
+
+	if (DeadPosition(position)											//Is this position a dead draw?
+		|| CheckForRep(position, distanceFromRoot)						//Have we had a draw by repitition?
+		|| position.GetFiftyMoveCount() > 100)							//cannot use >= as it could currently be checkmate which would count as a win
+		return 8 - locals.GetThreadNodes() & 0b1111;
 	
 	int Score = LowINF;
 	int MaxScore = HighINF;
@@ -242,7 +244,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	//Query the transpotition table
-	if (!IsPV(beta, alpha)) 
+	if (true /*!IsPV(beta, alpha)*/) 
 	{
 		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
