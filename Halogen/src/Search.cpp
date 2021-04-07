@@ -160,6 +160,14 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	int beta  = prevScore + delta;
 	SearchResult search = 0;
 
+	int panicCount = 0;
+
+	if (depth < 8)
+	{
+		alpha = LowINF;
+		beta = HighINF;
+	}
+
 	while (true)
 	{
 		position.ResetSeldepth();
