@@ -1,6 +1,5 @@
 #include "Benchmark.h"
 #include "Search.h"
-#include <thread>
 
 using namespace::std; 
 
@@ -10,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10";
+string version = "10.7";
 
 int main(int argc, char* argv[])
 {
@@ -35,6 +34,13 @@ int main(int argc, char* argv[])
 		Line += argv[i];
 		Line += " ";
 	}
+
+	/*Tuneable search constants*/
+
+	double timeIncCoeffA = 40.0;
+	double timeIncCoeffB = 30.0;
+
+	//---------------------------
 
 	while (!Line.empty() || getline(cin, Line))
 	{
@@ -147,7 +153,7 @@ int main(int argc, char* argv[])
 					AllocatedTime = myTime / (movestogo + 1) * 3 / 2;	//repeating time control
 				else if (myInc != 0)
 					// use a greater proportion of remaining time as the game continues, so that we use it all up and get to just increment
-					AllocatedTime = myTime * (1 + position.GetTurnCount() / 40.0) / 20 + myInc;	//increment time control
+					AllocatedTime = myTime * (1 + position.GetTurnCount() / timeIncCoeffA) / timeIncCoeffB + myInc;	//increment time control
 				else
 					AllocatedTime = myTime / 20;						//sudden death time control
 
@@ -278,6 +284,20 @@ int main(int argc, char* argv[])
 				iss >> token; //'value'
 				iss >> token;
 				SNMP_coeff = stoi(token);
+			}
+
+			else if (token == "timeIncCoeffA")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				timeIncCoeffA = stod(token);
+			}
+
+			else if (token == "timeIncCoeffB")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				timeIncCoeffB = stod(token);
 			}
 		}
 

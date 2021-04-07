@@ -199,9 +199,11 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	//See if we should abort the search
 	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
 	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
+
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
-	if (CheckForRep(position, distanceFromRoot)) return 0;				//Have we had a draw by repitition?
-	if (position.GetFiftyMoveCount() > 100) return 0;					//cannot use >= as it could currently be checkmate which would count as a win
+	if (CheckForRep(position, distanceFromRoot)							//Have we had a draw by repitition?
+		|| position.GetFiftyMoveCount() > 100)							//cannot use >= as it could currently be checkmate which would count as a win
+		return 8 - (locals.GetThreadNodes() & 0b1111);					//as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with permission from Koivisto authors. 
 	
 	int Score = LowINF;
 	int MaxScore = HighINF;
@@ -510,11 +512,8 @@ int extension(const Position& position, int alpha, int beta)
 {
 	int extension = 0;
 
-	if (IsPV(beta, alpha))
-	{
-		if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
-			extension += 1;
-	}
+	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))	
+		extension += 1;
 
 	return extension;
 }
@@ -643,9 +642,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 		if (SEE < 0)														//prune bad captures
 			break;
-
-		if (SEE <= 0 && position.GetCaptureSquare() != move.GetTo())		//prune equal captures that aren't recaptures
-			continue;
 
 		if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))	//prune underpromotions
 			break;

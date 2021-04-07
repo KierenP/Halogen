@@ -410,7 +410,7 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 
 		for (int sq = 0; sq < N_SQUARES; sq++)
 		{
-			ret[modifier(i * 64 + sq)] = ((bb & SquareBB[sq]) != 0);
+			ret[i * 64 + sq] = ((bb & SquareBB[sq]) != 0);
 		}
 	}
 
@@ -424,75 +424,63 @@ deltaArray& Position::CalculateMoveDelta(Move move)
 
 	if (!move.IsPromotion())
 	{
-		delta.deltas[delta.size].index = modifier(GetSquare(move.GetTo()) * 64 + move.GetFrom());			//toggle the square we left
+		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetFrom();			//toggle the square we left
 		delta.deltas[delta.size++].delta = -1;
-		delta.deltas[delta.size].index = modifier(GetSquare(move.GetTo()) * 64 + move.GetTo());			//toggle the arriving square
+		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetTo();			//toggle the arriving square
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//En Passant
 	if (move.GetFlag() == EN_PASSANT)
 	{
-		delta.deltas[delta.size].index = modifier(Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));	//remove the captured piece
+		delta.deltas[delta.size].index = Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));	//remove the captured piece
 		delta.deltas[delta.size++].delta = -1;
 	}
 
 	//Captures
 	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
 	{
-		delta.deltas[delta.size].index = modifier(GetCapturePiece() * 64 + move.GetTo());
+		delta.deltas[delta.size].index = GetCapturePiece() * 64 + move.GetTo();
 		delta.deltas[delta.size++].delta = -1;
 	}
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
-		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom())));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()));
 		delta.deltas[delta.size++].delta = -1;
 
-		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom())));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()));
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	if (move.GetFlag() == QUEEN_CASTLE)
 	{
-		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom())));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()));
 		delta.deltas[delta.size++].delta = -1;
 
-		delta.deltas[delta.size].index = modifier(GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom())));
+		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()));
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	//Promotions
 	if (move.IsPromotion())
 	{
-		delta.deltas[delta.size].index = modifier(Piece(PAWN, !GetTurn()) * 64 + move.GetFrom());
+		delta.deltas[delta.size].index = Piece(PAWN, !GetTurn()) * 64 + move.GetFrom();
 		delta.deltas[delta.size++].delta = -1;
 
 		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = modifier(Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo());
+			delta.deltas[delta.size].index = Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo();
 		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = modifier(Piece(BISHOP, !GetTurn()) * 64 + move.GetTo());
+			delta.deltas[delta.size].index = Piece(BISHOP, !GetTurn()) * 64 + move.GetTo();
 		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = modifier(Piece(ROOK, !GetTurn()) * 64 + move.GetTo());
+			delta.deltas[delta.size].index = Piece(ROOK, !GetTurn()) * 64 + move.GetTo();
 		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = modifier(Piece(QUEEN, !GetTurn()) * 64 + move.GetTo());
+			delta.deltas[delta.size].index = Piece(QUEEN, !GetTurn()) * 64 + move.GetTo();
 
 		delta.deltas[delta.size++].delta = 1;
 	}
 
 	return delta;
-}
-
-size_t Position::modifier(size_t index)
-{
-	if (index >= 384)
-	{
-		return index - 384;
-	}
-	else
-	{
-		return index + 384;
-	}
 }
 
 void Position::ApplyMoveQuick(Move move)

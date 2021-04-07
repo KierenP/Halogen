@@ -85,11 +85,6 @@ bool Move::IsUninitialized() const
 	return (data == 0);
 }
 
-void Move::Reset()
-{
-	data = 0;
-}
-
 void Move::SetFrom(Square from)
 {
 	data &= ~FROM_MASK;

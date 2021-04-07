@@ -71,6 +71,8 @@ public:
 
 	void AddHistory(Players side, Square from, Square to, int change);
 
+	uint64_t GetThreadNodes() const { return nodes; }
+
 private:
 	friend class ThreadSharedData;
 	uint64_t tbHits = 0;

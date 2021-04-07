@@ -61,8 +61,6 @@ private:
 	std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
 	deltaArray& CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input parameter
 
-	static size_t modifier(size_t index);					//no inputs for pawns on front or back rank for neural net: we need to modify zobrist-like indexes
-
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
 	Network net;
 };
