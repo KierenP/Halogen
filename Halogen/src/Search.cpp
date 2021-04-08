@@ -230,6 +230,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			if (result == TB_WIN)
 			{
 				MinScore = probe.GetScore();
+				alpha = std::max(alpha, MinScore);
 			}
 
 			if (result == TB_LOSS)
