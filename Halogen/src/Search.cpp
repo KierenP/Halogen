@@ -206,6 +206,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	
 	int Score = LowINF;
 	int MaxScore = HighINF;
+	int MinScore = LowINF;
 
 	//Probe TB in search
 	if (position.GetFiftyMoveCount() == 0 
@@ -221,24 +222,19 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			locals.AddTbHit();
 			auto probe = UseSearchTBScore(result, distanceFromRoot);
 
-			if (probe.GetScore() == 0)
-				return probe;
-			if (probe.GetScore() >= TBWinIn(MAX_DEPTH) && probe.GetScore() >= beta)
-				return probe;
-			if (probe.GetScore() <= TBLossIn(MAX_DEPTH) && probe.GetScore() <= alpha)
+			if ((probe.GetScore() == 0) || 
+				(result == TB_WIN && probe.GetScore() >= beta) || 
+				(result == TB_LOSS && probe.GetScore() <= alpha))
 				return probe;
 
-			if (IsPV(beta, alpha)) 
+			if (result == TB_WIN)
 			{
-				if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
-				{
-					Score = probe.GetScore();
-					alpha = std::max(alpha, probe.GetScore());
-				}
-				else
-				{
-					MaxScore = probe.GetScore();
-				}
+				MinScore = probe.GetScore();
+			}
+
+			if (result == TB_LOSS)
+			{
+				MaxScore = probe.GetScore();
 			}
 		}
 	}
@@ -379,7 +375,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return TerminalScore(position, distanceFromRoot);
 	}
 
-	Score = std::min(Score, MaxScore);
+	Score = std::clamp(Score, MinScore, MaxScore);
 
 	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))
 		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
@@ -422,11 +418,11 @@ SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 	if (result == TB_LOSS)
 		score = TBLossIn(distanceFromRoot);
 	else if (result == TB_BLESSED_LOSS)
-		score = -1;
+		score = 0;
 	else if (result == TB_DRAW)
 		score = 0;
 	else if (result == TB_CURSED_WIN)
-		score = 1;
+		score = 0;
 	else if (result == TB_WIN)
 		score = TBWinIn(distanceFromRoot);
 	else
