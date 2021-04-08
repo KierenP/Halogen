@@ -40,10 +40,10 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 int Reduction(int depth, int i);
-int matedIn(int distanceFromRoot);
-int mateIn(int distanceFromRoot);
-int TBLossIn(int distanceFromRoot);
-int TBWinIn(int distanceFromRoot);
+constexpr int matedIn(int distanceFromRoot);
+constexpr int mateIn(int distanceFromRoot);
+constexpr int TBLossIn(int distanceFromRoot);
+constexpr int TBWinIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
 unsigned int ProbeTBSearch(const Position& position);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
@@ -420,15 +420,15 @@ SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 	int score = -1;
 
 	if (result == TB_LOSS)
-		score = -5000 + distanceFromRoot;
+		score = TBLossIn(distanceFromRoot);
 	else if (result == TB_BLESSED_LOSS)
-		score = 0;
+		score = -1;
 	else if (result == TB_DRAW)
 		score = 0;
 	else if (result == TB_CURSED_WIN)
-		score = 0;
+		score = 1;
 	else if (result == TB_WIN)
-		score = 5000 - distanceFromRoot;
+		score = TBWinIn(distanceFromRoot);
 	else
 		assert(0);
 
@@ -588,22 +588,22 @@ int TerminalScore(const Position& position, int distanceFromRoot)
 	}
 }
 
-int matedIn(int distanceFromRoot)
+constexpr int matedIn(int distanceFromRoot)
 {
 	return MATED + distanceFromRoot;
 }
 
-int mateIn(int distanceFromRoot)
+constexpr int mateIn(int distanceFromRoot)
 {
 	return MATE - distanceFromRoot;
 }
 
-int TBLossIn(int distanceFromRoot)
+constexpr int TBLossIn(int distanceFromRoot)
 {
 	return TB_LOSS_SCORE + distanceFromRoot;
 }
 
-int TBWinIn(int distanceFromRoot)
+constexpr int TBWinIn(int distanceFromRoot)
 {
 	return TB_WIN_SCORE - distanceFromRoot;
 }

@@ -24,9 +24,9 @@ TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int curre
 
 void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 {
-	if (score > 9000)	//checkmate node
+	if (score > EVAL_MAX)	//checkmate node
 		score -= static_cast<short>(distanceFromRoot);
-	if (score < -9000)
+	if (score < EVAL_MIN)
 		score += static_cast<short>(distanceFromRoot);
 }
 
