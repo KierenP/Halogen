@@ -228,6 +228,26 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			if (probe.GetScore() <= TBLossIn(MAX_DEPTH) && probe.GetScore() <= alpha)
 				return probe;
 
+			// Why update score ?
+			// Because in a PV node we want the returned score to be accurate and reflect the TB score.
+			// As such, we either set a cap for the score or raise the score to a minimum which can be further improved.
+			// Remember, static evals will never reach these impossible tb-win/loss scores
+
+			// Why don't we update score in non-PV nodes?
+			// Because if we are in a non-pv node and didn't get a cutoff then we had one of two situations:
+			// 1. We found a tb - win which is further from root than a tb - win from another line
+			// 2. We found a tb - loss which is closer to root than a tb - loss from another line
+			// Either way this node won't become part of the PV and so getting the correct score doesn't matter
+
+			// Why do we update alpha?
+			// Because we are spending effort exploring a subtree when we already know the result. All we actually
+			// care about is whether there exists a forced mate or not from this node, and hence we raise alpha
+			// to an impossible goal that prunes away all non-mate scores.
+
+			// Why don't we raise alpha in non-pv nodes?
+			// Because if we had a tb-win and the score < beta, then it must also be <= alpha remembering we are in a
+			// zero width search and beta = alpha + 1.
+
 			if (IsPV(beta, alpha))
 			{
 				if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
