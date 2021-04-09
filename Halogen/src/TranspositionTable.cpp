@@ -19,7 +19,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 {
 	size_t hash = HashFunction(ZobristKey);
 
-	if (Score > EVAL_MAX)	//checkmate node or TB win/loss
+	//checkmate node or TB win/loss
+	if (Score > EVAL_MAX)	
 		Score += distanceFromRoot;
 	if (Score < EVAL_MIN)
 		Score -= distanceFromRoot;
