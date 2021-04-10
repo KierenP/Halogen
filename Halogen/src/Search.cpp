@@ -1,36 +1,6 @@
 #include "Search.h"
 
-/*Tuneable search constants*/
-
-double LMR_constant = -1.76;
-double LMR_coeff = 1.03;
-
-int Null_constant = 4;
-int Null_depth_quotent = 6;
-int Null_beta_quotent = 250;
-
-int Futility_linear = 25;
-int Futility_constant = 100;
-
-int Aspiration_window = 15;
-
-int Delta_margin = 200;
-
-int SNMP_depth = 7;
-int SNMP_coeff = 119;
-
-/*----------------*/
-
-constexpr int FutilityMaxDepth = 10;
-int FutilityMargins[FutilityMaxDepth];		//[depth]
-int LMR_reduction[64][64] = {};				//[depth][move number]
-
-constexpr int LMPLimit[] = { 10, 17, 24, 31, 38, 45 };
-
-//intentionally uses signed rather than unsigned
-//as size() will be compared to signed types
-template<class T, int N>
-constexpr int size(T(&)[N]) { return N; }
+int LMR_reduction[64][64];				//[depth][move number]
 
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
@@ -109,11 +79,6 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 void InitSearch()
 {
 	KeepSearching = true;
-
-	for (int i = 0; i < FutilityMaxDepth; i++)
-	{
-		FutilityMargins[i] = Futility_linear * i + Futility_constant;
-	}
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -295,7 +260,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	//Static null move pruning
-	if (depthRemaining <= SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
+	if (depthRemaining < SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
 
 	//Null move pruning
 	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
@@ -339,7 +304,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
-	bool FutileNode = (depthRemaining < FutilityMaxDepth) && (staticScore + FutilityMargins[std::max<int>(0, depthRemaining)] < a);
+	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * std::max(0, depthRemaining) < a;
 
 	MoveGenerator gen(position, distanceFromRoot, locals, false);
 	Move move;
@@ -353,7 +318,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		locals.AddNode();
 
 		// late move pruning
-		if (depthRemaining < size(LMPLimit) && searchedMoves >= LMPLimit[std::max(0, depthRemaining)] && Score > TBLossIn(MAX_DEPTH))
+		if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * std::max(0, depthRemaining) && Score > TBLossIn(MAX_DEPTH))
 			gen.SkipQuiets();
 
 		//futility pruning
