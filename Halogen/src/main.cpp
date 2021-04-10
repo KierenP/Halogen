@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.9";
+string version = "10.9.1";
 
 int main(int argc, char* argv[])
 {
@@ -244,18 +244,25 @@ int main(int argc, char* argv[])
 				Null_beta_quotent = stoi(token);
 			}
 
-			else if (token == "Futility_linear")
-			{
-				iss >> token; //'value'
-				iss >> token;
-				Futility_linear = stoi(token);
-			}
-
 			else if (token == "Futility_constant")
 			{
 				iss >> token; //'value'
 				iss >> token;
 				Futility_constant = stoi(token);
+			}
+
+			else if (token == "Futility_coeff")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Futility_coeff = stoi(token);
+			}
+
+			else if (token == "Futility_depth")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				Futility_depth = stoi(token);
 			}
 
 			else if (token == "Aspiration_window")
@@ -272,6 +279,13 @@ int main(int argc, char* argv[])
 				Delta_margin = stoi(token);
 			}
 
+			else if (token == "SNMP_coeff")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				SNMP_coeff = stoi(token);
+			}
+
 			else if (token == "SNMP_depth")
 			{
 				iss >> token; //'value'
@@ -279,11 +293,25 @@ int main(int argc, char* argv[])
 				SNMP_depth = stoi(token);
 			}
 
-			else if (token == "SNMP_coeff")
+			else if (token == "LMP_constant")
 			{
 				iss >> token; //'value'
 				iss >> token;
-				SNMP_coeff = stoi(token);
+				LMP_constant = stoi(token);
+			}
+
+			else if (token == "LMP_coeff")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				LMP_coeff = stoi(token);
+			}
+
+			else if (token == "LMP_depth")
+			{
+				iss >> token; //'value'
+				iss >> token;
+				LMP_depth = stoi(token);
 			}
 
 			else if (token == "timeIncCoeffA")
