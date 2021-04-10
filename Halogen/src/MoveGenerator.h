@@ -22,6 +22,8 @@ public:
 
 	void AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const;
 
+	void SkipQuiets();
+
 private:
 	void OrderMoves(std::vector<ExtendedMove>& moves);
 
@@ -39,6 +41,8 @@ private:
 	Move TTmove;
 	Move Killer1;
 	Move Killer2;
+
+	bool skipQuiets = false;
 };
 
 Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
