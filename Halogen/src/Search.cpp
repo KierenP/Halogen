@@ -25,7 +25,7 @@ constexpr int FutilityMaxDepth = 10;
 int FutilityMargins[FutilityMaxDepth];		//[depth]
 int LMR_reduction[64][64] = {};				//[depth][move number]
 
-constexpr int LMPLimit[] = { 1, 3, 6, 10, 15, 21 };
+constexpr int LMPLimit[] = { 10, 17, 24, 31, 38, 45 };
 
 //intentionally uses signed rather than unsigned
 //as size() will be compared to signed types
