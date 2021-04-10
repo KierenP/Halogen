@@ -31,7 +31,6 @@ bool CheckForRep(const Position& position, int distanceFromRoot);
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck);
 bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
 bool IsEndGame(const Position& position);
-bool IsPV(int beta, int alpha);
 void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
@@ -51,7 +50,10 @@ Move GetTBMove(unsigned int result);
 
 void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
+
+template <bool PVnode>
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
+
 void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move);
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
@@ -163,7 +165,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	while (true)
 	{
 		position.ResetSeldepth();
-		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
+		search = NegaScout<true>(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 
 		if (alpha < search.GetScore() && search.GetScore() < beta) break;
 		if (sharedData.ThreadAbort(depth)) break;
@@ -188,6 +190,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 	return search;
 }
 
+template <bool PVnode>
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
 	position.ReportDepth(distanceFromRoot);
@@ -248,7 +251,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			// Because if we had a tb-win and the score < beta, then it must also be <= alpha remembering we are in a
 			// zero width search and beta = alpha + 1.
 
-			if (IsPV(beta, alpha))
+			if (PVnode)
 			{
 				if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
 				{
@@ -264,7 +267,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	}
 
 	//Query the transpotition table
-	if (!IsPV(beta, alpha)) 
+	if (!PVnode) 
 	{
 		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
 		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
@@ -288,15 +291,15 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable); 
 
 	//Static null move pruning
-	if (depthRemaining <= SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha)) return beta;
+	if (depthRemaining <= SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !PVnode) return beta;
 
 	//Null move pruning
-	if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
+	if (!PVnode && AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
 	{
 		unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent + std::min(3, (staticScore - beta) / Null_beta_quotent);
 
 		position.ApplyNullMove();
-		int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
+		int score = -NegaScout<false>(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour, distanceFromRoot + 1, false, locals, sharedData).GetScore();
 		position.RevertNullMove();
 
 		if (score >= beta)
@@ -304,7 +307,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			if (beta < matedIn(MAX_DEPTH) || depthRemaining >= 10)	//TODO: I'm not sure about this first condition
 			{
 				//Do verification search for high depths
-				SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
+				SearchResult result = NegaScout<false>(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false, locals, sharedData);
 				if (result.GetScore() >= beta)
 					return result;
 			}
@@ -346,7 +349,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		locals.AddNode();
 
 		//futility pruning
-		if (IsFutile(move, beta, alpha, position, InCheck) && searchedMoves > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (!PVnode && IsFutile(move, beta, alpha, position, InCheck) && searchedMoves > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
 			continue;
 
 		position.ApplyMove(move);
@@ -358,12 +361,12 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		{
 			int reduction = Reduction(depthRemaining, searchedMoves);
 
-			if (IsPV(beta, alpha))
+			if (PVnode)
 				reduction--;
 
 			reduction = std::max(0, reduction);
 
-			int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+			int score = -NegaScout<false>(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
 
 			if (score <= a)
 			{
@@ -372,10 +375,19 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			}
 		}
 
-		int newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
-		if (newScore > a && newScore < beta && searchedMoves >= 1)	//MultiPV issues here
-		{	
-			newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+		int newScore;
+		if (searchedMoves == 0)
+		{
+			newScore = -NegaScout<PVnode>(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+		}
+		else
+		{
+			newScore = -NegaScout<false>(position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+
+			if (newScore > a && newScore < beta)	//MultiPV issues here
+			{
+				newScore = -NegaScout<true>(position, initialDepth, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1, true, locals, sharedData).GetScore();
+			}
 		}
 
 		position.RevertMove();
@@ -547,8 +559,7 @@ bool FutilityMoveGivesCheck(Position& position, Move move)
 
 bool IsFutile(Move move, int beta, int alpha, Position & position, bool IsInCheck)
 {
-	return !IsPV(beta, alpha)
-		&& !move.IsCapture() 
+	return !move.IsCapture() 
 		&& !move.IsPromotion() 
 		&& !IsInCheck
 		&& !FutilityMoveGivesCheck(position, move);
@@ -558,7 +569,6 @@ bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha
 {
 	return allowedNull
 		&& !InCheck
-		&& !IsPV(beta, alpha)
 		&& !IsEndGame(position)
 		&& GetBitCount(position.GetAllPieces()) >= 5;	//avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1 
 }
@@ -566,11 +576,6 @@ bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha
 bool IsEndGame(const Position& position)
 {
 	return (position.GetPiecesColour(position.GetTurn()) == (position.GetPieceBB(KING, position.GetTurn()) | position.GetPieceBB(PAWN, position.GetTurn())));
-}
-
-bool IsPV(int beta, int alpha)
-{
-	return beta != alpha + 1;
 }
 
 void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove)
