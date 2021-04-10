@@ -311,7 +311,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
 		depthRemaining--;
 
-	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * std::max(0, depthRemaining) < a;
+	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
 
 	MoveGenerator gen(position, distanceFromRoot, locals, false);
 	Move move;
@@ -325,7 +325,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		locals.AddNode();
 
 		// late move pruning
-		if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * std::max(0, depthRemaining) && Score > TBLossIn(MAX_DEPTH))
+		if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining && Score > TBLossIn(MAX_DEPTH))
 			gen.SkipQuiets();
 
 		//futility pruning
