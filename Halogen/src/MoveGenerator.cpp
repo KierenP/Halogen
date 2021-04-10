@@ -93,6 +93,9 @@ bool MoveGenerator::Next(Move& move)
 		}
 	}
 
+	if (skipQuiets)
+		return false;
+
 	if (stage == Stage::GEN_QUIET)
 	{
 		legalMoves.clear();
@@ -124,6 +127,11 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
 		if (m.move == move) break;
 		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
 	}
+}
+
+void MoveGenerator::SkipQuiets()
+{
+	skipQuiets = true;
 }
 
 void selection_sort(std::vector<ExtendedMove>& v)

@@ -25,6 +25,13 @@ constexpr int FutilityMaxDepth = 10;
 int FutilityMargins[FutilityMaxDepth];		//[depth]
 int LMR_reduction[64][64] = {};				//[depth][move number]
 
+constexpr int LMPLimit[] = { 1, 3, 6, 10, 15, 21 };
+
+//intentionally uses signed rather than unsigned
+//as size() will be compared to signed types
+template<class T, int N>
+constexpr int size(T(&)[N]) { return N; }
+
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
@@ -344,6 +351,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 		noLegalMoves = false;
 		locals.AddNode();
+
+		// late move pruning
+		if (depthRemaining < size(LMPLimit) && searchedMoves >= LMPLimit[std::max(0, depthRemaining)] && Score > TBLossIn(MAX_DEPTH))
+			gen.SkipQuiets();
 
 		//futility pruning
 		if (IsFutile(move, beta, alpha, position, InCheck) && searchedMoves > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
