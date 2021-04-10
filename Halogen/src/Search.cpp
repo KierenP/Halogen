@@ -40,10 +40,10 @@ void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
 int Reduction(int depth, int i);
-int matedIn(int distanceFromRoot);
-int mateIn(int distanceFromRoot);
-int TBLossIn(int distanceFromRoot);
-int TBWinIn(int distanceFromRoot);
+constexpr int matedIn(int distanceFromRoot);
+constexpr int mateIn(int distanceFromRoot);
+constexpr int TBLossIn(int distanceFromRoot);
+constexpr int TBWinIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const Position& position);
 unsigned int ProbeTBSearch(const Position& position);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
@@ -228,7 +228,27 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			if (probe.GetScore() <= TBLossIn(MAX_DEPTH) && probe.GetScore() <= alpha)
 				return probe;
 
-			if (IsPV(beta, alpha)) 
+			// Why update score ?
+			// Because in a PV node we want the returned score to be accurate and reflect the TB score.
+			// As such, we either set a cap for the score or raise the score to a minimum which can be further improved.
+			// Remember, static evals will never reach these impossible tb-win/loss scores
+
+			// Why don't we update score in non-PV nodes?
+			// Because if we are in a non-pv node and didn't get a cutoff then we had one of two situations:
+			// 1. We found a tb - win which is further from root than a tb - win from another line
+			// 2. We found a tb - loss which is closer to root than a tb - loss from another line
+			// Either way this node won't become part of the PV and so getting the correct score doesn't matter
+
+			// Why do we update alpha?
+			// Because we are spending effort exploring a subtree when we already know the result. All we actually
+			// care about is whether there exists a forced mate or not from this node, and hence we raise alpha
+			// to an impossible goal that prunes away all non-mate scores.
+
+			// Why don't we raise alpha in non-pv nodes?
+			// Because if we had a tb-win and the score < beta, then it must also be <= alpha remembering we are in a
+			// zero width search and beta = alpha + 1.
+
+			if (IsPV(beta, alpha))
 			{
 				if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
 				{
@@ -420,7 +440,7 @@ SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 	int score = -1;
 
 	if (result == TB_LOSS)
-		score = -5000 + distanceFromRoot;
+		score = TBLossIn(distanceFromRoot);
 	else if (result == TB_BLESSED_LOSS)
 		score = 0;
 	else if (result == TB_DRAW)
@@ -428,7 +448,7 @@ SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 	else if (result == TB_CURSED_WIN)
 		score = 0;
 	else if (result == TB_WIN)
-		score = 5000 - distanceFromRoot;
+		score = TBWinIn(distanceFromRoot);
 	else
 		assert(0);
 
@@ -588,22 +608,22 @@ int TerminalScore(const Position& position, int distanceFromRoot)
 	}
 }
 
-int matedIn(int distanceFromRoot)
+constexpr int matedIn(int distanceFromRoot)
 {
 	return MATED + distanceFromRoot;
 }
 
-int mateIn(int distanceFromRoot)
+constexpr int mateIn(int distanceFromRoot)
 {
 	return MATE - distanceFromRoot;
 }
 
-int TBLossIn(int distanceFromRoot)
+constexpr int TBLossIn(int distanceFromRoot)
 {
 	return TB_LOSS_SCORE + distanceFromRoot;
 }
 
-int TBWinIn(int distanceFromRoot)
+constexpr int TBWinIn(int distanceFromRoot)
 {
 	return TB_WIN_SCORE - distanceFromRoot;
 }

@@ -6,18 +6,6 @@
 
 extern TranspositionTable tTable;
 
-enum Score
-{
-	HighINF = 30000,
-	LowINF = -30000,
-
-	MATED = -10000,
-	TB_LOSS_SCORE = -5000,
-	DRAW = 0,
-	TB_WIN_SCORE = 5000,
-	MATE = 10000
-};
-
 class SearchLimits
 {
 public:

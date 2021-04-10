@@ -16,7 +16,7 @@ int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
         evalTable.AddEntry(position.GetZobristKey(), eval);
     }
 
-    return std::min(4000, std::max(-4000, eval));
+    return std::min<int>(EVAL_MAX, std::max<int>(EVAL_MIN, eval));
 }
 
 bool DeadPosition(const Position& position)
