@@ -6,6 +6,7 @@ BitBoard::~BitBoard() = default;
 void BitBoard::ResetBoard()
 {
 	previousBoards = { BitBoardData() };
+	RecalculateWhiteBlackBoards();
 }
 
 bool BitBoard::InitialiseBoardFromFen(const std::vector<std::string> &fen)
@@ -50,6 +51,7 @@ bool BitBoard::InitialiseBoardFromFen(const std::vector<std::string> &fen)
 		FenLetter++;
 	}
 
+	RecalculateWhiteBlackBoards();
 	return true;
 }
 
@@ -62,6 +64,13 @@ void BitBoard::RestorePreviousBoard()
 {
 	assert(previousBoards.size() > 1);
 	previousBoards.pop_back();
+	RecalculateWhiteBlackBoards();
+}
+
+void BitBoard::RecalculateWhiteBlackBoards()
+{
+	WhitePieces = GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK) | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
+	BlackPieces = GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK) | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
 }
 
 uint64_t BitBoard::GetPiecesColour(Players colour) const
@@ -81,6 +90,8 @@ void BitBoard::SetSquare(Square square, Pieces piece)
 
 	if (piece < N_PIECES)	//it is possible we might set a square to be empty using this function rather than using the ClearSquare function below. 
 		previousBoards.back()[piece] |= SquareBB[square];
+
+	RecalculateWhiteBlackBoards();
 }
 
 uint64_t BitBoard::GetPieceBB(Pieces piece) const
@@ -96,6 +107,8 @@ void BitBoard::ClearSquare(Square square)
 	{
 		previousBoards.back()[i] &= ~SquareBB[square];
 	}
+
+	RecalculateWhiteBlackBoards();
 }
 
 uint64_t BitBoard::GetPieceBB(PieceTypes pieceType, Players colour) const
@@ -112,7 +125,7 @@ Square BitBoard::GetKing(Players colour) const
 bool BitBoard::IsEmpty(Square square) const
 {
 	assert(square != N_SQUARES);
-	return (GetSquare(square) == N_PIECES);
+	return ((GetAllPieces() & SquareBB[square]) == 0);
 }
 
 bool BitBoard::IsOccupied(Square square) const
@@ -124,7 +137,7 @@ bool BitBoard::IsOccupied(Square square) const
 bool BitBoard::IsOccupied(Square square, Players colour) const
 {
 	assert(square != N_SQUARES);
-	return (ColourOfPiece(GetSquare(square)) == colour);
+	return colour == WHITE ? (GetWhitePieces() & SquareBB[square]) : (GetBlackPieces() & SquareBB[square]);
 }
 
 Pieces BitBoard::GetSquare(Square square) const
@@ -150,10 +163,10 @@ uint64_t BitBoard::GetEmptySquares() const
 
 uint64_t BitBoard::GetWhitePieces() const
 {
-	return GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK) | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
+	return WhitePieces;
 }
 
 uint64_t BitBoard::GetBlackPieces() const
 {
-	return GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK) | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
+	return BlackPieces;
 }
