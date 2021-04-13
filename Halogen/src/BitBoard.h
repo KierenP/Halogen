@@ -32,10 +32,7 @@ public:
 	Square GetKing(Players colour) const;
 
 	template<PieceTypes type>
-	uint64_t GetPieceBB()
-	{
-		return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK);
-	}
+	uint64_t GetPieceBB() const { return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK); }
 
 	void SetSquare(Square square, Pieces piece);
 	void ClearSquare(Square square);
@@ -48,6 +45,11 @@ protected:
 	void RestorePreviousBoard();
 
 private:
+	void RecalculateWhiteBlackBoards();
+
+	uint64_t WhitePieces;
+	uint64_t BlackPieces;
+
 	std::vector<BitBoardData> previousBoards = { BitBoardData() };
 };
 
