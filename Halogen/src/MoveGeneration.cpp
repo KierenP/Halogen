@@ -451,7 +451,7 @@ void CastleMoves(const Position& position, MoveList& moves)
 {
 	std::vector<Move> tmp;
 	CastleMoves(position, tmp);
-	for (auto& move : moves)
+	for (auto& move : tmp)
 		moves.Append(move);
 }
 
