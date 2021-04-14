@@ -1,8 +1,10 @@
 #include "MoveGenerator.h"
 
-MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence) :
-	position(Position), distanceFromRoot(DistanceFromRoot), locals(Locals), quiescence(Quiescence)
+MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, MoveList& MoveList, bool Quiescence) :
+	position(Position), distanceFromRoot(DistanceFromRoot), locals(Locals), moveList(MoveList), quiescence(Quiescence)
 {
+	moveList.clear();
+
 	if (quiescence)
 		stage = Stage::GEN_LOUD;
 	else
@@ -27,22 +29,22 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (!quiescence && IsInCheck(position))
 		{
-			LegalMoves(position, legalMoves);	//contains a special function for generating moves when in check which is quicker
+			LegalMoves(position, moveList);	//contains a special function for generating moves when in check which is quicker
 			stage = Stage::GIVE_QUIET;
 		}
 		else
 		{
-			QuiescenceMoves(position, legalMoves);
+			QuiescenceMoves(position, moveList);
 			stage = Stage::GIVE_GOOD_LOUD;
 		}
 
-		OrderMoves(legalMoves);
-		current = legalMoves.begin();
+		OrderMoves(moveList);
+		current = moveList.begin();
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
 	{
-		if (current != legalMoves.end() && current->SEE >= 0)
+		if (current != moveList.end() && current->SEE >= 0)
 		{
 			move = current->move;
 			++current;
@@ -81,7 +83,7 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GIVE_BAD_LOUD)
 	{
-		if (current != legalMoves.end())
+		if (current != moveList.end())
 		{
 			move = current->move;
 			++current;
@@ -98,16 +100,16 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		legalMoves.clear();
-		QuietMoves(position, legalMoves);
-		OrderMoves(legalMoves);
-		current = legalMoves.begin();
+		moveList.clear();
+		QuietMoves(position, moveList);
+		OrderMoves(moveList);
+		current = moveList.begin();
 		stage = Stage::GIVE_QUIET;
 	}
 
 	if (stage == Stage::GIVE_QUIET)
 	{
-		if (current != legalMoves.end())
+		if (current != moveList.end())
 		{
 			move = current->move;
 			++current;
@@ -122,7 +124,7 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
 {
 	Locals.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
 
-	for (auto const& m : legalMoves)
+	for (auto const& m : moveList)
 	{
 		if (m.move == move) break;
 		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
@@ -134,7 +136,7 @@ void MoveGenerator::SkipQuiets()
 	skipQuiets = true;
 }
 
-void selection_sort(std::vector<ExtendedMove>& v)
+void selection_sort(MoveList& v)
 {
 	for (auto it = v.begin(); it != v.end(); ++it)
 	{
@@ -217,7 +219,7 @@ static int see(Position& position, Move move)
 	return scores[0];
 }
 
-void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
+void MoveGenerator::OrderMoves(MoveList& moves)
 {
 	static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
 	static constexpr int16_t SCORE_CAPTURE = 20000;
@@ -228,20 +230,20 @@ void MoveGenerator::OrderMoves(std::vector<ExtendedMove>& moves)
 		//Hash move
 		if (moves[i].move == TTmove)
 		{
-			moves.erase(moves.begin() + i);
+			moves.erase(i);
 			i--;
 		}
 
 		//Killers
 		else if (moves[i].move == Killer1)
 		{
-			moves.erase(moves.begin() + i);
+			moves.erase(i);
 			i--;
 		}
 
 		else if (moves[i].move == Killer2)
 		{
-			moves.erase(moves.begin() + i);
+			moves.erase(i);
 			i--;
 		}
 
