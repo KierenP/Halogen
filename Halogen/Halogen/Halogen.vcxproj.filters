@@ -75,6 +75,9 @@
     <ClCompile Include="..\src\Pyrrhic\tbprobe.cpp">
       <Filter>Pyrrhic</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\MoveList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\BitBoard.h">
@@ -136,6 +139,9 @@
     </ClInclude>
     <ClInclude Include="..\src\Pyrrhic\stdendian.h">
       <Filter>Pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\MoveList.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

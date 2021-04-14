@@ -60,7 +60,7 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 	}
 
 	//Limit the MultiPV setting to be at most the number of legal moves
-	std::vector<ExtendedMove> moves;
+	MoveList moves;
 	LegalMoves(position, moves);
 	parameters.multiPV = std::min<int>(parameters.multiPV, moves.size());
 
@@ -313,7 +313,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, false);
+	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveList[distanceFromRoot], false);
 	Move move;
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
@@ -630,7 +630,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	Move bestmove;
 	int Score = staticScore;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, true);
+	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveList[distanceFromRoot], true);
 	Move move;
 
 	while (gen.Next(move))

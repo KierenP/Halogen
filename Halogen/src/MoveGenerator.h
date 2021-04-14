@@ -16,7 +16,7 @@ enum class Stage
 class MoveGenerator
 {
 public:
-	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
+	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, MoveList& MoveList, bool Quiescence);
 	bool Next(Move& move);	//returns false if no more legal moves
 	int GetSEE() const { return (current - 1)->SEE; }
 
@@ -25,18 +25,18 @@ public:
 	void SkipQuiets();
 
 private:
-	void OrderMoves(std::vector<ExtendedMove>& moves);
+	void OrderMoves(MoveList& moves);
 
 	//Data needed for use in ordering or generating moves
 	Position& position;
 	int distanceFromRoot;
 	const SearchData& locals;
 	bool quiescence;
+	MoveList& moveList;
 
 	//Data uses for keeping track of internal values
 	Stage stage;
-	std::vector<ExtendedMove> legalMoves;
-	std::vector<ExtendedMove>::iterator current;
+	MoveList::iterator current;
 
 	Move TTmove;
 	Move Killer1;

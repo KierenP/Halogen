@@ -3,6 +3,7 @@
 #include "TimeManage.h"
 #include "EvalCache.h"
 #include "TranspositionTable.h"
+#include "MoveList.h"
 
 extern TranspositionTable tTable;
 
@@ -52,6 +53,7 @@ public:
 	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
+	std::array<MoveList, MAX_DEPTH> moveList;
 
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
