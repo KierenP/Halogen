@@ -1,11 +1,5 @@
 #include "MoveList.h"
 
-void MoveList::Append(ExtendedMove move)
-{
-    list[moveCount] = move;
-    moveCount++;
-}
-
 MoveList::iterator MoveList::begin()
 {
     return list.begin();
