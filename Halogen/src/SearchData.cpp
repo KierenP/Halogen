@@ -39,7 +39,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 	if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
 	{
 		if (!noOutput)
-			PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+			PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
 
 		if (GetMultiPVCount() == 0)
 		{
@@ -60,13 +60,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
 	if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
 	{
-		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+		PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
 		lowestAlpha = alpha;
 	}
 
 	if (score > highestBeta && score >= beta && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
 	{
-		PrintSearchInfo(depth, Time, abs(score) > 9000, score, alpha, beta, position, move, locals);
+		PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
 		highestBeta = beta;
 	}
 }
