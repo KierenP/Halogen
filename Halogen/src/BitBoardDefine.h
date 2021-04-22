@@ -151,12 +151,15 @@ enum Score
 	LowINF = -30000,
 
 	MATED = -10000,
-	TB_LOSS_SCORE = -5000,
-	EVAL_MIN = -4000,
+	MATE = 10000,
+
+	TB_LOSS_SCORE = -9900,
+	TB_WIN_SCORE = 9900,
+
+	EVAL_MIN = -9800,
+	EVAL_MAX = 9800,
+
 	DRAW = 0,
-	EVAL_MAX = 4000,
-	TB_WIN_SCORE = 5000,
-	MATE = 10000
 };
 
 void BBInit();
