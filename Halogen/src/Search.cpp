@@ -329,7 +329,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			gen.SkipQuiets();
 
 		//futility pruning
-		if (IsFutile(move, beta, alpha, position, InCheck) && searchedMoves > 0 && FutileNode)	//Possibly stop futility pruning if alpha or beta are close to mate scores
+		if (IsFutile(move, beta, alpha, position, InCheck) && searchedMoves > 0 && FutileNode && Score > TBLossIn(MAX_DEPTH))	//Possibly stop futility pruning if alpha or beta are close to mate scores
 			continue;
 
 		position.ApplyMove(move);
