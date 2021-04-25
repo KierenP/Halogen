@@ -1,6 +1,7 @@
 #pragma once
 #include "Move.h"
 #include <array>
+#include <functional>
 
 // For move ordering we need to bundle the 'score' and SEE values
 // with the move objects
@@ -53,3 +54,34 @@ inline void MoveList::Append(Args&& ...args)
 {
 	list[moveCount++] = { args... };
 }
+
+// Assumption: We want to use MoveList objects in a LIFO fashion, always throwing away
+// the one that was most recently allocated. Because the search algorithm is recursive, 
+// this is a reasonable assumption.
+
+// Assumption: We won't ever call Get() to get more than MAX_DEPTH * 2 'MoveList's. This is 
+// justified as Get() is only called on each recursion of NegaScout or Quiessence and we
+// should never have more than MAX_DEPTH * 2 recursions. We double MAX_DEPTH because 
+// the assumption is not a strong one and in cases like a null move verification search, we 
+// may recurse without incrementing distanceFromRoot allowing more than MAX_DEPTH recursions
+
+// MoveListStack acts as an object pool of MoveList objects. It is ~300KB in size. It is
+// reasonable to assume this will allow the use of enough MoveList objects simultaneously
+// without running out of space.
+
+// Get() returns a MoveListPtr (unique_ptr). When the unique_ptr is destroyed, it signals
+// the MoveListPool that this MoveList can now be resused automatically. Take care to manage
+// ownership of the unique_ptr to last as long as you need to use the MoveList and no longer.
+
+class MoveListPool
+{
+private:
+	std::array<MoveList, MAX_DEPTH * 2> lists;
+	size_t listCount = 0;
+
+	void Free(MoveList*) { listCount--; }
+
+public:
+	using MoveListPtr = std::unique_ptr<MoveList, std::function<void(MoveList*)>>;
+	auto Get() { return MoveListPtr(&lists[listCount++], [this](MoveList*) { Free(nullptr); }); }
+};
