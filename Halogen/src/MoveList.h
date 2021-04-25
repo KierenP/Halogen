@@ -2,6 +2,7 @@
 #include "Move.h"
 #include <array>
 #include <functional>
+#include <memory>
 
 // For move ordering we need to bundle the 'score' and SEE values
 // with the move objects
