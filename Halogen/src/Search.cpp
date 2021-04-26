@@ -313,7 +313,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveList[distanceFromRoot], false);
+	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveListStack.Get(), false);
 	Move move;
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
@@ -630,7 +630,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	Move bestmove;
 	int Score = staticScore;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveList[distanceFromRoot], true);
+	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveListStack.Get(), true);
 	Move move;
 
 	while (gen.Next(move))
