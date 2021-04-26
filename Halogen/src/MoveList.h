@@ -80,9 +80,7 @@ private:
 	std::array<MoveList, MAX_DEPTH * 2> lists;
 	size_t listCount = 0;
 
-	void Free(MoveList*) { listCount--; }
-
 public:
 	using MoveListPtr = std::unique_ptr<MoveList, std::function<void(MoveList*)>>;
-	auto Get() { return MoveListPtr(&lists[listCount++], [this](MoveList*) { Free(nullptr); }); }
+	auto Get() { return MoveListPtr(&lists[listCount++], [this](MoveList*) { listCount--; }); }
 };
