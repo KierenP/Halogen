@@ -16,8 +16,8 @@ struct ExtendedMove
 	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
 
 	Move move;
-	int16_t score = 0;
-	int16_t SEE = 0;
+	int16_t score;
+	int16_t SEE;
 };
 
 // Internally, a MoveList is an array
@@ -47,8 +47,10 @@ public:
 	      ExtendedMove& operator[](size_t index)       { return list[index]; }
 
 private:
-	size_t moveCount = 0;
+	size_t moveCount;
 };
+
+static_assert(std::is_trivial_v<MoveList>);
 
 template <typename ...Args>
 inline void MoveList::Append(Args&& ...args)
