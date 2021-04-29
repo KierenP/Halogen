@@ -47,7 +47,7 @@ public:
 		return (data == rhs.data);
 	}
 
-	static Move Uninitialized;
+	static const Move Uninitialized;
 
 private:
 	void SetFrom(Square from);
@@ -66,5 +66,5 @@ private:
 
 static_assert(std::is_trivial_v<Move>);
 
-inline Move Move::Uninitialized = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
+inline const Move Move::Uninitialized = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
 
