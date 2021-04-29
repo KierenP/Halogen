@@ -301,14 +301,14 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return alpha;
 
 	//Set up search variables
-	Move bestMove = Move();	
+	Move bestMove = Move::Uninitialized;	
 	int a = alpha;
 	int b = beta;
 	int searchedMoves;
 	bool noLegalMoves = true;
 
 	//Rebel style IID. Don't ask why this helps but it does.
-	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+	if (GetHashMove(position, distanceFromRoot) == Move::Uninitialized && depthRemaining > 3)
 		depthRemaining--;
 
 	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
@@ -627,7 +627,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	
-	Move bestmove;
+	Move bestmove = Move::Uninitialized;
 	int Score = staticScore;
 
 	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveListStack.Get(), true);

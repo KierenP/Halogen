@@ -598,13 +598,13 @@ Move GetSmallestAttackerMove(const Position& position, Square square, Players co
 		return Move(static_cast<Square>(LSBpop(kingmask)), square, CAPTURE);
 	}
 
-	return {};
+	return Move::Uninitialized;
 }
 
 bool MoveIsLegal(Position& position, const Move& move)
 {
 	/*Obvious check first*/
-	if (move.IsUninitialized())
+	if (move == Move::Uninitialized)
 		return false;
 
 	Pieces piece = position.GetSquare(move.GetFrom());

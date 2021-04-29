@@ -39,9 +39,9 @@ private:
 	Stage stage;
 	MoveList::iterator current;
 
-	Move TTmove;
-	Move Killer1;
-	Move Killer2;
+	Move TTmove = Move::Uninitialized;
+	Move Killer1 = Move::Uninitialized;
+	Move Killer2 = Move::Uninitialized;
 
 	bool skipQuiets = false;
 };

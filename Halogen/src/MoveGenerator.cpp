@@ -295,7 +295,7 @@ Move GetHashMove(const Position& position, int depthRemaining, int distanceFromR
 		return hash.GetMove();
 	}
 
-	return {};
+	return Move::Uninitialized;
 }
 
 Move GetHashMove(const Position& position, int distanceFromRoot)
@@ -308,5 +308,5 @@ Move GetHashMove(const Position& position, int distanceFromRoot)
 		return hash.GetMove();
 	}
 
-	return {};
+	return Move::Uninitialized;
 }

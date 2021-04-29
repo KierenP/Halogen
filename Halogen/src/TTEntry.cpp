@@ -1,6 +1,6 @@
 #include "TTEntry.h"
 
-TTEntry::TTEntry()
+TTEntry::TTEntry() : bestMove(Move::Uninitialized)
 {
 	key = EMPTY;
 	score = -1;
@@ -9,7 +9,7 @@ TTEntry::TTEntry()
 	halfmove = -1;
 }
 
-TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff)
+TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff) : bestMove(best)
 {
 	assert(Score < SHRT_MAX && Score > SHRT_MIN);
 	assert(Depth < CHAR_MAX && Depth > CHAR_MIN);
@@ -33,7 +33,7 @@ void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 
 void TTEntry::Reset()
 {
-	bestMove = Move();
+	bestMove = Move::Uninitialized;
 	key = EMPTY;
 	score = -1;
 	depth = -1;

@@ -35,7 +35,7 @@ inline int LMP_depth = 6;
 
 struct SearchResult
 {
-	SearchResult(short score, Move move = Move()) : m_score(score), m_move(move) {}
+	SearchResult(short score, Move move = Move::Uninitialized) : m_score(score), m_move(move) {}
 
 	int GetScore() const { return m_score; }
 	Move GetMove() const { return m_move; }

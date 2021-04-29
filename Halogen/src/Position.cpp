@@ -176,7 +176,7 @@ void Position::ApplyNullMove()
 	Increment50Move();
 
 	NextTurn();
-	IncrementZobristKey(Move());
+	IncrementZobristKey(Move::Uninitialized);
 
 	/*if (GenerateZobristKey() != key)
 	{
@@ -341,7 +341,7 @@ uint64_t Position::IncrementZobristKey(Move move)
 	if (PrevGetEnPassant() <= SQ_H8)
 		key ^= ZobristTable[(12 * 64 + 5 + GetFile(PrevGetEnPassant()))];		//undo the previous ep square
 
-	if (move.IsUninitialized()) return key;	//null move
+	if (move == Move::Uninitialized) return key;	//null move
 
 	if (!move.IsPromotion())
 	{
@@ -420,7 +420,7 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 deltaArray& Position::CalculateMoveDelta(Move move)
 {
 	delta.size = 0;
-	if (move.IsUninitialized()) return delta;		//null move
+	if (move == Move::Uninitialized) return delta;		//null move
 
 	if (!move.IsPromotion())
 	{
