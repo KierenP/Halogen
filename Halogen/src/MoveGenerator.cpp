@@ -1,9 +1,9 @@
 #include "MoveGenerator.h"
 
-MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, MoveListPool::MoveListPtr MoveList, bool Quiescence) :
-	position(Position), distanceFromRoot(DistanceFromRoot), locals(Locals), moveList(std::move(MoveList)), quiescence(Quiescence)
+MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence) :
+	position(Position), distanceFromRoot(DistanceFromRoot), locals(Locals), quiescence(Quiescence)
 {
-	moveList->clear();
+	moveList.clear();
 
 	if (quiescence)
 		stage = Stage::GEN_LOUD;
@@ -29,22 +29,22 @@ bool MoveGenerator::Next(Move& move)
 	{
 		if (!quiescence && IsInCheck(position))
 		{
-			LegalMoves(position, *moveList);	//contains a special function for generating moves when in check which is quicker
+			LegalMoves(position, moveList);	//contains a special function for generating moves when in check which is quicker
 			stage = Stage::GIVE_QUIET;
 		}
 		else
 		{
-			QuiescenceMoves(position, *moveList);
+			QuiescenceMoves(position, moveList);
 			stage = Stage::GIVE_GOOD_LOUD;
 		}
 
-		OrderMoves(*moveList);
-		current = moveList->begin();
+		OrderMoves(moveList);
+		current = moveList.begin();
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
 	{
-		if (current != moveList->end() && current->SEE >= 0)
+		if (current != moveList.end() && current->SEE >= 0)
 		{
 			move = current->move;
 			++current;
@@ -83,7 +83,7 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GIVE_BAD_LOUD)
 	{
-		if (current != moveList->end())
+		if (current != moveList.end())
 		{
 			move = current->move;
 			++current;
@@ -100,16 +100,16 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		moveList->clear();
-		QuietMoves(position, *moveList);
-		OrderMoves(*moveList);
-		current = moveList->begin();
+		moveList.clear();
+		QuietMoves(position, moveList);
+		OrderMoves(moveList);
+		current = moveList.begin();
 		stage = Stage::GIVE_QUIET;
 	}
 
 	if (stage == Stage::GIVE_QUIET)
 	{
-		if (current != moveList->end())
+		if (current != moveList.end())
 		{
 			move = current->move;
 			++current;
@@ -124,7 +124,7 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
 {
 	Locals.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
 
-	for (auto const& m : *moveList)
+	for (auto const& m : moveList)
 	{
 		if (m.move == move) break;
 		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);

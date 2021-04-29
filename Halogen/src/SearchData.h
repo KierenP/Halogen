@@ -53,7 +53,6 @@ public:
 	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
-	MoveListPool moveListStack;
 
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
