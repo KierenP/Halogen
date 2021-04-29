@@ -61,6 +61,7 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 
 	//Limit the MultiPV setting to be at most the number of legal moves
 	MoveList moves;
+	moves.clear();
 	LegalMoves(position, moves);
 	parameters.multiPV = std::min<int>(parameters.multiPV, moves.size());
 
