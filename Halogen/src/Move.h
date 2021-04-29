@@ -42,7 +42,10 @@ public:
 	void Print(std::stringstream& ss) const;
 	void Print() const;
 
-	bool operator==(const Move& rhs) const;
+	constexpr bool operator==(const Move& rhs) const
+	{
+		return (data == rhs.data);
+	}
 
 	static Move Uninitialized;
 

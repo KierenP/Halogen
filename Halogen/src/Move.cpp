@@ -69,11 +69,6 @@ void Move::Print() const
 	std::cout << str.str();
 }
 
-bool Move::operator==(const Move& rhs) const
-{
-	return (data == rhs.data);
-}
-
 void Move::SetFrom(Square from)
 {
 	data &= ~FROM_MASK;
