@@ -16,7 +16,7 @@ enum class Stage
 class MoveGenerator
 {
 public:
-	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, MoveListPool::MoveListPtr MoveList, bool Quiescence);
+	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
 
 	bool Next(Move& move);	//returns false if no more legal moves
 	int GetSEE() const { return (current - 1)->SEE; }
@@ -33,15 +33,15 @@ private:
 	int distanceFromRoot;
 	const SearchData& locals;
 	bool quiescence;
-	MoveListPool::MoveListPtr moveList;
+	MoveList moveList;
 
 	//Data uses for keeping track of internal values
 	Stage stage;
 	MoveList::iterator current;
 
-	Move TTmove;
-	Move Killer1;
-	Move Killer2;
+	Move TTmove = Move::Uninitialized;
+	Move Killer1 = Move::Uninitialized;
+	Move Killer2 = Move::Uninitialized;
 
 	bool skipQuiets = false;
 };

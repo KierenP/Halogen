@@ -2,13 +2,6 @@
 
 int LMR_reduction[64][64];				//[depth][move number]
 
-constexpr int LMPLimit[] = { 10, 17, 24, 31, 38, 45 };
-
-//intentionally uses signed rather than unsigned
-//as size() will be compared to signed types
-template<class T, int N>
-constexpr int size(T(&)[N]) { return N; }
-
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
@@ -61,6 +54,7 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 
 	//Limit the MultiPV setting to be at most the number of legal moves
 	MoveList moves;
+	moves.clear();
 	LegalMoves(position, moves);
 	parameters.multiPV = std::min<int>(parameters.multiPV, moves.size());
 
@@ -301,19 +295,19 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 		return alpha;
 
 	//Set up search variables
-	Move bestMove = Move();	
+	Move bestMove = Move::Uninitialized;	
 	int a = alpha;
 	int b = beta;
 	int searchedMoves;
 	bool noLegalMoves = true;
 
 	//Rebel style IID. Don't ask why this helps but it does.
-	if (GetHashMove(position, distanceFromRoot).IsUninitialized() && depthRemaining > 3)
+	if (GetHashMove(position, distanceFromRoot) == Move::Uninitialized && depthRemaining > 3)
 		depthRemaining--;
 
 	bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveListStack.Get(), false);
+	MoveGenerator gen(position, distanceFromRoot, locals, false);
 	Move move;
 
 	for (searchedMoves = 0; gen.Next(move); searchedMoves++)
@@ -627,10 +621,10 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 	if (staticScore >= beta) return staticScore;
 	if (staticScore > alpha) alpha = staticScore;
 	
-	Move bestmove;
+	Move bestmove = Move::Uninitialized;
 	int Score = staticScore;
 
-	MoveGenerator gen(position, distanceFromRoot, locals, locals.moveListStack.Get(), true);
+	MoveGenerator gen(position, distanceFromRoot, locals, true);
 	Move move;
 
 	while (gen.Next(move))

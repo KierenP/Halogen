@@ -29,7 +29,7 @@ enum MoveFlag
 class Move
 {
 public:
-	Move();
+	Move() = default;
 	Move(Square from, Square to, MoveFlag flag);
 
 	Square GetFrom() const;
@@ -42,9 +42,12 @@ public:
 	void Print(std::stringstream& ss) const;
 	void Print() const;
 
-	bool operator==(const Move& rhs) const;
+	constexpr bool operator==(const Move& rhs) const
+	{
+		return (data == rhs.data);
+	}
 
-	bool IsUninitialized() const;
+	static const Move Uninitialized;
 
 private:
 	void SetFrom(Square from);
@@ -52,7 +55,16 @@ private:
 	void SetFlag(MoveFlag flag);
 
 	//6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
-	uint16_t data = 0;
+	uint16_t data;
 };
 
+// Why do we mandate that Move is trivial and allow the default
+// constructor to have member 'data' be uninitialized? Because
+// we need to allocate arrays of Move objects on the stack
+// millions of times per second and making Move trivial makes
+// the allocation virtually free.
+
+static_assert(std::is_trivial_v<Move>);
+
+inline const Move Move::Uninitialized = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
 

@@ -1,16 +1,12 @@
 #include "Move.h"
 
-const unsigned int CAPTURE_MASK = 1 << 14;		// 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-const unsigned int PROMOTION_MASK = 1 << 15;	// 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-const unsigned int FROM_MASK = 0b111111;		// 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
-const unsigned int TO_MASK = 0b111111 << 6;		// 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0
-const unsigned int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 
+constexpr int CAPTURE_MASK = 1 << 14;	// 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+constexpr int PROMOTION_MASK = 1 << 15;	// 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+constexpr int FROM_MASK = 0b111111;		// 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
+constexpr int TO_MASK = 0b111111 << 6;	// 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0
+constexpr int FLAG_MASK = 0b1111 << 12;	// 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 
 
-Move::Move()
-{
-}
-
-Move::Move(Square from, Square to, MoveFlag flag)
+Move::Move(Square from, Square to, MoveFlag flag) : data(0)
 {
 	assert(from < 64);
 	assert(to < 64);
@@ -20,8 +16,6 @@ Move::Move(Square from, Square to, MoveFlag flag)
 	SetTo(to);
 	SetFlag(flag);
 }
-
-
 
 Square Move::GetFrom() const
 {
@@ -73,16 +67,6 @@ void Move::Print() const
 	std::stringstream str;
 	Print(str);
 	std::cout << str.str();
-}
-
-bool Move::operator==(const Move& rhs) const
-{
-	return (data == rhs.data);
-}
-
-bool Move::IsUninitialized() const
-{
-	return (data == 0);
 }
 
 void Move::SetFrom(Square from)

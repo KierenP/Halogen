@@ -53,7 +53,6 @@ public:
 	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
-	MoveListPool moveListStack;
 
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
@@ -105,7 +104,7 @@ private:
 
 	mutable std::mutex ioMutex;
 	unsigned int threadDepthCompleted = 0;			//The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
-	Move currentBestMove;							//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
+	Move currentBestMove = Move::Uninitialized;		//Whoever finishes first gets to update this as long as they searched deeper than threadDepth
 	int prevScore = 0;								//if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
 	int lowestAlpha = 0;
 	int highestBeta = 0;

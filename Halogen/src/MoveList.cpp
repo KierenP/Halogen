@@ -10,6 +10,16 @@ MoveList::iterator MoveList::end()
     return list.begin() + moveCount;
 }
 
+MoveList::const_iterator MoveList::begin() const
+{
+    return list.begin();
+}
+
+MoveList::const_iterator MoveList::end() const
+{
+    return list.begin() + moveCount;
+}
+
 size_t MoveList::size() const
 {
     return moveCount;

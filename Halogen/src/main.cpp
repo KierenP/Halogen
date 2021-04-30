@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.11.1";
+string version = "10.11.2";
 
 int main(int argc, char* argv[])
 {
@@ -455,6 +455,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 
 	uint64_t nodeCount = 0;
 	MoveList moves;
+	moves.clear();
 	LegalMoves(position, moves);
 
 	for (size_t i = 0; i < moves.size(); i++)
@@ -483,6 +484,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 	uint64_t nodeCount = 0;
 	MoveList moves;
+	moves.clear();
 	LegalMoves(position, moves);
 
 	/*for (int i = 0; i < UINT16_MAX; i++)
