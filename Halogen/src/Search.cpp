@@ -2,13 +2,6 @@
 
 int LMR_reduction[64][64];				//[depth][move number]
 
-constexpr int LMPLimit[] = { 10, 17, 24, 31, 38, 45 };
-
-//intentionally uses signed rather than unsigned
-//as size() will be compared to signed types
-template<class T, int N>
-constexpr int size(T(&)[N]) { return N; }
-
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
 bool CheckForRep(const Position& position, int distanceFromRoot);
