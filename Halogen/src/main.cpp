@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.11.2";
+string version = "10.11.3";
 
 int main(int argc, char* argv[])
 {
@@ -454,17 +454,17 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
 	clock_t before = clock();
 
 	uint64_t nodeCount = 0;
-	MoveList moves;
+	BasicMoveList moves;
 	moves.clear();
 	LegalMoves(position, moves);
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves[i].move);
+		position.ApplyMove(moves[i]);
 		uint64_t ChildNodeCount = Perft(depth - 1, position);
 		position.RevertMove();
 
-		moves[i].move.Print();
+		moves[i].Print();
 		cout << ": " << ChildNodeCount << endl;
 		nodeCount += ChildNodeCount;
 	}
@@ -483,7 +483,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 		return 1;	//if perftdivide is called with 1 this is necesary
 
 	uint64_t nodeCount = 0;
-	MoveList moves;
+	BasicMoveList moves;
 	moves.clear();
 	LegalMoves(position, moves);
 
@@ -516,7 +516,7 @@ uint64_t Perft(unsigned int depth, Position& position)
 
 	for (size_t i = 0; i < moves.size(); i++)
 	{
-		position.ApplyMove(moves[i].move);
+		position.ApplyMove(moves[i]);
 		nodeCount += Perft(depth - 1, position);
 		position.RevertMove();
 	}

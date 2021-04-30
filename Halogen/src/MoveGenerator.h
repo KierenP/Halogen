@@ -26,18 +26,18 @@ public:
 	void SkipQuiets();
 
 private:
-	void OrderMoves(MoveList& moves);
+	void OrderMoves(ExtendedMoveList& moves);
 
 	//Data needed for use in ordering or generating moves
 	Position& position;
 	int distanceFromRoot;
 	const SearchData& locals;
 	bool quiescence;
-	MoveList moveList;
+	ExtendedMoveList moveList;
 
 	//Data uses for keeping track of internal values
 	Stage stage;
-	MoveList::iterator current;
+	ExtendedMoveList::iterator current;
 
 	Move TTmove = Move::Uninitialized;
 	Move Killer1 = Move::Uninitialized;

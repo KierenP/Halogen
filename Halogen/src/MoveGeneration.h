@@ -3,9 +3,13 @@
 #include "EvalNet.h"
 #include "MoveList.h"
 
-void LegalMoves(Position& position, MoveList& moves);
-void QuiescenceMoves(Position& position, MoveList& moves);
-void QuietMoves(Position& position, MoveList& moves);
+void LegalMoves(Position& position, ExtendedMoveList& moves);
+void QuiescenceMoves(Position& position, ExtendedMoveList& moves);
+void QuietMoves(Position& position, ExtendedMoveList& moves);
+
+void LegalMoves(Position& position, BasicMoveList& moves);
+void QuiescenceMoves(Position& position, BasicMoveList& moves);
+void QuietMoves(Position& position, BasicMoveList& moves);
 
 bool IsSquareThreatened(const Position & position, Square square, Players colour);		//will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 bool IsInCheck(const Position& position, Players colour);

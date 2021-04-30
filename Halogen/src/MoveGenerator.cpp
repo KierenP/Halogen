@@ -136,7 +136,7 @@ void MoveGenerator::SkipQuiets()
 	skipQuiets = true;
 }
 
-void selection_sort(MoveList& v)
+void selection_sort(ExtendedMoveList& v)
 {
 	for (auto it = v.begin(); it != v.end(); ++it)
 	{
@@ -219,7 +219,7 @@ static int see(Position& position, Move move)
 	return scores[0];
 }
 
-void MoveGenerator::OrderMoves(MoveList& moves)
+void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 {
 	static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
 	static constexpr int16_t SCORE_CAPTURE = 20000;
