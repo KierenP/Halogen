@@ -1,4 +1,5 @@
 #include "Position.h"
+#include "MoveGeneration.h"
 
 Position::Position()
 {
@@ -50,8 +51,27 @@ void Position::ApplyMove(Move move)
 	switch (move.GetFlag())
 	{
 	case PAWN_DOUBLE_MOVE:
-		SetEnPassant(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2));			//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
+	{
+		//average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
+		Square ep = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
+
+		//it only counts as a ep square if a pawn could potentially do the capture!
+		uint64_t potentialAttackers = PawnAttacks[GetTurn()][ep] & GetPieceBB(PAWN, !GetTurn());
+
+		while (potentialAttackers)
+		{
+			Square sq = static_cast<Square>(LSBpop(potentialAttackers));
+			
+			ApplyMoveQuick({sq, ep, EN_PASSANT});
+			if (!IsInCheck(*this, !GetTurn()))
+			{
+				SetEnPassant(ep);
+			}
+			RevertMoveQuick();
+		}
+
 		break;
+	}
 	case EN_PASSANT:
 		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;

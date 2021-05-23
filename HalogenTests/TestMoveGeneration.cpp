@@ -2,6 +2,8 @@
 
 #include "..\Halogen\src\Search.h"
 
+#include "..\Halogen\src\MoveList.cpp"
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace MoveGeneration
@@ -12,7 +14,8 @@ namespace MoveGeneration
 			return 1;	//if perftdivide is called with 1 this is necesary
 
 		uint64_t nodeCount = 0;
-		std::vector<ExtendedMove> moves;
+		ExtendedMoveList moves;
+		moves.clear();
 		LegalMoves(position, moves);
 
 		if (depth == 1)
