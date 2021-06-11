@@ -142,7 +142,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 	std::stringstream ss;
 
 	ss	<< "info depth " << depth							//the depth of search
-		<< " seldepth " << position.GetSelDepth();			//the selective depth (for example searching further for checks and captures)
+		<< " seldepth " << locals.GetSelDepth();			//the selective depth (for example searching further for checks and captures)
 
 	if (isCheckmate)
 	{
