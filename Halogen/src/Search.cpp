@@ -27,7 +27,7 @@ SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
 Move GetTBMove(unsigned int result);
 
 void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID);
-SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
+SearchResult AspirationWindowSearch(Position position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move);
@@ -97,6 +97,22 @@ void PrintBestMove(Move Best)
 	std::cout << std::endl;
 }
 
+struct TimeAbort : public std::exception
+{
+	const char* what() const throw ()
+	{
+		return "no more time remaining";
+	}
+};
+
+struct ThreadDepthAbort : public std::exception
+{
+	const char* what() const throw ()
+	{
+		return "another thread finished this depth";
+	}
+};
+
 void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID)
 {
 	int alpha = LowINF;
@@ -111,21 +127,27 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 		if (!sharedData.GetData(threadID).limits.CheckContinueSearch())
 			sharedData.ReportWantsToStop(threadID);
 
-		SearchResult search = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
-		int score = search.GetScore();
-
-		if (depth > 1 && sharedData.GetData(threadID).limits.CheckTimeLimit()) break;
-		
-		if (sharedData.ThreadAbort(depth)) { score = sharedData.GetAspirationScore(); }
-
-		sharedData.ReportResult(depth, sharedData.GetData(threadID).limits.ElapsedTime(), score, alpha, beta, position, search.GetMove(), sharedData.GetData(threadID));
-		prevScore = score;
-
-		if (sharedData.GetData(threadID).limits.CheckMateLimit(score)) break;
+		try 
+		{
+			SearchResult curSearch = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
+			sharedData.ReportResult(depth, sharedData.GetData(threadID).limits.ElapsedTime(), curSearch.GetScore(), alpha, beta, position, curSearch.GetMove(), sharedData.GetData(threadID));
+			if (sharedData.GetData(threadID).limits.CheckMateLimit(curSearch.GetScore())) break;
+			prevScore = curSearch.GetScore();
+		}
+		catch (ThreadDepthAbort&)
+		{
+			//curSearch probably is some garbage result, make sure not to use it for anything
+			prevScore = sharedData.GetAspirationScore();
+		}
+		catch (TimeAbort&)
+		{
+			//no time to wait around, return immediately.
+			return;	
+		}
 	}
 }
 
-SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
+SearchResult AspirationWindowSearch(Position position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
 {
 	int delta = Aspiration_window;
 
@@ -135,7 +157,7 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 
 	while (true)
 	{
-		position.ResetSeldepth();
+		locals.ResetSeldepth();
 		search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
 
 		if (alpha < search.GetScore() && search.GetScore() < beta) break;
@@ -163,14 +185,14 @@ SearchResult AspirationWindowSearch(Position& position, int depth, int prevScore
 
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
-	position.ReportDepth(distanceFromRoot);
+	locals.ReportDepth(distanceFromRoot);
 
 	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
 	locals.PvTable[distanceFromRoot].clear();
 
 	//See if we should abort the search
-	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
-	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
+	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) throw TimeAbort();	//Am I out of time?
+	if (sharedData.ThreadAbort(initialDepth)) throw ThreadDepthAbort();			//Has this depth been finished by another thread?
 
 	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
 	if (CheckForRep(position, distanceFromRoot)							//Have we had a draw by repitition?
@@ -378,8 +400,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 	Score = std::min(Score, MaxScore);
 
-	if (!locals.limits.CheckTimeLimit() && !sharedData.ThreadAbort(initialDepth))
-		AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
+	AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
 
 	return SearchResult(Score, bestMove);
 }
@@ -607,15 +628,15 @@ constexpr int TBWinIn(int distanceFromRoot)
 
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
-	position.ReportDepth(distanceFromRoot);
+	locals.ReportDepth(distanceFromRoot);
 
 	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
 	locals.PvTable[distanceFromRoot].clear();
 
 	//See if we should abort the search
-	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) return -1;	//Am I out of time?
-	if (sharedData.ThreadAbort(initialDepth)) return -1;				//Has this depth been finished by another thread?
-	if (DeadPosition(position)) return 0;								//Is this position a dead draw?
+	if (initialDepth > 1 && locals.limits.CheckTimeLimit()) throw TimeAbort();	//Am I out of time?
+	if (sharedData.ThreadAbort(initialDepth)) throw ThreadDepthAbort();			//Has this depth been finished by another thread?
+	if (DeadPosition(position)) return 0;										//Is this position a dead draw?
 
 	int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
 	if (staticScore >= beta) return staticScore;

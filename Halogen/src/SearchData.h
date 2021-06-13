@@ -61,10 +61,15 @@ public:
 
 	uint64_t GetThreadNodes() const { return nodes; }
 
+	void ResetSeldepth() { selDepth = 0; }
+	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
+	int GetSelDepth() const { return selDepth; }
+
 private:
 	friend class ThreadSharedData;
 	uint64_t tbHits = 0;
 	uint64_t nodes = 0;
+	int selDepth = 0;
 
 //--------------------------------------------------------------------------------------------
 private:
