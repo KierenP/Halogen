@@ -1,5 +1,5 @@
 #include "Network.h"
-#include "epoch321.net"
+#include "b8a1b7d5.nn"
 
 std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
@@ -18,7 +18,7 @@ template<typename T, size_t SIZE>
 
     for (size_t i = 0; i < SIZE; i++)
         ret[i] = std::max(T(0), source[i]);
-    
+
     return ret;
 }
 

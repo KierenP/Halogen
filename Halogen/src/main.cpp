@@ -1,7 +1,7 @@
 #include "Benchmark.h"
 #include "Search.h"
 
-using namespace::std; 
+using namespace::std;
 
 void PerftSuite();
 void PrintVersion();
@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.12.1";
+string version = "10.13";
 
 int main(int argc, char* argv[])
 {
@@ -169,12 +169,12 @@ int main(int argc, char* argv[])
 		else if (token == "setoption")
 		{
 			iss >> token; //'name'
-			iss >> token; 
+			iss >> token;
 
-			if (token == "Clear") 
+			if (token == "Clear")
 			{
 				iss >> token;
-				if (token == "Hash") 
+				if (token == "Hash")
 				{
 					tTable.ResetTable();
 				}
@@ -335,13 +335,13 @@ int main(int argc, char* argv[])
 			PerftDivide(stoi(token), position);
 		}
 
-		else if (token == "stop") 
+		else if (token == "stop")
 		{
 			KeepSearching = false;
-			if (searchThread.joinable()) searchThread.join();	
+			if (searchThread.joinable()) searchThread.join();
 		}
 
-		else if (token == "quit") 
+		else if (token == "quit")
 		{
 			KeepSearching = false;
 			if (searchThread.joinable()) searchThread.join();
@@ -381,15 +381,15 @@ void PrintVersion()
 
 	#if defined(USE_POPCNT) && !defined(USE_PEXT)
 		cout << " POPCNT";
-	#endif 
+	#endif
 
 	#if defined(USE_PEXT)
 		cout << " PEXT";
-	#endif 
+	#endif
 
 	#if defined(USE_AVX2)
 		cout << " AVX2";
-	#endif 
+	#endif
 
 	cout << endl;
 
@@ -425,7 +425,7 @@ void PerftSuite()
 		} while (iss);
 
 		position.InitialiseFromFen(line);
-		
+
 		uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
 		if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
 		{
