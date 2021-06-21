@@ -10,7 +10,6 @@ int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
     {
         eval = position.GetEvaluation();
 
-        //NoPawnAdjustment(eval, position);
         TempoAdjustment(eval, position);
 
         evalTable.AddEntry(position.GetZobristKey(), eval);
@@ -59,14 +58,6 @@ void TempoAdjustment(int& eval, const Position& position)
 {
     constexpr static int TEMPO = 10;
     eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
-}
-
-void NoPawnAdjustment(int& eval, const Position& position)
-{
-    if (eval > 0 && position.GetPieceBB(PAWN, WHITE) == 0)
-        eval /= 2;
-    if (eval < 0 && position.GetPieceBB(PAWN, BLACK) == 0)
-        eval /= 2;
 }
 
 }

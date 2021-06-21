@@ -26,35 +26,6 @@ namespace EvalNet
 {
 	using namespace UnitTestEvalNet;
 
-	TEST_CLASS(noPawnAdjustment)
-	{
-	public:
-		noPawnAdjustment()
-		{
-			ZobristInit();
-		}
-
-		TEST_METHOD(Insufficent)
-		{
-			Position position;
-			position.InitialiseFromFen("k7/8/8/8/8/8/8/K2R4 w - - 0 1");
-
-			int value = 100;
-			NoPawnAdjustment(value, position);
-			Assert::AreEqual(100 / 2, value);
-		}
-
-		TEST_METHOD(Sufficent)
-		{
-			Position position;
-			position.InitialiseFromFen("k7/8/8/8/8/8/4P3/K2B4 w - - 0 1");
-
-			int value = 100;
-			NoPawnAdjustment(value, position);
-			Assert::AreEqual(100, value);
-		}
-	};
-
 	TEST_CLASS(tempoAdjustment)
 	{
 	public:
