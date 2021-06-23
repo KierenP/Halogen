@@ -136,9 +136,6 @@ int LSB(uint64_t bb)
 //--------------------------------------------------------------------------
 //Below code adapted with permission from Terje, author of Weiss.
 
-Magic BishopTable[64];
-Magic RookTable[64];
-
 // Helper function that returns a bitboard with the landing square of
 // the step, or an empty bitboard if the step would go outside the board
 uint64_t LandingSquareBB(const int sq, const int step) {

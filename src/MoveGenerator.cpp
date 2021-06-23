@@ -147,7 +147,7 @@ void selection_sort(ExtendedMoveList& v)
 constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
 								91, 532, 568, 715, 1279, 5000 };
 
-static uint64_t AttackersToSq(Position& position, Square sq)
+uint64_t AttackersToSq(Position& position, Square sq)
 {
 	uint64_t pawn_mask = (position.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
 	pawn_mask |= (position.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
@@ -163,19 +163,19 @@ static uint64_t AttackersToSq(Position& position, Square sq)
 		| (AttackBB<ROOK>(sq, occ) & rooks);
 }
 
-static uint64_t GetLeastValuableAttacker(Position& position, uint64_t attackers, Pieces& capturing, Players side)
+uint64_t GetLeastValuableAttacker(const Position& position, uint64_t attackers, Pieces& capturing, Players side)
 {
 	for (int i = 0; i < 6; i++)
 	{
 		capturing = Piece(PieceTypes(i), side);
 		uint64_t pieces = position.GetPieceBB(capturing) & attackers;
 		if (pieces)
-			return pieces & ~pieces + 1;
+			return pieces & -pieces;	//isolate LSB
 	}
 	return 0;
 }
 
-static int see(Position& position, Move move)
+int see(Position& position, Move move)
 {
 	Square from = move.GetFrom();
 	Square to   = move.GetTo();
