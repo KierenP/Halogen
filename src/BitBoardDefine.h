@@ -519,7 +519,7 @@ struct Magic
 #endif
 };
 
-extern Magic BishopTable[64];
-extern Magic RookTable[64];
+inline Magic BishopTable[64];
+inline Magic RookTable[64];
 
 //--------------------------------------------------------------------------
