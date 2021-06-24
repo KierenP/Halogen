@@ -1,7 +1,5 @@
 #include "TimeManage.h"
 
-std::atomic<bool> KeepSearching;
-
 void Timer::Start()
 {
 	Begin = get_time_point();

@@ -1,7 +1,5 @@
 #include "Zobrist.h"
 
-std::vector<uint64_t> ZobristTable;
-
 void ZobristInit()
 {
 	std::mt19937_64 gen(0);

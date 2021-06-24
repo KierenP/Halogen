@@ -1,6 +1,6 @@
 #include "EvalNet.h"
 
-using namespace UnitTestEvalNet;
+void TempoAdjustment(int& eval, const Position& position);
 
 int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
 {
@@ -51,15 +51,10 @@ bool DeadPosition(const Position& position)
     return false;
 }
 
-namespace UnitTestEvalNet
-{
-
 void TempoAdjustment(int& eval, const Position& position)
 {
     constexpr static int TEMPO = 10;
     eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
-}
-
 }
 
 
