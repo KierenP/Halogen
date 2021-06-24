@@ -62,7 +62,7 @@ public:
 	      T& operator[](size_t index)       { return list[index]; }
 
 private:
-	size_t moveCount;
+	size_t moveCount = 0;
 };
 
 template <typename T>
