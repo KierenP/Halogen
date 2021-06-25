@@ -5,7 +5,7 @@
 #include <iostream>
 #include <algorithm>
 
-extern std::atomic<bool> KeepSearching;
+inline std::atomic<bool> KeepSearching;
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -55,7 +55,5 @@ private:
 	int AllocatedSearchTimeMS;
 	int MaxTimeMS;
 	int BufferTime;
-
-	bool CacheShouldStop = false;
 };
 
