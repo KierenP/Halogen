@@ -25,6 +25,8 @@ public:
 
 	void SkipQuiets();
 
+	Stage GetStage() { return stage; }
+
 private:
 	void OrderMoves(ExtendedMoveList& moves);
 
