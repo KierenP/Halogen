@@ -202,6 +202,20 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 	int Score = LowINF;
 	int MaxScore = HighINF;
 
+	//Query the transpotition table
+	if (!IsPV(beta, alpha))
+	{
+		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
+		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
+		{
+			tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+
+			if (!position.CheckForRep(distanceFromRoot, 2))	//Don't take scores from the TT if there's a two-fold repitition
+				if (UseTransposition(entry, alpha, beta))
+					return SearchResult(entry.GetScore(), entry.GetMove());
+		}
+	}
+
 	//Probe TB in search
 	if (position.GetFiftyMoveCount() == 0 
 		&& position.GetCanCastleWhiteKingside() == false
@@ -255,20 +269,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 					MaxScore = probe.GetScore();
 				}
 			}
-		}
-	}
-
-	//Query the transpotition table
-	if (!IsPV(beta, alpha)) 
-	{
-		TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
-		if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
-		{
-			tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
-
-			if (!position.CheckForRep(distanceFromRoot, 2))	//Don't take scores from the TT if there's a two-fold repitition
-				if (UseTransposition(entry, alpha, beta)) 
-					return SearchResult(entry.GetScore(), entry.GetMove());
 		}
 	}
 
