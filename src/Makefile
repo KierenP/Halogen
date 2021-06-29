@@ -4,10 +4,12 @@ OUTPUT 	= ../../../$(EXE)$(VER)
 EXE 	= Halogen
 LIBS    = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 
+EVALFILE = no-default
+
 WFLAGS = -Wall -Wextra -Wshadow -std=c++17
-CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize -fno-use-linker-plugin
-PGOFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native
+CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native -DEVALFILE=\"$(EVALFILE)\"
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize -fno-use-linker-plugin -DEVALFILE=\"$(EVALFILE)\"
+PGOFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native -DEVALFILE=\"$(EVALFILE)\"
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
