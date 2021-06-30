@@ -185,6 +185,7 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
 SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
 	locals.ReportDepth(distanceFromRoot);
+	locals.AddNode();
 
 	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
 	locals.PvTable[distanceFromRoot].clear();
@@ -337,7 +338,6 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 			continue;
 
 		noLegalMoves = false;
-		locals.AddNode();
 
 		// late move pruning
 		if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining && Score > TBLossIn(MAX_DEPTH))
@@ -627,6 +627,7 @@ constexpr int TBWinIn(int distanceFromRoot)
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
 	locals.ReportDepth(distanceFromRoot);
+	locals.AddNode();
 
 	if (distanceFromRoot >= MAX_DEPTH) return 0;						//Have we reached max depth?
 	locals.PvTable[distanceFromRoot].clear();
@@ -648,8 +649,6 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 	while (gen.Next(move))
 	{
-		locals.AddNode();
-
 		int SEE = gen.GetSEE();
 
 		if (staticScore + SEE + Delta_margin < alpha) 						//delta pruning
