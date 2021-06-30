@@ -32,6 +32,13 @@ template<typename T, size_t SIZE>
     return ret;
 }
 
+template<typename T, size_t SIZE>
+void ReLU(std::array<T, SIZE>& source)
+{
+    for (size_t i = 0; i < SIZE; i++)
+        source[i] = std::max(T(0), source[i]);
+}
+
 void Network::Init()
 {
     auto data = reinterpret_cast<const float*>(gNetData);
@@ -108,7 +115,8 @@ int16_t Network::Eval(const Position& position) const
     }
 
     std::array<float, L1_NEURONS> l1 = Merge(accumulatorUs, accumulatorThem);
-    
+    ReLU(l1);
+
     //------------------
 
     std::array<float, L2_NEURONS> l2 = l2_bias;
@@ -117,6 +125,8 @@ int16_t Network::Eval(const Position& position) const
         for (size_t j = 0; j < L2_NEURONS; j++)
             l2[j] += l1[i] * l2_weight[i][j];
 
+    ReLU(l2);
+
     //------------------
 
     std::array<float, L3_NEURONS> l3 = l3_bias;
@@ -124,6 +134,8 @@ int16_t Network::Eval(const Position& position) const
     for (size_t i = 0; i < L2_NEURONS; i++)
         for (size_t j = 0; j < L3_NEURONS; j++)
             l3[j] += l2[i] * l3_weight[i][j];
+
+    ReLU(l3);
 
     //------------------
 
