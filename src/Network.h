@@ -3,10 +3,10 @@
 #include <vector>
 #include "BitBoardDefine.h"
 
-//HalfKP 128x2-32-32
+//HalfKP 64x2-32-32
 
 constexpr size_t INPUT_NEURONS = 64 * 64 * 10;
-constexpr size_t HALF_L1 = 128;
+constexpr size_t HALF_L1 = 64;
 constexpr size_t L1_NEURONS = HALF_L1 * 2;
 constexpr size_t L2_NEURONS = 32;
 constexpr size_t L3_NEURONS = 32;
