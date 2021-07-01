@@ -76,6 +76,71 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 	return sharedData.getNodes();				//Used by bench searches. Otherwise is discarded.
 }
 
+Move QuickSearch(Position position, ThreadSharedData& sharedData)
+{
+	KeepSearching = true;
+	SearchPosition(position, sharedData, 0);
+	return sharedData.GetBestMove();
+}
+
+int PlayoutGame(Position position, int pieceCount)
+{
+	SearchParameters param;
+	SearchLimits limits;
+	limits.SetDepthLimit(4);
+	EvalCacheTable table;
+	BasicMoveList list;
+	ThreadSharedData sharedData(limits, param, true);
+
+	while (true)
+	{
+		sharedData.Reset();
+
+		//is it checkmate?
+		list.clear();
+		LegalMoves(position, list);
+		if (list.size() == 0)
+		{
+			if (IsInCheck(position))
+			{
+				return position.GetTurn() == WHITE ? MATED : MATE;
+			}
+			else
+			{
+				return DRAW;
+			}
+		}
+
+		//is it a draw by other means?
+		if (DeadPosition(position))
+		{
+			return DRAW;
+		}
+
+		if (CheckForRep(position, 0))
+		{
+			return DRAW;
+		}
+
+		if (position.GetFiftyMoveCount() >= 100)
+		{
+			return DRAW;
+		}
+
+		if (GetBitCount(position.GetAllPieces()) < pieceCount)
+		{
+			int eval = EvaluatePositionNet(position, table);
+			if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() == eval)
+			{
+				return eval;
+			}
+		}
+
+		Move move = QuickSearch(position, sharedData);
+		position.ApplyMove(move);
+	}
+}
+
 void InitSearch()
 {
 	KeepSearching = true;

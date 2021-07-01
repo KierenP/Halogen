@@ -46,3 +46,5 @@ private:
 };
 
 uint64_t SearchThread(Position position, SearchParameters parameters, const SearchLimits& limits, bool noOutput = false);
+
+int PlayoutGame(Position position, int pieceCount);

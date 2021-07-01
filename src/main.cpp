@@ -12,6 +12,10 @@ void Bench(int depth = 16);
 
 string version = "10.16";
 
+void RetrogradeSplit(std::string input);
+void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output);
+void RetrogradePlayout(std::string input, int pieceCount, std::string output);
+
 int main(int argc, char* argv[])
 {
 	PrintVersion();
@@ -357,6 +361,21 @@ int main(int argc, char* argv[])
 				Bench();
 		}
 
+		else if (token == "retrograde-split")
+		{
+			RetrogradeSplit(argv[2]);
+		}
+
+		else if (token == "syzygy-label")
+		{
+			SyzygyLabel(argv[2], argv[3], argv[4]);
+		}
+
+		else if (token == "retrograde-playout")
+		{
+			RetrogradePlayout(argv[2], stoi(argv[3]), argv[4]);
+		}
+
 		//Non uci commands
 		else if (token == "print") position.Print();
 		else cout << "Unknown command" << endl;
@@ -548,3 +567,194 @@ void Bench(int depth)
 
 	cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
 }
+
+//usage: Halogen.exe retrograde-split <source file>
+void RetrogradeSplit(std::string input)
+{
+	std::ifstream source(input);
+
+	if (!source.is_open())
+	{
+		std::cout << "Error, could not open input file\n";
+		std::cout << "File name was: " << input << "\n";
+		return;
+	}
+
+	Position position;
+	vector<ofstream> outputFiles;
+
+	for (int i = 0; i <= 32; i++)
+	{
+		outputFiles.emplace_back("piece_count_" + std::to_string(i) + ".fens");
+	}
+
+	std::string line;
+	while (std::getline(source, line))
+	{
+		std::size_t last_word = line.find_last_of(' ');
+
+		std::string fen = line.substr(0, last_word);
+		std::string result = line.substr(last_word + 1);
+
+		if (!position.InitialiseFromFen(fen))
+		{
+			std::cout << "Ignored bad fen " << fen << "\n";
+			continue;
+		}
+
+		int pieces = GetBitCount(position.GetAllPieces());
+
+		if (pieces > 32)
+		{
+			std::cout << "Somehow got more than 32 pieces??" << fen << "\n";
+		}
+
+		outputFiles[pieces] << fen << " [" << result << "]\n";
+	}
+}
+
+//usage: Halogen.exe syzygy-label <syzyzy path> <source file> <output file>
+void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
+{
+	if (!tb_init(syzyzy_path.c_str()))
+	{
+		std::cout << "Error, could not load syzygy files\n";
+		return;
+	}
+
+	std::ifstream source(input);
+
+	if (!source.is_open())
+	{
+		std::cout << "Error, could not open input file\n";
+		std::cout << "File name was: " << input << "\n";
+		return;
+	}
+
+	std::ofstream dest(output, fstream::app);
+
+	if (!dest.is_open())
+	{
+		std::cout << "Error, could not open output file\n";
+		std::cout << "File name was: " << output << "\n";
+		return;
+	}
+
+	Position position;
+
+	std::string line;
+	while (std::getline(source, line))
+	{
+		std::size_t last_word = line.find_last_of(' ');
+
+		std::string fen = line.substr(0, last_word);
+		std::string result = line.substr(last_word + 1);
+
+		if (!position.InitialiseFromFen(fen))
+		{
+			std::cout << "Ignored bad fen " << fen << "\n";
+			continue;
+		}
+
+		if (GetBitCount(position.GetAllPieces()) > TB_LARGEST
+			|| position.GetCanCastleWhiteKingside() == true
+			|| position.GetCanCastleBlackKingside() == true
+			|| position.GetCanCastleWhiteQueenside() == true
+			|| position.GetCanCastleBlackQueenside() == true)
+		{
+			std::cout << "Could not probe this position " << fen << "\n";
+			continue;
+		}
+
+		unsigned int probe = tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
+			position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
+			position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
+			position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
+			position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
+			position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
+			position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
+			position.GetFiftyMoveCount(),
+			position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
+			position.GetTurn(),
+			NULL);
+
+		if (probe == TB_RESULT_FAILED ||
+			probe == TB_RESULT_CHECKMATE ||
+			probe == TB_RESULT_STALEMATE)
+		{
+			std::cout << "Position was terminal" << fen << "\n";
+			continue;
+		}
+
+		int score = -1;
+
+		if ((TB_GET_WDL(probe) == TB_LOSS && position.GetTurn() == WHITE) || (TB_GET_WDL(probe) == TB_WIN && position.GetTurn() == BLACK))
+			score = TB_LOSS_SCORE;
+		else if (TB_GET_WDL(probe) == TB_DRAW)
+			score = 0;
+		if ((TB_GET_WDL(probe) == TB_LOSS && position.GetTurn() == BLACK) || (TB_GET_WDL(probe) == TB_WIN && position.GetTurn() == WHITE))
+			score = TB_WIN_SCORE;
+		else
+			assert(0);
+
+		dest << fen << " " << result << " " << score << "\n";
+	}
+}
+
+#include <chrono>
+
+void RetrogradePlayout(std::string input, int pieceCount, std::string output)
+{
+	std::ifstream source(input);
+
+	if (!source.is_open())
+	{
+		std::cout << "Error, could not open input file\n";
+		std::cout << "File name was: " << input << "\n";
+		return;
+	}
+
+	std::ofstream dest(output, fstream::app);
+
+	if (!dest.is_open())
+	{
+		std::cout << "Error, could not open output file\n";
+		std::cout << "File name was: " << output << "\n";
+		return;
+	}
+
+	Position position;
+
+	int completed = 0;
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+	std::string line;
+	while (std::getline(source, line))
+	{
+		std::string fen = line;
+		fen.pop_back();
+		fen.pop_back();
+		fen.pop_back();
+		fen.pop_back();
+
+		if (!position.InitialiseFromFen(fen))
+		{
+			std::cout << "Ignored bad fen " << fen << "\n";
+			continue;
+		}
+
+		KeepSearching = true;
+		int score = PlayoutGame(position, pieceCount);
+
+		dest << fen << " " << score << "\n";
+		completed++;
+
+		if (completed % 1000 == 0)
+		{
+			end = std::chrono::steady_clock::now();
+			std::cout << 1000 / double(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) * 1000000 << std::endl;
+			begin = std::chrono::steady_clock::now();
+		}
+	}

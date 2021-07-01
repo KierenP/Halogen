@@ -126,6 +126,15 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
 	return threadlocalData[threadID];
 }
 
+void ThreadSharedData::Reset()
+{
+	threadDepthCompleted = 0;
+	currentBestMove = Move::Uninitialized;
+	prevScore = 0;
+	lowestAlpha = 0;
+	highestBeta = 0;
+}
+
 void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const
 {
 	/*
