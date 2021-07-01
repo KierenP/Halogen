@@ -758,3 +758,4 @@ void RetrogradePlayout(std::string input, int pieceCount, std::string output)
 			begin = std::chrono::steady_clock::now();
 		}
 	}
+}
