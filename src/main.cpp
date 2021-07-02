@@ -99,6 +99,9 @@ int main(int argc, char* argv[])
 				iss >> token;
 				if (token == "moves") while (iss >> token) position.ApplyMove(token);
 			}
+
+			EvalCacheTable tmp;
+			std::cout << "Eval: " << EvaluatePositionNet(position, tmp);
 		}
 
 		else if (token == "go")
@@ -746,9 +749,12 @@ void RetrogradePlayout(std::string input, int pieceCount, std::string output)
 		}
 
 		KeepSearching = true;
-		int score = PlayoutGame(position, pieceCount);
+		std::optional<int> score = PlayoutGame(position, pieceCount);
 
-		dest << fen << " " << score << "\n";
+		if (!score)
+			continue;
+
+		dest << fen << " " << *score << "\n";
 		completed++;
 
 		if (completed % 1000 == 0)

@@ -1,8 +1,5 @@
 #include "Network.h"
-#include "incbin/incbin.h"
 #include "Position.h"
-
-INCBIN(Net, EVALFILE);
 
 std::array<float, HALF_L1> Network::l1_bias;
 std::array<std::array<float, HALF_L1>, INPUT_NEURONS> Network::l1_weight;
@@ -40,42 +37,17 @@ void ReLU(std::array<T, SIZE>& source)
 }
 
 void Network::Init()
-{
-    auto data = reinterpret_cast<const float*>(gNetData);
-    
-    for (auto& val : l1_bias)
-        val = *data++;
+{   
+    FILE* ptr = fopen("exported.nn", "rb");
 
-    for (auto& row : l1_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : l2_bias)
-        val = *data++;
-
-    for (auto& row : l2_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : l3_bias)
-        val = *data++;
-
-    for (auto& row : l3_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : out_bias)
-        val = *data++;
-
-    for (auto& row : out_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    if (reinterpret_cast<const unsigned char*>(data) - gNetData != gNetSize)
-    {
-        std::cout << "Error! Network architecture is incompatable" << std::endl;
-        throw;
-    }
+    fread(l1_bias.data(),      sizeof(l1_bias),    1, ptr);
+    fread(l1_weight.data(),    sizeof(l1_weight),  1, ptr);
+    fread(l2_bias.data(),      sizeof(l2_bias),    1, ptr);
+    fread(l2_weight.data(),    sizeof(l2_weight),  1, ptr);
+    fread(l3_bias.data(),      sizeof(l3_bias),    1, ptr);
+    fread(l3_weight.data(),    sizeof(l3_weight),  1, ptr);
+    fread(out_bias.data(),     sizeof(out_bias),   1, ptr);
+    fread(out_weight.data(),   sizeof(out_weight), 1, ptr);
 }
 
 Rank RelativeRank(Players colour, Square sq) 

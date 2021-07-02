@@ -83,14 +83,21 @@ Move QuickSearch(Position position, ThreadSharedData& sharedData)
 	return sharedData.GetBestMove();
 }
 
-int PlayoutGame(Position position, int pieceCount)
+std::optional<int> PlayoutGame(Position position, int pieceCount)
 {
 	SearchParameters param;
 	SearchLimits limits;
 	limits.SetDepthLimit(4);
 	EvalCacheTable table;
-	BasicMoveList list;
 	ThreadSharedData sharedData(limits, param, true);
+
+	int eval = EvaluatePositionNet(position, table);
+	if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() != eval)
+	{
+		return std::nullopt;
+	}
+
+	BasicMoveList list;
 
 	while (true)
 	{
@@ -129,7 +136,7 @@ int PlayoutGame(Position position, int pieceCount)
 
 		if (GetBitCount(position.GetAllPieces()) < pieceCount)
 		{
-			int eval = EvaluatePositionNet(position, table);
+			eval = EvaluatePositionNet(position, table);
 			if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() == eval)
 			{
 				return eval;
