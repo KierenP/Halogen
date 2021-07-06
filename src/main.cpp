@@ -594,11 +594,10 @@ void RetrogradeSplit(std::string input)
 	std::string line;
 	while (std::getline(source, line))
 	{
-		std::string fen = line;
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
+		std::size_t last_word = line.find_last_of(' ');
+
+		std::string fen = line.substr(0, last_word);
+		std::string result = line.substr(last_word + 1);
 
 		if (!position.InitialiseFromFen(fen))
 		{
@@ -649,10 +648,11 @@ void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
 	std::string line;
 	while (std::getline(source, line))
 	{
-		std::size_t last_word = line.find_last_of(' ');
-
-		std::string fen = line.substr(0, last_word);
-		std::string result = line.substr(last_word + 1);
+		std::string fen = line;
+		fen.pop_back();
+		fen.pop_back();
+		fen.pop_back();
+		fen.pop_back();
 
 		if (!position.InitialiseFromFen(fen))
 		{
@@ -701,7 +701,7 @@ void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
 		else
 			assert(0);
 
-		dest << fen << " " << result << " " << score << "\n";
+		dest << fen << " " << score << "\n";
 	}
 }
 
