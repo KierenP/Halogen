@@ -758,11 +758,11 @@ void RetrogradePlayout(std::string input, int pieceCount, std::string output)
 		dest << fen << " " << *score << "\n";
 		completed++;
 
-		if (completed % 1000 == 0)
+		/*if (completed % 1000 == 0)
 		{
 			end = std::chrono::steady_clock::now();
 			std::cout << 1000 / double(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) * 1000000 << std::endl;
 			begin = std::chrono::steady_clock::now();
-		}
+		}*/
 	}
 }
