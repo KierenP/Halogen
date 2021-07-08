@@ -110,7 +110,7 @@ std::optional<int> PlayoutGame(Position position, int pieceCount)
 		{
 			if (IsInCheck(position))
 			{
-				return position.GetTurn() == WHITE ? MATED : MATE;
+				return std::nullopt;// position.GetTurn() == WHITE ? MATED : MATE;
 			}
 			else
 			{
