@@ -87,7 +87,7 @@ std::optional<int> PlayoutGame(Position position, int pieceCount)
 {
 	SearchParameters param;
 	SearchLimits limits;
-	limits.SetDepthLimit(3);
+	limits.SetDepthLimit(4);
 	EvalCacheTable table;
 	ThreadSharedData sharedData(limits, param, true);
 

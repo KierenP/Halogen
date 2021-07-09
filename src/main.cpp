@@ -655,10 +655,6 @@ void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
 	while (std::getline(source, line))
 	{
 		std::string fen = line;
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
 
 		if (!position.InitialiseFromFen(fen))
 		{
@@ -741,10 +737,6 @@ void RetrogradePlayout(std::string input, int pieceCount, std::string output)
 	while (std::getline(source, line))
 	{
 		std::string fen = line;
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
-		fen.pop_back();
 
 		if (!position.InitialiseFromFen(fen))
 		{
