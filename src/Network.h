@@ -16,7 +16,7 @@ class Position;
 
 struct WDL
 {
-    WDL(float win, float draw, float loss) : win(win), draw(draw), loss(loss)
+    WDL(float win_, float draw_, float loss_) : win(win_), draw(draw_), loss(loss_)
     {
         assert(abs(1 - win - draw - loss) < 0.001);
     }
