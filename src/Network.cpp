@@ -36,6 +36,18 @@ void ReLU(std::array<T, SIZE>& source)
         source[i] = std::max(T(0), source[i]);
 }
 
+template<typename T, size_t SIZE>
+void Softmax(std::array<T, SIZE>& source)
+{
+    T sum = 0;
+    
+    for (auto const& val : source)
+        sum += exp(val);
+
+    for (auto& val : source)
+        val = exp(val) / sum;
+}
+
 void Network::Init()
 {   
     FILE* ptr = fopen("exported.nn", "rb");
@@ -60,7 +72,7 @@ Square RelativeSquare(Players colour, Square sq)
     return GetPosition(GetFile(sq), RelativeRank(colour, sq));
 }
 
-int16_t Network::Eval(const Position& position) const
+WDL Network::EvalWDL(const Position& position) const
 {
     //------------------
 
@@ -79,7 +91,7 @@ int16_t Network::Eval(const Position& position) const
         Square sq = static_cast<Square>(LSBpop(nonKingMaterial));
         Pieces piece = position.GetSquare(sq);
 
-        size_t inputUs   = (64 * 10 * ourKing)   + (64 * (5 * (ColourOfPiece(piece) == stm) + GetPieceType(piece))) + RelativeSquare( stm, sq);
+        size_t inputUs = (64 * 10 * ourKing) + (64 * (5 * (ColourOfPiece(piece) == stm) + GetPieceType(piece))) + RelativeSquare(stm, sq);
         size_t inputThem = (64 * 10 * theirKing) + (64 * (5 * (ColourOfPiece(piece) != stm) + GetPieceType(piece))) + RelativeSquare(!stm, sq);
 
         AddTo(accumulatorUs, l1_weight[inputUs]);
@@ -117,7 +129,36 @@ int16_t Network::Eval(const Position& position) const
         for (size_t j = 0; j < OUTPUT_NEURONS; j++)
             output[j] += l3[i] * out_weight[i][j];
 
+    Softmax(output);
+
     //------------------
 
-    return static_cast<int16_t>(std::round(output[0]) * (position.GetTurn() == WHITE ? 1 : -1));
+    if (position.GetTurn() == WHITE)
+        return { output[0], output[1], output[2] };
+    else
+        return { output[2], output[1], output[0] };
+}
+
+int16_t Network::Eval(const Position& position) const
+{
+    auto score = EvalWDL(position);
+    return static_cast<int16_t>(std::round(score.ToCP()));
+}
+
+float WDL::ToCP()
+{
+    /*
+    First we calculate the 'expected' score as W + 0.5D
+    Then we calculate the logit of this score, aka an inverse sigmoid.
+    The answer is then scaled by 150 times which was empirically adjusted
+    to maximize elo
+    */
+
+    constexpr static float epsilon = 0.0001;
+    constexpr static float scale = 150;
+
+    float expectation = std::clamp(win + 0.5 * draw, epsilon, 1 - epsilon);
+    float eval = std::log(expectation / (1 - expectation));
+
+    return scale * eval;
 }
