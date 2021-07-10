@@ -186,7 +186,7 @@ float WDL::ToCP()
     to maximize elo
     */
 
-    constexpr static float epsilon = 0.0001;
+    constexpr static float epsilon = 1e-8;
     constexpr static float scale = 150;
 
     float expectation = std::clamp(win + 0.5f * draw, epsilon, 1 - epsilon);
