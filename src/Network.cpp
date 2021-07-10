@@ -42,13 +42,17 @@ void ReLU(std::array<T, SIZE>& source)
 template<typename T, size_t SIZE>
 void Softmax(std::array<T, SIZE>& source)
 {
-    T sum = 0;
-    
-    for (auto const& val : source)
-        sum += exp(val);
+    // Get the max output
+    T largest = *std::max_element(source.begin(), source.end());
 
-    for (auto& val : source)
-        val = exp(val) / sum;
+    // Calculate exp(x - largest)
+    std::transform(source.begin(), source.end(), source.begin(), [largest](T& x) { return std::exp(x - largest); });
+
+    // Calculate sum
+    T sum = std::accumulate(source.begin(), source.end(), T(0));
+
+    // The softmax is exp(x - max(x)) / sum
+    std::transform(source.begin(), source.end(), source.begin(), [sum](T& x) { return x / sum; });
 }
 
 void Network::Init()
