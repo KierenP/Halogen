@@ -101,8 +101,7 @@ int main(int argc, char* argv[])
 				if (token == "moves") while (iss >> token) position.ApplyMove(token);
 			}
 
-			EvalCacheTable tmp;
-			std::cout << "Eval: " << EvaluatePositionNet(position, tmp);
+			std::cout << "Eval: " << position.GetEvaluation() << "cp { " << position.GetEvaluationWDL() << " } wdl\n";
 		}
 
 		else if (token == "go")
@@ -668,7 +667,7 @@ void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
 			|| position.GetCanCastleWhiteQueenside() == true
 			|| position.GetCanCastleBlackQueenside() == true)
 		{
-			std::cout << "Could not probe this position " << fen << "\n";
+			std::cout << "Could not probe this position: " << fen << "\n";
 			continue;
 		}
 
@@ -688,20 +687,20 @@ void SyzygyLabel(std::string syzyzy_path, std::string input, std::string output)
 			probe == TB_RESULT_CHECKMATE ||
 			probe == TB_RESULT_STALEMATE)
 		{
-			std::cout << "Position was terminal" << fen << "\n";
+			std::cout << "Position was terminal: " << fen << "\n";
 			continue;
 		}
 
-		int score = -1;
+		WDL score;
 
 		if ((TB_GET_WDL(probe) == TB_LOSS && position.GetTurn() == WHITE) || (TB_GET_WDL(probe) == TB_WIN && position.GetTurn() == BLACK))
-			score = TB_LOSS_SCORE;
-		else if (TB_GET_WDL(probe) == TB_DRAW)
-			score = 0;
-		if ((TB_GET_WDL(probe) == TB_LOSS && position.GetTurn() == BLACK) || (TB_GET_WDL(probe) == TB_WIN && position.GetTurn() == WHITE))
-			score = TB_WIN_SCORE;
+			score = WDL::LOSS;
+		else if (TB_GET_WDL(probe) == TB_DRAW || TB_GET_WDL(probe) == TB_BLESSED_LOSS || TB_GET_WDL(probe) == TB_CURSED_WIN)
+			score = WDL::DRAW;
+		else if ((TB_GET_WDL(probe) == TB_LOSS && position.GetTurn() == BLACK) || (TB_GET_WDL(probe) == TB_WIN && position.GetTurn() == WHITE))
+			score = WDL::WIN;
 		else
-			assert(0);
+			std::cout << "Failed to give position a score: " << fen << "\n";;
 
 		dest << fen << " " << score << "\n";
 	}
@@ -745,7 +744,7 @@ void RetrogradePlayout(std::string input, int pieceCount, std::string output)
 		}
 
 		KeepSearching = true;
-		std::optional<int> score = PlayoutGame(position, pieceCount);
+		std::optional<WDL> score = PlayoutGame(position, pieceCount);
 
 		if (!score)
 			continue;

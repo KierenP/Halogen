@@ -39,13 +39,17 @@ void ReLU(std::array<T, SIZE>& source)
 template<typename T, size_t SIZE>
 void Softmax(std::array<T, SIZE>& source)
 {
-    T sum = 0;
-    
-    for (auto const& val : source)
-        sum += exp(val);
+    // Get the max output
+    T largest = *std::max_element(source.begin(), source.end());
 
-    for (auto& val : source)
-        val = exp(val) / sum;
+    // Calculate exp(x - largest)
+    std::transform(source.begin(), source.end(), source.begin(), [largest] (T& x) { return std::exp(x - largest); });
+
+    // Calculate sum
+    T sum = std::accumulate(source.begin(), source.end(), T(0));
+
+    // The softmax is exp(x - max(x)) / sum
+    std::transform(source.begin(), source.end(), source.begin(), [sum] (T& x) { return x / sum; });
 }
 
 void Network::Init()
@@ -142,10 +146,10 @@ WDL Network::EvalWDL(const Position& position) const
 int16_t Network::Eval(const Position& position) const
 {
     auto score = EvalWDL(position);
-    return static_cast<int16_t>(std::round(score.ToCP()));
+    return score.ToCP();
 }
 
-float WDL::ToCP()
+int16_t WDL::ToCP()
 {
     /*
     First we calculate the 'expected' score as W + 0.5D
@@ -154,11 +158,11 @@ float WDL::ToCP()
     to maximize elo
     */
 
-    constexpr static float epsilon = 0.0001;
+    constexpr static float epsilon = 1e-8;
     constexpr static float scale = 150;
 
     float expectation = std::clamp(win + 0.5f * draw, epsilon, 1 - epsilon);
     float eval = std::log(expectation / (1 - expectation));
 
-    return scale * eval;
+    return static_cast<int16_t>(std::round(scale * eval));
 }

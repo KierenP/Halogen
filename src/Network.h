@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <vector>
+#include <iostream>
 #include "BitBoardDefine.h"
 
 //HalfKP 64x2-32-32 WDL
@@ -16,6 +17,8 @@ class Position;
 
 struct WDL
 {
+    WDL() : win(-1), draw(-1), loss(-1) {}
+
     WDL(float win_, float draw_, float loss_) : win(win_), draw(draw_), loss(loss_)
     {
         assert(abs(1 - win - draw - loss) < 0.001);
@@ -27,8 +30,20 @@ struct WDL
     float draw;
     float loss;
 
-    float ToCP();
+    int16_t ToCP();
+
+    friend std::ostream& operator<<(std::ostream& os, WDL const& wdl) {
+        return os << wdl.win << " " << wdl.draw << " " << wdl.loss;
+    }
+
+    static const WDL WIN;
+    static const WDL DRAW;
+    static const WDL LOSS;
 };
+
+inline const WDL WDL::WIN  = WDL(1, 0, 0);
+inline const WDL WDL::DRAW = WDL(0, 1, 0);
+inline const WDL WDL::LOSS = WDL(0, 0, 1);
 
 class Network
 {

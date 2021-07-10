@@ -83,15 +83,14 @@ Move QuickSearch(Position position, ThreadSharedData& sharedData)
 	return sharedData.GetBestMove();
 }
 
-std::optional<int> PlayoutGame(Position position, int pieceCount)
+std::optional<WDL> PlayoutGame(Position position, int pieceCount)
 {
 	SearchParameters param;
 	SearchLimits limits;
 	limits.SetDepthLimit(4);
-	EvalCacheTable table;
 	ThreadSharedData sharedData(limits, param, true);
 
-	int eval = EvaluatePositionNet(position, table);
+	int eval = position.GetEvaluation();
 	if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() != eval)
 	{
 		return std::nullopt;
@@ -110,36 +109,36 @@ std::optional<int> PlayoutGame(Position position, int pieceCount)
 		{
 			if (IsInCheck(position))
 			{
-				return std::nullopt;// position.GetTurn() == WHITE ? MATED : MATE;
+				return position.GetTurn() == WHITE ? WDL::LOSS : WDL::WIN;
 			}
 			else
 			{
-				return DRAW;
+				return WDL::DRAW;
 			}
 		}
 
 		//is it a draw by other means?
 		if (DeadPosition(position))
 		{
-			return DRAW;
+			return WDL::DRAW;
 		}
 
 		if (CheckForRep(position, 0))
 		{
-			return DRAW;
+			return WDL::DRAW;
 		}
 
 		if (position.GetFiftyMoveCount() >= 100)
 		{
-			return DRAW;
+			return WDL::DRAW;
 		}
 
 		if (GetBitCount(position.GetAllPieces()) < pieceCount)
 		{
-			eval = EvaluatePositionNet(position, table);
-			if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() == eval)
+			WDL evalWDL = position.GetEvaluationWDL();
+			if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() == evalWDL.ToCP())
 			{
-				return eval;
+				return evalWDL;
 			}
 		}
 
