@@ -426,6 +426,11 @@ int16_t Position::GetEvaluation() const
 	return net.Eval(*this);
 }
 
+WDL Position::GetEvaluationWDL() const
+{
+	return net.EvalWDL(*this);
+}
+
 bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
 {
 	int totalRep = 1;

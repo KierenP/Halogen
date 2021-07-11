@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <thread>
 #include <cmath>
+#include <optional>
 
 /*Tuneable search constants*/
 
@@ -46,3 +47,5 @@ private:
 };
 
 uint64_t SearchThread(Position position, SearchParameters parameters, const SearchLimits& limits, bool noOutput = false);
+
+std::optional<WDL> PlayoutGame(Position position, int pieceCount);

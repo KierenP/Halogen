@@ -103,6 +103,8 @@ public:
 
 	SearchData& GetData(unsigned int threadID);
 
+	void Reset();
+
 private:
 	void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const;
 	bool MultiPVExcludeMoveUnlocked(Move move) const;

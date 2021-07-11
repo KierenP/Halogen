@@ -76,6 +76,77 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
 	return sharedData.getNodes();				//Used by bench searches. Otherwise is discarded.
 }
 
+Move QuickSearch(Position position, ThreadSharedData& sharedData)
+{
+	KeepSearching = true;
+	SearchPosition(position, sharedData, 0);
+	return sharedData.GetBestMove();
+}
+
+std::optional<WDL> PlayoutGame(Position position, int pieceCount)
+{
+	SearchParameters param;
+	SearchLimits limits;
+	limits.SetDepthLimit(4);
+	ThreadSharedData sharedData(limits, param, true);
+
+	int eval = position.GetEvaluation();
+	if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() != eval)
+	{
+		return std::nullopt;
+	}
+
+	BasicMoveList list;
+
+	while (true)
+	{
+		sharedData.Reset();
+
+		//is it checkmate?
+		list.clear();
+		LegalMoves(position, list);
+		if (list.size() == 0)
+		{
+			if (IsInCheck(position))
+			{
+				return position.GetTurn() == WHITE ? WDL::LOSS : WDL::WIN;
+			}
+			else
+			{
+				return WDL::DRAW;
+			}
+		}
+
+		//is it a draw by other means?
+		if (DeadPosition(position))
+		{
+			return WDL::DRAW;
+		}
+
+		if (CheckForRep(position, 0))
+		{
+			return WDL::DRAW;
+		}
+
+		if (position.GetFiftyMoveCount() >= 100)
+		{
+			return WDL::DRAW;
+		}
+
+		if (GetBitCount(position.GetAllPieces()) < pieceCount)
+		{
+			WDL evalWDL = position.GetEvaluationWDL();
+			if (Quiescence(position, 1, LowINF, HighINF, 1, 0, 0, sharedData.GetData(0), sharedData).GetScore() == evalWDL.ToCP())
+			{
+				return evalWDL;
+			}
+		}
+
+		Move move = QuickSearch(position, sharedData);
+		position.ApplyMove(move);
+	}
+}
+
 void InitSearch()
 {
 	KeepSearching = true;

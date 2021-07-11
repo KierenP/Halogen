@@ -1,8 +1,5 @@
 #include "Network.h"
-#include "incbin/incbin.h"
 #include "Position.h"
-
-INCBIN(Net, EVALFILE);
 
 std::array<float, HALF_L1> Network::l1_bias;
 std::array<std::array<float, HALF_L1>, INPUT_NEURONS> Network::l1_weight;
@@ -46,52 +43,27 @@ void Softmax(std::array<T, SIZE>& source)
     T largest = *std::max_element(source.begin(), source.end());
 
     // Calculate exp(x - largest)
-    std::transform(source.begin(), source.end(), source.begin(), [largest](T& x) { return std::exp(x - largest); });
+    std::transform(source.begin(), source.end(), source.begin(), [largest] (T& x) { return std::exp(x - largest); });
 
     // Calculate sum
     T sum = std::accumulate(source.begin(), source.end(), T(0));
 
     // The softmax is exp(x - max(x)) / sum
-    std::transform(source.begin(), source.end(), source.begin(), [sum](T& x) { return x / sum; });
+    std::transform(source.begin(), source.end(), source.begin(), [sum] (T& x) { return x / sum; });
 }
 
 void Network::Init()
-{
-    auto data = reinterpret_cast<const float*>(gNetData);
-    
-    for (auto& val : l1_bias)
-        val = *data++;
+{   
+    FILE* ptr = fopen("exported.nn", "rb");
 
-    for (auto& row : l1_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : l2_bias)
-        val = *data++;
-
-    for (auto& row : l2_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : l3_bias)
-        val = *data++;
-
-    for (auto& row : l3_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    for (auto& val : out_bias)
-        val = *data++;
-
-    for (auto& row : out_weight)
-        for (auto& val : row)
-            val = *data++;
-
-    if (reinterpret_cast<const unsigned char*>(data) - gNetData != gNetSize)
-    {
-        std::cout << "Error! Network architecture is incompatable" << std::endl;
-        throw;
-    }
+    fread(l1_bias.data(),      sizeof(l1_bias),    1, ptr);
+    fread(l1_weight.data(),    sizeof(l1_weight),  1, ptr);
+    fread(l2_bias.data(),      sizeof(l2_bias),    1, ptr);
+    fread(l2_weight.data(),    sizeof(l2_weight),  1, ptr);
+    fread(l3_bias.data(),      sizeof(l3_bias),    1, ptr);
+    fread(l3_weight.data(),    sizeof(l3_weight),  1, ptr);
+    fread(out_bias.data(),     sizeof(out_bias),   1, ptr);
+    fread(out_weight.data(),   sizeof(out_weight), 1, ptr);
 }
 
 Rank RelativeRank(Players colour, Square sq) 
@@ -174,10 +146,10 @@ WDL Network::EvalWDL(const Position& position) const
 int16_t Network::Eval(const Position& position) const
 {
     auto score = EvalWDL(position);
-    return static_cast<int16_t>(std::round(score.ToCP()));
+    return score.ToCP();
 }
 
-float WDL::ToCP()
+int16_t WDL::ToCP()
 {
     /*
     First we calculate the 'expected' score as W + 0.5D
@@ -192,5 +164,5 @@ float WDL::ToCP()
     float expectation = std::clamp(win + 0.5f * draw, epsilon, 1 - epsilon);
     float eval = std::log(expectation / (1 - expectation));
 
-    return scale * eval;
+    return static_cast<int16_t>(std::round(scale * eval));
 }
