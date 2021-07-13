@@ -97,7 +97,7 @@ public:
 	int GetMultiPVSetting() const { return param.multiPV; };
 	int GetMultiPVCount() const;
 	bool MultiPVExcludeMove(Move move) const;
-	void UpdateBestMove(Move move) { currentBestMove = move; }
+	void UpdateBestMove(Move move);
 
 	uint64_t getTBHits() const;
 	uint64_t getNodes() const;
