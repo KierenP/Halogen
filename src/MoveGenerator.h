@@ -2,6 +2,8 @@
 #include "SearchData.h"
 #include "MoveGeneration.h"
 
+#include <optional>
+
 enum class Stage
 {
 	TT_MOVE,
@@ -13,33 +15,53 @@ enum class Stage
 	GEN_QUIET, GIVE_QUIET
 };
 
+// Encapsulation of staged move generation. To loop through moves:
+// 
+// while (MoveGenerator.Next(move)) {
+//     ...
+// }
+//
+// Also responsible for updating history and killer tables
+
 class MoveGenerator
 {
 public:
 	MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
 
-	bool Next(Move& move);	//returns false if no more legal moves
-	int GetSEE() const { return (current - 1)->SEE; }
+	// Returns false if no more legal moves
+	bool Next(Move& move);
 
+	// Get the static exchange evaluation of the given move
+	// Optimized to return the SEE without calculation if it
+	// was already calculated and used in move ordering
+	int16_t GetSEE(Move move) const;
+
+	// Signal the generator that a fail high has occured, and history tables need to be updated
 	void AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const;
 
+	// Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
 	void SkipQuiets();
 
-	Stage GetStage() { return stage; }
+	// Note this will be the stage of the coming move, not the one that was last returned.
+	Stage GetStage() const { return stage; }
 
 private:
 	void OrderMoves(ExtendedMoveList& moves);
 
-	//Data needed for use in ordering or generating moves
+	// Data needed for use in ordering or generating moves
 	Position& position;
 	int distanceFromRoot;
 	const SearchData& locals;
 	bool quiescence;
 	ExtendedMoveList moveList;
 
-	//Data uses for keeping track of internal values
+	// Data uses for keeping track of internal values
 	Stage stage;
 	ExtendedMoveList::iterator current;
+
+	// We use SEE for ordering the moves, but SEE is also used in QS.
+	// See the body of GetSEE for usage.
+	std::optional<int16_t> moveSEE;
 
 	Move TTmove = Move::Uninitialized;
 	Move Killer1 = Move::Uninitialized;
