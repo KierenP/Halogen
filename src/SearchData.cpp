@@ -103,6 +103,12 @@ bool ThreadSharedData::MultiPVExcludeMove(Move move) const
 	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
 }
 
+void ThreadSharedData::UpdateBestMove(Move move)
+{
+	std::scoped_lock lock(ioMutex);
+	currentBestMove = move;
+}
+
 bool ThreadSharedData::MultiPVExcludeMoveUnlocked(Move move) const
 {
 	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
