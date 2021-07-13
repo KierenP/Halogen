@@ -68,6 +68,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 	{
 		PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
 		highestBeta = beta;
+        currentBestMove = move;
 	}
 }
 
