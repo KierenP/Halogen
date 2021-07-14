@@ -27,19 +27,10 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_LOUD)
 	{
-		if (!quiescence && IsInCheck(position))
-		{
-			LegalMoves(position, moveList);	//contains a special function for generating moves when in check which is quicker
-			stage = Stage::GIVE_QUIET;
-		}
-		else
-		{
-			QuiescenceMoves(position, moveList);
-			stage = Stage::GIVE_GOOD_LOUD;
-		}
-
+		QuiescenceMoves(position, moveList);
 		OrderMoves(moveList);
 		current = moveList.begin();
+		stage = Stage::GIVE_GOOD_LOUD;
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
