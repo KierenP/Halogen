@@ -95,13 +95,6 @@ unsigned int AlgebraicToPos(const std::string &str)
 	return (str[0] - 97) + (str[1] - 49) * 8;		
 }
 
-unsigned int ColourOfPiece(unsigned int piece)
-{
-	assert(piece < N_PIECES);
-
-	return piece / N_PIECE_TYPES;
-}
-
 int LSBpop(uint64_t &bb)
 {
 	assert(bb != 0);

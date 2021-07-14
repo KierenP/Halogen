@@ -37,6 +37,30 @@ private:
 	mutable bool periodicTimeLimit = false;
 };
 
+class History
+{
+public:
+	History() = default;
+	History(const History& other);
+	History& operator=(const History& other);
+
+	int16_t& Butterfly(Players side, Square from, Square to);
+	int16_t  Butterfly(Players side, Square from, Square to) const;
+
+	int16_t& CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to);
+	int16_t  CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to) const;
+
+private:
+	// [side][from][to]
+	using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
+
+	//[prev_piece][prev_to][piece][to]
+	using CounterMoveType = std::array<std::array<std::array<std::array<int16_t, N_PIECES>, N_SQUARES>, N_PIECES>, N_SQUARES>;
+
+	std::unique_ptr<ButterflyType> butterfly = std::make_unique<ButterflyType>();
+	std::unique_ptr<CounterMoveType> counterMove = std::make_unique<CounterMoveType>();
+};
+
 struct SearchData
 {
 	explicit SearchData(const SearchLimits& Limits);
@@ -49,7 +73,6 @@ private:
 public:
 	std::vector<std::vector<Move>> PvTable;
 	std::vector<std::array<Move, 2>> KillerMoves;					//2 moves indexed by distanceFromRoot
-	std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> History = {}; //[side][from][to]
 	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
@@ -57,13 +80,15 @@ public:
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
 
-	void AddHistory(Players side, Square from, Square to, int change);
+	void AddHistory(int16_t& val, int change);
 
 	uint64_t GetThreadNodes() const { return nodes; }
 
 	void ResetSeldepth() { selDepth = 0; }
 	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
 	int GetSelDepth() const { return selDepth; }
+
+	History history;
 
 private:
 	friend class ThreadSharedData;

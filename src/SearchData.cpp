@@ -272,7 +272,58 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void SearchData::AddHistory(Players side, Square from, Square to, int change)
+void SearchData::AddHistory(int16_t& val, int change)
 {
-	History[side][from][to] += 32 * change - History[side][from][to] * abs(change) / 512;
+	val += 32 * change - val * abs(change) / 512;
+}
+
+History::History(const History& other) : 
+	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly)),
+	counterMove(std::make_unique<History::CounterMoveType>(*other.counterMove))
+{
+}
+
+History& History::operator=(const History& other)
+{
+	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
+	counterMove = std::make_unique<History::CounterMoveType>(*other.counterMove);
+	return *this;
+}
+
+int16_t& History::Butterfly(Players side, Square from, Square to)
+{
+	assert(side != N_PIECES);
+	assert(from != N_SQUARES);
+	assert(to != N_SQUARES);
+
+	return (*butterfly)[side][from][to];
+}
+
+int16_t History::Butterfly(Players side, Square from, Square to) const
+{
+	assert(side != N_PIECES);
+	assert(from != N_SQUARES);
+	assert(to != N_SQUARES);
+
+	return (*butterfly)[side][from][to];
+}
+
+int16_t& History::CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to)
+{
+	assert(prevPiece != N_PIECES);
+	assert(prevTo != N_SQUARES);
+	assert(piece != N_PIECES);
+	assert(to != N_SQUARES);
+
+	return (*counterMove)[prevPiece][prevTo][piece][to];
+}
+
+int16_t History::CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to) const
+{
+	assert(prevPiece != N_PIECES);
+	assert(prevTo != N_SQUARES);
+	assert(piece != N_PIECES);
+	assert(to != N_SQUARES);
+
+	return (*counterMove)[prevPiece][prevTo][piece][to];
 }

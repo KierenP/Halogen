@@ -57,9 +57,13 @@ public:
 
 	void clear();
 	void erase(size_t index);
+	void pop();
 
 	const T& operator[](size_t index) const { return list[index]; }
 	      T& operator[](size_t index)       { return list[index]; }
+
+	T front() const;
+	T back() const;
 
 private:
 	size_t moveCount = 0;

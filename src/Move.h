@@ -47,6 +47,11 @@ public:
 		return (data == rhs.data);
 	}
 
+	constexpr bool operator!=(const Move& rhs) const
+	{
+		return !(*this == rhs);
+	}
+
 	static const Move Uninitialized;
 
 private:
