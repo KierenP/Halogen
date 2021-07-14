@@ -27,15 +27,15 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_LOUD)
 	{
-		QuiescenceMoves(position, moveList);
-		OrderMoves(moveList);
-		current = moveList.begin();
+		QuiescenceMoves(position, loudMoves);
+		OrderMoves(loudMoves);
+		current = loudMoves.begin();
 		stage = Stage::GIVE_GOOD_LOUD;
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
 	{
-		if (current != moveList.end() && current->SEE >= 0)
+		if (current != loudMoves.end() && current->SEE >= 0)
 		{
 			move = current->move;
 			moveSEE = current->SEE;
@@ -75,7 +75,7 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GIVE_BAD_LOUD)
 	{
-		if (current != moveList.end())
+		if (current != loudMoves.end())
 		{
 			move = current->move;
 			moveSEE = current->SEE;
@@ -93,16 +93,15 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		moveList.clear();
-		QuietMoves(position, moveList);
-		OrderMoves(moveList);
-		current = moveList.begin();
+		QuietMoves(position, quietMoves);
+		OrderMoves(quietMoves);
+		current = quietMoves.begin();
 		stage = Stage::GIVE_QUIET;
 	}
 
 	if (stage == Stage::GIVE_QUIET)
 	{
-		if (current != moveList.end())
+		if (current != quietMoves.end())
 		{
 			move = current->move;
 			moveSEE = current->SEE;
@@ -118,7 +117,7 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
 {
 	Locals.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
 
-	for (auto const& m : moveList)
+	for (auto const& m : quietMoves)
 	{
 		if (m.move == move) break;
 		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
