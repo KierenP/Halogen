@@ -650,7 +650,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 	while (gen.Next(move))
 	{
-		int SEE = gen.GetSEE();
+		int SEE = gen.GetSEE(move);
 
 		if (staticScore + SEE + Delta_margin < alpha) 						//delta pruning
 			break;

@@ -11,6 +11,8 @@ MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const Sea
 
 bool MoveGenerator::Next(Move& move)
 {
+	moveSEE = std::nullopt;
+
 	if (stage == Stage::TT_MOVE)
 	{
 		TTmove = GetHashMove(position, distanceFromRoot);
@@ -45,6 +47,7 @@ bool MoveGenerator::Next(Move& move)
 		if (current != moveList.end() && current->SEE >= 0)
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -84,6 +87,7 @@ bool MoveGenerator::Next(Move& move)
 		if (current != moveList.end())
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -110,6 +114,7 @@ bool MoveGenerator::Next(Move& move)
 		if (current != moveList.end())
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -215,6 +220,14 @@ int see(Position& position, Move move)
 		scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
 	}
 	return scores[0];
+}
+
+int16_t MoveGenerator::GetSEE(Move move) const
+{
+	if (moveSEE)
+		return *moveSEE;
+	else
+		return see(position, move);
 }
 
 void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
