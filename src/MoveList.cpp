@@ -19,13 +19,13 @@ T FixedVector<T>::front() const
 template<typename T>
 T FixedVector<T>::back() const
 {
-	return list.back();
+	return list[size() - 1];
 }
 
 template <typename T>
 typename FixedVector<T>::iterator FixedVector<T>::end()
 {
-	return list.begin() + moveCount;
+	return list.begin() + size();
 }
 
 template <typename T>
@@ -37,7 +37,7 @@ typename FixedVector<T>::const_iterator FixedVector<T>::begin() const
 template <typename T>
 typename FixedVector<T>::const_iterator FixedVector<T>::end() const
 {
-	return list.begin() + moveCount;
+	return list.begin() + size();
 }
 
 template <typename T>

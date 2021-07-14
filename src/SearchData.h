@@ -55,7 +55,7 @@ private:
 	using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
 
 	//[prev_piece][prev_to][piece][to]
-	using CounterMoveType = std::array<std::array<std::array<std::array<int16_t, N_PIECES>, N_SQUARES>, N_PIECES>, N_SQUARES>;
+	using CounterMoveType = std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECES>, N_SQUARES>, N_PIECES>;
 
 	std::unique_ptr<ButterflyType> butterfly = std::make_unique<ButterflyType>();
 	std::unique_ptr<CounterMoveType> counterMove = std::make_unique<CounterMoveType>();
