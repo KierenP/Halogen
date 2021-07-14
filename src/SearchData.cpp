@@ -278,15 +278,13 @@ void SearchData::AddHistory(int16_t& val, int change)
 }
 
 History::History(const History& other) : 
-	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly)),
-	counterMove(std::make_unique<History::CounterMoveType>(*other.counterMove))
+	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
 {
 }
 
 History& History::operator=(const History& other)
 {
 	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
-	counterMove = std::make_unique<History::CounterMoveType>(*other.counterMove);
 	return *this;
 }
 
@@ -308,22 +306,3 @@ int16_t History::Butterfly(Players side, Square from, Square to) const
 	return (*butterfly)[side][from][to];
 }
 
-int16_t& History::CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to)
-{
-	assert(prevPiece != N_PIECES);
-	assert(prevTo != N_SQUARES);
-	assert(piece != N_PIECES);
-	assert(to != N_SQUARES);
-
-	return (*counterMove)[prevPiece][prevTo][piece][to];
-}
-
-int16_t History::CounterMove(Pieces prevPiece, Square prevTo, Pieces piece, Square to) const
-{
-	assert(prevPiece != N_PIECES);
-	assert(prevTo != N_SQUARES);
-	assert(piece != N_PIECES);
-	assert(to != N_SQUARES);
-
-	return (*counterMove)[prevPiece][prevTo][piece][to];
-}
