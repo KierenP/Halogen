@@ -42,7 +42,10 @@ class History
 public:
 	History() = default;
 	History(const History& other);
+	History(History&& other) = default;
 	History& operator=(const History& other);
+	History& operator=(History&&) = default;
+	
 
 	int16_t& Butterfly(Players side, Square from, Square to);
 	int16_t  Butterfly(Players side, Square from, Square to) const;

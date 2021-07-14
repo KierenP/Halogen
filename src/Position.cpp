@@ -9,7 +9,7 @@ Position::Position()
 void Position::ApplyMove(Move move)
 {
 	PreviousKeys.push_back(key);
-	moveStack.Append(move);
+	moveStack.push_back(move);
 	SaveParameters();
 	SaveBoard();
 	SetEnPassant(N_SQUARES);
@@ -185,13 +185,13 @@ void Position::RevertMove()
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
 	net.ApplyInverseDelta();
-	moveStack.pop();
+	moveStack.pop_back();
 }
 
 void Position::ApplyNullMove()
 {
 	PreviousKeys.push_back(key);
-	moveStack.Append(Move::Uninitialized);
+	moveStack.push_back(Move::Uninitialized);
 	SaveParameters();
 	SetEnPassant(N_SQUARES);
 	SetCaptureSquare(N_SQUARES);
@@ -215,7 +215,7 @@ void Position::RevertNullMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	moveStack.pop();
+	moveStack.pop_back();
 }
 
 void Position::Print() const

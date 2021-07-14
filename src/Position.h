@@ -61,6 +61,6 @@ private:
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
 	Network net;
 
-	BasicMoveList moveStack;
+	std::vector<Move> moveStack;
 };
 
