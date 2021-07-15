@@ -169,11 +169,7 @@ char PieceToChar(unsigned int piece);
 unsigned int Piece(unsigned int piecetype, unsigned int colour);
 unsigned int GetPosition(unsigned int file, unsigned int rank);
 unsigned int AlgebraicToPos(const std::string& str);
-
-constexpr Players ColourOfPiece(int piece)
-{
-	return static_cast<Players>(piece / N_PIECE_TYPES);
-}
+unsigned int ColourOfPiece(unsigned int piece);
 
 constexpr PieceTypes GetPieceType(Pieces piece)
 {

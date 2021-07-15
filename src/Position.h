@@ -4,8 +4,6 @@
 #include "BitBoard.h"
 #include "Zobrist.h"
 #include "Network.h"
-#include "MoveList.h"
-
 #include <sstream>
 
 constexpr size_t NodeCountChunk = 1 << 12;
@@ -46,8 +44,6 @@ public:
 
 	bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
-	Move GetPreviousMove() const;
-
 private:
 	uint64_t key = EMPTY;
 	std::vector<uint64_t> PreviousKeys;
@@ -60,7 +56,5 @@ private:
 
 	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
 	Network net;
-
-	std::vector<Move> moveStack;
 };
 
