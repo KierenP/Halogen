@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create PGO build
+      - name: Create default build
         run: |
          cd src
          make
@@ -33,6 +33,22 @@ jobs:
         run: |
          cd src
          make release
+         
+  Debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create debug compiles
+        run: |
+         cd src
+         make debug
+         
+      - name: Run bench
+        run: |
+         cd src
+         ./Halogen bench 8
 
   Sanitizer:
     runs-on: ubuntu-latest

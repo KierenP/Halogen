@@ -44,6 +44,8 @@ public:
 
 	bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
+	Move GetPreviousMove() const;
+
 private:
 	uint64_t key = EMPTY;
 	std::vector<uint64_t> PreviousKeys;
@@ -52,5 +54,7 @@ private:
 	uint64_t IncrementZobristKey(Move move);	
 
 	Network net;
+
+	std::vector<Move> moveStack;
 };
 

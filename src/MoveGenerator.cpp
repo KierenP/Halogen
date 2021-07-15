@@ -11,6 +11,8 @@ MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const Sea
 
 bool MoveGenerator::Next(Move& move)
 {
+	moveSEE = std::nullopt;
+
 	if (stage == Stage::TT_MOVE)
 	{
 		TTmove = GetHashMove(position, distanceFromRoot);
@@ -25,26 +27,18 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_LOUD)
 	{
-		if (!quiescence && IsInCheck(position))
-		{
-			LegalMoves(position, moveList);	//contains a special function for generating moves when in check which is quicker
-			stage = Stage::GIVE_QUIET;
-		}
-		else
-		{
-			QuiescenceMoves(position, moveList);
-			stage = Stage::GIVE_GOOD_LOUD;
-		}
-
-		OrderMoves(moveList);
-		current = moveList.begin();
+		QuiescenceMoves(position, loudMoves);
+		OrderMoves(loudMoves);
+		current = loudMoves.begin();
+		stage = Stage::GIVE_GOOD_LOUD;
 	}
 
 	if (stage == Stage::GIVE_GOOD_LOUD)
 	{
-		if (current != moveList.end() && current->SEE >= 0)
+		if (current != loudMoves.end() && current->SEE >= 0)
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -81,9 +75,10 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GIVE_BAD_LOUD)
 	{
-		if (current != moveList.end())
+		if (current != loudMoves.end())
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -98,18 +93,18 @@ bool MoveGenerator::Next(Move& move)
 
 	if (stage == Stage::GEN_QUIET)
 	{
-		moveList.clear();
-		QuietMoves(position, moveList);
-		OrderMoves(moveList);
-		current = moveList.begin();
+		QuietMoves(position, quietMoves);
+		OrderMoves(quietMoves);
+		current = quietMoves.begin();
 		stage = Stage::GIVE_QUIET;
 	}
 
 	if (stage == Stage::GIVE_QUIET)
 	{
-		if (current != moveList.end())
+		if (current != quietMoves.end())
 		{
 			move = current->move;
+			moveSEE = current->SEE;
 			++current;
 			return true;
 		}
@@ -120,12 +115,14 @@ bool MoveGenerator::Next(Move& move)
 
 void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
 {
-	Locals.AddHistory(position.GetTurn(), move.GetFrom(), move.GetTo(), depthRemaining * depthRemaining);
+	Locals.history.AddButterfly(position, move, depthRemaining * depthRemaining);
+	Locals.history.AddCounterMove(position, move, depthRemaining * depthRemaining);
 
-	for (auto const& m : moveList)
+	for (auto const& m : quietMoves)
 	{
 		if (m.move == move) break;
-		Locals.AddHistory(position.GetTurn(), m.move.GetFrom(), m.move.GetTo(), -depthRemaining * depthRemaining);
+		Locals.history.AddButterfly(position, m.move, -depthRemaining * depthRemaining);
+		Locals.history.AddCounterMove(position, m.move, -depthRemaining * depthRemaining);
 	}
 }
 
@@ -217,6 +214,14 @@ int see(Position& position, Move move)
 	return scores[0];
 }
 
+int16_t MoveGenerator::GetSEE(Move move) const
+{
+	if (moveSEE)
+		return *moveSEE;
+	else
+		return see(position, move);
+}
+
 void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 {
 	static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
@@ -276,7 +281,8 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 		//Quiet
 		else
 		{
-			moves[i].score = locals.History[position.GetTurn()][moves[i].move.GetFrom()][moves[i].move.GetTo()];
+			int history = locals.history.GetButterfly(position, moves[i].move) + locals.history.GetCounterMove(position, moves[i].move);
+			moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(), std::numeric_limits<decltype(moves[i].score)>::max());
 		}
 	}
 

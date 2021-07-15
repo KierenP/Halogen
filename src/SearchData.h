@@ -37,6 +37,34 @@ private:
 	mutable bool periodicTimeLimit = false;
 };
 
+class History
+{
+public:
+	History() = default;
+	History(const History& other);
+	History(History&& other) = default;
+	History& operator=(const History& other);
+	History& operator=(History&&) = default;
+	
+	void AddButterfly(const Position& position, Move move, int change);
+	int16_t GetButterfly(const Position& position, Move move) const;
+
+	void AddCounterMove(const Position& position, Move move, int change);
+	int16_t GetCounterMove(const Position& position, Move move) const;
+
+private:
+	void AddHistory(int16_t& val, int change);
+
+	// [side][from][to]
+	using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
+
+	//[prev_piece][prev_to][piece][to]
+	using CounterMoveType = std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECES>, N_SQUARES>, N_PIECES>;
+
+	std::unique_ptr<ButterflyType> butterfly = std::make_unique<ButterflyType>();
+	std::unique_ptr<CounterMoveType> counterMove = std::make_unique<CounterMoveType>();
+};
+
 struct SearchData
 {
 	explicit SearchData(const SearchLimits& Limits);
@@ -49,7 +77,6 @@ private:
 public:
 	std::vector<std::vector<Move>> PvTable;
 	std::vector<std::array<Move, 2>> KillerMoves;					//2 moves indexed by distanceFromRoot
-	std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS> History = {}; //[side][from][to]
 	
 	EvalCacheTable evalTable;
 	SearchLimits limits;
@@ -57,13 +84,13 @@ public:
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
 
-	void AddHistory(Players side, Square from, Square to, int change);
-
 	uint64_t GetThreadNodes() const { return nodes; }
 
 	void ResetSeldepth() { selDepth = 0; }
 	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
 	int GetSelDepth() const { return selDepth; }
+
+	History history;
 
 private:
 	friend class ThreadSharedData;
@@ -97,6 +124,7 @@ public:
 	int GetMultiPVSetting() const { return param.multiPV; };
 	int GetMultiPVCount() const;
 	bool MultiPVExcludeMove(Move move) const;
+	void UpdateBestMove(Move move);
 
 	uint64_t getTBHits() const;
 	uint64_t getNodes() const;

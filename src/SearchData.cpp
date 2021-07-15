@@ -103,6 +103,12 @@ bool ThreadSharedData::MultiPVExcludeMove(Move move) const
 	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
 }
 
+void ThreadSharedData::UpdateBestMove(Move move)
+{
+	std::scoped_lock lock(ioMutex);
+	currentBestMove = move;
+}
+
 bool ThreadSharedData::MultiPVExcludeMoveUnlocked(Move move) const
 {
 	return std::find(MultiPVExclusion.begin(), MultiPVExclusion.end(), move) != MultiPVExclusion.end();
@@ -266,7 +272,78 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void SearchData::AddHistory(Players side, Square from, Square to, int change)
+void History::AddHistory(int16_t& val, int change)
 {
-	History[side][from][to] += 32 * change - History[side][from][to] * abs(change) / 512;
+	val += 32 * change - val * abs(change) / 512;
+}
+
+History::History(const History& other) :
+	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
+{
+}
+
+History& History::operator=(const History& other)
+{
+	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
+	return *this;
+}
+
+void History::AddButterfly(const Position& position, Move move, int change)
+{
+	assert(move != Move::Uninitialized);
+
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	assert(position.GetTurn() != N_PLAYERS);
+	assert(move.GetFrom() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	AddHistory((*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()], change);
+}
+
+int16_t History::GetButterfly(const Position& position, Move move) const
+{
+	assert(move != Move::Uninitialized);
+
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	assert(position.GetTurn() != N_PLAYERS);
+	assert(move.GetFrom() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	return (*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()];
+}
+
+void History::AddCounterMove(const Position& position, Move move, int change)
+{
+	Move prevMove = position.GetPreviousMove();
+	if (prevMove == Move::Uninitialized) return;
+
+	assert(move != Move::Uninitialized);
+
+	Pieces prevPiece = position.GetSquare(prevMove.GetTo());
+	Pieces currentPiece = position.GetSquare(move.GetFrom());
+
+	assert(prevPiece != N_PIECES);
+	assert(currentPiece != N_PIECES);
+	assert(prevMove.GetTo() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	AddHistory((*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change);
+}
+
+int16_t History::GetCounterMove(const Position& position, Move move) const
+{
+	Move prevMove = position.GetPreviousMove();
+	if (prevMove == Move::Uninitialized) return 0;
+
+	assert(move != Move::Uninitialized);
+
+	Pieces prevPiece = position.GetSquare(prevMove.GetTo());
+	Pieces currentPiece = position.GetSquare(move.GetFrom());
+
+	assert(prevPiece != N_PIECES);
+	assert(currentPiece != N_PIECES);
+	assert(prevMove.GetTo() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	return (*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
 }

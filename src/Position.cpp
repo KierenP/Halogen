@@ -9,6 +9,7 @@ Position::Position()
 void Position::ApplyMove(Move move)
 {
 	PreviousKeys.push_back(key);
+	moveStack.push_back(move);
 	SaveParameters();
 	SaveBoard();
 	SetEnPassant(N_SQUARES);
@@ -171,11 +172,13 @@ void Position::RevertMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
+	moveStack.pop_back();
 }
 
 void Position::ApplyNullMove()
 {
 	PreviousKeys.push_back(key);
+	moveStack.push_back(Move::Uninitialized);
 	SaveParameters();
 	SetEnPassant(N_SQUARES);
 	SetCaptureSquare(N_SQUARES);
@@ -199,6 +202,7 @@ void Position::RevertNullMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
+	moveStack.pop_back();
 }
 
 void Position::Print() const
@@ -300,6 +304,7 @@ void Position::Reset()
 {
 	PreviousKeys.clear();
 	key = EMPTY;
+	moveStack.clear();
 
 	ResetBoard();
 	InitParameters();
@@ -445,4 +450,12 @@ bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
 	}
 
 	return false;
+}
+
+Move Position::GetPreviousMove() const
+{
+	if (moveStack.size())
+		return moveStack.back();
+	else
+		return Move::Uninitialized;
 }
