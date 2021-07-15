@@ -46,10 +46,12 @@ public:
 	History& operator=(const History& other);
 	History& operator=(History&&) = default;
 	
-	int16_t& Butterfly(Players side, Square from, Square to);
-	int16_t  Butterfly(Players side, Square from, Square to) const;
+	void AddButterfly(const Position& position, Move move, int change);
+	int16_t GetButterfly(const Position& position, Move move) const;
 
 private:
+	void AddHistory(int16_t& val, int change);
+
 	// [side][from][to]
 	using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
 
@@ -75,20 +77,15 @@ public:
 	void AddNode() { nodes++; }
 	void AddTbHit() { tbHits++; }
 
-	void AddHistory(int16_t& val, int change);
-
 	uint64_t GetThreadNodes() const { return nodes; }
 
 	void ResetSeldepth() { selDepth = 0; }
 	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
 	int GetSelDepth() const { return selDepth; }
 
-	int16_t& Butterfly(const Position& position, Move move);
-	int16_t  Butterfly(const Position& position, Move move) const;
-
-private:
 	History history;
 
+private:
 	friend class ThreadSharedData;
 	uint64_t tbHits = 0;
 	uint64_t nodes = 0;
