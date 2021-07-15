@@ -116,13 +116,11 @@ bool MoveGenerator::Next(Move& move)
 void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
 {
 	Locals.history.AddButterfly(position, move, depthRemaining * depthRemaining);
-	Locals.history.AddCounterMove(position, move, depthRemaining * depthRemaining);
 
 	for (auto const& m : quietMoves)
 	{
 		if (m.move == move) break;
 		Locals.history.AddButterfly(position, m.move, -depthRemaining * depthRemaining);
-		Locals.history.AddCounterMove(position, m.move, depthRemaining * depthRemaining);
 	}
 }
 
@@ -281,7 +279,7 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 		//Quiet
 		else
 		{
-			int history = locals.history.GetButterfly(position, moves[i].move) + locals.history.GetCounterMove(position, moves[i].move);
+			int history = locals.history.GetButterfly(position, moves[i].move);
 			moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(), std::numeric_limits<decltype(moves[i].score)>::max());
 		}
 	}
