@@ -272,7 +272,37 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void SearchData::AddHistory(Players side, Square from, Square to, int change)
+void SearchData::AddHistory(int16_t& val, int change)
 {
-	History[side][from][to] += 32 * change - History[side][from][to] * abs(change) / 512;
+	val += 32 * change - val * abs(change) / 512;
 }
+
+History::History(const History& other) : 
+	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
+{
+}
+
+History& History::operator=(const History& other)
+{
+	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
+	return *this;
+}
+
+int16_t& History::Butterfly(Players side, Square from, Square to)
+{
+	assert(side != N_PIECES);
+	assert(from != N_SQUARES);
+	assert(to != N_SQUARES);
+
+	return (*butterfly)[side][from][to];
+}
+
+int16_t History::Butterfly(Players side, Square from, Square to) const
+{
+	assert(side != N_PIECES);
+	assert(from != N_SQUARES);
+	assert(to != N_SQUARES);
+
+	return (*butterfly)[side][from][to];
+}
+
