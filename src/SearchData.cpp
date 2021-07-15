@@ -272,51 +272,81 @@ void SearchLimits::SetMateLimit(int moves)
 	mateLimitEnabled = true;
 }
 
-void SearchData::AddHistory(int16_t& val, int change)
+void History::AddHistory(int16_t& val, int change)
 {
 	val += 32 * change - val * abs(change) / 512;
 }
 
-int16_t& SearchData::Butterfly(const Position& position, Move move)
-{
-	assert(move != Move::Uninitialized);
-	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
-	return history.Butterfly(position.GetTurn(), move.GetFrom(), move.GetTo());
-}
-
-int16_t SearchData::Butterfly(const Position& position, Move move) const
-{
-	assert(move != Move::Uninitialized);
-	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
-	return history.Butterfly(position.GetTurn(), move.GetFrom(), move.GetTo());
-}
-
-History::History(const History& other) : 
-	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
+History::History(const History& other) :
+	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly)),
+	counterMove(std::make_unique<History::CounterMoveType>(*other.counterMove))
 {
 }
 
 History& History::operator=(const History& other)
 {
 	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
+	counterMove = std::make_unique<History::CounterMoveType>(*other.counterMove);
 	return *this;
 }
 
-int16_t& History::Butterfly(Players side, Square from, Square to)
+void History::AddButterfly(const Position& position, Move move, int change)
 {
-	assert(side != N_PLAYERS);
-	assert(from != N_SQUARES);
-	assert(to != N_SQUARES);
+	assert(move != Move::Uninitialized);
 
-	return (*butterfly)[side][from][to];
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	assert(position.GetTurn() != N_PLAYERS);
+	assert(move.GetFrom() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	AddHistory((*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()], change);
 }
 
-int16_t History::Butterfly(Players side, Square from, Square to) const
+int16_t History::GetButterfly(const Position& position, Move move) const
 {
-	assert(side != N_PLAYERS);
-	assert(from != N_SQUARES);
-	assert(to != N_SQUARES);
+	assert(move != Move::Uninitialized);
 
-	return (*butterfly)[side][from][to];
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	assert(position.GetTurn() != N_PLAYERS);
+	assert(move.GetFrom() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	return (*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()];
+}
+
+void History::AddCounterMove(const Position& position, Move move, int change)
+{
+	Move prevMove = position.GetPreviousMove();
+	if (prevMove == Move::Uninitialized) return;
+
+	assert(move != Move::Uninitialized);
+
+	Pieces prevPiece = position.GetSquare(prevMove.GetTo());
+	Pieces currentPiece = position.GetSquare(move.GetFrom());
+
+	assert(prevPiece != N_PIECES);
+	assert(currentPiece != N_PIECES);
+	assert(prevMove.GetTo() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	AddHistory((*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change);
+}
+
+int16_t History::GetCounterMove(const Position& position, Move move) const
+{
+	Move prevMove = position.GetPreviousMove();
+	if (prevMove == Move::Uninitialized) return 0;
+
+	assert(move != Move::Uninitialized);
+	
+	Pieces prevPiece = position.GetSquare(prevMove.GetTo());
+	Pieces currentPiece = position.GetSquare(move.GetFrom());
+
+	assert(prevPiece != N_PIECES);
+	assert(currentPiece != N_PIECES);
+	assert(prevMove.GetTo() != N_SQUARES);
+	assert(move.GetTo() != N_SQUARES);
+
+	return (*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
 }
 
