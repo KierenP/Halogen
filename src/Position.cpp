@@ -319,6 +319,7 @@ void Position::Reset()
 {
 	PreviousKeys.clear();
 	key = EMPTY;
+	moveStack.clear();
 
 	ResetBoard();
 	InitParameters();
