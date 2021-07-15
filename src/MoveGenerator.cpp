@@ -115,12 +115,12 @@ bool MoveGenerator::Next(Move& move)
 
 void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
 {
-	Locals.AddHistory(Locals.history.Butterfly(position.GetTurn(), move.GetFrom(), move.GetTo()), depthRemaining * depthRemaining);
+	Locals.AddHistory(Locals.Butterfly(position, move), depthRemaining * depthRemaining);
 
 	for (auto const& m : quietMoves)
 	{
 		if (m.move == move) break;
-		Locals.AddHistory(Locals.history.Butterfly(position.GetTurn(), m.move.GetFrom(), m.move.GetTo()), -depthRemaining * depthRemaining);
+		Locals.AddHistory(Locals.Butterfly(position, m.move), -depthRemaining * depthRemaining);
 	}
 }
 
@@ -279,7 +279,7 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 		//Quiet
 		else
 		{
-			int history = locals.history.Butterfly(position.GetTurn(), moves[i].move.GetFrom(), moves[i].move.GetTo());
+			int history = locals.Butterfly(position, moves[i].move);
 			moves[i].score = history;
 		}
 	}

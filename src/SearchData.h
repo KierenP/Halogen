@@ -46,7 +46,6 @@ public:
 	History& operator=(const History& other);
 	History& operator=(History&&) = default;
 	
-
 	int16_t& Butterfly(Players side, Square from, Square to);
 	int16_t  Butterfly(Players side, Square from, Square to) const;
 
@@ -84,9 +83,12 @@ public:
 	void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
 	int GetSelDepth() const { return selDepth; }
 
-	History history;
+	int16_t& Butterfly(const Position& position, Move move);
+	int16_t  Butterfly(const Position& position, Move move) const;
 
 private:
+	History history;
+
 	friend class ThreadSharedData;
 	uint64_t tbHits = 0;
 	uint64_t nodes = 0;

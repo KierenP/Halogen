@@ -277,6 +277,20 @@ void SearchData::AddHistory(int16_t& val, int change)
 	val += 32 * change - val * abs(change) / 512;
 }
 
+int16_t& SearchData::Butterfly(const Position& position, Move move)
+{
+	assert(move != Move::Uninitialized);
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	return history.Butterfly(position.GetTurn(), move.GetFrom(), move.GetTo());
+}
+
+int16_t SearchData::Butterfly(const Position& position, Move move) const
+{
+	assert(move != Move::Uninitialized);
+	assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
+	return history.Butterfly(position.GetTurn(), move.GetFrom(), move.GetTo());
+}
+
 History::History(const History& other) : 
 	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
 {
@@ -290,7 +304,7 @@ History& History::operator=(const History& other)
 
 int16_t& History::Butterfly(Players side, Square from, Square to)
 {
-	assert(side != N_PIECES);
+	assert(side != N_PLAYERS);
 	assert(from != N_SQUARES);
 	assert(to != N_SQUARES);
 
@@ -299,7 +313,7 @@ int16_t& History::Butterfly(Players side, Square from, Square to)
 
 int16_t History::Butterfly(Players side, Square from, Square to) const
 {
-	assert(side != N_PIECES);
+	assert(side != N_PLAYERS);
 	assert(from != N_SQUARES);
 	assert(to != N_SQUARES);
 
