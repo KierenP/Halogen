@@ -17,7 +17,7 @@ enum class EntryType : char {
 class TTEntry
 {
 public:
-	TTEntry();
+	TTEntry() = default;
 	TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff);
 
 	bool IsAncient(unsigned int currentTurnCount, unsigned int distanceFromRoot) const { return halfmove != static_cast<char>((currentTurnCount - distanceFromRoot) % (HALF_MOVE_MODULO)); }
@@ -50,4 +50,6 @@ struct TTBucket
 	void Reset();
 	std::array<TTEntry, BucketSize> entry;
 };
+
+static_assert(std::is_trivial_v<TTBucket>);
 

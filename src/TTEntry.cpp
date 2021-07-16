@@ -1,14 +1,5 @@
 #include "TTEntry.h"
 
-TTEntry::TTEntry() : bestMove(Move::Uninitialized)
-{
-	key = EMPTY;
-	score = -1;
-	depth = -1;
-	cutoff = EntryType::EMPTY_ENTRY;
-	halfmove = -1;
-}
-
 TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff) : bestMove(best)
 {
 	assert(Score < SHRT_MAX && Score > SHRT_MIN);
