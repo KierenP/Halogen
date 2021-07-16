@@ -81,7 +81,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 	for (int i = 0; i < 1000; i++)	//1000 chosen specifically, because result needs to be 'per mill'
 	{
-		if (table.at(i / BucketSize).entry[i % BucketSize].GetAge() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
+		if (table[i / BucketSize].entry[i % BucketSize].GetAge() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
 			count++;
 	}
 
@@ -90,16 +90,12 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-	for (size_t i = 0; i < table.size(); i++)
-	{
-		table[i].Reset();
-	}
+	table.reallocate(table.size());
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-	table.clear();
-	table.resize(MB * 1024 * 1024 / sizeof(TTBucket));
+	table.reallocate(CalculateSize(MB));
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
