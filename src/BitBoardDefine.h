@@ -456,21 +456,22 @@ constexpr bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
 
 const int MAX_DEPTH = 100;
 
+//--------------------------------------------------------------------------
+// Thanks Terje
+#ifdef USE_PEXT
+// Uses the bmi2 pext instruction in place of magic bitboards
+#include "x86intrin.h"
+#define AttackIndex(sq, occ, table) (_pext_u64(occ, table[sq].mask))
+#else
+// Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
+#define AttackIndex(sq, occ, table) (((occ & table[sq].mask) * table[sq].magic) >> table[sq].shift)
+#endif
+//--------------------------------------------------------------------------
+
 namespace detail
 {
-
 	//--------------------------------------------------------------------------
-	//Below code adapted with permission from Terje, author of Weiss.
-
-	#ifdef USE_PEXT
-	// Uses the bmi2 pext instruction in place of magic bitboards
-	#include "x86intrin.h"
-	#define AttackIndex(sq, occ, table) (_pext_u64(occ, table[sq].mask))
-	#else
-	// Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
-	#define AttackIndex(sq, occ, table) (((occ & table[sq].mask) * table[sq].magic) >> table[sq].shift)
-	#endif
-
+	// Thanks Terje
 	struct Magic
 	{
 		uint64_t* attacks;
@@ -480,7 +481,6 @@ namespace detail
 		int shift;
 	#endif
 	};
-
 	//--------------------------------------------------------------------------
 
 	template <uint64_t size>
