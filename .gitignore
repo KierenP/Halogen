@@ -359,3 +359,4 @@ MigrationBackup/
 /Halogen/Release No Popcnt
 /Halogen/src/Halogen.vcxproj.FileListAbsolute.txt
 *.exe
+src/.vscode/settings.json

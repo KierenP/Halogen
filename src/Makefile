@@ -35,4 +35,4 @@ sanitize:
 	$(CC) -O0 -fsanitize=address   $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_address.exe
 
 debug:
-	$(CC) -O0 $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)
+	$(CC) -O0 -g $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)

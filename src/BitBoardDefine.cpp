@@ -141,7 +141,7 @@ constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied, const std::a
 }
 
 template<uint64_t size>
-void MagicTable<size>::InitSliderAttacks()
+void detail::MagicTable<size>::InitSliderAttacks()
 {
 	uint64_t* attack = attacks.data();
 
