@@ -1,37 +1,8 @@
 #include "BitBoardDefine.h"
 
-constexpr std::array<int, N_SQUARES> index64 = {
-	0, 47,  1, 56, 48, 27,  2, 60,
-   57, 49, 41, 37, 28, 16,  3, 61,
-   54, 58, 35, 52, 50, 42, 21, 44,
-   38, 32, 29, 23, 17, 11,  4, 62,
-   46, 55, 26, 59, 40, 36, 15, 53,
-   34, 51, 20, 43, 31, 22, 10, 45,
-   25, 39, 14, 33, 19, 30,  9, 24,
-   13, 18,  8, 12,  7,  6,  5, 63
-};
-
 Players operator!(const Players& val)
 {
 	return val == WHITE ? BLACK : WHITE;
-}
-
-//--------------------------------------------------------------------------
-//Below code adapted with permission from Terje, author of Weiss.
-
-uint64_t BishopAttacksMagic[0x1480];
-uint64_t RookAttacksMagic[0x19000];
-void InitSliderAttacks(Magic m[64], uint64_t* table, const int steps[4]);
-
-//--------------------------------------------------------------------------
-
-void BBInit()
-{
-	const int BSteps[4] = { 7, 9, -7, -9 };
-	const int RSteps[4] = { 8, 1, -8, -1 };
-
-	InitSliderAttacks(BishopTable, BishopAttacksMagic, BSteps);
-	InitSliderAttacks(RookTable, RookAttacksMagic, RSteps);
 }
 
 char PieceToChar(unsigned int piece)
@@ -128,7 +99,17 @@ int LSB(uint64_t bb)
 	 * @precondition bb != 0
 	 * @return index (0..63) of least significant one bit
 	 */
-	const uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
+	static constexpr std::array<int, N_SQUARES> index64 = {
+		0, 47,  1, 56, 48, 27,  2, 60,
+	   57, 49, 41, 37, 28, 16,  3, 61,
+	   54, 58, 35, 52, 50, 42, 21, 44,
+	   38, 32, 29, 23, 17, 11,  4, 62,
+	   46, 55, 26, 59, 40, 36, 15, 53,
+	   34, 51, 20, 43, 31, 22, 10, 45,
+	   25, 39, 14, 33, 19, 30,  9, 24,
+	   13, 18,  8, 12,  7,  6,  5, 63
+	};
+	static constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 #endif
 }
@@ -138,17 +119,18 @@ int LSB(uint64_t bb)
 
 // Helper function that returns a bitboard with the landing square of
 // the step, or an empty bitboard if the step would go outside the board
-uint64_t LandingSquareBB(const int sq, const int step) {
+constexpr uint64_t LandingSquareBB(const int sq, const int step) 
+{
 	const unsigned int to = sq + step;
 	return (uint64_t)(to <= SQ_H8 && std::max(AbsFileDiff(sq, to), AbsRankDiff(sq, to)) <= 2) << (to & SQ_H8);
 }
 
 // Helper function that makes a slider attack bitboard
-uint64_t MakeSliderAttackBB(const int sq, const uint64_t occupied, const int steps[4]) {
-
+constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied, const std::array<int, 4>& steps)
+{
 	uint64_t attacks = 0;
 
-	for (int dir = 0; dir < 4; ++dir) {
+	for (int dir = 0; dir < 4; dir++) {
 
 		int s = sq;
 		while (!(occupied & SquareBB[s]) && LandingSquareBB(s, steps[dir]))
@@ -158,35 +140,33 @@ uint64_t MakeSliderAttackBB(const int sq, const uint64_t occupied, const int ste
 	return attacks;
 }
 
-// Initializes slider attack lookups
-void InitSliderAttacks(Magic m[64], uint64_t *table, const int steps[4]) {
+template<uint64_t size>
+void detail::MagicTable<size>::InitSliderAttacks()
+{
+	uint64_t* attack = attacks.data();
 
-#ifndef USE_PEXT
-	const uint64_t* magics = steps[0] == 8 ? RookMagics : BishopMagics;
-#endif
-
-	for (uint32_t sq = 0; sq < N_SQUARES; ++sq) {
-
-		m[sq].attacks = table;
+	for (int i = 0; i < N_SQUARES; i++)
+	{
+		Square sq = static_cast<Square>(i);
+		table[sq].attacks = attack;
 
 		// Construct the mask
 		uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[GetRank(sq)])
-			| ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[GetFile(sq)]);
+			           | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[GetFile(sq)]);
 
-		m[sq].mask = MakeSliderAttackBB(sq, 0, steps) & ~edges;
+		table[sq].mask = MakeSliderAttackBB(sq, 0, steps) & ~edges;
 
 #ifndef USE_PEXT
-		m[sq].magic = magics[sq];
-		m[sq].shift = 64 - GetBitCount(m[sq].mask);
+		table[sq].magic = magics[sq];
+		table[sq].shift = 64 - GetBitCount(table[sq].mask);
 #endif
 
 		uint64_t occupied = 0;
 		do {
-			m[sq].attacks[AttackIndex(sq, occupied, m)] = MakeSliderAttackBB(sq, occupied, steps);
-			occupied = (occupied - m[sq].mask) & m[sq].mask; // Carry rippler
-			table++;
+			AttackMask(sq, occupied) = MakeSliderAttackBB(sq, occupied, steps);
+			occupied = (occupied - table[sq].mask) & table[sq].mask; // Carry rippler
+			attack++;
 		} while (occupied);
 	}
 }
-
 //--------------------------------------------------------------------------
