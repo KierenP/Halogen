@@ -36,6 +36,9 @@ public:
     template <Toggle update>
     void UpdateInput(Square square, Pieces piece)
     {
+        assert(square < N_SQUARES);
+        assert(piece < N_PIECES);
+
         size_t index = piece * 64 + square;
 
         if constexpr (update == Toggle::Add)

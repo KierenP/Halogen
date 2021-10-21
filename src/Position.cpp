@@ -16,10 +16,10 @@ void Position::ApplyMove(Move move)
 	SetEnPassant(N_SQUARES);
 	Increment50Move();
 
-	if (move.IsCapture())
+	if (move.GetFlag() == CAPTURE)
 	{
 		SetCaptureSquare(move.GetTo());
-		SetCapturePiece(GetSquare(move.GetTo()));	//will fail with en passant, but that currently doesn't matter
+		SetCapturePiece(GetSquare(move.GetTo()));
 		net.UpdateInput<Network::Toggle::Remove>(move.GetTo(), GetSquare(move.GetTo()));
 	}
 	else
