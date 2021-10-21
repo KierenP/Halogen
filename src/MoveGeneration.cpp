@@ -22,6 +22,8 @@ template <typename T> void CastleMoves(const Position& position, FixedVector<T>&
 //utility functions
 bool MovePutsSelfInCheck(Position& position, const Move& move);
 uint64_t PinnedMask(const Position& position);
+bool IsSquareThreatened(const Position & position, Square square, Players colour);		//will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
+uint64_t GetThreats(const Position& position, Square square, Players colour);	//colour is of the attacked piece! So to get the black threats of a white piece pass colour = WHITE!
 
 //special generators for when in check
 template <typename T> void KingEvasions(Position& position, FixedVector<T>& moves);						//move the king out of danger	(single or multi threat)
@@ -588,55 +590,6 @@ uint64_t GetThreats(const Position& position, Square square, Players colour)
 	}
 
 	return threats;
-}
-
-Move GetSmallestAttackerMove(const Position& position, Square square, Players colour)
-{
-	uint64_t pawnmask = PawnAttacks[!colour][square] & position.GetPieceBB(Piece(PAWN, colour));
-	if (pawnmask != 0)
-	{
-		return Move(static_cast<Square>(LSBpop(pawnmask)), square, CAPTURE);
-	}
-
-	uint64_t knightmask = (KnightAttacks[square] & position.GetPieceBB(KNIGHT, colour));
-	if (knightmask != 0)
-	{
-		return Move(static_cast<Square>(LSBpop(knightmask)), square, CAPTURE);
-	}
-
-	uint64_t Pieces = position.GetAllPieces();
-
-	uint64_t bishops = position.GetPieceBB(BISHOP, colour) & BishopAttacks[square];
-	while (bishops != 0)
-	{
-		Square start = static_cast<Square>(LSBpop(bishops));
-		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
-	}
-
-	uint64_t rook = position.GetPieceBB(ROOK, colour) & RookAttacks[square];
-	while (rook != 0)
-	{
-		Square start = static_cast<Square>(LSBpop(rook));
-		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
-	}
-
-	uint64_t queen = position.GetPieceBB(QUEEN, colour) & QueenAttacks[square];
-	while (queen != 0)
-	{
-		Square start = static_cast<Square>(LSBpop(queen));
-		if (mayMove(start, square, Pieces))
-			return Move(start, square, CAPTURE);
-	}
-
-	uint64_t kingmask = (KingAttacks[square] & position.GetPieceBB(KING, colour));
-	if (kingmask != 0)
-	{
-		return Move(static_cast<Square>(LSBpop(kingmask)), square, CAPTURE);
-	}
-
-	return Move::Uninitialized;
 }
 
 bool MoveIsLegal(Position& position, const Move& move)

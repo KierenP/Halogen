@@ -537,7 +537,7 @@ int extension(const Position& position)
 {
 	int extension = 0;
 
-	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	if (IsInCheck(position))
 		extension += 1;
 
 	return extension;
@@ -595,7 +595,7 @@ void UpdateBounds(const TTEntry& entry, int& alpha, int& beta)
 
 int TerminalScore(const Position& position, int distanceFromRoot)
 {
-	if (IsSquareThreatened(position, position.GetKing(position.GetTurn()), position.GetTurn()))
+	if (IsInCheck(position))
 	{
 		return matedIn(distanceFromRoot);
 	}
