@@ -40,12 +40,6 @@ private:
 class History
 {
 public:
-	History() = default;
-	History(const History& other);
-	History(History&& other) = default;
-	History& operator=(const History& other);
-	History& operator=(History&&) = default;
-	
 	void AddButterfly(const Position& position, Move move, int change);
 	int16_t GetButterfly(const Position& position, Move move) const;
 
