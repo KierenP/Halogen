@@ -61,27 +61,17 @@ void Network::RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& i
             Zeta[0][i] += inputs[j] * hiddenWeights[j][i];
 }
 
-void Network::ApplyDelta(const deltaArray& update)
+void Network::DoMove()
 {
     Zeta.push_back(Zeta.back());
-
-    for (size_t i = 0; i < update.size; i++)
-    {
-        if (update.deltas[i].delta == 1)
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta.back()[j] += hiddenWeights[update.deltas[i].index][j];
-        else
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta.back()[j] -= hiddenWeights[update.deltas[i].index][j];
-    }
 }
 
-void Network::ApplyInverseDelta()
+void Network::UndoMove()
 {
     Zeta.pop_back();
 }
 
-int16_t Network::QuickEval() const
+int16_t Network::Eval() const
 {
     int32_t output = outputBias * PRECISION;
     DotProduct(ReLU(Zeta.back()), outputWeights, output);
