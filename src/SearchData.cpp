@@ -12,7 +12,12 @@ ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParam
 {
 	noOutput = NoOutput;
 	ThreadWantsToStop.resize(param.threads, false);
-	threadlocalData.resize(param.threads, SearchData(limits));
+
+	threadlocalData.reserve(param.threads);
+	for (int i = 0; i < param.threads; i++)
+	{
+		threadlocalData.emplace_back(limits);
+	}
 }
 
 Move ThreadSharedData::GetBestMove() const
@@ -275,17 +280,6 @@ void SearchLimits::SetMateLimit(int moves)
 void History::AddHistory(int16_t& val, int change)
 {
 	val += 32 * change - val * abs(change) / 512;
-}
-
-History::History(const History& other) :
-	butterfly(std::make_unique<History::ButterflyType>(*other.butterfly))
-{
-}
-
-History& History::operator=(const History& other)
-{
-	butterfly = std::make_unique<History::ButterflyType>(*other.butterfly);
-	return *this;
 }
 
 void History::AddButterfly(const Position& position, Move move, int change)
