@@ -54,11 +54,11 @@ private:
 	uint64_t IncrementZobristKey(Move move);	
 
 	std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
-	deltaArray& CalculateMoveDelta(Move move);				//A vector which calculates the CHANGE in each input parameter
 
-	deltaArray delta;										//re recycle this object to save time in CalculateMoveDelta
+	void SetSquareAndNotifyNetwork(Square square, Pieces piece);
+	void ClearSquareAndNotifyNetwork(Square square);
+
 	Network net;
-
 	std::vector<Move> moveStack;
 };
 

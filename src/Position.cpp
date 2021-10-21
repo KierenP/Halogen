@@ -10,6 +10,7 @@ void Position::ApplyMove(Move move)
 {
 	PreviousKeys.push_back(key);
 	moveStack.push_back(move);
+	net.DoMove();
 	SaveParameters();
 	SaveBoard();
 	SetEnPassant(N_SQUARES);
@@ -19,6 +20,7 @@ void Position::ApplyMove(Move move)
 	{
 		SetCaptureSquare(move.GetTo());
 		SetCapturePiece(GetSquare(move.GetTo()));	//will fail with en passant, but that currently doesn't matter
+		net.UpdateInput<Network::Toggle::Remove>(move.GetTo(), GetSquare(move.GetTo()));
 	}
 	else
 	{
@@ -26,7 +28,8 @@ void Position::ApplyMove(Move move)
 		SetCapturePiece(N_PIECES);
 	}
 
-	SetSquare(move.GetTo(), GetSquare(move.GetFrom()));
+	if (!move.IsPromotion())
+		SetSquareAndNotifyNetwork(move.GetTo(), GetSquare(move.GetFrom()));
 
 	if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
 	{
@@ -38,14 +41,14 @@ void Position::ApplyMove(Move move)
 
 	if (move.GetFlag() == KING_CASTLE)
 	{
-		SetSquare(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
-		ClearSquare(GetPosition(FILE_H, GetRank(move.GetFrom())));
+		SetSquareAndNotifyNetwork(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
+		ClearSquareAndNotifyNetwork(GetPosition(FILE_H, GetRank(move.GetFrom())));
 	}
 
 	if (move.GetFlag() == QUEEN_CASTLE)
 	{
-		SetSquare(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
-		ClearSquare(GetPosition(FILE_A, GetRank(move.GetFrom())));
+		SetSquareAndNotifyNetwork(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
+		ClearSquareAndNotifyNetwork(GetPosition(FILE_A, GetRank(move.GetFrom())));
 	}
 
 	//for some special moves we need to do other things
@@ -74,23 +77,23 @@ void Position::ApplyMove(Move move)
 		break;
 	}
 	case EN_PASSANT:
-		ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+		ClearSquareAndNotifyNetwork(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
 		break;
 	case KNIGHT_PROMOTION:
 	case KNIGHT_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(KNIGHT, GetTurn()));
+		SetSquareAndNotifyNetwork(move.GetTo(), Piece(KNIGHT, GetTurn()));
 		break;
 	case BISHOP_PROMOTION:
 	case BISHOP_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(BISHOP, GetTurn()));
+		SetSquareAndNotifyNetwork(move.GetTo(), Piece(BISHOP, GetTurn()));
 		break;
 	case ROOK_PROMOTION:
 	case ROOK_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(ROOK, GetTurn()));
+		SetSquareAndNotifyNetwork(move.GetTo(), Piece(ROOK, GetTurn()));
 		break;
 	case QUEEN_PROMOTION:
 	case QUEEN_PROMOTION_CAPTURE:
-		SetSquare(move.GetTo(), Piece(QUEEN, GetTurn()));
+		SetSquareAndNotifyNetwork(move.GetTo(), Piece(QUEEN, GetTurn()));
 		break;
 	default:
 		break;
@@ -99,28 +102,16 @@ void Position::ApplyMove(Move move)
 	if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
 		Reset50Move();
 
-	ClearSquare(move.GetFrom());
+	ClearSquareAndNotifyNetwork(move.GetFrom());
 	NextTurn();
 	UpdateCastleRights(move);
 	IncrementZobristKey(move);
-	net.ApplyDelta(CalculateMoveDelta(move));
 
 	/*if (GenerateZobristKey() != key)
 	{
 		std::cout << "error";
-		NextTurn();	//just adding something here to really mess things up
 	}*/
 	//In order to see if the key was corrupted at some point
-
-	/*std::vector<float> delta = CalculateMoveDelta(move);
-	std::vector<float> after = GetInputLayer();
-
-	for (int i = 0; i < before.size(); i++)
-	{
-		if (abs(before[i] + delta[i] - after[i]) > 0.001)
-			std::cout << "diff!";
-	}*/
-	//In order to see if CalculateMoveDelta() works
 }
 
 void Position::ApplyMove(const std::string& strmove)
@@ -184,7 +175,7 @@ void Position::RevertMove()
 	RestorePreviousParameters();
 	key = PreviousKeys.back();
 	PreviousKeys.pop_back();
-	net.ApplyInverseDelta();
+	net.UndoMove();
 	moveStack.pop_back();
 }
 
@@ -442,72 +433,6 @@ std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 	return ret;
 }
 
-deltaArray& Position::CalculateMoveDelta(Move move)
-{
-	delta.size = 0;
-	if (move == Move::Uninitialized) return delta;		//null move
-
-	if (!move.IsPromotion())
-	{
-		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetFrom();			//toggle the square we left
-		delta.deltas[delta.size++].delta = -1;
-		delta.deltas[delta.size].index = GetSquare(move.GetTo()) * 64 + move.GetTo();			//toggle the arriving square
-		delta.deltas[delta.size++].delta = 1;
-	}
-
-	//En Passant
-	if (move.GetFlag() == EN_PASSANT)
-	{
-		delta.deltas[delta.size].index = Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));	//remove the captured piece
-		delta.deltas[delta.size++].delta = -1;
-	}
-
-	//Captures
-	if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-	{
-		delta.deltas[delta.size].index = GetCapturePiece() * 64 + move.GetTo();
-		delta.deltas[delta.size++].delta = -1;
-	}
-
-	if (move.GetFlag() == KING_CASTLE)
-	{
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()));
-		delta.deltas[delta.size++].delta = -1;
-
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()));
-		delta.deltas[delta.size++].delta = 1;
-	}
-
-	if (move.GetFlag() == QUEEN_CASTLE)
-	{
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()));
-		delta.deltas[delta.size++].delta = -1;
-
-		delta.deltas[delta.size].index = GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()));
-		delta.deltas[delta.size++].delta = 1;
-	}
-
-	//Promotions
-	if (move.IsPromotion())
-	{
-		delta.deltas[delta.size].index = Piece(PAWN, !GetTurn()) * 64 + move.GetFrom();
-		delta.deltas[delta.size++].delta = -1;
-
-		if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(BISHOP, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(ROOK, !GetTurn()) * 64 + move.GetTo();
-		if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-			delta.deltas[delta.size].index = Piece(QUEEN, !GetTurn()) * 64 + move.GetTo();
-
-		delta.deltas[delta.size++].delta = 1;
-	}
-
-	return delta;
-}
-
 void Position::ApplyMoveQuick(Move move)
 {
 	SaveBoard();
@@ -526,7 +451,7 @@ void Position::RevertMoveQuick()
 
 int16_t Position::GetEvaluation() const
 {
-	return net.QuickEval();
+	return net.Eval();
 }
 
 bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
@@ -556,4 +481,17 @@ Move Position::GetPreviousMove() const
 		return moveStack.back();
 	else
 		return Move::Uninitialized;
+}
+
+void Position::SetSquareAndNotifyNetwork(Square square, Pieces piece)
+{
+	net.UpdateInput<Network::Toggle::Add>(square, piece);
+	SetSquare(square, piece);
+}
+
+void Position::ClearSquareAndNotifyNetwork(Square square)
+{
+	Pieces piece = GetSquare(square);
+	net.UpdateInput<Network::Toggle::Remove>(square, piece);
+	ClearSquare(square);
 }

@@ -16,25 +16,38 @@
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;
 
-struct deltaArray
-{
-    struct deltaPoint
-    {
-        size_t index;
-        int16_t delta;
-    };
-
-    size_t size;
-    deltaPoint deltas[4];
-};
-
 class Network
 {
 public:
+    enum class Toggle 
+    {
+        Add,
+        Remove
+    };
+
     void RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs);
-    void ApplyDelta(const deltaArray& update);  //incrementally update the connections between input layer and first hidden layer
-    void ApplyInverseDelta();                   //for un-make moves
-    int16_t QuickEval() const;                  //when used with above, this just calculates starting from the alpha of first hidden layer and skips input -> hidden
+
+    // calculates starting from the first hidden layer and skips input -> hidden
+    int16_t Eval() const;  
+
+    // call DoMove and then update inputs as required
+    void DoMove();
+
+    template <Toggle update>
+    void UpdateInput(Square square, Pieces piece)
+    {
+        size_t index = piece * 64 + square;
+
+        if constexpr (update == Toggle::Add)
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+                Zeta.back()[j] += hiddenWeights[index][j];
+        if constexpr (update == Toggle::Remove)
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+                Zeta.back()[j] -= hiddenWeights[index][j];
+    }
+
+    // do undo the last move
+    void UndoMove();
 
     static void Init();
 
