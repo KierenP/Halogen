@@ -5,39 +5,12 @@
 #include <algorithm>
 #include "TTEntry.h"
 
-// To allocate the transposition table, we need to do so on the heap to avoid a
-// stack overflow. A std::vector<T> would be a natural choice but has the one
-// drawback of expensive allocation. There is no way to resize a vector while
-// leaving its elements uninitialized. FastAllocateVector manages a dynamic
-// array with extremely cheap reallocations when needed. The interface is
-// minimal and only satisfies the requirements of a TranspositionTable class.
-
-template <typename T>
-class FastAllocateVector
-{
-public:
-	FastAllocateVector(size_t size) { reallocate(size); }
-
-	// make_unique<T[]>(size) will initialize the pointed to value which would defeat the purpose
-	// of FastAllocateVector
-	void reallocate(size_t size) { size_ = size; table.reset(new T[size]); }
-
-	const T& operator[](size_t index) const { return table[index]; }
-	      T& operator[](size_t index)       { return table[index]; }
-
-	size_t size() const { return size_; }
-
-private:
-	std::unique_ptr<T[]> table;
-	size_t size_;
-};
-
 class TranspositionTable
 {
 public:
-	TranspositionTable() : table(FastAllocateVector<TTBucket>(CalculateSize(32))) {} //32MB default
+	TranspositionTable() : size_(CalculateSize(32)), table(new TTBucket[size_]) {} //32MB default
 
-	size_t GetSize() const { return table.size(); }
+	size_t GetSize() const { return size_; }
 	int GetCapacity(int halfmove) const;
 
 	void ResetTable();
@@ -49,9 +22,12 @@ public:
 
 private:
 	uint64_t HashFunction(const uint64_t& key) const;
+	void Reallocate(size_t size);
+
 	static constexpr uint64_t CalculateSize(uint64_t MB) { return MB * 1024 * 1024 / sizeof(TTBucket); }
 
-	FastAllocateVector<TTBucket> table;
+	size_t size_;
+	std::unique_ptr<TTBucket[]> table;
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
