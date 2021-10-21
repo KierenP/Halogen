@@ -7,7 +7,7 @@ bool CheckEntry(const TTEntry& entry, uint64_t key, int depth)
 
 uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 {
-	return key % table.size();
+	return key % size_;
 }
 
 bool CheckEntry(const TTEntry& entry, uint64_t key)
@@ -90,12 +90,19 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-	table.reallocate(table.size());
+	Reallocate(size_);
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-	table.reallocate(CalculateSize(MB));
+	Reallocate(CalculateSize(MB));
+}
+
+void TranspositionTable::Reallocate(size_t size)
+{
+	// make_unique<T[]>(size) will initialize each element of the array and be slower
+	size_ = size;
+	table.reset(new TTBucket[size]);
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
