@@ -16,7 +16,7 @@ void Position::ApplyMove(Move move)
 	SetEnPassant(N_SQUARES);
 	Increment50Move();
 
-	if (move.GetFlag() == CAPTURE)
+	if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
 	{
 		SetCaptureSquare(move.GetTo());
 		SetCapturePiece(GetSquare(move.GetTo()));
