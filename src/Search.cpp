@@ -356,6 +356,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 				break;
 		}
 
+		int history = locals.history.GetButterfly(position, move) + locals.history.GetCounterMove(position, move);
+
 		position.ApplyMove(move);
 		tTable.PreFetch(position.GetZobristKey());							//load the transposition into l1 cache. ~5% speedup
 		int extendedDepth = depthRemaining + extension(position);
@@ -367,6 +369,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
 			if (IsPV(beta, alpha))
 				reduction--;
+
+			reduction -= history / 8192;
 
 			reduction = std::max(0, reduction);
 
