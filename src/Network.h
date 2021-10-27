@@ -1,17 +1,17 @@
 #pragma once
+#include "BitBoardDefine.h"
+#include "EvalCache.h"
+#include <algorithm>
 #include <array>
-#include <vector>
+#include <assert.h>
+#include <cstring>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <assert.h>
-#include <random>
 #include <numeric>
-#include <algorithm>
+#include <random>
 #include <sstream>
-#include <cstring>
-#include "EvalCache.h"
-#include "BitBoardDefine.h"
+#include <string>
+#include <vector>
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;
@@ -19,7 +19,7 @@ constexpr size_t HIDDEN_NEURONS = 512;
 class Network
 {
 public:
-    enum class Toggle 
+    enum class Toggle
     {
         Add,
         Remove
@@ -28,7 +28,7 @@ public:
     void RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    int16_t Eval() const;  
+    int16_t Eval() const;
 
     // call DoMove and then update inputs as required
     void DoMove();
@@ -62,4 +62,3 @@ private:
     static std::array<int16_t, HIDDEN_NEURONS> outputWeights;
     static int16_t outputBias;
 };
-

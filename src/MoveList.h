@@ -8,18 +8,28 @@
 // with the move objects
 struct ExtendedMove
 {
-	ExtendedMove() = default;
-	ExtendedMove(const Move _move) : move(_move), score(0), SEE(0) {}
-	ExtendedMove(Square from, Square to, MoveFlag flag) : move(from, to, flag), score(0), SEE(0) {}
+    ExtendedMove() = default;
+    ExtendedMove(const Move _move)
+        : move(_move)
+        , score(0)
+        , SEE(0)
+    {
+    }
+    ExtendedMove(Square from, Square to, MoveFlag flag)
+        : move(from, to, flag)
+        , score(0)
+        , SEE(0)
+    {
+    }
 
-	//If you need a constructor that sets score or SEE then feel free to add one.
+    //If you need a constructor that sets score or SEE then feel free to add one.
 
-	bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
-	bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
+    bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
+    bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
 
-	Move move;
-	int16_t score;
-	int16_t SEE;
+    Move move;
+    int16_t score;
+    int16_t SEE;
 };
 
 template <typename T>
@@ -36,38 +46,38 @@ template <typename T>
 class FixedVector
 {
 private:
-	std::array<T, 256> list;
-	static_assert(std::is_trivial_v<T>);
+    std::array<T, 256> list;
+    static_assert(std::is_trivial_v<T>);
 
 public:
-	//Pass arguments to construct the ExtendedMove()
-	template <typename... Args>
-	void Append(Args&&... args);
+    //Pass arguments to construct the ExtendedMove()
+    template <typename... Args>
+    void Append(Args&&... args);
 
-	using iterator = typename decltype(list)::iterator;
-	using const_iterator = typename decltype(list)::const_iterator;
+    using iterator = typename decltype(list)::iterator;
+    using const_iterator = typename decltype(list)::const_iterator;
 
-	iterator begin();
-	iterator end();
+    iterator begin();
+    iterator end();
 
-	const_iterator begin() const;
-	const_iterator end() const;
+    const_iterator begin() const;
+    const_iterator end() const;
 
-	size_t size() const;
+    size_t size() const;
 
-	void clear();
-	void erase(size_t index);
+    void clear();
+    void erase(size_t index);
 
-	const T& operator[](size_t index) const { return list[index]; }
-	      T& operator[](size_t index)       { return list[index]; }
+    const T& operator[](size_t index) const { return list[index]; }
+    T& operator[](size_t index) { return list[index]; }
 
 private:
-	size_t moveCount = 0;
+    size_t moveCount = 0;
 };
 
 template <typename T>
-template <typename ...Args>
-inline void FixedVector<T>::Append(Args&& ...args)
+template <typename... Args>
+inline void FixedVector<T>::Append(Args&&... args)
 {
-	list[moveCount++] = { args... };
+    list[moveCount++] = { args... };
 }

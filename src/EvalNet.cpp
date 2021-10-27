@@ -20,13 +20,19 @@ int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
 
 bool DeadPosition(const Position& position)
 {
-    if ((position.GetPieceBB(WHITE_PAWN)) != 0) return false;
-    if ((position.GetPieceBB(WHITE_ROOK)) != 0) return false;
-    if ((position.GetPieceBB(WHITE_QUEEN)) != 0) return false;
+    if ((position.GetPieceBB(WHITE_PAWN)) != 0)
+        return false;
+    if ((position.GetPieceBB(WHITE_ROOK)) != 0)
+        return false;
+    if ((position.GetPieceBB(WHITE_QUEEN)) != 0)
+        return false;
 
-    if ((position.GetPieceBB(BLACK_PAWN)) != 0) return false;
-    if ((position.GetPieceBB(BLACK_ROOK)) != 0) return false;
-    if ((position.GetPieceBB(BLACK_QUEEN)) != 0) return false;
+    if ((position.GetPieceBB(BLACK_PAWN)) != 0)
+        return false;
+    if ((position.GetPieceBB(BLACK_ROOK)) != 0)
+        return false;
+    if ((position.GetPieceBB(BLACK_QUEEN)) != 0)
+        return false;
 
     /*
     From the Chess Programming Wiki:
@@ -44,9 +50,12 @@ bool DeadPosition(const Position& position)
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 
-    if (WhiteMinor == 0 && BlackMinor == 0) return true;	//1
-    if (WhiteMinor == 1 && BlackMinor == 0) return true;	//2
-    if (WhiteMinor == 0 && BlackMinor == 1) return true;	//2
+    if (WhiteMinor == 0 && BlackMinor == 0)
+        return true; //1
+    if (WhiteMinor == 1 && BlackMinor == 0)
+        return true; //2
+    if (WhiteMinor == 0 && BlackMinor == 1)
+        return true; //2
 
     return false;
 }
@@ -56,6 +65,3 @@ void TempoAdjustment(int& eval, const Position& position)
     constexpr static int TEMPO = 10;
     eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
 }
-
-
-

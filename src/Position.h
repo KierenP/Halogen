@@ -1,9 +1,9 @@
 #pragma once
 
-#include "BoardParameters.h"
 #include "BitBoard.h"
-#include "Zobrist.h"
+#include "BoardParameters.h"
 #include "Network.h"
+#include "Zobrist.h"
 #include <sstream>
 
 constexpr size_t NodeCountChunk = 1 << 12;
@@ -15,50 +15,49 @@ This class holds all the data required to define a chess board position, as well
 class Position : public BoardParameters, public BitBoard
 {
 public:
-	Position();																									
+    Position();
 
-	void ApplyMove(Move move);
-	void ApplyMove(const std::string &strmove);
-	void RevertMove();
+    void ApplyMove(Move move);
+    void ApplyMove(const std::string& strmove);
+    void RevertMove();
 
-	void ApplyNullMove();
-	void RevertNullMove();
+    void ApplyNullMove();
+    void RevertNullMove();
 
-	void Print() const;
+    void Print() const;
 
-	void StartingPosition();
-	bool InitialiseFromFen(std::vector<std::string> fen);
-	//Returns true after sucsessful execution, false otherwise
-	bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
-	bool InitialiseFromFen(std::string fen);
+    void StartingPosition();
+    bool InitialiseFromFen(std::vector<std::string> fen);
+    //Returns true after sucsessful execution, false otherwise
+    bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
+    bool InitialiseFromFen(std::string fen);
 
-	uint64_t GetZobristKey() const;
+    uint64_t GetZobristKey() const;
 
-	void Reset();
+    void Reset();
 
-	/*Seriously, don't use these functions outside of static exchange evaluation*/
-	void ApplyMoveQuick(Move move);	//does ApplyMove functionality but much quicker.
-	void RevertMoveQuick();			//does RevertMove functionality but much quicker.
+    /*Seriously, don't use these functions outside of static exchange evaluation*/
+    void ApplyMoveQuick(Move move); //does ApplyMove functionality but much quicker.
+    void RevertMoveQuick(); //does RevertMove functionality but much quicker.
 
-	int16_t GetEvaluation() const;
+    int16_t GetEvaluation() const;
 
-	bool CheckForRep(int distanceFromRoot, int maxReps) const;
+    bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
-	Move GetPreviousMove() const;
+    Move GetPreviousMove() const;
 
 private:
-	uint64_t key = EMPTY;
-	std::vector<uint64_t> PreviousKeys;
+    uint64_t key = EMPTY;
+    std::vector<uint64_t> PreviousKeys;
 
-	uint64_t GenerateZobristKey() const;
-	uint64_t IncrementZobristKey(Move move);	
+    uint64_t GenerateZobristKey() const;
+    uint64_t IncrementZobristKey(Move move);
 
-	std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
+    std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
 
-	void SetSquareAndNotifyNetwork(Square square, Pieces piece);
-	void ClearSquareAndNotifyNetwork(Square square);
+    void SetSquareAndNotifyNetwork(Square square, Pieces piece);
+    void ClearSquareAndNotifyNetwork(Square square);
 
-	Network net;
-	std::vector<Move> moveStack;
+    Network net;
+    std::vector<Move> moveStack;
 };
-

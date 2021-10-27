@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Pyrrhic/tbprobe.h"
 #include "MoveGenerator.h"
-#include <ctime>
+#include "Pyrrhic/tbprobe.h"
 #include <algorithm>
-#include <thread>
 #include <cmath>
+#include <ctime>
+#include <thread>
 
 /*Tuneable search constants*/
 
@@ -35,14 +35,18 @@ inline int LMP_depth = 6;
 
 struct SearchResult
 {
-	SearchResult(short score, Move move = Move::Uninitialized) : m_score(score), m_move(move) {}
+    SearchResult(short score, Move move = Move::Uninitialized)
+        : m_score(score)
+        , m_move(move)
+    {
+    }
 
-	int GetScore() const { return m_score; }
-	Move GetMove() const { return m_move; }
+    int GetScore() const { return m_score; }
+    Move GetMove() const { return m_move; }
 
 private:
-	short m_score;
-	Move m_move;
+    short m_score;
+    Move m_move;
 };
 
 uint64_t SearchThread(Position position, SearchParameters parameters, const SearchLimits& limits, bool noOutput = false);
