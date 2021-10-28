@@ -67,7 +67,7 @@ private:
 };
 
 inline int History::Butterfly_max = 16384;
-inline int History::Butterfly_scale = 64;
+inline int History::Butterfly_scale = 32;
 
 inline int History::CounterMove_max = 16384;
 inline int History::CounterMove_scale = 64;
