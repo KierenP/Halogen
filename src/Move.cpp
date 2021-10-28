@@ -43,31 +43,37 @@ bool Move::IsCapture() const
     return ((data & CAPTURE_MASK) != 0);
 }
 
-void Move::Print(std::stringstream& ss) const
+std::string Move::to_string() const
 {
     Square prev = GetFrom();
     Square current = GetTo();
 
-    ss << (char)(GetFile(prev) + 'a') << GetRank(prev) + 1 << (char)(GetFile(current) + 'a') << GetRank(current) + 1; //+1 to make it from 1-8 and not 0-7
+    std::string str;
+    str.reserve(5);
+
+    str += GetFile(prev) + 'a';
+    str += GetRank(prev) + '1';
+    str += GetFile(current) + 'a';
+    str += GetRank(current) + '1';
 
     if (IsPromotion())
     {
         if (GetFlag() == KNIGHT_PROMOTION || GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-            ss << "n";
+            str += "n";
         if (GetFlag() == BISHOP_PROMOTION || GetFlag() == BISHOP_PROMOTION_CAPTURE)
-            ss << "b";
+            str += "b";
         if (GetFlag() == QUEEN_PROMOTION || GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            ss << "q";
+            str += "q";
         if (GetFlag() == ROOK_PROMOTION || GetFlag() == ROOK_PROMOTION_CAPTURE)
-            ss << "r";
+            str += "r";
     }
+
+    return str;
 }
 
 void Move::Print() const
 {
-    std::stringstream str;
-    Print(str);
-    std::cout << str.str();
+    std::cout << to_string();
 }
 
 void Move::SetFrom(Square from)

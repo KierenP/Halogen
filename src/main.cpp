@@ -9,7 +9,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.19";
+string version = "10.19.2";
 
 int main(int argc, char* argv[])
 {
@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
     Network::Init();
 
     string Line; //to read the command given by the GUI
-    cout.setf(ios::unitbuf); // Make sure that the outputs are sent straight away to the GUI
 
     Position position;
     thread searchThread;
