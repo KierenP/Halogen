@@ -39,7 +39,7 @@ public:
     bool IsPromotion() const;
     bool IsCapture() const;
 
-    void Print(std::stringstream& ss) const;
+    std::string to_string() const;
     void Print() const;
 
     constexpr bool operator==(const Move& rhs) const
