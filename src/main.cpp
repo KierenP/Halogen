@@ -1,5 +1,6 @@
 #include "Benchmark.h"
 #include "Search.h"
+#include "Zobrist.h"
 
 using namespace ::std;
 

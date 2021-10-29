@@ -1,20 +1,7 @@
 #include "BoardParameters.h"
+#include "Zobrist.h"
 
 BoardParameters::~BoardParameters() = default;
-
-void BoardParameters::WhiteCastled()
-{
-    SetCanCastleWhiteKingside(false);
-    SetCanCastleWhiteQueenside(false);
-    SetHasCastledWhite(true);
-}
-
-void BoardParameters::BlackCastled()
-{
-    SetCanCastleBlackKingside(false);
-    SetCanCastleBlackQueenside(false);
-    SetHasCastledBlack(true);
-}
 
 void BoardParameters::NextTurn()
 {
@@ -72,37 +59,61 @@ void BoardParameters::RestorePreviousParameters()
     PreviousParameters.pop_back(); //the iterator should never be invalitated by this
 }
 
-void BoardParameters::UpdateCastleRights(Move move)
+void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
 {
     if (move.GetFrom() == SQ_E1 || move.GetTo() == SQ_E1) //Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
     {
+        if (GetCanCastleWhiteKingside())
+            zobrist_key ^= ZobristTable[12 * 64 + 1];
+
+        if (GetCanCastleWhiteQueenside())
+            zobrist_key ^= ZobristTable[12 * 64 + 2];
+
         SetCanCastleWhiteKingside(false);
         SetCanCastleWhiteQueenside(false);
     }
 
     if (move.GetFrom() == SQ_E8 || move.GetTo() == SQ_E8)
     {
+        if (GetCanCastleBlackKingside())
+            zobrist_key ^= ZobristTable[12 * 64 + 3];
+
+        if (GetCanCastleBlackQueenside())
+            zobrist_key ^= ZobristTable[12 * 64 + 4];
+
         SetCanCastleBlackKingside(false);
         SetCanCastleBlackQueenside(false);
     }
 
     if (move.GetFrom() == SQ_A1 || move.GetTo() == SQ_A1)
     {
+        if (GetCanCastleWhiteQueenside())
+            zobrist_key ^= ZobristTable[12 * 64 + 2];
+
         SetCanCastleWhiteQueenside(false);
     }
 
     if (move.GetFrom() == SQ_A8 || move.GetTo() == SQ_A8)
     {
+        if (GetCanCastleBlackQueenside())
+            zobrist_key ^= ZobristTable[12 * 64 + 4];
+
         SetCanCastleBlackQueenside(false);
     }
 
     if (move.GetFrom() == SQ_H1 || move.GetTo() == SQ_H1)
     {
+        if (GetCanCastleWhiteKingside())
+            zobrist_key ^= ZobristTable[12 * 64 + 1];
+
         SetCanCastleWhiteKingside(false);
     }
 
     if (move.GetFrom() == SQ_H8 || move.GetTo() == SQ_H8)
     {
+        if (GetCanCastleBlackKingside())
+            zobrist_key ^= ZobristTable[12 * 64 + 3];
+
         SetCanCastleBlackKingside(false);
     }
 }
