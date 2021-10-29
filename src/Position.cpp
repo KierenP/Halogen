@@ -1,5 +1,6 @@
 #include "Position.h"
 #include "MoveGeneration.h"
+#include "Zobrist.h"
 
 Position::Position()
 {
@@ -13,42 +14,36 @@ void Position::ApplyMove(Move move)
     net.DoMove();
     SaveParameters();
     SaveBoard();
+
+    // change of turn
+    key ^= ZobristTable[12 * 64];
+
+    //undo the previous ep square
+    if (GetEnPassant() <= SQ_H8)
+        key ^= ZobristTable[(12 * 64 + 5 + GetFile(GetEnPassant()))];
+
     SetEnPassant(N_SQUARES);
     Increment50Move();
 
     if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
     {
-        SetCaptureSquare(move.GetTo());
-        SetCapturePiece(GetSquare(move.GetTo()));
         net.UpdateInput<Network::Toggle::Remove>(move.GetTo(), GetSquare(move.GetTo()));
-    }
-    else
-    {
-        SetCaptureSquare(N_SQUARES);
-        SetCapturePiece(N_PIECES);
+        key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetTo()];
     }
 
     if (!move.IsPromotion())
-        SetSquareAndNotifyNetwork(move.GetTo(), GetSquare(move.GetFrom()));
-
-    if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
-    {
-        if (GetTurn() == WHITE)
-            WhiteCastled();
-        else
-            BlackCastled();
-    }
+        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()));
 
     if (move.GetFlag() == KING_CASTLE)
     {
-        SetSquareAndNotifyNetwork(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
-        ClearSquareAndNotifyNetwork(GetPosition(FILE_H, GetRank(move.GetFrom())));
+        SetSquareAndUpdate(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))));
+        ClearSquareAndUpdate(GetPosition(FILE_H, GetRank(move.GetFrom())));
     }
 
     if (move.GetFlag() == QUEEN_CASTLE)
     {
-        SetSquareAndNotifyNetwork(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
-        ClearSquareAndNotifyNetwork(GetPosition(FILE_A, GetRank(move.GetFrom())));
+        SetSquareAndUpdate(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))));
+        ClearSquareAndUpdate(GetPosition(FILE_A, GetRank(move.GetFrom())));
     }
 
     //for some special moves we need to do other things
@@ -67,33 +62,37 @@ void Position::ApplyMove(Move move)
             Square sq = static_cast<Square>(LSBpop(potentialAttackers));
 
             ApplyMoveQuick({ sq, ep, EN_PASSANT });
-            if (!IsInCheck(*this, !GetTurn()))
+            bool legal = !IsInCheck(*this, !GetTurn());
+            RevertMoveQuick();
+
+            if (legal)
             {
                 SetEnPassant(ep);
+                key ^= ZobristTable[12 * 64 + 5 + GetFile(ep)];
+                break;
             }
-            RevertMoveQuick();
         }
 
         break;
     }
     case EN_PASSANT:
-        ClearSquareAndNotifyNetwork(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+        ClearSquareAndUpdate(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
         break;
     case KNIGHT_PROMOTION:
     case KNIGHT_PROMOTION_CAPTURE:
-        SetSquareAndNotifyNetwork(move.GetTo(), Piece(KNIGHT, GetTurn()));
+        SetSquareAndUpdate(move.GetTo(), Piece(KNIGHT, GetTurn()));
         break;
     case BISHOP_PROMOTION:
     case BISHOP_PROMOTION_CAPTURE:
-        SetSquareAndNotifyNetwork(move.GetTo(), Piece(BISHOP, GetTurn()));
+        SetSquareAndUpdate(move.GetTo(), Piece(BISHOP, GetTurn()));
         break;
     case ROOK_PROMOTION:
     case ROOK_PROMOTION_CAPTURE:
-        SetSquareAndNotifyNetwork(move.GetTo(), Piece(ROOK, GetTurn()));
+        SetSquareAndUpdate(move.GetTo(), Piece(ROOK, GetTurn()));
         break;
     case QUEEN_PROMOTION:
     case QUEEN_PROMOTION_CAPTURE:
-        SetSquareAndNotifyNetwork(move.GetTo(), Piece(QUEEN, GetTurn()));
+        SetSquareAndUpdate(move.GetTo(), Piece(QUEEN, GetTurn()));
         break;
     default:
         break;
@@ -102,16 +101,11 @@ void Position::ApplyMove(Move move)
     if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, GetTurn()) || move.IsPromotion())
         Reset50Move();
 
-    ClearSquareAndNotifyNetwork(move.GetFrom());
+    ClearSquareAndUpdate(move.GetFrom());
     NextTurn();
-    UpdateCastleRights(move);
-    IncrementZobristKey(move);
+    UpdateCastleRights(move, key);
 
-    /*if (GenerateZobristKey() != key)
-	{
-		std::cout << "error";
-	}*/
-    //In order to see if the key was corrupted at some point
+    assert(GenerateZobristKey() == key);
 }
 
 void Position::ApplyMove(const std::string& strmove)
@@ -184,19 +178,19 @@ void Position::ApplyNullMove()
     PreviousKeys.push_back(key);
     moveStack.push_back(Move::Uninitialized);
     SaveParameters();
+
+    // change of turn
+    key ^= ZobristTable[12 * 64];
+
+    //undo the previous ep square
+    if (GetEnPassant() <= SQ_H8)
+        key ^= ZobristTable[(12 * 64 + 5 + GetFile(GetEnPassant()))];
+
     SetEnPassant(N_SQUARES);
-    SetCaptureSquare(N_SQUARES);
-    SetCapturePiece(N_PIECES);
     Increment50Move();
-
     NextTurn();
-    IncrementZobristKey(Move::Uninitialized);
 
-    /*if (GenerateZobristKey() != key)
-	{
-		std::cout << "error";
-		NextTurn();
-	}*/
+    assert(GenerateZobristKey() == key);
 }
 
 void Position::RevertNullMove()
@@ -349,74 +343,6 @@ uint64_t Position::GenerateZobristKey() const
     return Key;
 }
 
-uint64_t Position::IncrementZobristKey(Move move)
-{
-    //Change of turn
-    key ^= ZobristTable[12 * 64]; //because who's turn it is changed
-
-    if (PrevGetEnPassant() <= SQ_H8)
-        key ^= ZobristTable[(12 * 64 + 5 + GetFile(PrevGetEnPassant()))]; //undo the previous ep square
-
-    if (move == Move::Uninitialized)
-        return key; //null move
-
-    if (!move.IsPromotion())
-    {
-        key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetFrom()]; //toggle the square we left
-        key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetTo()]; //toggle the arriving square
-    }
-
-    //En Passant
-    if (move.GetFlag() == EN_PASSANT)
-        key ^= ZobristTable[Piece(PAWN, GetTurn()) * 64 + GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))]; //remove the captured piece
-
-    if (GetEnPassant() <= SQ_H8)
-        key ^= ZobristTable[12 * 64 + 5 + GetFile(GetEnPassant())]; //apply new EP
-
-    //Captures
-    if ((move.IsCapture()) && (move.GetFlag() != EN_PASSANT))
-        key ^= ZobristTable[GetCapturePiece() * 64 + move.GetTo()];
-
-    //Castling
-    if (GetCanCastleWhiteKingside() != PrevGetCanCastleWhiteKingside()) //if casteling rights changed, flip that one
-        key ^= ZobristTable[12 * 64 + 1];
-    if (GetCanCastleWhiteQueenside() != PrevGetCanCastleWhiteQueenside())
-        key ^= ZobristTable[12 * 64 + 2];
-    if (GetCanCastleBlackKingside() != PrevGetCanCastleBlackKingside())
-        key ^= ZobristTable[12 * 64 + 3];
-    if (GetCanCastleBlackQueenside() != PrevGetCanCastleBlackQueenside())
-        key ^= ZobristTable[12 * 64 + 4];
-
-    if (move.GetFlag() == KING_CASTLE)
-    {
-        key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_H, GetRank(move.GetFrom()))];
-        key ^= ZobristTable[GetSquare(GetPosition(FILE_F, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_F, GetRank(move.GetFrom()))];
-    }
-
-    if (move.GetFlag() == QUEEN_CASTLE)
-    {
-        key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_A, GetRank(move.GetFrom()))];
-        key ^= ZobristTable[GetSquare(GetPosition(FILE_D, GetRank(move.GetFrom()))) * 64 + GetPosition(FILE_D, GetRank(move.GetFrom()))];
-    }
-
-    //Promotions
-    if (move.IsPromotion())
-    {
-        key ^= ZobristTable[Piece(PAWN, !GetTurn()) * 64 + move.GetFrom()];
-
-        if (move.GetFlag() == KNIGHT_PROMOTION || move.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-            key ^= ZobristTable[Piece(KNIGHT, !GetTurn()) * 64 + move.GetTo()];
-        if (move.GetFlag() == BISHOP_PROMOTION || move.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-            key ^= ZobristTable[Piece(BISHOP, !GetTurn()) * 64 + move.GetTo()];
-        if (move.GetFlag() == ROOK_PROMOTION || move.GetFlag() == ROOK_PROMOTION_CAPTURE)
-            key ^= ZobristTable[Piece(ROOK, !GetTurn()) * 64 + move.GetTo()];
-        if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            key ^= ZobristTable[Piece(QUEEN, !GetTurn()) * 64 + move.GetTo()];
-    }
-
-    return key;
-}
-
 std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
 {
     std::array<int16_t, INPUT_NEURONS> ret;
@@ -486,15 +412,17 @@ Move Position::GetPreviousMove() const
         return Move::Uninitialized;
 }
 
-void Position::SetSquareAndNotifyNetwork(Square square, Pieces piece)
+void Position::SetSquareAndUpdate(Square square, Pieces piece)
 {
     net.UpdateInput<Network::Toggle::Add>(square, piece);
+    key ^= ZobristTable[piece * 64 + square];
     SetSquare(square, piece);
 }
 
-void Position::ClearSquareAndNotifyNetwork(Square square)
+void Position::ClearSquareAndUpdate(Square square)
 {
     Pieces piece = GetSquare(square);
     net.UpdateInput<Network::Toggle::Remove>(square, piece);
+    key ^= ZobristTable[piece * 64 + square];
     ClearSquare(square);
 }

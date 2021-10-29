@@ -3,7 +3,6 @@
 #include "BitBoard.h"
 #include "BoardParameters.h"
 #include "Network.h"
-#include "Zobrist.h"
 #include <sstream>
 
 constexpr size_t NodeCountChunk = 1 << 12;
@@ -51,12 +50,11 @@ private:
     std::vector<uint64_t> PreviousKeys;
 
     uint64_t GenerateZobristKey() const;
-    uint64_t IncrementZobristKey(Move move);
 
     std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
 
-    void SetSquareAndNotifyNetwork(Square square, Pieces piece);
-    void ClearSquareAndNotifyNetwork(Square square);
+    void SetSquareAndUpdate(Square square, Pieces piece);
+    void ClearSquareAndUpdate(Square square);
 
     Network net;
     std::vector<Move> moveStack;
