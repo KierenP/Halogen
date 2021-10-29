@@ -5,22 +5,22 @@
 Position::Position()
 {
     StartingPosition();
+    zobrist.Recalculate(*this);
 }
 
 void Position::ApplyMove(Move move)
 {
-    PreviousKeys.push_back(key);
+    PreviousKeys.push_back(zobrist);
     moveStack.push_back(move);
     net.DoMove();
     SaveParameters();
     SaveBoard();
 
-    // change of turn
-    key ^= ZobristTable[12 * 64];
+    zobrist.ToggleSTM();
 
-    //undo the previous ep square
+    // undo the previous ep square
     if (GetEnPassant() <= SQ_H8)
-        key ^= ZobristTable[(12 * 64 + 5 + GetFile(GetEnPassant()))];
+        zobrist.ToggleEnpassant(GetFile(GetEnPassant()));
 
     SetEnPassant(N_SQUARES);
     Increment50Move();
@@ -28,7 +28,7 @@ void Position::ApplyMove(Move move)
     if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
     {
         net.UpdateInput<Network::Toggle::Remove>(move.GetTo(), GetSquare(move.GetTo()));
-        key ^= ZobristTable[GetSquare(move.GetTo()) * 64 + move.GetTo()];
+        zobrist.TogglePieceSquare(GetSquare(move.GetTo()), move.GetTo());
     }
 
     if (!move.IsPromotion())
@@ -68,7 +68,7 @@ void Position::ApplyMove(Move move)
             if (legal)
             {
                 SetEnPassant(ep);
-                key ^= ZobristTable[12 * 64 + 5 + GetFile(ep)];
+                zobrist.ToggleEnpassant(GetFile(ep));
                 break;
             }
         }
@@ -103,9 +103,9 @@ void Position::ApplyMove(Move move)
 
     ClearSquareAndUpdate(move.GetFrom());
     NextTurn();
-    UpdateCastleRights(move, key);
+    UpdateCastleRights(move, zobrist);
 
-    assert(GenerateZobristKey() == key);
+    assert(zobrist.Verify(*this));
 }
 
 void Position::ApplyMove(const std::string& strmove)
@@ -167,7 +167,7 @@ void Position::RevertMove()
 
     RestorePreviousBoard();
     RestorePreviousParameters();
-    key = PreviousKeys.back();
+    zobrist = PreviousKeys.back();
     PreviousKeys.pop_back();
     net.UndoMove();
     moveStack.pop_back();
@@ -175,22 +175,21 @@ void Position::RevertMove()
 
 void Position::ApplyNullMove()
 {
-    PreviousKeys.push_back(key);
+    PreviousKeys.push_back(zobrist);
     moveStack.push_back(Move::Uninitialized);
     SaveParameters();
 
-    // change of turn
-    key ^= ZobristTable[12 * 64];
+    zobrist.ToggleSTM();
 
-    //undo the previous ep square
+    // undo the previous ep square
     if (GetEnPassant() <= SQ_H8)
-        key ^= ZobristTable[(12 * 64 + 5 + GetFile(GetEnPassant()))];
+        zobrist.ToggleEnpassant(GetFile(GetEnPassant()));
 
     SetEnPassant(N_SQUARES);
     Increment50Move();
     NextTurn();
 
-    assert(GenerateZobristKey() == key);
+    assert(zobrist.Verify(*this));
 }
 
 void Position::RevertNullMove()
@@ -198,7 +197,7 @@ void Position::RevertNullMove()
     assert(PreviousKeys.size() > 0);
 
     RestorePreviousParameters();
-    key = PreviousKeys.back();
+    zobrist = PreviousKeys.back();
     PreviousKeys.pop_back();
     moveStack.pop_back();
 }
@@ -254,7 +253,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
     if (!InitialiseParametersFromFen(fen))
         return false;
 
-    key = GenerateZobristKey();
+    zobrist.Recalculate(*this);
     net.RecalculateIncremental(GetInputLayer());
 
     return true;
@@ -297,50 +296,16 @@ bool Position::InitialiseFromFen(std::string fen)
 
 uint64_t Position::GetZobristKey() const
 {
-    return key;
+    return zobrist.Key();
 }
 
 void Position::Reset()
 {
     PreviousKeys.clear();
-    key = EMPTY;
     moveStack.clear();
-
     ResetBoard();
     InitParameters();
-}
-
-uint64_t Position::GenerateZobristKey() const
-{
-    uint64_t Key = EMPTY;
-
-    for (int i = 0; i < N_PIECES; i++)
-    {
-        uint64_t bitboard = GetPieceBB(static_cast<Pieces>(i));
-        while (bitboard != 0)
-        {
-            Key ^= ZobristTable.at(i * 64 + LSBpop(bitboard));
-        }
-    }
-
-    if (GetTurn() == WHITE)
-        Key ^= ZobristTable.at(12 * 64);
-
-    if (GetCanCastleWhiteKingside())
-        Key ^= ZobristTable.at(12 * 64 + 1);
-    if (GetCanCastleWhiteQueenside())
-        Key ^= ZobristTable.at(12 * 64 + 2);
-    if (GetCanCastleBlackKingside())
-        Key ^= ZobristTable.at(12 * 64 + 3);
-    if (GetCanCastleBlackQueenside())
-        Key ^= ZobristTable.at(12 * 64 + 4);
-
-    if (GetEnPassant() <= SQ_H8)
-    {
-        Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(GetEnPassant()));
-    }
-
-    return Key;
+    zobrist.Recalculate(*this);
 }
 
 std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
@@ -389,7 +354,7 @@ bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
     //note Previous keys will not contain the current key, hence rep starts at one
     for (int i = static_cast<int>(PreviousKeys.size()) - 2; i >= 0; i -= 2)
     {
-        if (PreviousKeys[i] == current)
+        if (PreviousKeys[i].Key() == current)
             totalRep++;
 
         if (totalRep == maxReps)
@@ -415,7 +380,7 @@ Move Position::GetPreviousMove() const
 void Position::SetSquareAndUpdate(Square square, Pieces piece)
 {
     net.UpdateInput<Network::Toggle::Add>(square, piece);
-    key ^= ZobristTable[piece * 64 + square];
+    zobrist.TogglePieceSquare(piece, square);
     SetSquare(square, piece);
 }
 
@@ -423,6 +388,6 @@ void Position::ClearSquareAndUpdate(Square square)
 {
     Pieces piece = GetSquare(square);
     net.UpdateInput<Network::Toggle::Remove>(square, piece);
-    key ^= ZobristTable[piece * 64 + square];
+    zobrist.TogglePieceSquare(piece, square);
     ClearSquare(square);
 }

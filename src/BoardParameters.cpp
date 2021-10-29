@@ -59,15 +59,15 @@ void BoardParameters::RestorePreviousParameters()
     PreviousParameters.pop_back(); //the iterator should never be invalitated by this
 }
 
-void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
+void BoardParameters::UpdateCastleRights(Move move, Zobrist& zobrist)
 {
     if (move.GetFrom() == SQ_E1 || move.GetTo() == SQ_E1) //Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
     {
         if (GetCanCastleWhiteKingside())
-            zobrist_key ^= ZobristTable[12 * 64 + 1];
+            zobrist.ToggleWhiteKingside();
 
         if (GetCanCastleWhiteQueenside())
-            zobrist_key ^= ZobristTable[12 * 64 + 2];
+            zobrist.ToggleWhiteQueenside();
 
         SetCanCastleWhiteKingside(false);
         SetCanCastleWhiteQueenside(false);
@@ -76,10 +76,10 @@ void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
     if (move.GetFrom() == SQ_E8 || move.GetTo() == SQ_E8)
     {
         if (GetCanCastleBlackKingside())
-            zobrist_key ^= ZobristTable[12 * 64 + 3];
+            zobrist.ToggleBlackKingsize();
 
         if (GetCanCastleBlackQueenside())
-            zobrist_key ^= ZobristTable[12 * 64 + 4];
+            zobrist.ToggleBlackQueensize();
 
         SetCanCastleBlackKingside(false);
         SetCanCastleBlackQueenside(false);
@@ -88,7 +88,7 @@ void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
     if (move.GetFrom() == SQ_A1 || move.GetTo() == SQ_A1)
     {
         if (GetCanCastleWhiteQueenside())
-            zobrist_key ^= ZobristTable[12 * 64 + 2];
+            zobrist.ToggleWhiteQueenside();
 
         SetCanCastleWhiteQueenside(false);
     }
@@ -96,7 +96,7 @@ void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
     if (move.GetFrom() == SQ_A8 || move.GetTo() == SQ_A8)
     {
         if (GetCanCastleBlackQueenside())
-            zobrist_key ^= ZobristTable[12 * 64 + 4];
+            zobrist.ToggleBlackQueensize();
 
         SetCanCastleBlackQueenside(false);
     }
@@ -104,7 +104,7 @@ void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
     if (move.GetFrom() == SQ_H1 || move.GetTo() == SQ_H1)
     {
         if (GetCanCastleWhiteKingside())
-            zobrist_key ^= ZobristTable[12 * 64 + 1];
+            zobrist.ToggleWhiteKingside();
 
         SetCanCastleWhiteKingside(false);
     }
@@ -112,7 +112,7 @@ void BoardParameters::UpdateCastleRights(Move move, uint64_t& zobrist_key)
     if (move.GetFrom() == SQ_H8 || move.GetTo() == SQ_H8)
     {
         if (GetCanCastleBlackKingside())
-            zobrist_key ^= ZobristTable[12 * 64 + 3];
+            zobrist.ToggleBlackKingsize();
 
         SetCanCastleBlackKingside(false);
     }
