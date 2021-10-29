@@ -279,9 +279,9 @@ void SearchLimits::SetMateLimit(int moves)
     mateLimitEnabled = true;
 }
 
-void History::AddHistory(int16_t& val, int change)
+void History::AddHistory(int16_t& val, int change, int max, int scale)
 {
-    val += 32 * change - val * abs(change) / 512;
+    val += scale * change - val * abs(change) * scale / max;
 }
 
 void History::AddButterfly(const Position& position, Move move, int change)
@@ -293,7 +293,7 @@ void History::AddButterfly(const Position& position, Move move, int change)
     assert(move.GetFrom() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()], change);
+    AddHistory((*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
 }
 
 int16_t History::GetButterfly(const Position& position, Move move) const
@@ -324,7 +324,7 @@ void History::AddCounterMove(const Position& position, Move move, int change)
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change);
+    AddHistory((*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
 }
 
 int16_t History::GetCounterMove(const Position& position, Move move) const

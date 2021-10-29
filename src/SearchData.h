@@ -46,8 +46,15 @@ public:
     void AddCounterMove(const Position& position, Move move, int change);
     int16_t GetCounterMove(const Position& position, Move move) const;
 
+    // Tuneable history constants
+    static int Butterfly_max;
+    static int Butterfly_scale;
+
+    static int CounterMove_max;
+    static int CounterMove_scale;
+
 private:
-    void AddHistory(int16_t& val, int change);
+    void AddHistory(int16_t& val, int change, int max, int scale);
 
     // [side][from][to]
     using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
@@ -58,6 +65,12 @@ private:
     std::unique_ptr<ButterflyType> butterfly = std::make_unique<ButterflyType>();
     std::unique_ptr<CounterMoveType> counterMove = std::make_unique<CounterMoveType>();
 };
+
+inline int History::Butterfly_max = 16384;
+inline int History::Butterfly_scale = 32;
+
+inline int History::CounterMove_max = 16384;
+inline int History::CounterMove_scale = 64;
 
 struct SearchData
 {
