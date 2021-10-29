@@ -316,15 +316,15 @@ void History::AddCounterMove(const Position& position, Move move, int change)
 
     assert(move != Move::Uninitialized);
 
-    Pieces prevPiece = position.GetSquare(prevMove.GetTo());
-    Pieces currentPiece = position.GetSquare(move.GetFrom());
+    PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
+    PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
 
     assert(prevPiece != N_PIECES);
     assert(currentPiece != N_PIECES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
+    AddHistory((*counterMove)[position.GetTurn()][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
 }
 
 int16_t History::GetCounterMove(const Position& position, Move move) const
@@ -335,13 +335,13 @@ int16_t History::GetCounterMove(const Position& position, Move move) const
 
     assert(move != Move::Uninitialized);
 
-    Pieces prevPiece = position.GetSquare(prevMove.GetTo());
-    Pieces currentPiece = position.GetSquare(move.GetFrom());
+    PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
+    PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
 
     assert(prevPiece != N_PIECES);
     assert(currentPiece != N_PIECES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    return (*counterMove)[prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
+    return (*counterMove)[position.GetTurn()][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
 }
