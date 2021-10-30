@@ -50,8 +50,6 @@ private:
     Zobrist zobrist;
     std::vector<Zobrist> PreviousKeys;
 
-    std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
-
     void SetSquareAndUpdate(Square square, Pieces piece);
     void ClearSquareAndUpdate(Square square);
 

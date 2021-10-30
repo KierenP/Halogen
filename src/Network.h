@@ -16,41 +16,24 @@
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;
 
+class Position;
+
 class Network
 {
 public:
-    enum class Toggle
-    {
-        Add,
-        Remove
-    };
-
-    void RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs);
+    void Recalculate(const Position& position);
 
     // calculates starting from the first hidden layer and skips input -> hidden
     int16_t Eval() const;
 
-    // call DoMove and then update inputs as required
-    void DoMove();
+    // call and then update inputs as required
+    void AccumulatorPush();
 
-    template <Toggle update>
-    void UpdateInput(Square square, Pieces piece)
-    {
-        assert(square < N_SQUARES);
-        assert(piece < N_PIECES);
-
-        size_t index = piece * 64 + square;
-
-        if constexpr (update == Toggle::Add)
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta.back()[j] += hiddenWeights[index][j];
-        if constexpr (update == Toggle::Remove)
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-                Zeta.back()[j] -= hiddenWeights[index][j];
-    }
+    void AddInput(Square square, Pieces piece);
+    void RemoveInput(Square square, Pieces piece);
 
     // do undo the last move
-    void UndoMove();
+    void AccumulatorPop();
 
     static void Init();
 
