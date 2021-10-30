@@ -1,4 +1,5 @@
 #include "Network.h"
+#include "Position.h"
 #include "incbin/incbin.h"
 
 INCBIN(Net, "4526ac9f.nn");
@@ -52,23 +53,47 @@ void Network::Init()
     std::rotate(hiddenWeights.begin(), hiddenWeights.begin() + hiddenWeights.size() / 2, hiddenWeights.end());
 }
 
-void Network::RecalculateIncremental(const std::array<int16_t, INPUT_NEURONS>& inputs)
+void Network::Recalculate(const Position& position)
 {
     Zeta = { hiddenBias };
 
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        for (size_t j = 0; j < INPUT_NEURONS; j++)
-            Zeta[0][i] += inputs[j] * hiddenWeights[j][i];
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        Pieces piece = static_cast<Pieces>(i);
+        uint64_t bb = position.GetPieceBB(piece);
+
+        while (bb)
+        {
+            Square sq = static_cast<Square>(LSBpop(bb));
+            AddInput(sq, piece);
+        }
+    }
 }
 
-void Network::DoMove()
+void Network::AccumulatorPush()
 {
     Zeta.push_back(Zeta.back());
 }
 
-void Network::UndoMove()
+void Network::AccumulatorPop()
 {
     Zeta.pop_back();
+}
+
+void Network::AddInput(Square square, Pieces piece)
+{
+    size_t index = piece * 64 + square;
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+        Zeta.back()[j] += hiddenWeights[index][j];
+}
+
+void Network::RemoveInput(Square square, Pieces piece)
+{
+    size_t index = piece * 64 + square;
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+        Zeta.back()[j] -= hiddenWeights[index][j];
 }
 
 int16_t Network::Eval() const

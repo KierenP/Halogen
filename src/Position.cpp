@@ -12,7 +12,7 @@ void Position::ApplyMove(Move move)
 {
     PreviousKeys.push_back(zobrist);
     moveStack.push_back(move);
-    net.DoMove();
+    net.AccumulatorPush();
     SaveParameters();
     SaveBoard();
 
@@ -27,7 +27,7 @@ void Position::ApplyMove(Move move)
 
     if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
     {
-        net.UpdateInput<Network::Toggle::Remove>(move.GetTo(), GetSquare(move.GetTo()));
+        net.RemoveInput(move.GetTo(), GetSquare(move.GetTo()));
         zobrist.TogglePieceSquare(GetSquare(move.GetTo()), move.GetTo());
     }
 
@@ -158,7 +158,7 @@ void Position::ApplyMove(const std::string& strmove)
     }
 
     ApplyMove(Move(prev, next, flag));
-    net.RecalculateIncremental(GetInputLayer());
+    net.Recalculate(*this);
 }
 
 void Position::RevertMove()
@@ -169,7 +169,7 @@ void Position::RevertMove()
     RestorePreviousParameters();
     zobrist = PreviousKeys.back();
     PreviousKeys.pop_back();
-    net.UndoMove();
+    net.AccumulatorPop();
     moveStack.pop_back();
 }
 
@@ -233,7 +233,6 @@ void Position::Print() const
 void Position::StartingPosition()
 {
     InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
-    net.RecalculateIncremental(GetInputLayer());
 }
 
 bool Position::InitialiseFromFen(std::vector<std::string> fen)
@@ -254,7 +253,7 @@ bool Position::InitialiseFromFen(std::vector<std::string> fen)
         return false;
 
     zobrist.Recalculate(*this);
-    net.RecalculateIncremental(GetInputLayer());
+    net.Recalculate(*this);
 
     return true;
 }
@@ -306,23 +305,6 @@ void Position::Reset()
     ResetBoard();
     InitParameters();
     zobrist.Recalculate(*this);
-}
-
-std::array<int16_t, INPUT_NEURONS> Position::GetInputLayer() const
-{
-    std::array<int16_t, INPUT_NEURONS> ret;
-
-    for (int i = 0; i < N_PIECES; i++)
-    {
-        uint64_t bb = GetPieceBB(static_cast<Pieces>(i));
-
-        for (int sq = 0; sq < N_SQUARES; sq++)
-        {
-            ret[i * 64 + sq] = ((bb & SquareBB[sq]) != 0);
-        }
-    }
-
-    return ret;
 }
 
 void Position::ApplyMoveQuick(Move move)
@@ -379,7 +361,7 @@ Move Position::GetPreviousMove() const
 
 void Position::SetSquareAndUpdate(Square square, Pieces piece)
 {
-    net.UpdateInput<Network::Toggle::Add>(square, piece);
+    net.AddInput(square, piece);
     zobrist.TogglePieceSquare(piece, square);
     SetSquare(square, piece);
 }
@@ -387,7 +369,7 @@ void Position::SetSquareAndUpdate(Square square, Pieces piece)
 void Position::ClearSquareAndUpdate(Square square)
 {
     Pieces piece = GetSquare(square);
-    net.UpdateInput<Network::Toggle::Remove>(square, piece);
+    net.RemoveInput(square, piece);
     zobrist.TogglePieceSquare(piece, square);
     ClearSquare(square);
 }
