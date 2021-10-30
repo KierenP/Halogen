@@ -3,6 +3,7 @@
 #include "BitBoard.h"
 #include "BoardParameters.h"
 #include "Network.h"
+#include "Zobrist.h"
 #include <sstream>
 
 constexpr size_t NodeCountChunk = 1 << 12;
@@ -46,10 +47,8 @@ public:
     Move GetPreviousMove() const;
 
 private:
-    uint64_t key = EMPTY;
-    std::vector<uint64_t> PreviousKeys;
-
-    uint64_t GenerateZobristKey() const;
+    Zobrist zobrist;
+    std::vector<Zobrist> PreviousKeys;
 
     std::array<int16_t, INPUT_NEURONS> GetInputLayer() const;
 

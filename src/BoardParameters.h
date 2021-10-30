@@ -1,6 +1,7 @@
 #pragma once
 #include "BitBoardDefine.h"
 #include "Move.h"
+#include "Zobrist.h"
 #include <vector>
 
 struct BoardParameterData
@@ -49,7 +50,7 @@ protected:
     bool InitialiseParametersFromFen(const std::vector<std::string>& fen);
     void SaveParameters();
     void RestorePreviousParameters();
-    void UpdateCastleRights(Move move, uint64_t& zobrist_key);
+    void UpdateCastleRights(Move move, Zobrist& zobrist_key);
     void NextTurn();
     void Increment50Move() { SetFiftyMoveCount(GetFiftyMoveCount() + 1); }
     void Reset50Move() { SetFiftyMoveCount(0); }
