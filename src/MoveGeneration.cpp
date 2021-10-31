@@ -198,7 +198,7 @@ void AppendLegalMoves(Square from, uint64_t to, Position& position, MoveFlag fla
         Square target = static_cast<Square>(LSBpop(to));
         Move move(from, target, flag);
         if (!(pinned & SquareBB[from]) || !MovePutsSelfInCheck(position, move))
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 }
 
@@ -211,7 +211,7 @@ void AppendLegalMoves(uint64_t from, Square to, Position& position, MoveFlag fla
         Square source = static_cast<Square>(LSBpop(from));
         Move move(source, to, flag);
         if (!(pinned & SquareBB[source]) || !MovePutsSelfInCheck(position, move))
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 }
 
@@ -316,7 +316,7 @@ void PawnPushes(Position& position, FixedVector<T>& moves, uint64_t pinned)
         Move move(start, end, QUIET);
 
         if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck(position, move))
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 }
 
@@ -349,10 +349,10 @@ void PawnPromotions(Position& position, FixedVector<T>& moves, uint64_t pinned)
         if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(position, move))
             continue;
 
-        moves.Append(move);
-        moves.Append(start, end, ROOK_PROMOTION);
-        moves.Append(start, end, BISHOP_PROMOTION);
-        moves.Append(start, end, QUEEN_PROMOTION);
+        moves.emplace_back(move);
+        moves.emplace_back(start, end, ROOK_PROMOTION);
+        moves.emplace_back(start, end, BISHOP_PROMOTION);
+        moves.emplace_back(start, end, QUEEN_PROMOTION);
     }
 }
 
@@ -386,7 +386,7 @@ void PawnDoublePushes(Position& position, FixedVector<T>& moves, uint64_t pinned
         Move move(start, end, PAWN_DOUBLE_MOVE);
 
         if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck(position, move))
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 }
 
@@ -435,13 +435,13 @@ void PawnCaptures(Position& position, FixedVector<T>& moves, uint64_t pinned)
 
         if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
         {
-            moves.Append(start, end, KNIGHT_PROMOTION_CAPTURE);
-            moves.Append(start, end, ROOK_PROMOTION_CAPTURE);
-            moves.Append(start, end, BISHOP_PROMOTION_CAPTURE);
-            moves.Append(start, end, QUEEN_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
         }
         else
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 
     while (rightAttack != 0)
@@ -455,13 +455,13 @@ void PawnCaptures(Position& position, FixedVector<T>& moves, uint64_t pinned)
 
         if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
         {
-            moves.Append(start, end, KNIGHT_PROMOTION_CAPTURE);
-            moves.Append(start, end, ROOK_PROMOTION_CAPTURE);
-            moves.Append(start, end, BISHOP_PROMOTION_CAPTURE);
-            moves.Append(start, end, QUEEN_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
         }
         else
-            moves.Append(move);
+            moves.emplace_back(move);
     }
 }
 
@@ -520,7 +520,7 @@ void CastleMoves(const Position& position, FixedVector<T>& moves)
     std::vector<Move> tmp;
     CastleMoves(position, tmp);
     for (auto& move : tmp)
-        moves.Append(move);
+        moves.emplace_back(move);
 }
 
 template <PieceTypes pieceType, bool capture, typename T>

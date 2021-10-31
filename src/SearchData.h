@@ -82,8 +82,8 @@ private:
     //--------------------------------------------------------------------------------------------
 
 public:
-    std::vector<std::vector<Move>> PvTable;
-    std::vector<std::array<Move, 2>> KillerMoves; //2 moves indexed by distanceFromRoot
+    std::array<BasicMoveList, MAX_DEPTH> PvTable = {};
+    std::array<std::array<Move, 2>, MAX_DEPTH> KillerMoves = {}; //2 moves indexed by distanceFromRoot
 
     EvalCacheTable evalTable;
     SearchLimits limits;
@@ -139,7 +139,7 @@ public:
     SearchData& GetData(unsigned int threadID);
 
 private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const;
+    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
     mutable std::mutex ioMutex;
