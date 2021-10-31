@@ -12,9 +12,9 @@ void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
 int extension(const Position& position);
-void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>& KillerMoves);
+void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, MAX_DEPTH>& KillerMoves);
 void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
-void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable);
+void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEPTH>& PvTable);
 int Reduction(int depth, int i);
 constexpr int matedIn(int distanceFromRoot);
 constexpr int mateIn(int distanceFromRoot);
@@ -518,13 +518,13 @@ int Reduction(int depth, int i)
     return LMR_reduction[std::min(63, std::max(0, depth))][std::min(63, std::max(0, i))];
 }
 
-void UpdatePV(Move move, int distanceFromRoot, std::vector<std::vector<Move>>& PvTable)
+void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEPTH>& PvTable)
 {
     PvTable[distanceFromRoot].clear();
-    PvTable[distanceFromRoot].push_back(move);
+    PvTable[distanceFromRoot].emplace_back(move);
 
     if (distanceFromRoot + 1 < static_cast<int>(PvTable.size()))
-        PvTable[distanceFromRoot].insert(PvTable[distanceFromRoot].end(), PvTable[distanceFromRoot + 1].begin(), PvTable[distanceFromRoot + 1].end());
+        PvTable[distanceFromRoot].append(PvTable[distanceFromRoot + 1].begin(), PvTable[distanceFromRoot + 1].end());
 }
 
 bool UseTransposition(const TTEntry& entry, int alpha, int beta)
@@ -696,7 +696,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
     return SearchResult(Score, bestmove);
 }
 
-void AddKiller(Move move, int distanceFromRoot, std::vector<std::array<Move, 2>>& KillerMoves)
+void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, MAX_DEPTH>& KillerMoves)
 {
     if (move.IsCapture() || move.IsPromotion() || KillerMoves[distanceFromRoot][0] == move)
         return;

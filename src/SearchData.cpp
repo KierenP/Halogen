@@ -5,8 +5,6 @@ TranspositionTable tTable;
 SearchData::SearchData(const SearchLimits& Limits)
     : limits(Limits)
 {
-    PvTable.resize(MAX_DEPTH);
-    KillerMoves.resize(MAX_DEPTH);
 }
 
 ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput)
@@ -46,7 +44,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
     if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
     {
         if (!noOutput)
-            PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
+            PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
 
         if (GetMultiPVCount() == 0)
         {
@@ -67,13 +65,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
     if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
         lowestAlpha = alpha;
     }
 
     if (score > highestBeta && score >= beta && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, move, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
         highestBeta = beta;
     }
 }
@@ -139,7 +137,7 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const Move& move, const SearchData& locals) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const
 {
     /*
 	Here we avoid excessive use of std::cout and instead append to a string in order
@@ -147,10 +145,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 	time controls.
 	*/
 
-    std::vector<Move> pv = locals.PvTable[0];
-
-    if (pv.size() == 0)
-        pv.push_back(move);
+    const BasicMoveList& pv = locals.PvTable[0];
 
     std::stringstream ss;
 

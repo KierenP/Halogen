@@ -50,10 +50,6 @@ private:
     static_assert(std::is_trivial_v<T>);
 
 public:
-    //Pass arguments to construct the ExtendedMove()
-    template <typename... Args>
-    void Append(Args&&... args);
-
     using iterator = typename decltype(list)::iterator;
     using const_iterator = typename decltype(list)::const_iterator;
 
@@ -71,13 +67,19 @@ public:
     const T& operator[](size_t index) const { return list[index]; }
     T& operator[](size_t index) { return list[index]; }
 
+    template <typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        list[moveCount++] = { args... };
+    }
+
+    template <class InputIt>
+    void append(InputIt first, InputIt last)
+    {
+        std::copy(first, last, end());
+        moveCount += std::distance(first, last);
+    }
+
 private:
     size_t moveCount = 0;
 };
-
-template <typename T>
-template <typename... Args>
-inline void FixedVector<T>::Append(Args&&... args)
-{
-    list[moveCount++] = { args... };
-}
