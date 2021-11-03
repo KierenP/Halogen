@@ -186,8 +186,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
         ss << " ";
     }
 
-    ss << "\n";
-    std::cout << ss.str();
+    std::cout << ss.str() << std::endl;
 }
 
 bool SearchLimits::CheckTimeLimit() const
