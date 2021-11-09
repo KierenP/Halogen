@@ -11,24 +11,29 @@ void History::Reset()
 SearchData::SearchData(SearchLimits* Limits)
     : limits(Limits)
 {
-    Reset();
+    ResetNewGame();
 }
 
-void SearchData::Reset()
+void SearchData::ResetNewSearch()
 {
     tbHits = 0;
     nodes = 0;
     selDepth = 0;
     threadWantsToStop = false;
-    history.Reset();
 
     PvTable = {};
     KillerMoves = {};
 }
 
+void SearchData::ResetNewGame()
+{
+    ResetNewSearch();
+    history.Reset();
+}
+
 ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters)
 {
-    Reset();
+    ResetNewGame();
     SetLimits(limits);
     SetMultiPv(parameters.multiPV);
     SetThreads(parameters.threads);
@@ -49,7 +54,7 @@ void ThreadSharedData::SetThreads(int threads)
         threadlocalData.emplace_back(&limits_);
 }
 
-void ThreadSharedData::Reset()
+void ThreadSharedData::ResetNewSearch()
 {
     threadDepthCompleted = 0;
     currentBestMove = Move::Uninitialized;
@@ -58,7 +63,20 @@ void ThreadSharedData::Reset()
     highestBeta = 0;
 
     limits_.Reset();
-    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.Reset(); });
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewSearch(); });
+    MultiPVExclusion.clear();
+}
+
+void ThreadSharedData::ResetNewGame()
+{
+    threadDepthCompleted = 0;
+    currentBestMove = Move::Uninitialized;
+    prevScore = 0;
+    lowestAlpha = 0;
+    highestBeta = 0;
+
+    limits_.Reset();
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewGame(); });
     MultiPVExclusion.clear();
 }
 

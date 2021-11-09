@@ -100,7 +100,8 @@ public:
     void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
     int GetSelDepth() const { return selDepth; }
 
-    void Reset();
+    void ResetNewSearch();
+    void ResetNewGame();
 
 private:
     friend class ThreadSharedData;
@@ -147,7 +148,8 @@ public:
     void SetThreads(int threads);
     const SearchParameters& GetParameters() { return param; }
 
-    void Reset();
+    void ResetNewSearch();
+    void ResetNewGame();
 
 private:
     void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const;

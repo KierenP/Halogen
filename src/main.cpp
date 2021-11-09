@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
         {
             position.StartingPosition();
             tTable.ResetTable();
+            data.ResetNewGame();
         }
 
         else if (token == "position")
@@ -185,6 +186,7 @@ int main(int argc, char* argv[])
                 if (token == "Hash")
                 {
                     tTable.ResetTable();
+                    data.ResetNewGame();
                 }
             }
 
@@ -561,6 +563,7 @@ void Bench(int depth)
         }
 
         tTable.ResetTable();
+        data.ResetNewGame();
         nodeCount += SearchThread(position, data);
     }
 
