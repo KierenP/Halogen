@@ -34,7 +34,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
 
 void InitSearch();
 
-uint64_t SearchThread(Position position, SearchParameters parameters, const SearchLimits& limits, bool noOutput)
+uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
 {
     //Probe TB at root
     if (GetBitCount(position.GetAllPieces()) <= TB_LARGEST
@@ -51,18 +51,19 @@ uint64_t SearchThread(Position position, SearchParameters parameters, const Sear
         }
     }
 
+    sharedData.ResetNewSearch();
+
     //Limit the MultiPV setting to be at most the number of legal moves
     BasicMoveList moves;
     moves.clear();
     LegalMoves(position, moves);
-    parameters.multiPV = std::min<int>(parameters.multiPV, moves.size());
+    sharedData.SetMultiPv(std::min<int>(sharedData.GetParameters().multiPV, moves.size()));
 
     InitSearch();
 
     std::vector<std::thread> threads;
-    ThreadSharedData sharedData(limits, parameters, noOutput);
 
-    for (int i = 0; i < parameters.threads; i++)
+    for (int i = 0; i < sharedData.GetParameters().threads; i++)
     {
         threads.emplace_back(std::thread([=, &sharedData] { SearchPosition(position, sharedData, i); }));
     }
@@ -122,16 +123,16 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
     {
         int depth = sharedData.GetDepth();
 
-        if (sharedData.GetData(threadID).limits.CheckDepthLimit(depth))
+        if (sharedData.GetData(threadID).limits->CheckDepthLimit(depth))
             break;
-        if (!sharedData.GetData(threadID).limits.CheckContinueSearch())
+        if (!sharedData.GetData(threadID).limits->CheckContinueSearch())
             sharedData.ReportWantsToStop(threadID);
 
         try
         {
             SearchResult curSearch = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
-            sharedData.ReportResult(depth, sharedData.GetData(threadID).limits.ElapsedTime(), curSearch.GetScore(), alpha, beta, position, curSearch.GetMove(), sharedData.GetData(threadID));
-            if (sharedData.GetData(threadID).limits.CheckMateLimit(curSearch.GetScore()))
+            sharedData.ReportResult(depth, sharedData.GetData(threadID).limits->ElapsedTime(), curSearch.GetScore(), alpha, beta, position, curSearch.GetMove(), sharedData.GetData(threadID));
+            if (sharedData.GetData(threadID).limits->CheckMateLimit(curSearch.GetScore()))
                 break;
             prevScore = curSearch.GetScore();
         }
@@ -165,19 +166,19 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
             break;
         if (sharedData.ThreadAbort(depth))
             break;
-        if (depth > 1 && sharedData.GetData(threadID).limits.CheckTimeLimit())
+        if (depth > 1 && sharedData.GetData(threadID).limits->CheckTimeLimit())
             break;
 
         if (search.GetScore() <= alpha)
         {
-            sharedData.ReportResult(depth, locals.limits.ElapsedTime(), alpha, alpha, beta, position, search.GetMove(), locals);
+            sharedData.ReportResult(depth, locals.limits->ElapsedTime(), alpha, alpha, beta, position, search.GetMove(), locals);
             beta = (alpha + beta) / 2;
             alpha = std::max<int>(MATED, alpha - delta);
         }
 
         if (search.GetScore() >= beta)
         {
-            sharedData.ReportResult(depth, locals.limits.ElapsedTime(), beta, alpha, beta, position, search.GetMove(), locals);
+            sharedData.ReportResult(depth, locals.limits->ElapsedTime(), beta, alpha, beta, position, search.GetMove(), locals);
             sharedData.UpdateBestMove(search.GetMove());
             beta = std::min<int>(MATE, beta + delta);
         }
@@ -198,7 +199,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     locals.PvTable[distanceFromRoot].clear();
 
     //See if we should abort the search
-    if (initialDepth > 1 && locals.limits.CheckTimeLimit())
+    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->CheckTimeLimit())
         throw TimeAbort(); //Am I out of time?
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?
@@ -650,7 +651,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
     locals.PvTable[distanceFromRoot].clear();
 
     //See if we should abort the search
-    if (initialDepth > 1 && locals.limits.CheckTimeLimit())
+    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->CheckTimeLimit())
         throw TimeAbort(); //Am I out of time?
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?

@@ -20,12 +20,12 @@ public:
     void SetDepthLimit(int depth);
     void SetMateLimit(int moves);
 
-    int ElapsedTime() const { return SearchTimeManager.ElapsedMs(); }
+    int ElapsedTime() const { return TimeManager.ElapsedMs(); }
+
+    void Reset() { TimeManager.Reset(); }
 
 private:
-    SearchTimeManage SearchTimeManager;
-    mutable int PeriodicCheck = 0;
-
+    SearchTimeManage TimeManager;
     int depthLimit = -1;
     int mateLimit = -1;
     bool IsInfinite = false;
@@ -33,13 +33,13 @@ private:
     bool timeLimitEnabled = false;
     bool depthLimitEnabled = false;
     bool mateLimitEnabled = false;
-
-    mutable bool periodicTimeLimit = false;
 };
 
 class History
 {
 public:
+    History() { Reset(); }
+
     void AddButterfly(const Position& position, Move move, int change);
     int16_t GetButterfly(const Position& position, Move move) const;
 
@@ -53,6 +53,8 @@ public:
     static int CounterMove_max;
     static int CounterMove_scale;
 
+    void Reset();
+
 private:
     void AddHistory(int16_t& val, int change, int max, int scale);
 
@@ -62,8 +64,8 @@ private:
     // [side][prev_piece][prev_to][piece][to]
     using CounterMoveType = std::array<std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECE_TYPES>, N_SQUARES>, N_PIECE_TYPES>, N_PLAYERS>;
 
-    std::unique_ptr<ButterflyType> butterfly = std::make_unique<ButterflyType>();
-    std::unique_ptr<CounterMoveType> counterMove = std::make_unique<CounterMoveType>();
+    std::unique_ptr<ButterflyType> butterfly;
+    std::unique_ptr<CounterMoveType> counterMove;
 };
 
 inline int History::Butterfly_max = 16384;
@@ -74,7 +76,7 @@ inline int History::CounterMove_scale = 64;
 
 struct SearchData
 {
-    explicit SearchData(const SearchLimits& Limits);
+    explicit SearchData(SearchLimits* Limits);
 
     //--------------------------------------------------------------------------------------------
 private:
@@ -86,7 +88,8 @@ public:
     std::array<std::array<Move, 2>, MAX_DEPTH> KillerMoves = {}; //2 moves indexed by distanceFromRoot
 
     EvalCacheTable evalTable;
-    SearchLimits limits;
+    History history;
+    SearchLimits* limits;
 
     void AddNode() { nodes++; }
     void AddTbHit() { tbHits++; }
@@ -97,13 +100,15 @@ public:
     void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
     int GetSelDepth() const { return selDepth; }
 
-    History history;
+    void ResetNewSearch();
+    void ResetNewGame();
 
 private:
     friend class ThreadSharedData;
-    uint64_t tbHits = 0;
-    uint64_t nodes = 0;
-    int selDepth = 0;
+    uint64_t tbHits;
+    uint64_t nodes;
+    int selDepth;
+    bool threadWantsToStop;
 
     //--------------------------------------------------------------------------------------------
 private:
@@ -120,7 +125,7 @@ struct SearchParameters
 class ThreadSharedData
 {
 public:
-    ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput = false);
+    ThreadSharedData(const SearchLimits& limits = {}, const SearchParameters& parameters = {});
 
     Move GetBestMove() const;
     unsigned int GetDepth() const;
@@ -138,23 +143,28 @@ public:
 
     SearchData& GetData(unsigned int threadID);
 
+    void SetLimits(const SearchLimits& limits);
+    void SetMultiPv(int multiPv) { param.multiPV = multiPv; }
+    void SetThreads(int threads);
+    const SearchParameters& GetParameters() { return param; }
+
+    void ResetNewSearch();
+    void ResetNewGame();
+
 private:
     void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
     mutable std::mutex ioMutex;
-    unsigned int threadDepthCompleted = 0; //The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
-    Move currentBestMove = Move::Uninitialized; //Whoever finishes first gets to update this as long as they searched deeper than threadDepth
-    int prevScore = 0; //if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
-    int lowestAlpha = 0;
-    int highestBeta = 0;
-    bool noOutput; //Do not write anything to the concole
+    unsigned int threadDepthCompleted; //The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
+    Move currentBestMove; //Whoever finishes first gets to update this as long as they searched deeper than threadDepth
+    int prevScore; //if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+    int lowestAlpha;
+    int highestBeta;
 
     SearchParameters param;
+    SearchLimits limits_;
 
     std::vector<SearchData> threadlocalData;
     std::vector<Move> MultiPVExclusion; //Moves that we ignore at the root for MPV mode
-
-    //TODO: probably put this inside of SearchData
-    std::vector<bool> ThreadWantsToStop; //Threads signal here that they want to stop searching, but will keep going until all threads want to stop
 };
