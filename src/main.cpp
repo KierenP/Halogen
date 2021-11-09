@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 
     Position position;
     thread searchThread;
-    SearchParameters parameters;
+    ThreadSharedData data;
 
     for (int i = 1; i < argc; i++) //read any command line input as a regular UCI instruction
     {
@@ -170,7 +170,8 @@ int main(int argc, char* argv[])
             if (searchThread.joinable())
                 searchThread.join();
 
-            searchThread = thread([=] { SearchThread(position, parameters, limits); });
+            data.SetLimits(limits);
+            searchThread = thread([position, &data] { SearchThread(position, data); });
         }
 
         else if (token == "setoption")
@@ -198,7 +199,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                parameters.threads = stoi(token);
+                data.SetThreads(stoi(token));
             }
 
             else if (token == "SyzygyPath")
@@ -213,7 +214,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                parameters.multiPV = stoi(token);
+                data.SetMultiPv(stoi(token));
             }
 
             else if (token == "LMR_constant")
@@ -544,11 +545,12 @@ uint64_t Perft(unsigned int depth, Position& position)
 void Bench(int depth)
 {
     Timer timer;
-    timer.Start();
 
     uint64_t nodeCount = 0;
     Position position;
-    SearchParameters parameters;
+    SearchLimits limits;
+    limits.SetDepthLimit(depth);
+    ThreadSharedData data(limits);
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -558,10 +560,8 @@ void Bench(int depth)
             break;
         }
 
-        SearchLimits limits;
-        limits.SetDepthLimit(depth);
         tTable.ResetTable();
-        nodeCount += SearchThread(position, parameters, limits, false);
+        nodeCount += SearchThread(position, data);
     }
 
     cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;

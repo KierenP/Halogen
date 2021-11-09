@@ -2,22 +2,65 @@
 
 TranspositionTable tTable;
 
-SearchData::SearchData(const SearchLimits& Limits)
-    : limits(Limits)
+void History::Reset()
 {
+    butterfly = std::make_unique<ButterflyType>();
+    counterMove = std::make_unique<CounterMoveType>();
 }
 
-ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters, bool NoOutput)
-    : param(parameters)
+SearchData::SearchData(SearchLimits* Limits)
+    : limits(Limits)
 {
-    noOutput = NoOutput;
-    ThreadWantsToStop.resize(param.threads, false);
+    Reset();
+}
 
-    threadlocalData.reserve(param.threads);
-    for (int i = 0; i < param.threads; i++)
-    {
-        threadlocalData.emplace_back(limits);
-    }
+void SearchData::Reset()
+{
+    tbHits = 0;
+    nodes = 0;
+    selDepth = 0;
+    threadWantsToStop = false;
+    evalTable.Reset();
+    history.Reset();
+
+    PvTable = {};
+    KillerMoves = {};
+}
+
+ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters)
+{
+    Reset();
+    SetLimits(limits);
+    SetMultiPv(parameters.multiPV);
+    SetThreads(parameters.threads);
+}
+
+void ThreadSharedData::SetLimits(const SearchLimits& limits)
+{
+    limits_ = limits;
+}
+
+void ThreadSharedData::SetThreads(int threads)
+{
+    param.threads = threads;
+
+    while (static_cast<size_t>(param.threads) < threadlocalData.size())
+        threadlocalData.pop_back();
+    while (static_cast<size_t>(param.threads) > threadlocalData.size())
+        threadlocalData.emplace_back(&limits_);
+}
+
+void ThreadSharedData::Reset()
+{
+    threadDepthCompleted = 0;
+    currentBestMove = Move::Uninitialized;
+    prevScore = 0;
+    lowestAlpha = 0;
+    highestBeta = 0;
+
+    limits_.Reset();
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.Reset(); });
+    MultiPVExclusion.clear();
 }
 
 Move ThreadSharedData::GetBestMove() const
@@ -43,8 +86,7 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
     if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
     {
-        if (!noOutput)
-            PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
 
         if (GetMultiPVCount() == 0)
         {
@@ -63,13 +105,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
         }
     }
 
-    if (score < lowestAlpha && score <= alpha && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
+    if (score < lowestAlpha && score <= alpha && Time > 5000 && depth == threadDepthCompleted + 1)
     {
         PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
         lowestAlpha = alpha;
     }
 
-    if (score > highestBeta && score >= beta && !noOutput && Time > 5000 && depth == threadDepthCompleted + 1)
+    if (score > highestBeta && score >= beta && Time > 5000 && depth == threadDepthCompleted + 1)
     {
         PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
         highestBeta = beta;
@@ -79,11 +121,11 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 void ThreadSharedData::ReportWantsToStop(unsigned int threadID)
 {
     std::scoped_lock lock(ioMutex);
-    ThreadWantsToStop[threadID] = true;
+    threadlocalData[threadID].threadWantsToStop = true;
 
-    for (unsigned int i = 0; i < ThreadWantsToStop.size(); i++)
+    for (unsigned int i = 0; i < threadlocalData.size(); i++)
     {
-        if (ThreadWantsToStop[i] == false)
+        if (threadlocalData[i].threadWantsToStop == false)
             return;
     }
 
@@ -200,15 +242,7 @@ bool SearchLimits::CheckTimeLimit() const
     if (!timeLimitEnabled)
         return false;
 
-    PeriodicCheck++;
-
-    if (PeriodicCheck >= 1024)
-    {
-        PeriodicCheck = 0;
-        periodicTimeLimit = SearchTimeManager.AbortSearch();
-    }
-
-    return periodicTimeLimit;
+    return TimeManager.AbortSearch();
 }
 
 bool SearchLimits::CheckDepthLimit(int depth) const
@@ -247,12 +281,12 @@ bool SearchLimits::CheckContinueSearch() const
     if (!timeLimitEnabled)
         return true;
 
-    return SearchTimeManager.ContinueSearch();
+    return TimeManager.ContinueSearch();
 }
 
 void SearchLimits::SetTimeLimits(int maxTime, int allocatedTime)
 {
-    SearchTimeManager = SearchTimeManage(maxTime, allocatedTime);
+    TimeManager = SearchTimeManage(maxTime, allocatedTime);
     timeLimitEnabled = true;
 }
 

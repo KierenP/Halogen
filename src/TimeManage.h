@@ -35,12 +35,13 @@ static inline double get_time_point()
 class Timer
 {
 public:
-    void Start();
-    void Restart();
+    Timer() { Reset(); }
+
     int ElapsedMs() const;
+    void Reset() { Begin = get_time_point(); }
 
 private:
-    double Begin = 0;
+    double Begin;
 };
 
 class SearchTimeManage
@@ -52,9 +53,12 @@ public:
     bool AbortSearch() const; //Is the remaining time all used up?
     int ElapsedMs() const { return timer.ElapsedMs(); }
 
+    void Reset() { timer.Reset(); }
+
 private:
     Timer timer;
     int AllocatedSearchTimeMS;
     int MaxTimeMS;
-    int BufferTime;
+
+    constexpr static int BufferTime = 100;
 };
