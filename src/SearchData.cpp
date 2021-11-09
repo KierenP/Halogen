@@ -20,7 +20,6 @@ void SearchData::Reset()
     nodes = 0;
     selDepth = 0;
     threadWantsToStop = false;
-    evalTable.Reset();
     history.Reset();
 
     PvTable = {};
