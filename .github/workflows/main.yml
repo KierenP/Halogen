@@ -17,11 +17,6 @@ jobs:
         run: |
          cd src
          make
-          
-      - name: Run bench
-        run: |
-         cd src
-         ./Halogen bench
 
       - name: Check commit message contains correct bench
         run: |
