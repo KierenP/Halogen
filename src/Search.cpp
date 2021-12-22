@@ -1,6 +1,20 @@
 #include "Search.h"
 
-int LMR_reduction[64][64]; //[depth][move number]
+// [depth][move number]
+constexpr std::array<std::array<int, 64>, 64> LMR_reduction = []
+{
+    std::array<std::array<int, 64>, 64> ret = {};
+
+    for (size_t i = 0; i < ret.size(); i++)
+    {
+        for (size_t j = 0; j < ret[i].size(); j++)
+        {
+            ret[i][j] = static_cast<int>(std::round(LMR_constant + LMR_coeff * log(i + 1) * log(j + 1)));
+        }
+    }
+
+    return ret;
+}();
 
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
@@ -32,8 +46,6 @@ void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromR
 void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move);
 SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
-void InitSearch();
-
 uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
 {
     //Probe TB at root
@@ -59,13 +71,14 @@ uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
     LegalMoves(position, moves);
     sharedData.SetMultiPv(std::min<int>(sharedData.GetParameters().multiPV, moves.size()));
 
-    InitSearch();
+    KeepSearching = true;
 
     std::vector<std::thread> threads;
 
     for (int i = 0; i < sharedData.GetParameters().threads; i++)
     {
-        threads.emplace_back(std::thread([=, &sharedData] { SearchPosition(position, sharedData, i); }));
+        threads.emplace_back(std::thread([=, &sharedData]
+            { SearchPosition(position, sharedData, i); }));
     }
 
     for (size_t i = 0; i < threads.size(); i++)
@@ -75,19 +88,6 @@ uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
 
     PrintBestMove(sharedData.GetBestMove());
     return sharedData.getNodes(); //Used by bench searches. Otherwise is discarded.
-}
-
-void InitSearch()
-{
-    KeepSearching = true;
-
-    for (int i = 0; i < 64; i++)
-    {
-        for (int j = 0; j < 64; j++)
-        {
-            LMR_reduction[i][j] = std::round(LMR_constant + LMR_coeff * log(i + 1) * log(j + 1));
-        }
-    }
 }
 
 void PrintBestMove(Move Best)
