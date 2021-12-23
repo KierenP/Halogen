@@ -22,8 +22,29 @@ jobs:
         run: |
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           cd src
-          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
-          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got $actual_bench expected $commit_bench" && exit 1; fi
+          ./Halogen bench > bench_result.txt
+          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
+
+  Perft:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create default build
+        run: |
+         cd src
+         make
+
+      - name: Check perft test is correct
+        run: |
+          cd src
+          ./Halogen.exe test perft > perft_result.txt
+          cat perft_result.txt
+          result=$(cat perft_result.txt | grep "Completed")
+          expected="Completed perft with: 140/140 correct"
+          if [[ "$result" != "Completed perft with: 140/140 correct" ]]; then echo "Incorrect perft, got '$result' expected '$expected" && exit 1; fi
          
   Release:
     runs-on: ubuntu-latest
