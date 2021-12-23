@@ -40,7 +40,7 @@ jobs:
       - name: Check perft test is correct
         run: |
           cd src
-          ./Halogen.exe test perft > perft_result.txt
+          ./Halogen test perft > perft_result.txt
           cat perft_result.txt
           result=$(cat perft_result.txt | grep "Completed")
           expected="Completed perft with: 140/140 correct"
