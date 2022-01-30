@@ -1,7 +1,7 @@
 #include "Search.h"
 
 // [depth][move number]
-constexpr std::array<std::array<int, 64>, 64> LMR_reduction = []
+const std::array<std::array<int, 64>, 64> LMR_reduction = []
 {
     std::array<std::array<int, 64>, 64> ret = {};
 

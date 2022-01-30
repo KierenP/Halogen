@@ -1,9 +1,5 @@
 #include "MoveList.h"
 
-// Explicit template instantiation
-template class FixedVector<ExtendedMove>;
-template class FixedVector<Move>;
-
 template <typename T>
 typename FixedVector<T>::iterator FixedVector<T>::begin()
 {
@@ -46,3 +42,7 @@ void FixedVector<T>::erase(size_t index)
     std::move(list.begin() + index + 1, list.end(), list.begin() + index);
     moveCount--;
 }
+
+// Explicit template instantiation
+template class FixedVector<ExtendedMove>;
+template class FixedVector<Move>;
