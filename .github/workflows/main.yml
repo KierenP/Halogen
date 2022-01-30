@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, c++-10, clang++-10, clang++-11, clang++-12]
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -44,7 +44,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, c++-10, clang++-10, clang++-11, clang++-12]
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -59,7 +59,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, c++-10, clang++-10, clang++-11, clang++-12]
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -79,7 +79,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, c++-10, clang++-10, clang++-11, clang++-12]
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
