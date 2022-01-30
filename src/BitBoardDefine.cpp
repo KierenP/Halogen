@@ -144,8 +144,11 @@ constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied, const std::a
     return attacks;
 }
 
+namespace detail
+{
+
 template <uint64_t size>
-void detail::MagicTable<size>::InitSliderAttacks()
+void MagicTable<size>::InitSliderAttacks()
 {
     uint64_t* attack = attacks.data();
 
@@ -173,5 +176,11 @@ void detail::MagicTable<size>::InitSliderAttacks()
             attack++;
         } while (occupied);
     }
+}
+
+// Explicit template instantiation
+template class MagicTable<0x1480>;
+template class MagicTable<0x19000>;
+
 }
 //--------------------------------------------------------------------------
