@@ -24,31 +24,6 @@ jobs:
          cd src
          make
 
-      - name: Check commit message contains correct bench
-        run: |
-          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          cd src
-          ./Halogen bench > bench_result.txt
-          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
-          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
-
-  Perft:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        compiler: [g++, clang++]
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Create default build
-        env:
-          CXX: ${{ matrix.compiler }}
-        run: |
-         cd src
-         make
-
       - name: Check perft test is correct
         run: |
           cd src
@@ -57,6 +32,14 @@ jobs:
           result=$(cat perft_result.txt | grep "Completed")
           expected="Completed perft with: 140/140 correct"
           if [[ "$result" != "Completed perft with: 140/140 correct" ]]; then echo "Incorrect perft, got '$result' expected '$expected" && exit 1; fi
+
+      - name: Check commit message contains correct bench
+        run: |
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          cd src
+          ./Halogen bench > bench_result.txt
+          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
          
   Release:
     runs-on: ubuntu-latest
