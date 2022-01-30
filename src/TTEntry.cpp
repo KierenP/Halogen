@@ -1,6 +1,7 @@
 #include "TTEntry.h"
 
 #include <assert.h>
+#include <climits>
 
 #include "BitBoardDefine.h"
 
