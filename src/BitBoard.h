@@ -1,6 +1,10 @@
 #pragma once
-#include "BitBoardDefine.h"
+#include <array>
+#include <cstdint>
+#include <string>
 #include <vector>
+
+#include "BitBoardDefine.h"
 
 using BitBoardData = std::array<uint64_t, N_PIECES>;
 

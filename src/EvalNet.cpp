@@ -1,5 +1,11 @@
 #include "EvalNet.h"
 
+#include <algorithm>
+
+#include "BitBoardDefine.h"
+#include "EvalCache.h"
+#include "Position.h"
+
 void TempoAdjustment(int& eval, const Position& position);
 
 int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)

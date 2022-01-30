@@ -1,5 +1,13 @@
 #include "MoveGeneration.h"
 
+#include <algorithm>
+#include <assert.h>
+#include <cstddef>
+#include <vector>
+
+#include "Move.h"
+#include "Position.h"
+
 template <Players STM, typename T>
 void GenerateLegalMoves(Position& position, FixedVector<T>& moves, uint64_t pinned);
 template <Players STM, typename T>

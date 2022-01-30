@@ -1,8 +1,5 @@
 #pragma once
-#include <array>
-#include <assert.h>
-#include <iostream>
-#include <memory> //required to compile with g++
+#include <cstdint>
 #include <vector>
 
 struct EvalCacheEntry

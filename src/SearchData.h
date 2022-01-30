@@ -1,9 +1,19 @@
 #pragma once
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+#include "BitBoardDefine.h"
 #include "EvalCache.h"
+#include "Move.h"
 #include "MoveList.h"
-#include "Position.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
+
+class Position;
 
 extern TranspositionTable tTable;
 

@@ -1,8 +1,12 @@
 #pragma once
-#include "BitBoardDefine.h"
-#include "Move.h"
-#include "Zobrist.h"
+#include <memory>
+#include <string>
 #include <vector>
+
+#include "BitBoardDefine.h"
+
+class Move;
+class Zobrist;
 
 struct BoardParameterData
 {

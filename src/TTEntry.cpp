@@ -1,5 +1,9 @@
 #include "TTEntry.h"
 
+#include <assert.h>
+
+#include "BitBoardDefine.h"
+
 TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff)
     : bestMove(best)
 {

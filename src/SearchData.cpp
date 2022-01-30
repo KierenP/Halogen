@@ -1,5 +1,16 @@
 #include "SearchData.h"
 
+#include <assert.h>
+#include <atomic>
+#include <cstdint>
+#include <iostream>
+#include <numeric>
+#include <sstream>
+#include <stdlib.h>
+#include <string>
+
+#include "Position.h"
+
 TranspositionTable tTable;
 
 void History::Reset()

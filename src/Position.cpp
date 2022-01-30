@@ -1,4 +1,13 @@
 #include "Position.h"
+
+#include <algorithm>
+#include <array>
+#include <assert.h>
+#include <ctype.h>
+#include <iostream>
+#include <memory>
+#include <sstream>
+
 #include "MoveGeneration.h"
 #include "Zobrist.h"
 

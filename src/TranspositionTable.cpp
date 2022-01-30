@@ -1,5 +1,14 @@
 #include "TranspositionTable.h"
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <iterator>
+
+#include "BitBoardDefine.h"
+
+class Move;
+
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth)
 {
     return (entry.GetKey() == key && entry.GetDepth() >= depth);

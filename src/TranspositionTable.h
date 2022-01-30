@@ -1,9 +1,11 @@
 #pragma once
-#include "TTEntry.h"
-#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory> //required to compile with g++
-#include <mutex>
-#include <vector>
+
+#include "TTEntry.h"
+
+class Move;
 
 class TranspositionTable
 {

@@ -1,4 +1,8 @@
 #include "Zobrist.h"
+
+#include <cstddef>
+#include <random>
+
 #include "Position.h"
 
 const std::array<uint64_t, 781> Zobrist::ZobristTable = [] {

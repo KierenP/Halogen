@@ -1,14 +1,12 @@
 #pragma once
-#include <algorithm>
 #include <atomic>
-#include <iostream>
-#include <mutex>
 #include <time.h>
 
 inline std::atomic<bool> KeepSearching;
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
+
 static inline double get_time_point()
 {
     LARGE_INTEGER time, freq;
@@ -18,6 +16,7 @@ static inline double get_time_point()
 }
 #else
 #include <sys/time.h>
+
 static inline double get_time_point()
 {
 
