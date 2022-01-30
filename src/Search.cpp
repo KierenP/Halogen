@@ -25,7 +25,8 @@
 #include "TranspositionTable.h"
 
 // [depth][move number]
-const std::array<std::array<int, 64>, 64> LMR_reduction = [] {
+const std::array<std::array<int, 64>, 64> LMR_reduction = []
+{
     std::array<std::array<int, 64>, 64> ret = {};
 
     for (size_t i = 0; i < ret.size(); i++)

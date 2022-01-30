@@ -10,24 +10,9 @@ jobs:
   OpenBench:
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Create default build
-        run: |
-         cd src
-         make
-
-      - name: Check commit message contains correct bench
-        run: |
-          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          cd src
-          ./Halogen bench > bench_result.txt
-          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
-          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
-
-  Perft:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -35,7 +20,7 @@ jobs:
       - name: Create default build
         run: |
          cd src
-         make
+         make CXX=${{ matrix.compiler }}
 
       - name: Check perft test is correct
         run: |
@@ -45,9 +30,21 @@ jobs:
           result=$(cat perft_result.txt | grep "Completed")
           expected="Completed perft with: 140/140 correct"
           if [[ "$result" != "Completed perft with: 140/140 correct" ]]; then echo "Incorrect perft, got '$result' expected '$expected" && exit 1; fi
+
+      - name: Check commit message contains correct bench
+        run: |
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          cd src
+          ./Halogen bench > bench_result.txt
+          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
          
   Release:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -55,10 +52,14 @@ jobs:
       - name: Create static compiles
         run: |
          cd src
-         make release
+         make release CXX=${{ matrix.compiler }}
          
   Debug:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
 
     steps:
       - uses: actions/checkout@v2
@@ -66,7 +67,7 @@ jobs:
       - name: Create debug compiles
         run: |
          cd src
-         make debug
+         make debug CXX=${{ matrix.compiler }}
          
       - name: Run bench
         run: |
@@ -76,13 +77,17 @@ jobs:
   Sanitizer:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize
+          make sanitize CXX=${{ matrix.compiler }}
           
       - name: Address sanitizer
         run: |
