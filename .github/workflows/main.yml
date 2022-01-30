@@ -10,10 +10,16 @@ jobs:
   OpenBench:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create default build
+        env:
+          CXX: ${{ matrix.compiler }}
         run: |
          cd src
          make
@@ -29,10 +35,16 @@ jobs:
   Perft:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create default build
+        env:
+          CXX: ${{ matrix.compiler }}
         run: |
          cd src
          make
@@ -49,10 +61,16 @@ jobs:
   Release:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create static compiles
+        env:
+          CXX: ${{ matrix.compiler }}
         run: |
          cd src
          make release
@@ -60,10 +78,16 @@ jobs:
   Debug:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create debug compiles
+        env:
+          CXX: ${{ matrix.compiler }}
         run: |
          cd src
          make debug
@@ -76,10 +100,16 @@ jobs:
   Sanitizer:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Create sanitizer builds
+        env:
+          CXX: ${{ matrix.compiler }}
         run: |
           cd src
           make sanitize
