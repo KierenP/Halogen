@@ -1,8 +1,31 @@
 #include "Search.h"
 
+#include <algorithm>
+#include <array>
+#include <assert.h>
+#include <atomic>
+#include <cmath>
+#include <ctime>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
+
+#include "BitBoardDefine.h"
+#include "EvalNet.h"
+#include "MoveGeneration.h"
+#include "MoveGenerator.h"
+#include "MoveList.h"
+#include "Position.h"
+#include "Pyrrhic/tbprobe.h"
+#include "SearchData.h"
+#include "TTEntry.h"
+#include "TimeManage.h"
+#include "TranspositionTable.h"
+
 // [depth][move number]
-const std::array<std::array<int, 64>, 64> LMR_reduction = []
-{
+const std::array<std::array<int, 64>, 64> LMR_reduction = [] {
     std::array<std::array<int, 64>, 64> ret = {};
 
     for (size_t i = 0; i < ret.size(); i++)
@@ -77,8 +100,7 @@ uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
 
     for (int i = 0; i < sharedData.GetParameters().threads; i++)
     {
-        threads.emplace_back(std::thread([=, &sharedData]
-            { SearchPosition(position, sharedData, i); }));
+        threads.emplace_back(std::thread([=, &sharedData] { SearchPosition(position, sharedData, i); }));
     }
 
     for (size_t i = 0; i < threads.size(); i++)

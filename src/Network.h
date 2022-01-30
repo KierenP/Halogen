@@ -1,17 +1,10 @@
 #pragma once
-#include "BitBoardDefine.h"
-#include "EvalCache.h"
-#include <algorithm>
 #include <array>
-#include <assert.h>
+#include <cstdint>
 #include <cstring>
-#include <fstream>
-#include <iostream>
-#include <numeric>
-#include <random>
-#include <sstream>
-#include <string>
 #include <vector>
+
+#include "BitBoardDefine.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;

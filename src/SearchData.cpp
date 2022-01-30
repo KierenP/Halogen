@@ -1,5 +1,16 @@
 #include "SearchData.h"
 
+#include <assert.h>
+#include <atomic>
+#include <cstdint>
+#include <iostream>
+#include <numeric>
+#include <sstream>
+#include <stdlib.h>
+#include <string>
+
+#include "Position.h"
+
 TranspositionTable tTable;
 
 void History::Reset()
@@ -364,8 +375,8 @@ void History::AddCounterMove(const Position& position, Move move, int change)
     PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
     PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
 
-    assert(prevPiece != N_PIECES);
-    assert(currentPiece != N_PIECES);
+    assert(prevPiece != N_PIECE_TYPES);
+    assert(currentPiece != N_PIECE_TYPES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
@@ -383,8 +394,8 @@ int16_t History::GetCounterMove(const Position& position, Move move) const
     PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
     PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
 
-    assert(prevPiece != N_PIECES);
-    assert(currentPiece != N_PIECES);
+    assert(prevPiece != N_PIECE_TYPES);
+    assert(currentPiece != N_PIECE_TYPES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 

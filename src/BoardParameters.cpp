@@ -1,4 +1,10 @@
 #include "BoardParameters.h"
+
+#include <algorithm>
+#include <assert.h>
+#include <memory>
+
+#include "Move.h"
 #include "Zobrist.h"
 
 BoardParameters::~BoardParameters() = default;

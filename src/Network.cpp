@@ -1,4 +1,10 @@
 #include "Network.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+
 #include "Position.h"
 #include "incbin/incbin.h"
 

@@ -1,7 +1,13 @@
 #pragma once
-#include "EvalNet.h"
+#include <array>
+#include <cstdint>
+#include <stdexcept>
+
+#include "BitBoardDefine.h"
 #include "MoveList.h"
-#include "Position.h"
+
+class Move;
+class Position;
 
 void LegalMoves(Position& position, ExtendedMoveList& moves);
 void QuiescenceMoves(Position& position, ExtendedMoveList& moves);
@@ -16,7 +22,7 @@ bool IsInCheck(const Position& position);
 
 bool MoveIsLegal(Position& position, const Move& move);
 
-//Below code adapted with permission from Terje, author of Weiss.
+// Below code adapted with permission from Terje, author of Weiss.
 //--------------------------------------------------------------------------
 
 // Returns the attack bitboard for a piece of piecetype on square sq

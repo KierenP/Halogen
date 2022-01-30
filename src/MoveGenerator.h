@@ -1,8 +1,12 @@
 #pragma once
-#include "MoveGeneration.h"
-#include "SearchData.h"
-
+#include <cstdint>
 #include <optional>
+
+#include "Move.h"
+#include "MoveList.h"
+
+class Position;
+struct SearchData;
 
 enum class Stage
 {

@@ -1,10 +1,16 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "BitBoard.h"
+#include "BitBoardDefine.h"
 #include "BoardParameters.h"
+#include "Move.h"
 #include "Network.h"
 #include "Zobrist.h"
-#include <sstream>
 
 constexpr size_t NodeCountChunk = 1 << 12;
 

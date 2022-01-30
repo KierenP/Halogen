@@ -1,5 +1,9 @@
 #include "BitBoard.h"
-#include <stdexcept>
+
+#include <algorithm>
+#include <assert.h>
+#include <cstddef>
+#include <memory>
 
 BitBoard::~BitBoard() = default;
 

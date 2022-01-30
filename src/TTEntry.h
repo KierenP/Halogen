@@ -1,7 +1,10 @@
 #pragma once
-#include "BitBoardDefine.h"
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
+
 #include "Move.h"
-#include <climits>
 
 constexpr unsigned int HALF_MOVE_MODULO = 16;
 constexpr size_t BucketSize = 4;

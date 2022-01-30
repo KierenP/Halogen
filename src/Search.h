@@ -1,12 +1,11 @@
 #pragma once
 
-#include "MoveGenerator.h"
-#include "Pyrrhic/tbprobe.h"
-#include <algorithm>
-#include <cmath>
-#include <ctime>
-#include <thread>
+#include <cstdint>
 
+#include "Move.h"
+
+class Position;
+class ThreadSharedData;
 /*Tuneable search constants*/
 
 constexpr double LMR_constant = -1.76;

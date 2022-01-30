@@ -1,8 +1,8 @@
 #pragma once
+#include <array>
+#include <cstdint>
+
 #include "BitBoardDefine.h"
-#include <random>
-#include <stdint.h>
-#include <vector>
 
 class Position;
 

@@ -1,6 +1,26 @@
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <time.h>
+#include <vector>
+
 #include "Benchmark.h"
+#include "Move.h"
+#include "MoveGeneration.h"
+#include "MoveList.h"
+#include "Network.h"
+#include "Position.h"
+#include "Pyrrhic/tbprobe.h"
 #include "Search.h"
-#include "Zobrist.h"
+#include "SearchData.h"
+#include "TimeManage.h"
+#include "TranspositionTable.h"
 
 using namespace ::std;
 

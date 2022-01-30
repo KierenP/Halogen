@@ -1,5 +1,8 @@
 #include "BitBoardDefine.h"
 
+#include <bitset>
+#include <limits>
+
 Players operator!(const Players& val)
 {
     return val == WHITE ? BLACK : WHITE;

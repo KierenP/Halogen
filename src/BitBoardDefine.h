@@ -2,14 +2,14 @@
 #include <algorithm>
 #include <array>
 #include <assert.h>
-#include <bitset>
-#include <limits>
-#include <stdexcept>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <type_traits>
 
 #ifdef _MSC_VER
 #include <intrin.h>
+
 #define NOMINMAX
 #endif
 
@@ -463,6 +463,7 @@ const int MAX_DEPTH = 100;
 #ifdef USE_PEXT
 // Uses the bmi2 pext instruction in place of magic bitboards
 #include "x86intrin.h"
+
 #define AttackIndex(sq, occ, table) (_pext_u64(occ, table[sq].mask))
 #else
 // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards

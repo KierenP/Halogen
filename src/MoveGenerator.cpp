@@ -1,5 +1,17 @@
 #include "MoveGenerator.h"
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <limits>
+
+#include "BitBoardDefine.h"
+#include "MoveGeneration.h"
+#include "Position.h"
+#include "SearchData.h"
+#include "TTEntry.h"
+#include "TranspositionTable.h"
+
 MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
     : position(Position)
     , distanceFromRoot(DistanceFromRoot)

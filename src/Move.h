@@ -1,8 +1,9 @@
 #pragma once
+#include <cstdint>
+#include <string>
+#include <type_traits>
+
 #include "BitBoardDefine.h"
-#include <assert.h>
-#include <iostream>
-#include <sstream>
 
 enum MoveFlag
 {
