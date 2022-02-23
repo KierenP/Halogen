@@ -5,20 +5,20 @@
 #include <cstdint>
 #include <limits>
 
+#include "BitBoardDefine.h"
 #include "Position.h"
 #include "incbin/incbin.h"
 
-INCBIN(Net, "4526ac9f.nn");
+INCBIN(Net, "169.nn");
 
 std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
 std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
-std::array<int16_t, HIDDEN_NEURONS> Network::outputWeights = {};
+std::array<int16_t, HIDDEN_NEURONS* 2> Network::outputWeights = {};
 int16_t Network::outputBias = {};
 
-constexpr int16_t MAX_VALUE = 128;
-constexpr int16_t PRECISION = ((size_t)std::numeric_limits<int16_t>::max() + 1) / MAX_VALUE;
-constexpr int32_t SQUARE_PRECISION = (int32_t)PRECISION * PRECISION;
-constexpr double SCALE_FACTOR = 0.94; //Found empirically to maximize elo
+constexpr int16_t L1_SCALE = 128;
+constexpr int16_t L2_SCALE = 128;
+constexpr double SCALE_FACTOR = 1; // Found empirically to maximize elo
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
@@ -32,36 +32,40 @@ template <typename T, size_t SIZE>
 }
 
 template <typename T_out, typename T_in, size_t SIZE>
-void DotProduct(const std::array<T_in, SIZE>& a, const std::array<T_in, SIZE>& b, T_out& output)
+void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other, const std::array<T_in, SIZE * 2>& weights, T_out& output)
 {
     for (size_t i = 0; i < SIZE; i++)
-        output += a[i] * b[i];
+    {
+        output += stm[i] * weights[i];
+    }
+
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        output += other[i] * weights[i + SIZE];
+    }
 }
 
 void Network::Init()
 {
-    auto Data = reinterpret_cast<const float*>(gNetData);
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        hiddenBias[i] = (int16_t)round(*Data++ * PRECISION);
+    // Koi nets must skip 8 bytes
+    auto Data = reinterpret_cast<const float*>(gNetData + 8);
 
     for (size_t i = 0; i < INPUT_NEURONS; i++)
         for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = (int16_t)round(*Data++ * PRECISION);
-
-    outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * PRECISION);
+            hiddenWeights[i][j] = (int16_t)round(*Data++ * L1_SCALE);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * PRECISION);
+        hiddenBias[i] = (int16_t)round(*Data++ * L1_SCALE);
 
-    //Swap the first half with last half to swap white and black inputs
-    //Because Andrew's trainer goes WHITE, BLACK but Halogen goes BLACK, WHITE
-    std::rotate(hiddenWeights.begin(), hiddenWeights.begin() + hiddenWeights.size() / 2, hiddenWeights.end());
+    for (size_t i = 0; i < HIDDEN_NEURONS * 2; i++)
+        outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+
+    outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
 }
 
 void Network::Recalculate(const Position& position)
 {
-    Zeta = { hiddenBias };
+    AccumulatorStack = { { hiddenBias, hiddenBias } };
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -78,68 +82,59 @@ void Network::Recalculate(const Position& position)
 
 void Network::AccumulatorPush()
 {
-    Zeta.push_back(Zeta.back());
+    AccumulatorStack.push_back(AccumulatorStack.back());
 }
 
 void Network::AccumulatorPop()
 {
-    Zeta.pop_back();
+    AccumulatorStack.pop_back();
+}
+
+Square MirrorVertically(Square sq)
+{
+    return static_cast<Square>(sq ^ 56);
+}
+
+int index(Square square, Pieces piece, Players view)
+{
+    Square sq = view == WHITE ? square : MirrorVertically(square);
+    Pieces relativeColor = static_cast<Pieces>(view == ColourOfPiece(piece));
+    PieceTypes pieceType = GetPieceType(piece);
+
+    return sq + pieceType * 64 + relativeColor * 64 * 6;
 }
 
 void Network::AddInput(Square square, Pieces piece)
 {
-    size_t index = piece * 64 + square;
+    size_t white_index = index(square, piece, WHITE);
+    size_t black_index = index(square, piece, BLACK);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-        Zeta.back()[j] += hiddenWeights[index][j];
+    {
+        AccumulatorStack.back().side[WHITE][j] += hiddenWeights[white_index][j];
+        AccumulatorStack.back().side[BLACK][j] += hiddenWeights[black_index][j];
+    }
 }
 
 void Network::RemoveInput(Square square, Pieces piece)
 {
-    size_t index = piece * 64 + square;
+    size_t white_index = index(square, piece, WHITE);
+    size_t black_index = index(square, piece, BLACK);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-        Zeta.back()[j] -= hiddenWeights[index][j];
+    {
+        AccumulatorStack.back().side[WHITE][j] -= hiddenWeights[white_index][j];
+        AccumulatorStack.back().side[BLACK][j] -= hiddenWeights[black_index][j];
+    }
 }
 
-int16_t Network::Eval() const
+int16_t Network::Eval(Players stm) const
 {
-    int32_t output = outputBias * PRECISION;
-    DotProduct(ReLU(Zeta.back()), outputWeights, output);
-    return output / SQUARE_PRECISION;
+    int32_t output = outputBias * L1_SCALE;
+    DotProductHalves(ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+    output /= L1_SCALE * L2_SCALE;
+
+    // 'half' or 'relative' nets return a score relative to the side to move
+    // but Halogen expects a score relative to white
+    return stm == WHITE ? output : -output;
 }
-
-/*void QuantizationAnalysis()
-{
-    auto Data = reinterpret_cast<float*>(label);
-
-    float weight = 0;
-
-    //hidden bias
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        weight = std::max(weight, abs(*Data++));
-
-    std::cout << weight << std::endl;
-    weight = 0;
-
-    //hidden weight
-    for (size_t i = 0; i < INPUT_NEURONS; i++)
-        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            weight = std::max(weight, abs(*Data++));
-
-    std::cout << weight << std::endl;
-    weight = 0;
-
-    //output bias
-    weight = std::max(weight, abs(*Data++));
-
-    std::cout << weight << std::endl;
-    weight = 0;
-
-    //output weights
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        weight = std::max(weight, abs(*Data++));
-
-    std::cout << weight << std::endl;
-    weight = 0;
-}*/
