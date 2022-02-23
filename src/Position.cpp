@@ -334,7 +334,7 @@ void Position::RevertMoveQuick()
 
 int16_t Position::GetEvaluation() const
 {
-    return net.Eval();
+    return net.Eval(GetTurn());
 }
 
 bool Position::CheckForRep(int distanceFromRoot, int maxReps) const
