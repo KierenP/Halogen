@@ -1,4 +1,4 @@
-#include "MoveGenerator.h"
+#include "StagedMoveGenerator.h"
 
 #include <algorithm>
 #include <array>
@@ -12,7 +12,7 @@
 #include "TTEntry.h"
 #include "TranspositionTable.h"
 
-MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
     : position(Position)
     , distanceFromRoot(DistanceFromRoot)
     , locals(Locals)
@@ -24,7 +24,7 @@ MoveGenerator::MoveGenerator(Position& Position, int DistanceFromRoot, const Sea
         stage = Stage::TT_MOVE;
 }
 
-bool MoveGenerator::Next(Move& move)
+bool StagedMoveGenerator::Next(Move& move)
 {
     moveSEE = std::nullopt;
 
@@ -128,7 +128,7 @@ bool MoveGenerator::Next(Move& move)
     return false;
 }
 
-void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
+void StagedMoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
 {
     Locals.history.AddButterfly(position, move, depthRemaining * depthRemaining);
     Locals.history.AddCounterMove(position, move, depthRemaining * depthRemaining);
@@ -142,7 +142,7 @@ void MoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int dept
     }
 }
 
-void MoveGenerator::SkipQuiets()
+void StagedMoveGenerator::SkipQuiets()
 {
     skipQuiets = true;
 }
@@ -181,7 +181,7 @@ uint64_t GetLeastValuableAttacker(const Position& position, uint64_t attackers, 
         capturing = Piece(PieceTypes(i), side);
         uint64_t pieces = position.GetPieceBB(capturing) & attackers;
         if (pieces)
-            return pieces & (~pieces + 1); //isolate LSB
+            return pieces & (~pieces + 1); // isolate LSB
     }
     return 0;
 }
@@ -230,7 +230,7 @@ int see(Position& position, Move move)
     return scores[0];
 }
 
-int16_t MoveGenerator::GetSEE(Move move) const
+int16_t StagedMoveGenerator::GetSEE(Move move) const
 {
     if (moveSEE)
         return *moveSEE;
@@ -238,7 +238,7 @@ int16_t MoveGenerator::GetSEE(Move move) const
         return see(position, move);
 }
 
-void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
     static constexpr int16_t SCORE_CAPTURE = 20000;
@@ -246,14 +246,14 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        //Hash move
+        // Hash move
         if (moves[i].move == TTmove)
         {
             moves.erase(i);
             i--;
         }
 
-        //Killers
+        // Killers
         else if (moves[i].move == Killer1)
         {
             moves.erase(i);
@@ -266,7 +266,7 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
             i--;
         }
 
-        //Promotions
+        // Promotions
         else if (moves[i].move.IsPromotion())
         {
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
@@ -280,7 +280,7 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
             }
         }
 
-        //Captures
+        // Captures
         else if (moves[i].move.IsCapture())
         {
             int SEE = 0;
@@ -294,7 +294,7 @@ void MoveGenerator::OrderMoves(ExtendedMoveList& moves)
             moves[i].SEE = SEE;
         }
 
-        //Quiet
+        // Quiet
         else
         {
             int history = locals.history.GetButterfly(position, moves[i].move) + locals.history.GetCounterMove(position, moves[i].move);

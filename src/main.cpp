@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -30,7 +31,7 @@ uint64_t PerftDivide(unsigned int depth, Position& position);
 uint64_t Perft(unsigned int depth, Position& position);
 void Bench(int depth = 16);
 
-string version = "10.23";
+string version = "10.23.1";
 
 int main(int argc, char* argv[])
 {
@@ -347,7 +348,7 @@ void PerftSuite()
     Position position;
     string line;
 
-    clock_t before = clock();
+    auto before = std::chrono::steady_clock::now();
     while (getline(infile, line))
     {
         vector<string> arrayTokens;
@@ -377,18 +378,17 @@ void PerftSuite()
         Totalnodes += nodes;
         Perfts++;
     }
-    clock_t after = clock();
-
-    double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
+    auto after = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration<double>(after - before).count();
 
     cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
-    cout << "\nTotal nodes: " << (Totalnodes) << " in " << (elapsed_ms / 1000) << "s";
-    cout << "\nNodes per second: " << static_cast<unsigned int>((Totalnodes / elapsed_ms) * 1000);
+    cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
+    cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
 }
 
 uint64_t PerftDivide(unsigned int depth, Position& position)
 {
-    clock_t before = clock();
+    auto before = std::chrono::steady_clock::now();
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
@@ -405,11 +405,11 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
         nodeCount += ChildNodeCount;
     }
 
-    clock_t after = clock();
-    double elapsed_ms = (double(after) - double(before)) / CLOCKS_PER_SEC * 1000;
+    auto after = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration<double>(after - before).count();
 
-    cout << "\nNodes searched: " << (nodeCount) << " in " << (elapsed_ms / 1000) << " seconds ";
-    cout << "(" << static_cast<unsigned int>((nodeCount / elapsed_ms) * 1000) << " nps)" << endl;
+    cout << "\nNodes searched: " << (nodeCount) << " in " << duration << " seconds ";
+    cout << "(" << static_cast<unsigned int>(nodeCount / duration) << " nps)" << endl;
     return nodeCount;
 }
 
