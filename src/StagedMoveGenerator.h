@@ -30,10 +30,10 @@ enum class Stage
 //
 // Also responsible for updating history and killer tables
 
-class MoveGenerator
+class StagedMoveGenerator
 {
 public:
-    MoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
+    StagedMoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
 
     // Returns false if no more legal moves
     bool Next(Move& move);

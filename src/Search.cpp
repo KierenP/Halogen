@@ -15,11 +15,11 @@
 #include "BitBoardDefine.h"
 #include "EvalNet.h"
 #include "MoveGeneration.h"
-#include "MoveGenerator.h"
 #include "MoveList.h"
 #include "Position.h"
 #include "Pyrrhic/tbprobe.h"
 #include "SearchData.h"
+#include "StagedMoveGenerator.h"
 #include "TTEntry.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
@@ -51,7 +51,7 @@ void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
 int TerminalScore(const Position& position, int distanceFromRoot);
 int extension(const Position& position);
 void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, MAX_DEPTH>& KillerMoves);
-void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
+void AddHistory(const StagedMoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEPTH>& PvTable);
 int Reduction(int depth, int i);
 constexpr int matedIn(int distanceFromRoot);
@@ -364,7 +364,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
 
     bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
 
-    MoveGenerator gen(position, distanceFromRoot, locals, false);
+    StagedMoveGenerator gen(position, distanceFromRoot, locals, false);
     Move move;
 
     for (searchedMoves = 0; gen.Next(move); searchedMoves++)
@@ -690,7 +690,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
     Move bestmove = Move::Uninitialized;
     int Score = staticScore;
 
-    MoveGenerator gen(position, distanceFromRoot, locals, true);
+    StagedMoveGenerator gen(position, distanceFromRoot, locals, true);
     Move move;
 
     while (gen.Next(move))
@@ -729,7 +729,7 @@ void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, 
     KillerMoves[distanceFromRoot][0] = move;
 }
 
-void AddHistory(const MoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
+void AddHistory(const StagedMoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining)
 {
     if (depthRemaining > 20 || move.IsCapture() || move.IsPromotion())
         return;
