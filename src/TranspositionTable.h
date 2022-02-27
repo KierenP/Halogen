@@ -11,10 +11,9 @@ class TranspositionTable
 {
 public:
     TranspositionTable()
-        : size_(CalculateSize(32))
-        , table(new TTBucket[size_])
     {
-    } //32MB default
+        Reallocate(CalculateEntryCount(32)); // 32MB default
+    }
 
     size_t GetSize() const { return size_; }
     int GetCapacity(int halfmove) const;
@@ -30,10 +29,11 @@ private:
     uint64_t HashFunction(const uint64_t& key) const;
     void Reallocate(size_t size);
 
-    static constexpr uint64_t CalculateSize(uint64_t MB) { return MB * 1024 * 1024 / sizeof(TTBucket); }
+    static constexpr uint64_t CalculateEntryCount(uint64_t MB) { return MB * 1024 * 1024 / sizeof(TTBucket); }
 
-    size_t size_;
+    // raw array and memset allocates quicker than std::vector
     std::unique_ptr<TTBucket[]> table;
+    size_t size_;
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);

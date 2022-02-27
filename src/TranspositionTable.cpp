@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <iterator>
 
 #include "BitBoardDefine.h"
+#include "TTEntry.h"
 
 class Move;
 
@@ -44,12 +46,12 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
     }
 
     int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot); //Keep in mind age from each generation goes up so lower (generally) means older
-    std::array<int8_t, BucketSize> scores = {};
+    std::array<int8_t, TTBucket::SIZE> scores = {};
 
-    for (size_t i = 0; i < BucketSize; i++)
+    for (size_t i = 0; i < TTBucket::SIZE; i++)
     {
-        int8_t age = currentAge - table[hash].entry[i].GetAge();
-        scores[i] = table[hash].entry[i].GetDepth() - 4 * (age >= 0 ? age : age + 16);
+        int8_t age_diff = currentAge - table[hash].entry[i].GetAge();
+        scores[i] = table[hash].entry[i].GetDepth() - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
     }
 
     table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))] = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
@@ -90,7 +92,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
     for (int i = 0; i < 1000; i++) //1000 chosen specifically, because result needs to be 'per mill'
     {
-        if (table[i / BucketSize].entry[i % BucketSize].GetAge() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
+        if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
             count++;
     }
 
@@ -99,28 +101,22 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    Reallocate(size_);
+    memset(table.get(), 0, size_ * sizeof(TTBucket));
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-    Reallocate(CalculateSize(MB));
+    Reallocate(CalculateEntryCount(MB));
 }
 
 void TranspositionTable::Reallocate(size_t size)
 {
-    // make_unique<T[]>(size) will initialize each element of the array and be slower
     size_ = size;
     table.reset(new TTBucket[size]);
+    ResetTable();
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
 {
-#ifdef _MSC_VER
-    _mm_prefetch((char*)(&table[HashFunction(key)]), _MM_HINT_T0);
-#endif
-
-#ifndef _MSC_VER
     __builtin_prefetch(&table[HashFunction(key)]);
-#endif
 }
