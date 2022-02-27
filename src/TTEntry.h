@@ -1,9 +1,7 @@
 #pragma once
 #include <array>
-#include <climits>
 #include <cstddef>
 #include <cstdint>
-#include <new>
 #include <type_traits>
 
 #include "Move.h"
