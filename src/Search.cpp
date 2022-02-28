@@ -146,16 +146,18 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
     {
         int depth = sharedData.GetDepth();
 
-        if (sharedData.GetData(threadID).limits->CheckDepthLimit(depth))
+        if (!KeepSearching)
             break;
-        if (!sharedData.GetData(threadID).limits->CheckContinueSearch())
+        if (sharedData.GetData(threadID).limits->HitDepthLimit(depth))
+            break;
+        if (!sharedData.GetData(threadID).limits->ShouldContinueSearch())
             sharedData.ReportWantsToStop(threadID);
 
         try
         {
             SearchResult curSearch = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
             sharedData.ReportResult(depth, sharedData.GetData(threadID).limits->ElapsedTime(), curSearch.GetScore(), alpha, beta, position, curSearch.GetMove(), sharedData.GetData(threadID));
-            if (sharedData.GetData(threadID).limits->CheckMateLimit(curSearch.GetScore()))
+            if (sharedData.GetData(threadID).limits->HitMateLimit(curSearch.GetScore()))
                 break;
             prevScore = curSearch.GetScore();
         }
@@ -189,7 +191,7 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
             break;
         if (sharedData.ThreadAbort(depth))
             break;
-        if (depth > 1 && sharedData.GetData(threadID).limits->CheckTimeLimit())
+        if (depth > 1 && sharedData.GetData(threadID).limits->HitTimeLimit())
             break;
 
         if (search.GetScore() <= alpha)
@@ -222,7 +224,9 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     locals.PvTable[distanceFromRoot].clear();
 
     //See if we should abort the search
-    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->CheckTimeLimit())
+    if (!KeepSearching)
+        throw TimeAbort();
+    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->HitTimeLimit())
         throw TimeAbort(); //Am I out of time?
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?
@@ -674,7 +678,9 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
     locals.PvTable[distanceFromRoot].clear();
 
     //See if we should abort the search
-    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->CheckTimeLimit())
+    if (!KeepSearching)
+        throw TimeAbort();
+    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && locals.limits->HitTimeLimit())
         throw TimeAbort(); //Am I out of time?
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?

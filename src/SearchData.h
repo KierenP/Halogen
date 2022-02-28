@@ -10,40 +10,13 @@
 #include "EvalCache.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "SearchLimits.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
 
 class Position;
 
 extern TranspositionTable tTable;
-
-class SearchLimits
-{
-public:
-    bool CheckTimeLimit() const;
-    bool CheckDepthLimit(int depth) const;
-    bool CheckMateLimit(int score) const;
-    bool CheckContinueSearch() const;
-
-    void SetTimeLimits(int maxTime, int allocatedTime);
-    void SetInfinite();
-    void SetDepthLimit(int depth);
-    void SetMateLimit(int moves);
-
-    int ElapsedTime() const { return TimeManager.ElapsedMs(); }
-
-    void Reset() { TimeManager.Reset(); }
-
-private:
-    SearchTimeManage TimeManager;
-    int depthLimit = -1;
-    int mateLimit = -1;
-    bool IsInfinite = false;
-
-    bool timeLimitEnabled = false;
-    bool depthLimitEnabled = false;
-    bool mateLimitEnabled = false;
-};
 
 class History
 {
@@ -135,7 +108,7 @@ struct SearchParameters
 class ThreadSharedData
 {
 public:
-    ThreadSharedData(const SearchLimits& limits = {}, const SearchParameters& parameters = {});
+    ThreadSharedData(SearchLimits limits = {}, const SearchParameters& parameters = {});
 
     Move GetBestMove() const;
     unsigned int GetDepth() const;
@@ -153,7 +126,7 @@ public:
 
     SearchData& GetData(unsigned int threadID);
 
-    void SetLimits(const SearchLimits& limits);
+    void SetLimits(SearchLimits limits);
     void SetMultiPv(int multiPv) { param.multiPV = multiPv; }
     void SetThreads(int threads);
     const SearchParameters& GetParameters() { return param; }
