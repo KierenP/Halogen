@@ -61,6 +61,8 @@ void Network::Init()
         outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
 
     outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+
+    assert(reinterpret_cast<const unsigned char*>(Data) == gNetData + gNetSize);
 }
 
 void Network::Recalculate(const Position& position)
