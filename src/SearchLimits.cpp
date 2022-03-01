@@ -7,6 +7,7 @@
 class iDepthChecker
 {
 public:
+    virtual ~iDepthChecker() = default;
     virtual bool HitDepthLimit(int depth) const = 0;
 };
 
@@ -37,6 +38,7 @@ public:
 class iTimeChecker
 {
 public:
+    virtual ~iTimeChecker() = default;
     virtual bool HitTimeLimit(const SearchTimeManage&) const = 0;
     virtual bool ShouldContinueSearch(const SearchTimeManage&) const = 0;
 };
@@ -60,6 +62,7 @@ public:
 class iMateChecker
 {
 public:
+    virtual ~iMateChecker() = default;
     virtual bool HitMateLimit(int score) const = 0;
 };
 
