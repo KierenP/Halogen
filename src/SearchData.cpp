@@ -42,17 +42,17 @@ void SearchData::ResetNewGame()
     history.Reset();
 }
 
-ThreadSharedData::ThreadSharedData(const SearchLimits& limits, const SearchParameters& parameters)
+ThreadSharedData::ThreadSharedData(SearchLimits limits, const SearchParameters& parameters)
 {
     ResetNewGame();
-    SetLimits(limits);
+    SetLimits(std::move(limits));
     SetMultiPv(parameters.multiPV);
     SetThreads(parameters.threads);
 }
 
-void ThreadSharedData::SetLimits(const SearchLimits& limits)
+void ThreadSharedData::SetLimits(SearchLimits limits)
 {
-    limits_ = limits;
+    limits_ = std::move(limits);
 }
 
 void ThreadSharedData::SetThreads(int threads)
@@ -73,7 +73,7 @@ void ThreadSharedData::ResetNewSearch()
     lowestAlpha = 0;
     highestBeta = 0;
 
-    limits_.Reset();
+    limits_.ResetTimer();
     std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewSearch(); });
     MultiPVExclusion.clear();
 }
@@ -86,7 +86,7 @@ void ThreadSharedData::ResetNewGame()
     lowestAlpha = 0;
     highestBeta = 0;
 
-    limits_.Reset();
+    limits_.ResetTimer();
     std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewGame(); });
     MultiPVExclusion.clear();
 }
@@ -257,82 +257,6 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     }
 
     std::cout << ss.str() << std::endl;
-}
-
-bool SearchLimits::CheckTimeLimit() const
-{
-    if (KeepSearching == false)
-        return true;
-
-    if (IsInfinite)
-        return false;
-
-    if (!timeLimitEnabled)
-        return false;
-
-    return TimeManager.AbortSearch();
-}
-
-bool SearchLimits::CheckDepthLimit(int depth) const
-{
-    if (KeepSearching == false)
-        return true;
-
-    if (IsInfinite)
-        return false;
-
-    if (!depthLimitEnabled)
-        return false;
-
-    return depth > std::min(static_cast<int>(MAX_DEPTH), depthLimit);
-}
-
-bool SearchLimits::CheckMateLimit(int score) const
-{
-    if (KeepSearching == false)
-        return true;
-
-    if (IsInfinite)
-        return false;
-
-    if (!mateLimitEnabled)
-        return false;
-
-    return (MATE)-abs(score) <= 2 * mateLimit;
-}
-
-bool SearchLimits::CheckContinueSearch() const
-{
-    if (IsInfinite)
-        return true;
-
-    if (!timeLimitEnabled)
-        return true;
-
-    return TimeManager.ContinueSearch();
-}
-
-void SearchLimits::SetTimeLimits(int maxTime, int allocatedTime)
-{
-    TimeManager = SearchTimeManage(maxTime, allocatedTime);
-    timeLimitEnabled = true;
-}
-
-void SearchLimits::SetInfinite()
-{
-    IsInfinite = true;
-}
-
-void SearchLimits::SetDepthLimit(int depth)
-{
-    depthLimit = depth;
-    depthLimitEnabled = true;
-}
-
-void SearchLimits::SetMateLimit(int moves)
-{
-    mateLimit = moves;
-    mateLimitEnabled = true;
 }
 
 void History::AddHistory(int16_t& val, int change, int max, int scale)

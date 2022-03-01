@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
             if (searchThread.joinable())
                 searchThread.join();
 
-            data.SetLimits(limits);
+            data.SetLimits(std::move(limits));
             searchThread = thread([position, &data] { SearchThread(position, data); });
         }
 
@@ -467,7 +467,7 @@ void Bench(int depth)
     Position position;
     SearchLimits limits;
     limits.SetDepthLimit(depth);
-    ThreadSharedData data(limits);
+    ThreadSharedData data(std::move(limits));
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
