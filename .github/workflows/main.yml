@@ -89,22 +89,12 @@ jobs:
           cd src
           make sanitize CXX=${{ matrix.compiler }}
           
-      - name: Address sanitizer
+      - name: Run
         run: |
           cd src
-          ./Halogen_address.exe bench 8
-          ./Halogen_address.exe go depth 8
-          ./Halogen_address.exe go movetime 10000
-          ./Halogen_address.exe go wtime 5000 btime 5000 winc 1000 binc 1000
-          ./Halogen_address.exe go wtime 5000 btime 5000 movestogo 20
-          ./Halogen_address.exe go wtime 5000 btime 5000
-          
-      - name: Undefined sanitizer
-        run: |
-          cd src
-          ./Halogen_undefined.exe bench 8
-          ./Halogen_undefined.exe go depth 8
-          ./Halogen_undefined.exe go movetime 10000
-          ./Halogen_undefined.exe go wtime 5000 btime 5000 winc 1000 binc 1000
-          ./Halogen_undefined.exe go wtime 5000 btime 5000 movestogo 20
-          ./Halogen_undefined.exe go wtime 5000 btime 5000
+          ./Halogen_sanitize.exe bench 8
+          ./Halogen_sanitize.exe go depth 8
+          ./Halogen_sanitize.exe go movetime 10000
+          ./Halogen_sanitize.exe go wtime 5000 btime 5000 winc 1000 binc 1000
+          ./Halogen_sanitize.exe go wtime 5000 btime 5000 movestogo 20
+          ./Halogen_sanitize.exe go wtime 5000 btime 5000
