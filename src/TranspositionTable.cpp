@@ -92,7 +92,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
     for (int i = 0; i < 1000; i++) //1000 chosen specifically, because result needs to be 'per mill'
     {
-        if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == static_cast<char>(halfmove % HALF_MOVE_MODULO))
+        if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == TTEntry::CalculateAge(halfmove, 0))
             count++;
     }
 
