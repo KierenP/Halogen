@@ -31,8 +31,7 @@ release:
 	$(CXX) $(RFLAGS) $(SRC) $(LIBS) $(AVX2FLAGS) $(PEXTFLAGS) -o $(EXE)$(VER)-x64-pext-avx2.exe
 	
 sanitize:
-	$(CXX) -O0 -fsanitize=undefined $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_undefined.exe
-	$(CXX) -O0 -fsanitize=address   $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_address.exe
+	$(CXX) -O0 -fsanitize=undefined -fsanitize=address $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)_sanitize.exe
 
 debug:
 	$(CXX) -O0 -g $(WFLAGS) $(SRC) $(LIBS) -o $(EXE)
