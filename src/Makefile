@@ -44,7 +44,7 @@ debug: CXXFLAGS += $(WFLAGS) -g
 debug: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: sanitize
-sanitize: CXXFLAGS += $(WFLAGS)
+sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: nopopcnt
