@@ -47,7 +47,7 @@ jobs:
          
       - name: Run bench
         run: |
-         cd src
+         cd build
          ./Halogen.exe bench 4
 
   Sanitizer:
@@ -67,7 +67,7 @@ jobs:
           
       - name: Run
         run: |
-          cd src
+          cd build
           ./Halogen_sanitize.exe bench 4
           ./Halogen_sanitize.exe go depth 4
           ./Halogen_sanitize.exe go movetime 2500
