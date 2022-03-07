@@ -1,5 +1,6 @@
 TARGET_EXEC := Halogen.exe
 BUILD_DIR := ../build
+EXE := $(BUILD_DIR)/$(TARGET_EXEC)
 SRC_DIRS := .
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -37,46 +38,46 @@ CXXFLAGS := $(INC_FLAGS) -MMD -MP
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
-native: $(BUILD_DIR)/$(TARGET_EXEC)
+native: $(EXE)
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
-debug: $(BUILD_DIR)/$(TARGET_EXEC)
+debug: $(EXE)
 
 .PHONY: sanitize
 sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: $(BUILD_DIR)/$(TARGET_EXEC)
+sanitize: $(EXE)
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 debug: LDFLAGS += -flto
-nopopcnt: $(BUILD_DIR)/$(TARGET_EXEC)
+nopopcnt: $(EXE)
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
 debug: LDFLAGS += -flto
-popcnt: $(BUILD_DIR)/$(TARGET_EXEC)
+popcnt: $(EXE)
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
 debug: LDFLAGS += -flto
-pext: $(BUILD_DIR)/$(TARGET_EXEC)
+pext: $(EXE)
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
 debug: LDFLAGS += -flto
-popcnt-avx2: $(BUILD_DIR)/$(TARGET_EXEC)
+popcnt-avx2: $(EXE)
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 debug: LDFLAGS += -flto
-pext-avx2: $(BUILD_DIR)/$(TARGET_EXEC)
+pext-avx2: $(EXE)
 
 #----------------------------------------------------------------------------------------------------------------------
 
 # The final build step.
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
+$(EXE): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
 
 # Build step for C++ source
