@@ -68,9 +68,9 @@ jobs:
       - name: Run
         run: |
           cd build
-          ./Halogen_sanitize.exe bench 4
-          ./Halogen_sanitize.exe go depth 4
-          ./Halogen_sanitize.exe go movetime 2500
-          ./Halogen_sanitize.exe go wtime 1000 btime 1000 winc 1000 binc 1000
-          ./Halogen_sanitize.exe go wtime 1000 btime 1000 movestogo 20
-          ./Halogen_sanitize.exe go wtime 1000 btime 1000
+          ./Halogen.exe bench 4
+          ./Halogen.exe go depth 4
+          ./Halogen.exe go movetime 2500
+          ./Halogen.exe go wtime 1000 btime 1000 winc 1000 binc 1000
+          ./Halogen.exe go wtime 1000 btime 1000 movestogo 20
+          ./Halogen.exe go wtime 1000 btime 1000
