@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create default build
+      - name: Create build
         run: |
          cd src
          make ${{ matrix.targer }} CXX=${{ matrix.compiler }} -j2

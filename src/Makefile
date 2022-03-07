@@ -32,36 +32,44 @@ POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
+CXXFLAGS := $(INC_FLAGS) -MMD -MP
+
 .PHONY: native
-native: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(CFLAGS) $(POPCNTFLAGS)
+native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
+native: LDFLAGS += -flto
 native: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: debug
-debug: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(WFLAGS) -g
+debug: CXXFLAGS += $(WFLAGS) -g
 debug: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: sanitize
-sanitize: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(WFLAGS)
+sanitize: CXXFLAGS += $(WFLAGS)
 sanitize: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: nopopcnt
-nopopcnt: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(RFLAGS)
+nopopcnt: CXXFLAGS += $(RFLAGS)
+debug: LDFLAGS += -flto
 nopopcnt: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: popcnt
-popcnt: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(RFLAGS) $(POPCNTFLAGS)
+popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
+debug: LDFLAGS += -flto
 popcnt: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: pext
-pext: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(RFLAGS) $(PEXTFLAGS)
+pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
+debug: LDFLAGS += -flto
 pext: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: popcnt-avx2
-popcnt-avx2: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
+popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
+debug: LDFLAGS += -flto
 popcnt-avx2: $(BUILD_DIR)/$(TARGET_EXEC)
 
 .PHONY: pext-avx2
-pext-avx2: CXXFLAGS := $(INC_FLAGS) -MMD -MP $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
+pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
+debug: LDFLAGS += -flto
 pext-avx2: $(BUILD_DIR)/$(TARGET_EXEC)
 
 #----------------------------------------------------------------------------------------------------------------------
