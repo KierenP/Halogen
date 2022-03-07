@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
       - uses: actions/checkout@v2
@@ -20,39 +21,14 @@ jobs:
       - name: Create default build
         run: |
          cd src
-         make CXX=${{ matrix.compiler }}
+         make ${{ matrix.targer }} CXX=${{ matrix.compiler }} -j2
 
-      - name: Check perft test is correct
+      - name: Check bench matches commit message
         run: |
-          cd src
-          ./Halogen test perft > perft_result.txt
-          cat perft_result.txt
-          result=$(cat perft_result.txt | grep "Completed")
-          expected="Completed perft with: 140/140 correct"
-          if [[ "$result" != "Completed perft with: 140/140 correct" ]]; then echo "Incorrect perft, got '$result' expected '$expected" && exit 1; fi
-
-      - name: Check commit message contains correct bench
-        run: |
+          cd build
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          cd src
-          ./Halogen bench > bench_result.txt
-          actual_bench=$(cat bench_result.txt | tail -1 | grep -o "^[0-9]*")
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
-         
-  Release:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        compiler: [g++-9, g++-10, clang++-10, clang++-11, clang++-12]
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Create static compiles
-        run: |
-         cd src
-         make release CXX=${{ matrix.compiler }}
          
   Debug:
     runs-on: ubuntu-latest
@@ -67,12 +43,12 @@ jobs:
       - name: Create debug compiles
         run: |
          cd src
-         make debug CXX=${{ matrix.compiler }}
+         make debug CXX=${{ matrix.compiler }} -j2
          
       - name: Run bench
         run: |
          cd src
-         ./Halogen bench 8
+         ./Halogen bench 4
 
   Sanitizer:
     runs-on: ubuntu-latest
@@ -87,14 +63,14 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize CXX=${{ matrix.compiler }}
+          make sanitize CXX=${{ matrix.compiler }} -j2
           
       - name: Run
         run: |
           cd src
-          ./Halogen_sanitize.exe bench 8
-          ./Halogen_sanitize.exe go depth 8
-          ./Halogen_sanitize.exe go movetime 10000
-          ./Halogen_sanitize.exe go wtime 5000 btime 5000 winc 1000 binc 1000
-          ./Halogen_sanitize.exe go wtime 5000 btime 5000 movestogo 20
-          ./Halogen_sanitize.exe go wtime 5000 btime 5000
+          ./Halogen_sanitize.exe bench 4
+          ./Halogen_sanitize.exe go depth 4
+          ./Halogen_sanitize.exe go movetime 2500
+          ./Halogen_sanitize.exe go wtime 1000 btime 1000 winc 1000 binc 1000
+          ./Halogen_sanitize.exe go wtime 1000 btime 1000 movestogo 20
+          ./Halogen_sanitize.exe go wtime 1000 btime 1000
