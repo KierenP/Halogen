@@ -37,7 +37,7 @@ jobs:
       matrix:
         config: 
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
-          - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
+          #- { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
