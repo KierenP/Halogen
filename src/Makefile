@@ -33,7 +33,7 @@ POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
-CXXFLAGS := $(INC_FLAGS) -MMD -MP
+CXXFLAGS := $(INC_FLAGS) -MMD -MP -m64
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
