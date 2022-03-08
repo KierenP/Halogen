@@ -48,7 +48,7 @@ jobs:
           install: ${{matrix.config.package}} make
 
       - name: Add compiler to $PATH env
-          run: echo "PATH=$PATH:C:\msys64\${{matrix.config.system}}\bin" >> $GITHUB_ENV
+        run: echo "PATH=$PATH:C:\msys64\${{matrix.config.system}}\bin" >> $GITHUB_ENV
 
       - name: Create build
         shell: msys2 {0}
