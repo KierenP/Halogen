@@ -6,8 +6,27 @@ SRC_DIRS := .
 #----------------------------------------------------------------------------------------------------------------------
 
 # Find all the C++ files we want to compile
-# Note the single quotes around the * expressions. Make will incorrectly expand these otherwise.
-SRCS := $(shell find $(SRC_DIRS) -name '*.cpp' -not -name 'tbchess.cpp')
+# I'd use a bash command but not all client have bash
+SRCS := ./BitBoard.cpp \
+	BitBoardDefine.cpp \
+	BoardParameters.cpp \
+	EvalCache.cpp \
+	EvalNet.cpp \
+	main.cpp \
+	Move.cpp \
+	MoveGeneration.cpp \
+	MoveList.cpp \
+	Network.cpp \
+	Position.cpp \
+	Search.cpp \
+	SearchData.cpp \
+	SearchLimits.cpp \
+	StagedMoveGenerator.cpp \
+	TimeManage.cpp \
+	TranspositionTable.cpp \
+	TTEntry.cpp \
+	Zobrist.cpp \
+	Pyrrhic/tbprobe.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -16,11 +35,6 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # String substitution (suffix version without %).
 # As an example, ./build/hello.cpp.o turns into ./build/hello.cpp.d
 DEPS := $(OBJS:.o=.d)
-
-# Every folder in ./src will need to be passed to GCC so that it can find header files
-INC_DIRS := $(shell find $(SRC_DIRS) -type d)
-# Add a prefix to INC_DIRS. So moduleA would become -ImoduleA. GCC understands this -I flag
-INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 #----------------------------------------------------------------------------------------------------------------------
 
