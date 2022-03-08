@@ -49,13 +49,16 @@ jobs:
 
       - name: Add compiler to $PATH env
         shell: bash
-        run: echo "PATH=$PATH:/c/msys64" >> $GITHUB_ENV
+        run: echo "PATH=$PATH:/c/msys64/mingw64/bin" >> $GITHUB_ENV
 
       - name: Create build
         shell: msys2 {0}
         run: |
          cd src
+         echo $(ls /c/)
          echo $(ls /c/msys64/)
+         echo $(ls /c/msys64/mingw64)
+         echo $(ls /c/msys64/mingw64/bin)
          make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} -j2
 
       - name: Check bench matches commit message
