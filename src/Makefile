@@ -51,27 +51,27 @@ sanitize: $(EXE)
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
-debug: LDFLAGS += -flto
+nopopcnt: LDFLAGS += -flto
 nopopcnt: $(EXE)
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
-debug: LDFLAGS += -flto
+popcnt: LDFLAGS += -flto
 popcnt: $(EXE)
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
-debug: LDFLAGS += -flto
+pext: LDFLAGS += -flto
 pext: $(EXE)
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
-debug: LDFLAGS += -flto
+popcnt-avx2: LDFLAGS += -flto
 popcnt-avx2: $(EXE)
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
-debug: LDFLAGS += -flto
+pext-avx2: LDFLAGS += -flto
 pext-avx2: $(EXE)
 
 #----------------------------------------------------------------------------------------------------------------------
