@@ -36,8 +36,8 @@ jobs:
     strategy:
       matrix:
         config: 
-          - { system: mingw64, package: mingw-w64-x86_64-gcc, compiler: g++ }
-          - { system: clang64, package: mingw-w64-x86_64-clang, compiler: clang++ }
+          - { system: MINGW64, package: mingw-w64-x86_64-gcc, compiler: g++ }
+          - { system: MINGW64, package: mingw-w64-x86_64-clang, compiler: clang++ }
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
