@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@v2
         with:
           update: true
           install: >-
@@ -48,13 +48,13 @@ jobs:
             mingw-w64-clang
 
       - name: Create build
-      - shell: msys2 {0}
+        shell: msys2 {0}
         run: |
          cd src
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} -j2
 
       - name: Check bench matches commit message
-      - shell: msys2 {0}
+        shell: msys2 {0}
         run: |
           cd build
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
