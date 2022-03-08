@@ -35,24 +35,23 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++, clang++]
+        config: 
+          - { system: mingw64, package: mingw-w64-x86_64-gcc, compiler: g++ }
+          - { system: clang64, package: mingw-w64-x86_64-clang, compiler: clang++ }
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
       - uses: actions/checkout@v2
       - uses: msys2/setup-msys2@v2
         with:
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-clang
-            make
+          msystem: ${{matrix.config.system}}
+          install: ${{matrix.config.package}} make
 
       - name: Create build
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} -j2
 
       - name: Check bench matches commit message
         shell: msys2 {0}

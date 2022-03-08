@@ -23,6 +23,7 @@ INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 #----------------------------------------------------------------------------------------------------------------------
+
 WFLAGS = -Wall -Wextra -Wshadow -std=c++17
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize -fno-use-linker-plugin
@@ -31,8 +32,8 @@ POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
-LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm -m64
-CXXFLAGS := $(INC_FLAGS) -MMD -MP -m64
+LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+CXXFLAGS := $(INC_FLAGS) -MMD -MP
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
