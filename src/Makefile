@@ -25,7 +25,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 #----------------------------------------------------------------------------------------------------------------------
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++17
-CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -fno-devirtualize -fno-use-linker-plugin -march=native 
+CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -fno-devirtualize -fno-use-linker-plugin
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
