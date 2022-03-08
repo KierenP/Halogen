@@ -36,8 +36,8 @@ jobs:
     strategy:
       matrix:
         config: 
-          - { system: MINGW64, package: x86_64-gcc, compiler: g++ }
-          - { system: CLANG64, package: clang-x86_64-clang, compiler: clang++ }
+          - { system: mingw64, package: x86_64-gcc, compiler: g++ }
+          - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
@@ -49,16 +49,12 @@ jobs:
 
       - name: Add compiler to $PATH env
         shell: bash
-        run: echo "PATH=$PATH:/c/msys64/mingw64/bin" >> $GITHUB_ENV
+        run: echo "PATH=$PATH:/c/msys64/${{ matrix.config.system }}/bin" >> $GITHUB_ENV
 
       - name: Create build
         shell: msys2 {0}
         run: |
          cd src
-         echo $(ls /c/)
-         echo $(ls /c/msys64/)
-         echo $(ls /c/msys64/mingw64)
-         echo $(ls /c/msys64/mingw64/bin)
          make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} -j2
 
       - name: Check bench matches commit message
