@@ -26,7 +26,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
 WFLAGS = -Wall -Wextra -Wshadow -std=c++17
 CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -static -fno-devirtualize -fno-use-linker-plugin
+RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -fno-devirtualize -fno-use-linker-plugin
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
@@ -51,27 +51,27 @@ sanitize: $(EXE)
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
-nopopcnt: LDFLAGS += -flto
+nopopcnt: LDFLAGS += -flto -static 
 nopopcnt: $(EXE)
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
-popcnt: LDFLAGS += -flto
+popcnt: LDFLAGS += -flto -static 
 popcnt: $(EXE)
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
-pext: LDFLAGS += -flto
+pext: LDFLAGS += -flto -static 
 pext: $(EXE)
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
-popcnt-avx2: LDFLAGS += -flto
+popcnt-avx2: LDFLAGS += -flto -static 
 popcnt-avx2: $(EXE)
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
-pext-avx2: LDFLAGS += -flto
+pext-avx2: LDFLAGS += -flto -static 
 pext-avx2: $(EXE)
 
 #----------------------------------------------------------------------------------------------------------------------
