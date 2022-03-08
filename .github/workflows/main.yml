@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  Ubuntu-20.04:
+  Ubuntu:
     runs-on: ubuntu-20.04
 
     strategy:
@@ -30,7 +30,7 @@ jobs:
           actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
 
-  Windows-2022:
+  Windows:
     runs-on: windows-2022
 
     strategy:
