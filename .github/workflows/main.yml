@@ -44,8 +44,8 @@ jobs:
         with:
           update: true
           install: >-
-            mingw-w64-gcc
-            mingw-w64-clang
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-clang
 
       - name: Create build
         shell: msys2 {0}
