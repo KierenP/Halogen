@@ -51,7 +51,7 @@ CXXFLAGS := $(INC_FLAGS) -MMD -MP
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
-native: LDFLAGS += -flto -static
+native: LDFLAGS += -flto
 native: $(EXE)
 
 .PHONY: debug
