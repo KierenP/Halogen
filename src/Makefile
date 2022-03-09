@@ -64,27 +64,27 @@ sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
 sanitize: $(EXE)
 
 .PHONY: nopopcnt
-nopopcnt: CXXFLAGS += $(RFLAGS)
+nopopcnt: CXXFLAGS += $(RFLAGS) -static
 nopopcnt: LDFLAGS += -flto -static 
 nopopcnt: $(EXE)
 
 .PHONY: popcnt
-popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
+popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS) -static
 popcnt: LDFLAGS += -flto -static 
 popcnt: $(EXE)
 
 .PHONY: pext
-pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
+pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS) -static
 pext: LDFLAGS += -flto -static 
 pext: $(EXE)
 
 .PHONY: popcnt-avx2
-popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
+popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS) -static
 popcnt-avx2: LDFLAGS += -flto -static 
 popcnt-avx2: $(EXE)
 
 .PHONY: pext-avx2
-pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
+pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS) -static
 pext-avx2: LDFLAGS += -flto -static 
 pext-avx2: $(EXE)
 
