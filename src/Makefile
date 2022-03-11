@@ -3,6 +3,9 @@ BUILD_DIR := ../build
 EXE := $(BUILD_DIR)/$(TARGET_EXEC)
 SRC_DIRS := .
 
+WEIGHTS_URL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
+WEIGHTS_FILE = d7d569e5.nn
+
 #----------------------------------------------------------------------------------------------------------------------
 
 # Find all the C++ files we want to compile
@@ -47,46 +50,70 @@ PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-CXXFLAGS := $(INC_FLAGS) -MMD -MP
+CXXFLAGS := $(INC_FLAGS) -MMD -MP -DWEIGHTS_FILE=\"$(WEIGHTS_FILE)\"
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
-native: $(EXE)
+native: net $(EXE)
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
-debug: $(EXE)
+debug: net $(EXE)
 
 .PHONY: sanitize
 sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: $(EXE)
+sanitize: net $(EXE)
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 nopopcnt: LDFLAGS += -flto -static 
-nopopcnt: $(EXE)
+nopopcnt: net $(EXE)
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
 popcnt: LDFLAGS += -flto -static 
-popcnt: $(EXE)
+popcnt: net $(EXE)
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
 pext: LDFLAGS += -flto -static 
-pext: $(EXE)
+pext: net $(EXE)
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
 popcnt-avx2: LDFLAGS += -flto -static 
-popcnt-avx2: $(EXE)
+popcnt-avx2: net $(EXE)
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 pext-avx2: LDFLAGS += -flto -static 
-pext-avx2: $(EXE)
+pext-avx2: net $(EXE)
+
+#----------------------------------------------------------------------------------------------------------------------
+
+# Copied from the Stockfish makefile
+net:
+	@echo "Default net: $(WEIGHTS_FILE)"
+	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
+	@if test -f "$(WEIGHTS_FILE)"; then \
+            echo "Already available."; \
+	else \
+		if [ "x$(curl_or_wget)" = "x" ]; then \
+			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
+		else \
+			echo "Downloading $(WEIGHTS_URL)"; $(curl_or_wget) $(WEIGHTS_URL) > $(WEIGHTS_FILE);\
+		fi; \
+	fi;
+	$(eval shasum_command := $(shell if hash shasum 2>/dev/null; then echo "shasum -a 256 "; elif hash sha256sum 2>/dev/null; then echo "sha256sum "; fi))
+	@if [ "x$(shasum_command)" != "x" ]; then \
+	    if [ "$(WEIGHTS_FILE)" != `$(shasum_command) $(WEIGHTS_FILE) | cut -c1-8`".nn" ]; then \
+			echo "Failed download or $(WEIGHTS_FILE) corrupted, please delete!"; exit 1; \
+		fi \
+	else \
+		echo "shasum / sha256sum not found, skipping net validation"; \
+	fi
 
 #----------------------------------------------------------------------------------------------------------------------
 
