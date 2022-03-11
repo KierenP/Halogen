@@ -3,8 +3,8 @@ BUILD_DIR := ../build
 EXE := $(BUILD_DIR)/$(TARGET_EXEC)
 SRC_DIRS := .
 
-WEIGHTS_URL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
-WEIGHTS_FILE = d7d569e5.nn
+EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
+EVALFILE  = d7d569e5.nn
 
 #----------------------------------------------------------------------------------------------------------------------
 
@@ -108,7 +108,7 @@ net:
 	fi;
 	$(eval shasum_command := $(shell if hash shasum 2>/dev/null; then echo "shasum -a 256 "; elif hash sha256sum 2>/dev/null; then echo "sha256sum "; fi))
 	@if [ "x$(shasum_command)" != "x" ]; then \
-	    if [ "$(WEIGHTS_FILE)" != `$(shasum_command) $(WEIGHTS_FILE) | cut -c1-8`".nn" ]; then \
+	    if [ `echo $(WEIGHTS_FILE) | cut -c1-8` != `$(shasum_command) $(WEIGHTS_FILE) | cut -c1-8`".nn" ]; then \
 			echo "Failed download or $(WEIGHTS_FILE) corrupted, please delete!"; exit 1; \
 		fi \
 	else \
