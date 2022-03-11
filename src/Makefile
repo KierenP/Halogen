@@ -50,7 +50,7 @@ PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-CXXFLAGS := $(INC_FLAGS) -MMD -MP -DWEIGHTS_FILE=\"$(WEIGHTS_FILE)\"
+CXXFLAGS := $(INC_FLAGS) -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
@@ -95,21 +95,21 @@ pext-avx2: net $(EXE)
 
 # Copied from the Stockfish makefile
 net:
-	@echo "Default net: $(WEIGHTS_FILE)"
+	@echo "Default net: $(EVALFILE)"
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	@if test -f "$(WEIGHTS_FILE)"; then \
-            echo "Already available."; \
+	@if test -f "$(EVALFILE)"; then \
+        echo "Already available."; \
 	else \
 		if [ "x$(curl_or_wget)" = "x" ]; then \
 			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
 		else \
-			echo "Downloading $(WEIGHTS_URL)"; $(curl_or_wget) $(WEIGHTS_URL) > $(WEIGHTS_FILE);\
+			echo "Downloading $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
 		fi; \
 	fi;
 	$(eval shasum_command := $(shell if hash shasum 2>/dev/null; then echo "shasum -a 256 "; elif hash sha256sum 2>/dev/null; then echo "sha256sum "; fi))
 	@if [ "x$(shasum_command)" != "x" ]; then \
-	    if [ `echo $(WEIGHTS_FILE) | cut -c1-8` != `$(shasum_command) $(WEIGHTS_FILE) | cut -c1-8`".nn" ]; then \
-			echo "Failed download or $(WEIGHTS_FILE) corrupted, please delete!"; exit 1; \
+	    if [ `echo $(EVALFILE) | cut -c1-8` != `$(shasum_command) $(EVALFILE) | cut -c1-8` ]; then \
+			echo "Failed download or $(EVALFILE) corrupted, please delete!"; exit 1; \
 		fi \
 	else \
 		echo "shasum / sha256sum not found, skipping net validation"; \
