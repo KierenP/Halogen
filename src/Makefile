@@ -95,7 +95,7 @@ pext-avx2: net $(EXE)
 
 # Copied from the Stockfish makefile
 net:
-	@echo "Default net: $(EVALFILE)"
+	@echo "net: $(EVALFILE)"
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
 	@if test -f "$(EVALFILE)"; then \
         echo "Already available."; \
@@ -106,14 +106,6 @@ net:
 			echo "Downloading $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
 		fi; \
 	fi;
-	$(eval shasum_command := $(shell if hash shasum 2>/dev/null; then echo "shasum -a 256 "; elif hash sha256sum 2>/dev/null; then echo "sha256sum "; fi))
-	@if [ "x$(shasum_command)" != "x" ]; then \
-	    if [ `echo $(EVALFILE) | cut -c1-8` != `$(shasum_command) $(EVALFILE) | cut -c1-8` ]; then \
-			echo "Failed download or $(EVALFILE) corrupted, please delete!"; exit 1; \
-		fi \
-	else \
-		echo "shasum / sha256sum not found, skipping net validation"; \
-	fi
 
 #----------------------------------------------------------------------------------------------------------------------
 
