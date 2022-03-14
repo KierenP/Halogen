@@ -73,48 +73,48 @@ $(info LDFLAGS = [${LDFLAGS}])
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
 native: EXE = $(BINARY_DIR)/Halogen-native.exe
-native: $(EXE)
+native: binary
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
 debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
-debug: $(EXE)
+debug: binary
 
 .PHONY: sanitize
 sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
 sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
-sanitize: $(EXE)
+sanitize: binary
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 nopopcnt: LDFLAGS += -flto -static 
 nopopcnt: EXE = $(BINARY_DIR)/Halogen-nopopcnt.exe
-nopopcnt: $(EXE)
+nopopcnt: binary
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
 popcnt: LDFLAGS += -flto -static 
 popcnt: EXE = $(BINARY_DIR)/Halogen-popcnt.exe
-popcnt: $(EXE)
+popcnt: binary
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
 pext: LDFLAGS += -flto -static 
 pext: EXE = $(BINARY_DIR)/Halogen-pext.exe
-pext: $(EXE)
+pext: binary
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
 popcnt-avx2: LDFLAGS += -flto -static 
 popcnt-avx2: EXE = $(BINARY_DIR)/Halogen-popcnt-avx2.exe
-popcnt-avx2: $(EXE)
+popcnt-avx2: binary
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 pext-avx2: LDFLAGS += -flto -static 
 pext-avx2: EXE = $(BINARY_DIR)/Halogen-pext-avx2.exe
-pext-avx2: $(EXE)
+pext-avx2: binary
 
 .PHONY: all
 all:
@@ -148,19 +148,23 @@ net:
 #----------------------------------------------------------------------------------------------------------------------
 
 # The final build step.
-%.exe: $(OBJS)
-	mkdir -p $(dir $@)
+.PHONY: binary
+binary: $(OBJS)
+	mkdir -p $(dir $(EXE))
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp net clean
+$(BUILD_DIR)/%.cpp.o: %.cpp net clean_build
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-.PHONY: clean
-clean:
+.PHONY: clean_build
+clean_build:
 	rm -rf $(BUILD_DIR)
-	rm -rf $(EXE)
+
+.PHONY: clean
+clean: clean_build
+	rm -rf $(BINARY_DIR)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those
