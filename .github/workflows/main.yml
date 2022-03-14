@@ -21,7 +21,7 @@ jobs:
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} -j2
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=Halogen.exe -j2
 
       - name: Check bench matches commit message
         run: |
@@ -55,7 +55,7 @@ jobs:
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=Halogen.exe -j2
 
       - name: Check bench matches commit message
         shell: msys2 {0}
@@ -78,7 +78,7 @@ jobs:
       - name: Create debug compiles
         run: |
          cd src
-         make debug CXX=${{ matrix.compiler }} -j2
+         make debug CXX=${{ matrix.compiler }} EXE=Halogen.exe -j2
          
       - name: Run bench
         run: |
@@ -98,7 +98,7 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize CXX=${{ matrix.compiler }} -j2
+          make sanitize CXX=${{ matrix.compiler }} EXE=Halogen.exe -j2
           
       - name: Run
         run: |

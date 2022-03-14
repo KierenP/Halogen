@@ -1,6 +1,7 @@
 TARGET_EXEC := Halogen.exe
 BUILD_DIR := ../build
-EXE := $(BUILD_DIR)/$(TARGET_EXEC)
+BINARY_DIR := ../bin
+EXE := $(BINARY_DIR)/$(TARGET_EXEC)
 SRC_DIRS := .
 
 EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
@@ -52,48 +53,70 @@ AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 CXXFLAGS := $(INC_FLAGS) -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
+# Each target sets particular flags, and then builds the corresponding exe file.
+
+# for OpenBench support, we don't set a EXE name for the default (native) builds
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
-native: net $(EXE)
+native: $(EXE)
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
-debug: net $(EXE)
+debug: EXE=$(BINARY_DIR)/Halogen-debug.exe
+debug: $(EXE)
 
 .PHONY: sanitize
 sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: net $(EXE)
+sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
+sanitize: $(EXE)
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 nopopcnt: LDFLAGS += -flto -static 
-nopopcnt: net $(EXE)
+nopopcnt: EXE = $(BINARY_DIR)/Halogen-nopopcnt.exe
+nopopcnt: $(EXE)
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
 popcnt: LDFLAGS += -flto -static 
-popcnt: net $(EXE)
+popcnt: EXE = $(BINARY_DIR)/Halogen-popcnt.exe
+popcnt: $(EXE)
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
 pext: LDFLAGS += -flto -static 
-pext: net $(EXE)
+pext: EXE = $(BINARY_DIR)/Halogen-pext.exe
+pext: $(EXE)
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
 popcnt-avx2: LDFLAGS += -flto -static 
-popcnt-avx2: net $(EXE)
+popcnt-avx2: EXE = $(BINARY_DIR)/Halogen-popcnt-avx2.exe
+popcnt-avx2: $(EXE)
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 pext-avx2: LDFLAGS += -flto -static 
-pext-avx2: net $(EXE)
+pext-avx2: EXE = $(BINARY_DIR)/Halogen-pext-avx2.exe
+pext-avx2: $(EXE)
+
+.PHONY: all
+all:
+	$(MAKE) native
+	$(MAKE) debug
+	$(MAKE) sanitize
+	$(MAKE) nopopcnt
+	$(MAKE) popcnt
+	$(MAKE) pext
+	$(MAKE) popcnt-avx2
+	$(MAKE) pext-avx2
 
 #----------------------------------------------------------------------------------------------------------------------
 
 # Copied from the Stockfish makefile
+.PHONY: net
 net:
 	@echo "net: $(EVALFILE)"
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
@@ -103,24 +126,27 @@ net:
 		if [ "x$(curl_or_wget)" = "x" ]; then \
 			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
 		else \
-			echo "Downloading $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
+			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
+			echo "Download complete."; \
 		fi; \
 	fi;
 
 #----------------------------------------------------------------------------------------------------------------------
 
 # The final build step.
-$(EXE): $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+%.exe: $(OBJS)
+	mkdir -p $(dir $@)
+	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp
+$(BUILD_DIR)/%.cpp.o: %.cpp net clean
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: clean
 clean:
-	rm -r $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
+	rm -rf $(EXE)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those
