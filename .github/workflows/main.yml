@@ -24,7 +24,7 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
 
       - name: Check bench matches commit message
-        if: ${{ matrix.target.all }} != all
+        if: matrix.target.all != 'all'
         run: |
           cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
