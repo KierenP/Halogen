@@ -64,7 +64,7 @@ $(info detected OS is [${detected_OS}])
 # Many users on windows use a environment to build so we must link statically
 ifeq ($(OS),Windows)
     LDFLAGS += -static
-else
+endif
 
 # Each target sets particular flags, and then builds the corresponding exe file.
 
