@@ -46,7 +46,6 @@ jobs:
         with:
           msystem: ${{matrix.config.system}}
           install: mingw-w64-${{matrix.config.package}} make git
-          release: true
 
       - name: Add compiler to $PATH env
         shell: bash
