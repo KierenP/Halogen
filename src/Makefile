@@ -53,6 +53,19 @@ AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 CXXFLAGS := $(INC_FLAGS) -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
+ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+    detected_OS := Windows
+else
+    detected_OS := $(shell uname)
+endif
+
+$(info detected OS is [${detected_OS}])
+
+# Many users on windows use a environment to build so we must link statically
+ifeq ($(OS),Windows)
+    LDFLAGS += -static
+else
+
 # Each target sets particular flags, and then builds the corresponding exe file.
 
 # for OpenBench support, we don't set a EXE name for the default (native) builds
