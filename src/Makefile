@@ -116,11 +116,9 @@ pext-avx2: LDFLAGS += -flto -static
 pext-avx2: EXE = $(BINARY_DIR)/Halogen-pext-avx2.exe
 pext-avx2: binary
 
-.PHONY: all
-all:
+.PHONY: release
+release:
 	$(MAKE) native
-	$(MAKE) debug
-	$(MAKE) sanitize
 	$(MAKE) nopopcnt
 	$(MAKE) popcnt
 	$(MAKE) pext

@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-9, clang++-10]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, all]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, release]
 
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +24,7 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
 
       - name: Check bench matches commit message
-        if: matrix.target != 'all'
+        if: matrix.target != 'release'
         run: |
           cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
@@ -79,7 +79,7 @@ jobs:
       - name: Create debug compiles
         run: |
          cd src
-         make debug CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
+         make debug CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
          
       - name: Run bench
         run: |
@@ -99,7 +99,7 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
+          make sanitize CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
           
       - name: Run
         run: |
