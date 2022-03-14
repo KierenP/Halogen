@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-9, clang++-10]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, all]
 
     steps:
       - uses: actions/checkout@v2
@@ -24,6 +24,7 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
 
       - name: Check bench matches commit message
+        if: ${{ matrix.target.all }} != all
         run: |
           cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')

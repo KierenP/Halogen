@@ -1,7 +1,5 @@
-TARGET_EXEC := Halogen.exe
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
-EXE := $(BINARY_DIR)/$(TARGET_EXEC)
 SRC_DIRS := .
 
 EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
@@ -74,11 +72,12 @@ $(info LDFLAGS = [${LDFLAGS}])
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
+native: EXE = $(BINARY_DIR)/Halogen-native.exe
 native: $(EXE)
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
-debug: EXE=$(BINARY_DIR)/Halogen-debug.exe
+debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
 debug: $(EXE)
 
 .PHONY: sanitize
