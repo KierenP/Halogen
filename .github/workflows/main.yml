@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-9, clang++-10]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, all]
 
     steps:
       - uses: actions/checkout@v2
@@ -21,13 +21,14 @@ jobs:
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} -j2
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
 
       - name: Check bench matches commit message
+        if: matrix.target != 'all'
         run: |
-          cd build
+          cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
 
   Windows:
@@ -37,6 +38,7 @@ jobs:
       matrix:
         config: 
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
+          - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
@@ -45,7 +47,6 @@ jobs:
         with:
           msystem: ${{matrix.config.system}}
           install: mingw-w64-${{matrix.config.package}} make git
-          release: false
 
       - name: Add compiler to $PATH env
         shell: bash
@@ -55,12 +56,12 @@ jobs:
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j2
 
       - name: Check bench matches commit message
         shell: msys2 {0}
         run: |
-          cd build
+          cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
@@ -78,11 +79,11 @@ jobs:
       - name: Create debug compiles
         run: |
          cd src
-         make debug CXX=${{ matrix.compiler }} -j2
+         make debug CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
          
       - name: Run bench
         run: |
-         cd build
+         cd bin
          ./Halogen.exe bench 4
 
   Sanitizer:
@@ -98,11 +99,11 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize CXX=${{ matrix.compiler }} -j2
+          make sanitize CXX=${{ matrix.compiler }} EXE=../bin/Halogen.exe -j2
           
       - name: Run
         run: |
-          cd build
+          cd bin
           ./Halogen.exe bench 4
           ./Halogen.exe go depth 4
           ./Halogen.exe go movetime 2500

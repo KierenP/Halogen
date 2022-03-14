@@ -1,6 +1,5 @@
-TARGET_EXEC := Halogen.exe
 BUILD_DIR := ../build
-EXE := $(BUILD_DIR)/$(TARGET_EXEC)
+BINARY_DIR := ../bin
 SRC_DIRS := .
 
 EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
@@ -52,48 +51,86 @@ AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 CXXFLAGS := $(INC_FLAGS) -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
+ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+    detected_OS := Windows
+else
+    detected_OS := $(shell uname)
+endif
+
+$(info detected OS is [${detected_OS}])
+
+# Many users on windows use a environment to build so we must link statically
+ifeq ($(detected_OS),Windows)
+    LDFLAGS += -static
+endif
+
+$(info LDFLAGS = [${LDFLAGS}])
+
+# Each target sets particular flags, and then builds the corresponding exe file.
+
+# for OpenBench support, we don't set a EXE name for the default (native) builds
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
-native: net $(EXE)
+native: EXE = $(BINARY_DIR)/Halogen-native.exe
+native: binary
 
 .PHONY: debug
 debug: CXXFLAGS += $(WFLAGS) -g
-debug: net $(EXE)
+debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
+debug: binary
 
 .PHONY: sanitize
 sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
 sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: net $(EXE)
+sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
+sanitize: binary
 
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 nopopcnt: LDFLAGS += -flto -static 
-nopopcnt: net $(EXE)
+nopopcnt: EXE = $(BINARY_DIR)/Halogen-nopopcnt.exe
+nopopcnt: binary
 
 .PHONY: popcnt
 popcnt: CXXFLAGS += $(RFLAGS) $(POPCNTFLAGS)
 popcnt: LDFLAGS += -flto -static 
-popcnt: net $(EXE)
+popcnt: EXE = $(BINARY_DIR)/Halogen-popcnt.exe
+popcnt: binary
 
 .PHONY: pext
 pext: CXXFLAGS += $(RFLAGS) $(PEXTFLAGS)
 pext: LDFLAGS += -flto -static 
-pext: net $(EXE)
+pext: EXE = $(BINARY_DIR)/Halogen-pext.exe
+pext: binary
 
 .PHONY: popcnt-avx2
 popcnt-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(POPCNTFLAGS)
 popcnt-avx2: LDFLAGS += -flto -static 
-popcnt-avx2: net $(EXE)
+popcnt-avx2: EXE = $(BINARY_DIR)/Halogen-popcnt-avx2.exe
+popcnt-avx2: binary
 
 .PHONY: pext-avx2
 pext-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 pext-avx2: LDFLAGS += -flto -static 
-pext-avx2: net $(EXE)
+pext-avx2: EXE = $(BINARY_DIR)/Halogen-pext-avx2.exe
+pext-avx2: binary
+
+.PHONY: all
+all:
+	$(MAKE) native
+	$(MAKE) debug
+	$(MAKE) sanitize
+	$(MAKE) nopopcnt
+	$(MAKE) popcnt
+	$(MAKE) pext
+	$(MAKE) popcnt-avx2
+	$(MAKE) pext-avx2
 
 #----------------------------------------------------------------------------------------------------------------------
 
 # Copied from the Stockfish makefile
+.PHONY: net
 net:
 	@echo "net: $(EVALFILE)"
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
@@ -103,24 +140,31 @@ net:
 		if [ "x$(curl_or_wget)" = "x" ]; then \
 			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
 		else \
-			echo "Downloading $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
+			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
+			echo "Download complete."; \
 		fi; \
 	fi;
 
 #----------------------------------------------------------------------------------------------------------------------
 
 # The final build step.
-$(EXE): $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+.PHONY: binary
+binary: $(OBJS)
+	mkdir -p $(dir $(EXE))
+	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp
+$(BUILD_DIR)/%.cpp.o: %.cpp net clean_build
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+.PHONY: clean_build
+clean_build:
+	rm -rf $(BUILD_DIR)
+
 .PHONY: clean
-clean:
-	rm -r $(BUILD_DIR)
+clean: clean_build
+	rm -rf $(BINARY_DIR)
 
 # Include the .d makefiles. The - at the front suppresses the errors of missing
 # Makefiles. Initially, all the .d files will be missing, and we don't want those
