@@ -106,6 +106,7 @@ jobs:
           cd bin
           ./Halogen bench 4
           ./Halogen go depth 4
+          ./Halogen go nodes 100000
           ./Halogen go movetime 2500
           ./Halogen go wtime 1000 btime 1000 winc 1000 binc 1000
           ./Halogen go wtime 1000 btime 1000 movestogo 20
