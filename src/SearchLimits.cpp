@@ -85,12 +85,41 @@ public:
     bool HitMateLimit(int score) const override { return (MATE)-abs(score) <= 2 * mateLimit_; };
 };
 
+// NodeCheker component. Will compare the number of searched nodes to see if we have exceeded our limit.
+
+class iNodeChecker
+{
+public:
+    virtual ~iNodeChecker() = default;
+    virtual bool HitNodeLimit(uint64_t depth) const = 0;
+};
+
+class NullNodeChecker : public iNodeChecker
+{
+public:
+    bool HitNodeLimit(uint64_t) const override { return false; };
+};
+
+class NodeChecker : public iNodeChecker
+{
+    uint64_t nodeLimit_;
+
+public:
+    NodeChecker(uint64_t nodeLimit)
+        : nodeLimit_(nodeLimit)
+    {
+    }
+
+    bool HitNodeLimit(uint64_t nodes) const override { return nodes > nodeLimit_; };
+};
+
 // Now put all the pieces together into a single object.
 
 SearchLimits::SearchLimits()
     : depthLimit(std::make_unique<NullDepthChecker>())
     , timeLimit(std::make_unique<NullTimeChecker>())
     , mateLimit(std::make_unique<NullMateChecker>())
+    , nodeLimit(std::make_unique<NullNodeChecker>())
 {
 }
 
@@ -111,6 +140,11 @@ bool SearchLimits::HitDepthLimit(int depth) const
 bool SearchLimits::HitMateLimit(int score) const
 {
     return mateLimit->HitMateLimit(score);
+}
+
+bool SearchLimits::HitNodeLimit(int nodes) const
+{
+    return nodeLimit->HitNodeLimit(nodes);
 }
 
 bool SearchLimits::ShouldContinueSearch() const
@@ -139,4 +173,9 @@ void SearchLimits::SetDepthLimit(int depth)
 void SearchLimits::SetMateLimit(int moves)
 {
     mateLimit = std::make_unique<MateChecker>(moves);
+}
+
+void SearchLimits::SetNodeLimit(uint64_t nodes)
+{
+    nodeLimit = std::make_unique<NodeChecker>(nodes);
 }

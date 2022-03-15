@@ -6,6 +6,7 @@
 class iDepthChecker;
 class iTimeChecker;
 class iMateChecker;
+class iNodeChecker;
 
 // As each type of limit (depth, time, ...) function independently, we can use composition to combine them.
 
@@ -20,6 +21,7 @@ public:
     bool HitTimeLimit() const;
     bool HitDepthLimit(int depth) const;
     bool HitMateLimit(int score) const;
+    bool HitNodeLimit(int nodes) const;
 
     // Returns true if more than half of the allocated time is remaining
     bool ShouldContinueSearch() const;
@@ -27,6 +29,7 @@ public:
     void SetTimeLimits(int maxTime, int allocatedTime);
     void SetDepthLimit(int depth);
     void SetMateLimit(int moves);
+    void SetNodeLimit(uint64_t nodes);
     void SetInfinite(); // disables all other limits
 
     int ElapsedTime() const { return timeManager.ElapsedMs(); }
@@ -39,4 +42,5 @@ private:
     std::unique_ptr<iDepthChecker> depthLimit;
     std::unique_ptr<iTimeChecker> timeLimit;
     std::unique_ptr<iMateChecker> mateLimit;
+    std::unique_ptr<iNodeChecker> nodeLimit;
 };
