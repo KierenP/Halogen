@@ -396,7 +396,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
                 break;
         }
 
-        int history = locals.history.GetButterfly(position, move) + locals.history.GetCounterMove(position, move);
+        int history = locals.history.Get(position, move);
 
         position.ApplyMove(move);
         tTable.PreFetch(position.GetZobristKey()); //load the transposition into l1 cache. ~5% speedup

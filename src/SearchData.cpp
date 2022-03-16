@@ -259,6 +259,17 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     std::cout << ss.str() << std::endl;
 }
 
+void History::Add(const Position& position, Move move, int change)
+{
+    AddButterfly(position, move, change);
+    AddCounterMove(position, move, change);
+}
+
+int History::Get(const Position& position, Move move) const
+{
+    return GetButterfly(position, move) + GetCounterMove(position, move);
+}
+
 void History::AddHistory(int16_t& val, int change, int max, int scale)
 {
     val += scale * change - val * abs(change) * scale / max;
