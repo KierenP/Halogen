@@ -22,6 +22,18 @@ class History
 {
 public:
     History() { Reset(); }
+    void Reset();
+
+    void Add(const Position& position, Move move, int change);
+    int Get(const Position& position, Move move) const;
+
+private:
+    // Tuneable history constants
+    static constexpr int Butterfly_max = 16384;
+    static constexpr int Butterfly_scale = 32;
+
+    static constexpr int CounterMove_max = 16384;
+    static constexpr int CounterMove_scale = 64;
 
     void AddButterfly(const Position& position, Move move, int change);
     int16_t GetButterfly(const Position& position, Move move) const;
@@ -29,16 +41,6 @@ public:
     void AddCounterMove(const Position& position, Move move, int change);
     int16_t GetCounterMove(const Position& position, Move move) const;
 
-    // Tuneable history constants
-    static int Butterfly_max;
-    static int Butterfly_scale;
-
-    static int CounterMove_max;
-    static int CounterMove_scale;
-
-    void Reset();
-
-private:
     void AddHistory(int16_t& val, int change, int max, int scale);
 
     // [side][from][to]
@@ -50,12 +52,6 @@ private:
     std::unique_ptr<ButterflyType> butterfly;
     std::unique_ptr<CounterMoveType> counterMove;
 };
-
-inline int History::Butterfly_max = 16384;
-inline int History::Butterfly_scale = 32;
-
-inline int History::CounterMove_max = 16384;
-inline int History::CounterMove_scale = 64;
 
 struct SearchData
 {
