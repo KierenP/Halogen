@@ -7,12 +7,6 @@
 #include <string>
 #include <type_traits>
 
-#ifdef _MSC_VER
-#include <intrin.h>
-
-#define NOMINMAX
-#endif
-
 enum Square
 {
     // clang-format off
