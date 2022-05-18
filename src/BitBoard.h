@@ -11,14 +11,6 @@ using BitBoardData = std::array<uint64_t, N_PIECES>;
 class BitBoard
 {
 public:
-    BitBoard() = default;
-    virtual ~BitBoard() = 0;
-
-    BitBoard(const BitBoard&) = default;
-    BitBoard(BitBoard&&) = default;
-    BitBoard& operator=(const BitBoard&) = default;
-    BitBoard& operator=(BitBoard&&) = default;
-
     Pieces GetSquare(Square square) const;
 
     bool IsEmpty(Square square) const;

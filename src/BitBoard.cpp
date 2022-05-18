@@ -5,8 +5,6 @@
 #include <cstddef>
 #include <memory>
 
-BitBoard::~BitBoard() = default;
-
 void BitBoard::ResetBoard()
 {
     previousBoards = { BitBoardData() };

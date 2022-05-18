@@ -7,8 +7,6 @@
 #include "Move.h"
 #include "Zobrist.h"
 
-BoardParameters::~BoardParameters() = default;
-
 void BoardParameters::NextTurn()
 {
     SetTurnCount(GetTurnCount() + 1);
