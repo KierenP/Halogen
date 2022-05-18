@@ -55,7 +55,7 @@ private:
 
 struct SearchData
 {
-    explicit SearchData(SearchLimits* Limits);
+    explicit SearchData(const SearchLimits& Limits);
 
     //--------------------------------------------------------------------------------------------
 private:
@@ -68,7 +68,7 @@ public:
 
     EvalCacheTable evalTable;
     History history;
-    SearchLimits* limits;
+    const SearchLimits& limits;
 
     void AddNode() { nodes++; }
     void AddTbHit() { tbHits++; }
