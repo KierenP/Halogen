@@ -19,8 +19,7 @@ void History::Reset()
     counterMove = std::make_unique<CounterMoveType>();
 }
 
-SearchData::SearchData(const SearchLimits& Limits)
-    : limits(Limits)
+SearchData::SearchData()
 {
     ResetNewGame();
 }
@@ -58,11 +57,7 @@ void ThreadSharedData::SetLimits(SearchLimits limits)
 void ThreadSharedData::SetThreads(int threads)
 {
     param.threads = threads;
-
-    while (static_cast<size_t>(param.threads) < threadlocalData.size())
-        threadlocalData.pop_back();
-    while (static_cast<size_t>(param.threads) > threadlocalData.size())
-        threadlocalData.emplace_back(limits_);
+    threadlocalData.resize(param.threads);
 }
 
 void ThreadSharedData::ResetNewSearch()
