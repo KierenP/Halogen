@@ -55,7 +55,7 @@ private:
 
 struct SearchData
 {
-    explicit SearchData(const SearchLimits& Limits);
+    explicit SearchData();
 
     //--------------------------------------------------------------------------------------------
 private:
@@ -68,7 +68,6 @@ public:
 
     EvalCacheTable evalTable;
     History history;
-    const SearchLimits& limits;
 
     void AddNode() { nodes++; }
     void AddTbHit() { tbHits++; }
@@ -126,6 +125,7 @@ public:
     void SetMultiPv(int multiPv) { param.multiPV = multiPv; }
     void SetThreads(int threads);
     const SearchParameters& GetParameters() { return param; }
+    const SearchLimits& GetLimits() { return limits_; }
 
     void ResetNewSearch();
     void ResetNewGame();
