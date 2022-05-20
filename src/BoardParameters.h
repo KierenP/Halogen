@@ -24,14 +24,6 @@ struct BoardParameterData
 class BoardParameters
 {
 public:
-    BoardParameters() = default;
-    virtual ~BoardParameters() = 0;
-
-    BoardParameters(const BoardParameters&) = default;
-    BoardParameters(BoardParameters&&) = default;
-    BoardParameters& operator=(const BoardParameters&) = default;
-    BoardParameters& operator=(BoardParameters&&) = default;
-
     unsigned int GetTurnCount() const { return Current->m_TurnCount; }
     Players GetTurn() const { return Current->m_CurrentTurn; }
     bool GetCanCastleWhiteKingside() const { return Current->m_WhiteKingCastle; }
