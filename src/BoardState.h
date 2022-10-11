@@ -3,6 +3,8 @@
 #include "BitBoardDefine.h"
 #include "Zobrist.h"
 
+#include <vector>
+
 class Move;
 class Network;
 
