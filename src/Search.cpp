@@ -59,8 +59,8 @@ constexpr int matedIn(int distanceFromRoot);
 constexpr int mateIn(int distanceFromRoot);
 constexpr int TBLossIn(int distanceFromRoot);
 constexpr int TBWinIn(int distanceFromRoot);
-unsigned int ProbeTBRoot(const GameState& position);
-unsigned int ProbeTBSearch(const GameState& position);
+unsigned int ProbeTBRoot(const BoardState& board);
+unsigned int ProbeTBSearch(const BoardState& board);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
 Move GetTBMove(unsigned int result);
 
@@ -80,7 +80,7 @@ uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
         && position.Board().white_queen_castle == false
         && position.Board().black_queen_castle == false)
     {
-        unsigned int result = ProbeTBRoot(position);
+        unsigned int result = ProbeTBRoot(position.Board());
         if (result != TB_RESULT_FAILED)
         {
             PrintBestMove(GetTBMove(result));
@@ -251,7 +251,7 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
         && position.Board().white_queen_castle == false
         && position.Board().black_queen_castle == false)
     {
-        unsigned int result = ProbeTBSearch(position);
+        unsigned int result = ProbeTBSearch(position.Board());
         if (result != TB_RESULT_FAILED)
         {
             locals.AddTbHit();
@@ -458,32 +458,32 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
     return SearchResult(Score, bestMove);
 }
 
-unsigned int ProbeTBRoot(const GameState& position)
+unsigned int ProbeTBRoot(const BoardState& board)
 {
-    return tb_probe_root(position.Board().GetWhitePieces(), position.Board().GetBlackPieces(),
-        position.Board().GetPieceBB<KING>(),
-        position.Board().GetPieceBB<QUEEN>(),
-        position.Board().GetPieceBB<ROOK>(),
-        position.Board().GetPieceBB<BISHOP>(),
-        position.Board().GetPieceBB<KNIGHT>(),
-        position.Board().GetPieceBB<PAWN>(),
-        position.Board().fifty_move_count,
-        position.Board().en_passant <= SQ_H8 ? position.Board().en_passant : 0,
-        position.Board().turn_count,
+    return tb_probe_root(board.GetWhitePieces(), board.GetBlackPieces(),
+        board.GetPieceBB<KING>(),
+        board.GetPieceBB<QUEEN>(),
+        board.GetPieceBB<ROOK>(),
+        board.GetPieceBB<BISHOP>(),
+        board.GetPieceBB<KNIGHT>(),
+        board.GetPieceBB<PAWN>(),
+        board.fifty_move_count,
+        board.en_passant <= SQ_H8 ? board.en_passant : 0,
+        board.turn_count,
         NULL);
 }
 
-unsigned int ProbeTBSearch(const GameState& position)
+unsigned int ProbeTBSearch(const BoardState& board)
 {
-    return tb_probe_wdl(position.Board().GetWhitePieces(), position.Board().GetBlackPieces(),
-        position.Board().GetPieceBB<KING>(),
-        position.Board().GetPieceBB<QUEEN>(),
-        position.Board().GetPieceBB<ROOK>(),
-        position.Board().GetPieceBB<BISHOP>(),
-        position.Board().GetPieceBB<KNIGHT>(),
-        position.Board().GetPieceBB<PAWN>(),
-        position.Board().en_passant <= SQ_H8 ? position.Board().en_passant : 0,
-        position.Board().turn_count);
+    return tb_probe_wdl(board.GetWhitePieces(), board.GetBlackPieces(),
+        board.GetPieceBB<KING>(),
+        board.GetPieceBB<QUEEN>(),
+        board.GetPieceBB<ROOK>(),
+        board.GetPieceBB<BISHOP>(),
+        board.GetPieceBB<KNIGHT>(),
+        board.GetPieceBB<PAWN>(),
+        board.en_passant <= SQ_H8 ? board.en_passant : 0,
+        board.turn_count);
 }
 
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
