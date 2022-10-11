@@ -6,16 +6,17 @@
 #include <limits>
 
 #include "BitBoardDefine.h"
+#include "GameState.h"
 #include "MoveGeneration.h"
-#include "Position.h"
 #include "SearchData.h"
 #include "TTEntry.h"
 #include "TranspositionTable.h"
+#include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
-    : position(Position)
-    , distanceFromRoot(DistanceFromRoot)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& pos, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
+    : position(pos)
     , locals(Locals)
+    , distanceFromRoot(DistanceFromRoot)
     , quiescence(Quiescence)
 {
     if (quiescence)
@@ -30,10 +31,10 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::TT_MOVE)
     {
-        TTmove = GetHashMove(position, distanceFromRoot);
+        TTmove = GetHashMove(position.Board(), distanceFromRoot);
         stage = Stage::GEN_LOUD;
 
-        if (MoveIsLegal(position, TTmove))
+        if (MoveIsLegal(position.Board(), TTmove))
         {
             move = TTmove;
             return true;
@@ -42,7 +43,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position, loudMoves);
+        QuiescenceMoves(position.Board(), loudMoves);
         OrderMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
@@ -69,7 +70,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = locals.KillerMoves[distanceFromRoot][0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (MoveIsLegal(position, Killer1))
+        if (MoveIsLegal(position.Board(), Killer1))
         {
             move = Killer1;
             return true;
@@ -81,7 +82,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = locals.KillerMoves[distanceFromRoot][1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (MoveIsLegal(position, Killer2))
+        if (MoveIsLegal(position.Board(), Killer2))
         {
             move = Killer2;
             return true;
@@ -108,7 +109,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position, quietMoves);
+        QuietMoves(position.Board(), quietMoves);
         OrderMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
@@ -157,35 +158,35 @@ void selection_sort(ExtendedMoveList& v)
 constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
     91, 532, 568, 715, 1279, 5000 };
 
-uint64_t AttackersToSq(Position& position, Square sq)
+uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
-    uint64_t pawn_mask = (position.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
-    pawn_mask |= (position.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
+    uint64_t pawn_mask = (board.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
+    pawn_mask |= (board.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
 
-    uint64_t bishops = position.GetPieceBB<QUEEN>() | position.GetPieceBB<BISHOP>();
-    uint64_t rooks = position.GetPieceBB<QUEEN>() | position.GetPieceBB<ROOK>();
-    uint64_t occ = position.GetAllPieces();
+    uint64_t bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
+    uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
+    uint64_t occ = board.GetAllPieces();
 
-    return (pawn_mask & position.GetPieceBB<PAWN>())
-        | (AttackBB<KNIGHT>(sq) & position.GetPieceBB<KNIGHT>())
-        | (AttackBB<KING>(sq) & position.GetPieceBB<KING>())
+    return (pawn_mask & board.GetPieceBB<PAWN>())
+        | (AttackBB<KNIGHT>(sq) & board.GetPieceBB<KNIGHT>())
+        | (AttackBB<KING>(sq) & board.GetPieceBB<KING>())
         | (AttackBB<BISHOP>(sq, occ) & bishops)
         | (AttackBB<ROOK>(sq, occ) & rooks);
 }
 
-uint64_t GetLeastValuableAttacker(const Position& position, uint64_t attackers, Pieces& capturing, Players side)
+uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, Pieces& capturing, Players side)
 {
     for (int i = 0; i < 6; i++)
     {
         capturing = Piece(PieceTypes(i), side);
-        uint64_t pieces = position.GetPieceBB(capturing) & attackers;
+        uint64_t pieces = board.GetPieceBB(capturing) & attackers;
         if (pieces)
             return pieces & (~pieces + 1); // isolate LSB
     }
     return 0;
 }
 
-int see(Position& position, Move move)
+int see(const BoardState& board, Move move)
 {
     Square from = move.GetFrom();
     Square to = move.GetTo();
@@ -193,18 +194,18 @@ int see(Position& position, Move move)
     int scores[32] { 0 };
     int index = 0;
 
-    auto capturing = position.GetSquare(from);
-    auto captured = position.GetSquare(to);
+    auto capturing = board.GetSquare(from);
+    auto captured = board.GetSquare(to);
     auto attacker = ColourOfPiece(capturing);
 
     uint64_t from_set = (1ull << from);
-    uint64_t occ = position.GetAllPieces(), bishops = 0, rooks = 0;
+    uint64_t occ = board.GetAllPieces(), bishops = 0, rooks = 0;
 
-    bishops = rooks = position.GetPieceBB<QUEEN>();
-    bishops |= position.GetPieceBB<BISHOP>();
-    rooks |= position.GetPieceBB<ROOK>();
+    bishops = rooks = board.GetPieceBB<QUEEN>();
+    bishops |= board.GetPieceBB<BISHOP>();
+    rooks |= board.GetPieceBB<ROOK>();
 
-    uint64_t attack_def = AttackersToSq(position, to);
+    uint64_t attack_def = AttackersToSq(board, to);
     scores[index] = PieceValues[captured];
 
     do
@@ -220,7 +221,7 @@ int see(Position& position, Move move)
         occ ^= from_set;
 
         attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
-        from_set = GetLeastValuableAttacker(position, attack_def, capturing, Players(attacker));
+        from_set = GetLeastValuableAttacker(board, attack_def, capturing, Players(attacker));
     } while (from_set);
     while (--index)
     {
@@ -234,7 +235,7 @@ int16_t StagedMoveGenerator::GetSEE(Move move) const
     if (moveSEE)
         return *moveSEE;
     else
-        return see(position, move);
+        return see(position.Board(), move);
 }
 
 void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
@@ -286,7 +287,7 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
 
             if (moves[i].move.GetFlag() != EN_PASSANT)
             {
-                SEE = see(position, moves[i].move);
+                SEE = see(position.Board(), moves[i].move);
             }
 
             moves[i].score = SCORE_CAPTURE + SEE;
@@ -304,26 +305,26 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
     selection_sort(moves);
 }
 
-Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot)
+Move GetHashMove(const BoardState& board, int depthRemaining, int distanceFromRoot)
 {
-    TTEntry hash = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
+    TTEntry hash = tTable.GetEntry(board.GetZobristKey(), distanceFromRoot);
 
-    if (CheckEntry(hash, position.GetZobristKey(), depthRemaining))
+    if (CheckEntry(hash, board.GetZobristKey(), depthRemaining))
     {
-        tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+        tTable.ResetAge(board.GetZobristKey(), board.turn_count, distanceFromRoot);
         return hash.GetMove();
     }
 
     return Move::Uninitialized;
 }
 
-Move GetHashMove(const Position& position, int distanceFromRoot)
+Move GetHashMove(const BoardState& board, int distanceFromRoot)
 {
-    TTEntry hash = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
+    TTEntry hash = tTable.GetEntry(board.GetZobristKey(), distanceFromRoot);
 
-    if (CheckEntry(hash, position.GetZobristKey()))
+    if (CheckEntry(hash, board.GetZobristKey()))
     {
-        tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+        tTable.ResetAge(board.GetZobristKey(), board.turn_count, distanceFromRoot);
         return hash.GetMove();
     }
 

@@ -4,21 +4,22 @@
 #include <stdexcept>
 
 #include "BitBoardDefine.h"
+#include "Zobrist.h"
 
 class Move;
-class Position;
+class BoardState;
 
 template <typename T>
-void LegalMoves(Position& position, T& moves);
+void LegalMoves(const BoardState& board, T& moves);
 template <typename T>
-void QuiescenceMoves(Position& position, T& moves);
+void QuiescenceMoves(const BoardState& board, T& moves);
 template <typename T>
-void QuietMoves(Position& position, T& moves);
+void QuietMoves(const BoardState& board, T& moves);
 
-bool IsInCheck(const Position& position, Players colour);
-bool IsInCheck(const Position& position);
+bool IsInCheck(const BoardState& board, Players colour);
+bool IsInCheck(const BoardState& board);
 
-bool MoveIsLegal(Position& position, const Move& move);
+bool MoveIsLegal(const BoardState& board, const Move& move);
 
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceTypes pieceType>

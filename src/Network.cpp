@@ -6,7 +6,7 @@
 #include <limits>
 
 #include "BitBoardDefine.h"
-#include "Position.h"
+#include "BoardState.h"
 #include "incbin/incbin.h"
 
 INCBIN(Net, EVALFILE);
@@ -65,14 +65,14 @@ void Network::Init()
     assert(reinterpret_cast<const unsigned char*>(Data) == gNetData + gNetSize);
 }
 
-void Network::Recalculate(const Position& position)
+void Network::Recalculate(const BoardState& board)
 {
     AccumulatorStack = { { hiddenBias, hiddenBias } };
 
     for (int i = 0; i < N_PIECES; i++)
     {
         Pieces piece = static_cast<Pieces>(i);
-        uint64_t bb = position.GetPieceBB(piece);
+        uint64_t bb = board.GetPieceBB(piece);
 
         while (bb)
         {

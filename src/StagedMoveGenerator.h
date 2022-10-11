@@ -4,8 +4,9 @@
 
 #include "Move.h"
 #include "MoveList.h"
+#include "Zobrist.h"
 
-class Position;
+class GameState;
 struct SearchData;
 
 enum class Stage
@@ -33,7 +34,7 @@ enum class Stage
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(Position& Position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
+    StagedMoveGenerator(const GameState& position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
@@ -56,9 +57,9 @@ private:
     void OrderMoves(ExtendedMoveList& moves);
 
     // Data needed for use in ordering or generating moves
-    Position& position;
-    int distanceFromRoot;
+    const GameState& position;
     const SearchData& locals;
+    int distanceFromRoot;
     bool quiescence;
     ExtendedMoveList loudMoves;
     ExtendedMoveList quietMoves;
@@ -78,5 +79,5 @@ private:
     bool skipQuiets = false;
 };
 
-Move GetHashMove(const Position& position, int depthRemaining, int distanceFromRoot);
-Move GetHashMove(const Position& position, int distanceFromRoot);
+Move GetHashMove(const BoardState& position, int depthRemaining, int distanceFromRoot);
+Move GetHashMove(const BoardState& position, int distanceFromRoot);

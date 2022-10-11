@@ -13,10 +13,11 @@
 #include "SearchLimits.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
-
-class Position;
+#include "Zobrist.h"
 
 extern TranspositionTable tTable;
+
+class GameState;
 
 class History
 {
@@ -24,8 +25,8 @@ public:
     History() { Reset(); }
     void Reset();
 
-    void Add(const Position& position, Move move, int change);
-    int Get(const Position& position, Move move) const;
+    void Add(const GameState& position, Move move, int change);
+    int Get(const GameState& position, Move move) const;
 
 private:
     // Tuneable history constants
@@ -35,11 +36,11 @@ private:
     static constexpr int CounterMove_max = 16384;
     static constexpr int CounterMove_scale = 64;
 
-    void AddButterfly(const Position& position, Move move, int change);
-    int16_t GetButterfly(const Position& position, Move move) const;
+    void AddButterfly(const GameState& position, Move move, int change);
+    int16_t GetButterfly(const GameState& position, Move move) const;
 
-    void AddCounterMove(const Position& position, Move move, int change);
-    int16_t GetCounterMove(const Position& position, Move move) const;
+    void AddCounterMove(const GameState& position, Move move, int change);
+    int16_t GetCounterMove(const GameState& position, Move move) const;
 
     void AddHistory(int16_t& val, int change, int max, int scale);
 
@@ -108,7 +109,7 @@ public:
     Move GetBestMove() const;
     unsigned int GetDepth() const;
     bool ThreadAbort(unsigned int initialDepth) const;
-    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals);
+    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const BoardState& position, Move move, const SearchData& locals);
     void ReportWantsToStop(unsigned int threadID);
     int GetAspirationScore() const;
     int GetMultiPVSetting() const { return param.multiPV; };
@@ -131,7 +132,7 @@ public:
     void ResetNewGame();
 
 private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const;
+    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const BoardState& position, const SearchData& locals) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
     mutable std::mutex ioMutex;

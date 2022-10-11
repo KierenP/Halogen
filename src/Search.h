@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
+#include "GameState.h"
 #include "Move.h"
 
-class Position;
 class ThreadSharedData;
 /*Tuneable search constants*/
 
@@ -48,4 +48,4 @@ private:
     Move m_move;
 };
 
-uint64_t SearchThread(Position position, ThreadSharedData& sharedData);
+uint64_t SearchThread(GameState position, ThreadSharedData& sharedData);

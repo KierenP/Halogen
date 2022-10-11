@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <random>
 
-#include "Position.h"
+#include "BoardState.h"
 
 const std::array<uint64_t, 781> Zobrist::ZobristTable = [] {
     std::array<uint64_t, 781> table;
@@ -19,34 +19,34 @@ const std::array<uint64_t, 781> Zobrist::ZobristTable = [] {
     return table;
 }();
 
-uint64_t Zobrist::Generate(const Position& position)
+uint64_t Zobrist::Generate(const BoardState& board)
 {
     uint64_t Key = EMPTY;
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        uint64_t bitboard = position.GetPieceBB(static_cast<Pieces>(i));
+        uint64_t bitboard = board.GetPieceBB(static_cast<Pieces>(i));
         while (bitboard != 0)
         {
             Key ^= ZobristTable.at(i * 64 + LSBpop(bitboard));
         }
     }
 
-    if (position.GetTurn() == WHITE)
+    if (board.stm == WHITE)
         Key ^= ZobristTable.at(12 * 64);
 
-    if (position.GetCanCastleWhiteKingside())
+    if (board.white_king_castle)
         Key ^= ZobristTable.at(12 * 64 + 1);
-    if (position.GetCanCastleWhiteQueenside())
+    if (board.white_queen_castle)
         Key ^= ZobristTable.at(12 * 64 + 2);
-    if (position.GetCanCastleBlackKingside())
+    if (board.black_king_castle)
         Key ^= ZobristTable.at(12 * 64 + 3);
-    if (position.GetCanCastleBlackQueenside())
+    if (board.black_queen_castle)
         Key ^= ZobristTable.at(12 * 64 + 4);
 
-    if (position.GetEnPassant() <= SQ_H8)
+    if (board.en_passant <= SQ_H8)
     {
-        Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(position.GetEnPassant()));
+        Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(board.en_passant));
     }
 
     return Key;
