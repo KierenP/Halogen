@@ -311,7 +311,7 @@ Move GetHashMove(const BoardState& board, int depthRemaining, int distanceFromRo
 
     if (CheckEntry(hash, board.GetZobristKey(), depthRemaining))
     {
-        tTable.ResetAge(board.GetZobristKey(), board.turn_count, distanceFromRoot);
+        tTable.ResetAge(board.GetZobristKey(), board.half_turn_count, distanceFromRoot);
         return hash.GetMove();
     }
 
@@ -324,7 +324,7 @@ Move GetHashMove(const BoardState& board, int distanceFromRoot)
 
     if (CheckEntry(hash, board.GetZobristKey()))
     {
-        tTable.ResetAge(board.GetZobristKey(), board.turn_count, distanceFromRoot);
+        tTable.ResetAge(board.GetZobristKey(), board.half_turn_count, distanceFromRoot);
         return hash.GetMove();
     }
 

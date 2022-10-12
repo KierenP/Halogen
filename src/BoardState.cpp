@@ -16,7 +16,7 @@ void BoardState::Reset()
 {
     en_passant = N_SQUARES;
     fifty_move_count = 0;
-    turn_count = 1;
+    half_turn_count = 1;
 
     stm = N_PLAYERS;
     white_king_castle = false;
@@ -95,7 +95,7 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
     en_passant = static_cast<Square>(AlgebraicToPos(fen[3]));
 
     fifty_move_count = std::stoi(fen[4]);
-    turn_count = std::stoi(fen[5]);
+    half_turn_count = std::stoi(fen[5]) * 2 - (stm == WHITE); // convert full move count to half move count
 
     RecalculateWhiteBlackBoards();
     key.Recalculate(*this);
@@ -336,27 +336,28 @@ void BoardState::ApplyMove(Move move, Network& net)
     case PAWN_DOUBLE_MOVE:
     {
         //average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
-        Square ep = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
+        Square ep_sq = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
 
         //it only counts as a ep square if a pawn could potentially do the capture!
-        uint64_t potentialAttackers = PawnAttacks[stm][ep] & GetPieceBB(PAWN, !stm);
+        uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & GetPieceBB(PAWN, !stm);
 
         while (potentialAttackers)
         {
-            Square sq = static_cast<Square>(LSBpop(potentialAttackers));
+            Square threat_sq = static_cast<Square>(LSBpop(potentialAttackers));
 
-            // NOTE: would make/unmake be faster than copy/delete?
-            BoardState copy = *this;
-            Move ep_move(sq, ep, EN_PASSANT);
-            copy.SetSquare(ep_move.GetTo(), copy.GetSquare(ep_move.GetFrom()));
-            copy.ClearSquare(ep_move.GetFrom());
-            copy.ClearSquare(GetPosition(GetFile(ep_move.GetTo()), GetRank(ep_move.GetFrom())));
-            bool legal = !IsInCheck(copy, !stm);
+            // carefully apply the potential ep capture, check for legality, then undo
+            SetSquare(ep_sq, Piece(PAWN, !stm));
+            ClearSquare(threat_sq);
+            ClearSquare(move.GetTo());
+            bool legal = !IsInCheck(*this, !stm);
+            ClearSquare(ep_sq);
+            SetSquare(threat_sq, Piece(PAWN, !stm));
+            SetSquare(move.GetTo(), Piece(PAWN, stm));
 
             if (legal)
             {
-                en_passant = ep;
-                key.ToggleEnpassant(GetFile(ep));
+                en_passant = ep_sq;
+                key.ToggleEnpassant(GetFile(ep_sq));
                 break;
             }
         }
@@ -390,7 +391,7 @@ void BoardState::ApplyMove(Move move, Network& net)
         fifty_move_count = 0;
 
     ClearSquareAndUpdate(move.GetFrom(), net);
-    turn_count += 1;
+    half_turn_count += 1;
     stm = !stm;
     UpdateCastleRights(move, key);
 
@@ -407,7 +408,7 @@ void BoardState::ApplyNullMove()
 
     en_passant = N_SQUARES;
     fifty_move_count++;
-    turn_count += 1;
+    half_turn_count += 1;
     stm = !stm;
 
     assert(key.Verify(*this));

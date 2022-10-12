@@ -238,7 +238,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     ss << " time " << Time //Time in ms
        << " nodes " << getNodes()
        << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(board.turn_count) //thousondths full
+       << " hashfull " << tTable.GetCapacity(board.half_turn_count) //thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)

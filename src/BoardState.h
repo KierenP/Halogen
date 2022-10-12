@@ -22,7 +22,7 @@ public:
 
     Square en_passant = N_SQUARES;
     unsigned int fifty_move_count;
-    unsigned int turn_count; // BUG: is this the half move or full move count?
+    unsigned int half_turn_count;
 
     Players stm = N_PLAYERS;
     bool white_king_castle;
