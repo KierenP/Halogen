@@ -31,7 +31,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position);
 uint64_t Perft(unsigned int depth, GameState& position);
 void Bench(int depth = 14);
 
-string version = "11.1";
+string version = "11.2";
 
 int main(int argc, char* argv[])
 {
