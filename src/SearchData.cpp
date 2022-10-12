@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <string>
 
-#include "Position.h"
+#include "GameState.h"
+#include "Zobrist.h"
 
 TranspositionTable tTable;
 
@@ -103,13 +104,13 @@ bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
     return initialDepth <= threadDepthCompleted;
 }
 
-void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const Position& position, Move move, const SearchData& locals)
+void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const BoardState& board, Move move, const SearchData& locals)
 {
     std::scoped_lock lock(ioMutex);
 
     if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
 
         if (GetMultiPVCount() == 0)
         {
@@ -130,13 +131,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
     if (score < lowestAlpha && score <= alpha && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
         lowestAlpha = alpha;
     }
 
     if (score > highestBeta && score >= beta && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
         highestBeta = beta;
     }
 }
@@ -202,7 +203,7 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const Position& position, const SearchData& locals) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const BoardState& board, const SearchData& locals) const
 {
     /*
 	Here we avoid excessive use of std::cout and instead append to a string in order
@@ -237,7 +238,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     ss << " time " << Time //Time in ms
        << " nodes " << getNodes()
        << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(position.GetTurnCount()) //thousondths full
+       << " hashfull " << tTable.GetCapacity(board.turn_count) //thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)
@@ -254,13 +255,13 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     std::cout << ss.str() << std::endl;
 }
 
-void History::Add(const Position& position, Move move, int change)
+void History::Add(const GameState& position, Move move, int change)
 {
     AddButterfly(position, move, change);
     AddCounterMove(position, move, change);
 }
 
-int History::Get(const Position& position, Move move) const
+int History::Get(const GameState& position, Move move) const
 {
     return GetButterfly(position, move) + GetCounterMove(position, move);
 }
@@ -270,31 +271,31 @@ void History::AddHistory(int16_t& val, int change, int max, int scale)
     val += scale * change - val * abs(change) * scale / max;
 }
 
-void History::AddButterfly(const Position& position, Move move, int change)
+void History::AddButterfly(const GameState& position, Move move, int change)
 {
     assert(move != Move::Uninitialized);
 
-    assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
-    assert(position.GetTurn() != N_PLAYERS);
+    assert(ColourOfPiece(position.Board().GetSquare(move.GetFrom())) == position.Board().stm);
+    assert(position.Board().stm != N_PLAYERS);
     assert(move.GetFrom() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
+    AddHistory((*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
 }
 
-int16_t History::GetButterfly(const Position& position, Move move) const
+int16_t History::GetButterfly(const GameState& position, Move move) const
 {
     assert(move != Move::Uninitialized);
 
-    assert(ColourOfPiece(position.GetSquare(move.GetFrom())) == position.GetTurn());
-    assert(position.GetTurn() != N_PLAYERS);
+    assert(ColourOfPiece(position.Board().GetSquare(move.GetFrom())) == position.Board().stm);
+    assert(position.Board().stm != N_PLAYERS);
     assert(move.GetFrom() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    return (*butterfly)[position.GetTurn()][move.GetFrom()][move.GetTo()];
+    return (*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()];
 }
 
-void History::AddCounterMove(const Position& position, Move move, int change)
+void History::AddCounterMove(const GameState& position, Move move, int change)
 {
     Move prevMove = position.GetPreviousMove();
     if (prevMove == Move::Uninitialized)
@@ -302,18 +303,18 @@ void History::AddCounterMove(const Position& position, Move move, int change)
 
     assert(move != Move::Uninitialized);
 
-    PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
-    PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
+    PieceTypes prevPiece = GetPieceType(position.Board().GetSquare(prevMove.GetTo()));
+    PieceTypes currentPiece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
 
     assert(prevPiece != N_PIECE_TYPES);
     assert(currentPiece != N_PIECE_TYPES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*counterMove)[position.GetTurn()][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
+    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
 }
 
-int16_t History::GetCounterMove(const Position& position, Move move) const
+int16_t History::GetCounterMove(const GameState& position, Move move) const
 {
     Move prevMove = position.GetPreviousMove();
     if (prevMove == Move::Uninitialized)
@@ -321,13 +322,13 @@ int16_t History::GetCounterMove(const Position& position, Move move) const
 
     assert(move != Move::Uninitialized);
 
-    PieceTypes prevPiece = GetPieceType(position.GetSquare(prevMove.GetTo()));
-    PieceTypes currentPiece = GetPieceType(position.GetSquare(move.GetFrom()));
+    PieceTypes prevPiece = GetPieceType(position.Board().GetSquare(prevMove.GetTo()));
+    PieceTypes currentPiece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
 
     assert(prevPiece != N_PIECE_TYPES);
     assert(currentPiece != N_PIECE_TYPES);
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    return (*counterMove)[position.GetTurn()][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
+    return (*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
 }

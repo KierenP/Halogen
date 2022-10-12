@@ -12,11 +12,11 @@
 #include <vector>
 
 #include "Benchmark.h"
+#include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
-#include "Position.h"
 #include "Pyrrhic/tbprobe.h"
 #include "Search.h"
 #include "SearchData.h"
@@ -27,11 +27,11 @@ using namespace ::std;
 
 void PerftSuite();
 void PrintVersion();
-uint64_t PerftDivide(unsigned int depth, Position& position);
-uint64_t Perft(unsigned int depth, Position& position);
+uint64_t PerftDivide(unsigned int depth, GameState& position);
+uint64_t Perft(unsigned int depth, GameState& position);
 void Bench(int depth = 14);
 
-string version = "11";
+string version = "11.1";
 
 int main(int argc, char* argv[])
 {
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     string Line; //to read the command given by the GUI
 
-    Position position;
+    GameState position;
     thread searchThread;
     ThreadSharedData data;
 
@@ -177,8 +177,8 @@ int main(int argc, char* argv[])
                 }
             }
 
-            int myTime = position.GetTurn() ? wtime : btime;
-            int myInc = position.GetTurn() ? winc : binc;
+            int myTime = position.Board().stm ? wtime : btime;
+            int myInc = position.Board().stm ? winc : binc;
 
             if (myTime != 0)
             {
@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
                     AllocatedTime = myTime / (movestogo + 1) * 3 / 2; //repeating time control
                 else if (myInc != 0)
                     // use a greater proportion of remaining time as the game continues, so that we use it all up and get to just increment
-                    AllocatedTime = myTime * (1 + position.GetTurnCount() / timeIncCoeffA) / timeIncCoeffB + myInc; //increment time control
+                    AllocatedTime = myTime * (1 + position.Board().turn_count / timeIncCoeffA) / timeIncCoeffB + myInc; //increment time control
                 else
                     AllocatedTime = myTime / 20; //sudden death time control
 
@@ -300,7 +300,7 @@ int main(int argc, char* argv[])
 
         //Non uci commands
         else if (token == "print")
-            position.Print();
+            position.Board().Print();
         else
             cout << "Unknown command" << endl;
 
@@ -351,7 +351,7 @@ void PerftSuite()
     unsigned int Perfts = 0;
     unsigned int Correct = 0;
     double Totalnodes = 0;
-    Position position;
+    GameState position;
     string line;
 
     auto before = std::chrono::steady_clock::now();
@@ -392,13 +392,13 @@ void PerftSuite()
     cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
 }
 
-uint64_t PerftDivide(unsigned int depth, Position& position)
+uint64_t PerftDivide(unsigned int depth, GameState& position)
 {
     auto before = std::chrono::steady_clock::now();
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position, moves);
+    LegalMoves(position.Board(), moves);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -419,14 +419,14 @@ uint64_t PerftDivide(unsigned int depth, Position& position)
     return nodeCount;
 }
 
-uint64_t Perft(unsigned int depth, Position& position)
+uint64_t Perft(unsigned int depth, GameState& position)
 {
     if (depth == 0)
         return 1; //if perftdivide is called with 1 this is necesary
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position, moves);
+    LegalMoves(position.Board(), moves);
 
     /*for (int i = 0; i < UINT16_MAX; i++)
 	{
@@ -470,7 +470,7 @@ void Bench(int depth)
     Timer timer;
 
     uint64_t nodeCount = 0;
-    Position position;
+    GameState position;
     SearchLimits limits;
     limits.SetDepthLimit(depth);
     ThreadSharedData data(std::move(limits));

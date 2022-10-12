@@ -14,15 +14,16 @@
 
 #include "BitBoardDefine.h"
 #include "EvalNet.h"
+#include "GameState.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
-#include "Position.h"
 #include "Pyrrhic/tbprobe.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
 #include "TTEntry.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
+#include "Zobrist.h"
 
 // [depth][move number]
 const std::array<std::array<int, 64>, 64> LMR_reduction = []
@@ -42,14 +43,14 @@ const std::array<std::array<int, 64>, 64> LMR_reduction = []
 
 void PrintBestMove(Move Best);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
-bool CheckForRep(const Position& position, int distanceFromRoot);
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck);
-bool IsEndGame(const Position& position);
+bool CheckForRep(const GameState& position, int distanceFromRoot);
+bool AllowedNull(bool allowedNull, const BoardState& board, int beta, int alpha, bool InCheck);
+bool IsEndGame(const BoardState& board);
 bool IsPV(int beta, int alpha);
-void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
+void AddScoreToTable(int Score, int alphaOriginal, const BoardState& board, int depthRemaining, int distanceFromRoot, int beta, Move bestMove);
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
-int TerminalScore(const Position& position, int distanceFromRoot);
-int extension(const Position& position);
+int TerminalScore(const BoardState& board, int distanceFromRoot);
+int extension(const BoardState& board);
 void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, MAX_DEPTH>& KillerMoves);
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEPTH>& PvTable);
@@ -58,28 +59,28 @@ constexpr int matedIn(int distanceFromRoot);
 constexpr int mateIn(int distanceFromRoot);
 constexpr int TBLossIn(int distanceFromRoot);
 constexpr int TBWinIn(int distanceFromRoot);
-unsigned int ProbeTBRoot(const Position& position);
-unsigned int ProbeTBSearch(const Position& position);
+unsigned int ProbeTBRoot(const BoardState& board);
+unsigned int ProbeTBSearch(const BoardState& board);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
 Move GetTBMove(unsigned int result);
 
-void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID);
-SearchResult AspirationWindowSearch(Position position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID);
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
+void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID);
+SearchResult AspirationWindowSearch(GameState position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData);
+SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
 void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move);
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
+SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
-uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
+uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
 {
     //Probe TB at root
-    if (GetBitCount(position.GetAllPieces()) <= TB_LARGEST
-        && position.GetCanCastleWhiteKingside() == false
-        && position.GetCanCastleBlackKingside() == false
-        && position.GetCanCastleWhiteQueenside() == false
-        && position.GetCanCastleBlackQueenside() == false)
+    if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
+        && position.Board().white_king_castle == false
+        && position.Board().black_king_castle == false
+        && position.Board().white_queen_castle == false
+        && position.Board().black_queen_castle == false)
     {
-        unsigned int result = ProbeTBRoot(position);
+        unsigned int result = ProbeTBRoot(position.Board());
         if (result != TB_RESULT_FAILED)
         {
             PrintBestMove(GetTBMove(result));
@@ -92,7 +93,7 @@ uint64_t SearchThread(Position position, ThreadSharedData& sharedData)
     //Limit the MultiPV setting to be at most the number of legal moves
     BasicMoveList moves;
     moves.clear();
-    LegalMoves(position, moves);
+    LegalMoves(position.Board(), moves);
     sharedData.SetMultiPv(std::min<int>(sharedData.GetParameters().multiPV, moves.size()));
 
     KeepSearching = true;
@@ -136,7 +137,7 @@ struct ThreadDepthAbort : public std::exception
     }
 };
 
-void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned int threadID)
+void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID)
 {
     int alpha = LowINF;
     int beta = HighINF;
@@ -157,8 +158,8 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
 
         try
         {
-            SearchResult curSearch = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData, threadID);
-            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), curSearch.GetScore(), alpha, beta, position, curSearch.GetMove(), sharedData.GetData(threadID));
+            SearchResult curSearch = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData);
+            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), curSearch.GetScore(), alpha, beta, position.Board(), curSearch.GetMove(), sharedData.GetData(threadID));
             if (sharedData.GetLimits().HitMateLimit(curSearch.GetScore()))
                 break;
             prevScore = curSearch.GetScore();
@@ -176,7 +177,7 @@ void SearchPosition(Position position, ThreadSharedData& sharedData, unsigned in
     }
 }
 
-SearchResult AspirationWindowSearch(Position position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData, unsigned int threadID)
+SearchResult AspirationWindowSearch(GameState position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData)
 {
     int delta = Aspiration_window;
 
@@ -187,7 +188,7 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
     while (true)
     {
         locals.ResetSeldepth();
-        search = NegaScout(position, depth, depth, alpha, beta, position.GetTurn() ? 1 : -1, 0, false, locals, sharedData);
+        search = NegaScout(position, depth, depth, alpha, beta, position.Board().stm ? 1 : -1, 0, false, locals, sharedData);
 
         if (alpha < search.GetScore() && search.GetScore() < beta)
             break;
@@ -198,14 +199,14 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
 
         if (search.GetScore() <= alpha)
         {
-            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), alpha, alpha, beta, position, search.GetMove(), locals);
+            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), alpha, alpha, beta, position.Board(), search.GetMove(), locals);
             beta = (alpha + beta) / 2;
             alpha = std::max<int>(MATED, alpha - delta);
         }
 
         if (search.GetScore() >= beta)
         {
-            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), beta, alpha, beta, position, search.GetMove(), locals);
+            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), beta, alpha, beta, position.Board(), search.GetMove(), locals);
             sharedData.UpdateBestMove(search.GetMove());
             beta = std::min<int>(MATE, beta + delta);
         }
@@ -216,7 +217,7 @@ SearchResult AspirationWindowSearch(Position position, int depth, int prevScore,
     return search;
 }
 
-SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
+SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta, int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
     locals.ReportDepth(distanceFromRoot);
     locals.AddNode();
@@ -233,24 +234,24 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?
 
-    if (DeadPosition(position))
+    if (DeadPosition(position.Board()))
         return 0; //Is this position a dead draw?
     if (CheckForRep(position, distanceFromRoot) //Have we had a draw by repitition?
-        || position.GetFiftyMoveCount() > 100) //cannot use >= as it could currently be checkmate which would count as a win
+        || position.Board().fifty_move_count > 100) //cannot use >= as it could currently be checkmate which would count as a win
         return 8 - (locals.GetThreadNodes() & 0b1111); //as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with permission from Koivisto authors.
 
     int Score = LowINF;
     int MaxScore = HighINF;
 
     //Probe TB in search
-    if (position.GetFiftyMoveCount() == 0
-        && position.GetCanCastleWhiteKingside() == false
-        && position.GetCanCastleBlackKingside() == false
-        && position.GetCanCastleWhiteQueenside() == false
-        && position.GetCanCastleBlackQueenside() == false
-        && GetBitCount(position.GetAllPieces()) <= TB_LARGEST)
+    if (position.Board().fifty_move_count == 0
+        && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
+        && position.Board().white_king_castle == false
+        && position.Board().black_king_castle == false
+        && position.Board().white_queen_castle == false
+        && position.Board().black_queen_castle == false)
     {
-        unsigned int result = ProbeTBSearch(position);
+        unsigned int result = ProbeTBSearch(position.Board());
         if (result != TB_RESULT_FAILED)
         {
             locals.AddTbHit();
@@ -301,10 +302,10 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     //Query the transpotition table
     if (!IsPV(beta, alpha))
     {
-        TTEntry entry = tTable.GetEntry(position.GetZobristKey(), distanceFromRoot);
-        if (CheckEntry(entry, position.GetZobristKey(), depthRemaining))
+        TTEntry entry = tTable.GetEntry(position.Board().GetZobristKey(), distanceFromRoot);
+        if (CheckEntry(entry, position.Board().GetZobristKey(), depthRemaining))
         {
-            tTable.ResetAge(position.GetZobristKey(), position.GetTurnCount(), distanceFromRoot);
+            tTable.ResetAge(position.Board().GetZobristKey(), position.Board().turn_count, distanceFromRoot);
 
             if (!position.CheckForRep(distanceFromRoot, 2)) //Don't take scores from the TT if there's a two-fold repitition
                 if (UseTransposition(entry, alpha, beta))
@@ -312,7 +313,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
         }
     }
 
-    bool InCheck = IsInCheck(position);
+    bool InCheck = IsInCheck(position.Board());
 
     //Drop into quiescence search
     if (depthRemaining <= 0 && !InCheck)
@@ -327,7 +328,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
         return beta;
 
     //Null move pruning
-    if (AllowedNull(allowedNull, position, beta, alpha, InCheck) && (staticScore > beta))
+    if (AllowedNull(allowedNull, position.Board(), beta, alpha, InCheck) && (staticScore > beta))
     {
         unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent + std::min(3, (staticScore - beta) / Null_beta_quotent);
 
@@ -365,7 +366,7 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     bool noLegalMoves = true;
 
     //Rebel style IID. Don't ask why this helps but it does.
-    if (GetHashMove(position, distanceFromRoot) == Move::Uninitialized && depthRemaining > 3)
+    if (GetHashMove(position.Board(), distanceFromRoot) == Move::Uninitialized && depthRemaining > 3)
         depthRemaining--;
 
     bool FutileNode = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
@@ -399,8 +400,8 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
         int history = locals.history.Get(position, move);
 
         position.ApplyMove(move);
-        tTable.PreFetch(position.GetZobristKey()); //load the transposition into l1 cache. ~5% speedup
-        int extendedDepth = depthRemaining + extension(position);
+        tTable.PreFetch(position.Board().GetZobristKey()); //load the transposition into l1 cache. ~5% speedup
+        int extendedDepth = depthRemaining + extension(position.Board());
 
         //late move reductions
         if (searchedMoves > 3)
@@ -447,42 +448,42 @@ SearchResult NegaScout(Position& position, unsigned int initialDepth, int depthR
     //Checkmate or stalemate
     if (noLegalMoves)
     {
-        return TerminalScore(position, distanceFromRoot);
+        return TerminalScore(position.Board(), distanceFromRoot);
     }
 
     Score = std::min(Score, MaxScore);
 
-    AddScoreToTable(Score, alpha, position, depthRemaining, distanceFromRoot, beta, bestMove);
+    AddScoreToTable(Score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
 
     return SearchResult(Score, bestMove);
 }
 
-unsigned int ProbeTBRoot(const Position& position)
+unsigned int ProbeTBRoot(const BoardState& board)
 {
-    return tb_probe_root(position.GetWhitePieces(), position.GetBlackPieces(),
-        position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
-        position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
-        position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
-        position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
-        position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
-        position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-        position.GetFiftyMoveCount(),
-        position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
-        position.GetTurn(),
+    return tb_probe_root(board.GetWhitePieces(), board.GetBlackPieces(),
+        board.GetPieceBB<KING>(),
+        board.GetPieceBB<QUEEN>(),
+        board.GetPieceBB<ROOK>(),
+        board.GetPieceBB<BISHOP>(),
+        board.GetPieceBB<KNIGHT>(),
+        board.GetPieceBB<PAWN>(),
+        board.fifty_move_count,
+        board.en_passant <= SQ_H8 ? board.en_passant : 0,
+        board.turn_count,
         NULL);
 }
 
-unsigned int ProbeTBSearch(const Position& position)
+unsigned int ProbeTBSearch(const BoardState& board)
 {
-    return tb_probe_wdl(position.GetWhitePieces(), position.GetBlackPieces(),
-        position.GetPieceBB(WHITE_KING) | position.GetPieceBB(BLACK_KING),
-        position.GetPieceBB(WHITE_QUEEN) | position.GetPieceBB(BLACK_QUEEN),
-        position.GetPieceBB(WHITE_ROOK) | position.GetPieceBB(BLACK_ROOK),
-        position.GetPieceBB(WHITE_BISHOP) | position.GetPieceBB(BLACK_BISHOP),
-        position.GetPieceBB(WHITE_KNIGHT) | position.GetPieceBB(BLACK_KNIGHT),
-        position.GetPieceBB(WHITE_PAWN) | position.GetPieceBB(BLACK_PAWN),
-        position.GetEnPassant() <= SQ_H8 ? position.GetEnPassant() : 0,
-        position.GetTurn());
+    return tb_probe_wdl(board.GetWhitePieces(), board.GetBlackPieces(),
+        board.GetPieceBB<KING>(),
+        board.GetPieceBB<QUEEN>(),
+        board.GetPieceBB<ROOK>(),
+        board.GetPieceBB<BISHOP>(),
+        board.GetPieceBB<KNIGHT>(),
+        board.GetPieceBB<PAWN>(),
+        board.en_passant <= SQ_H8 ? board.en_passant : 0,
+        board.turn_count);
 }
 
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
@@ -573,41 +574,33 @@ bool UseTransposition(const TTEntry& entry, int alpha, int beta)
     return false;
 }
 
-bool CheckForRep(const Position& position, int distanceFromRoot)
+bool CheckForRep(const GameState& position, int distanceFromRoot)
 {
     return position.CheckForRep(distanceFromRoot, 3);
 }
 
-int extension(const Position& position)
+int extension(const BoardState& board)
 {
     int extension = 0;
 
-    if (IsInCheck(position))
+    if (IsInCheck(board))
         extension += 1;
 
     return extension;
 }
 
-bool FutilityMoveGivesCheck(Position& position, Move move)
-{
-    position.ApplyMoveQuick(move);
-    bool ret = IsInCheck(position, !position.GetTurn()); //ApplyMoveQuick does not change whos turn it is
-    position.RevertMoveQuick();
-    return ret;
-}
-
-bool AllowedNull(bool allowedNull, const Position& position, int beta, int alpha, bool InCheck)
+bool AllowedNull(bool allowedNull, const BoardState& board, int beta, int alpha, bool InCheck)
 {
     return allowedNull
         && !InCheck
         && !IsPV(beta, alpha)
-        && !IsEndGame(position)
-        && GetBitCount(position.GetAllPieces()) >= 5; //avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
+        && !IsEndGame(board)
+        && GetBitCount(board.GetAllPieces()) >= 5; //avoid null move pruning in very late game positions due to zanauag issues. Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
 }
 
-bool IsEndGame(const Position& position)
+bool IsEndGame(const BoardState& board)
 {
-    return (position.GetPiecesColour(position.GetTurn()) == (position.GetPieceBB(KING, position.GetTurn()) | position.GetPieceBB(PAWN, position.GetTurn())));
+    return (board.GetPiecesColour(board.stm) == (board.GetPieceBB(KING, board.stm) | board.GetPieceBB(PAWN, board.stm)));
 }
 
 bool IsPV(int beta, int alpha)
@@ -615,14 +608,14 @@ bool IsPV(int beta, int alpha)
     return beta != alpha + 1;
 }
 
-void AddScoreToTable(int Score, int alphaOriginal, const Position& position, int depthRemaining, int distanceFromRoot, int beta, Move bestMove)
+void AddScoreToTable(int Score, int alphaOriginal, const BoardState& board, int depthRemaining, int distanceFromRoot, int beta, Move bestMove)
 {
     if (Score <= alphaOriginal)
-        tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::UPPERBOUND); //mate score adjustent is done inside this function
+        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.turn_count, distanceFromRoot, EntryType::UPPERBOUND); //mate score adjustent is done inside this function
     else if (Score >= beta)
-        tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::LOWERBOUND);
+        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.turn_count, distanceFromRoot, EntryType::LOWERBOUND);
     else
-        tTable.AddEntry(bestMove, position.GetZobristKey(), Score, depthRemaining, position.GetTurnCount(), distanceFromRoot, EntryType::EXACT);
+        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.turn_count, distanceFromRoot, EntryType::EXACT);
 }
 
 void UpdateBounds(const TTEntry& entry, int& alpha, int& beta)
@@ -638,9 +631,9 @@ void UpdateBounds(const TTEntry& entry, int& alpha, int& beta)
     }
 }
 
-int TerminalScore(const Position& position, int distanceFromRoot)
+int TerminalScore(const BoardState& board, int distanceFromRoot)
 {
-    if (IsInCheck(position))
+    if (IsInCheck(board))
     {
         return matedIn(distanceFromRoot);
     }
@@ -670,7 +663,7 @@ constexpr int TBWinIn(int distanceFromRoot)
     return TB_WIN_SCORE - distanceFromRoot;
 }
 
-SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
+SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alpha, int beta, int colour, unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
     locals.ReportDepth(distanceFromRoot);
     locals.AddNode();
@@ -686,7 +679,7 @@ SearchResult Quiescence(Position& position, unsigned int initialDepth, int alpha
         throw TimeAbort(); //Am I out of time?
     if (sharedData.ThreadAbort(initialDepth))
         throw ThreadDepthAbort(); //Has this depth been finished by another thread?
-    if (DeadPosition(position))
+    if (DeadPosition(position.Board()))
         return 0; //Is this position a dead draw?
 
     int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);

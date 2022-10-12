@@ -3,41 +3,42 @@
 #include <algorithm>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "EvalCache.h"
-#include "Position.h"
+#include "GameState.h"
 
-void TempoAdjustment(int& eval, const Position& position);
+void TempoAdjustment(int& eval, const BoardState& board);
 
-int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable)
+int EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
 {
     int eval;
 
-    if (!evalTable.GetEntry(position.GetZobristKey(), eval))
+    if (!evalTable.GetEntry(position.Board().GetZobristKey(), eval))
     {
         eval = position.GetEvaluation();
 
-        TempoAdjustment(eval, position);
+        TempoAdjustment(eval, position.Board());
 
-        evalTable.AddEntry(position.GetZobristKey(), eval);
+        evalTable.AddEntry(position.Board().GetZobristKey(), eval);
     }
 
     return std::min<int>(EVAL_MAX, std::max<int>(EVAL_MIN, eval));
 }
 
-bool DeadPosition(const Position& position)
+bool DeadPosition(const BoardState& board)
 {
-    if ((position.GetPieceBB(WHITE_PAWN)) != 0)
+    if ((board.GetPieceBB(WHITE_PAWN)) != 0)
         return false;
-    if ((position.GetPieceBB(WHITE_ROOK)) != 0)
+    if ((board.GetPieceBB(WHITE_ROOK)) != 0)
         return false;
-    if ((position.GetPieceBB(WHITE_QUEEN)) != 0)
+    if ((board.GetPieceBB(WHITE_QUEEN)) != 0)
         return false;
 
-    if ((position.GetPieceBB(BLACK_PAWN)) != 0)
+    if ((board.GetPieceBB(BLACK_PAWN)) != 0)
         return false;
-    if ((position.GetPieceBB(BLACK_ROOK)) != 0)
+    if ((board.GetPieceBB(BLACK_ROOK)) != 0)
         return false;
-    if ((position.GetPieceBB(BLACK_QUEEN)) != 0)
+    if ((board.GetPieceBB(BLACK_QUEEN)) != 0)
         return false;
 
     /*
@@ -49,10 +50,10 @@ bool DeadPosition(const Position& position)
     */
 
     //We know the board must contain just knights, bishops and kings
-    int WhiteBishops = GetBitCount(position.GetPieceBB(WHITE_BISHOP));
-    int BlackBishops = GetBitCount(position.GetPieceBB(BLACK_BISHOP));
-    int WhiteKnights = GetBitCount(position.GetPieceBB(WHITE_KNIGHT));
-    int BlackKnights = GetBitCount(position.GetPieceBB(BLACK_KNIGHT));
+    int WhiteBishops = GetBitCount(board.GetPieceBB(WHITE_BISHOP));
+    int BlackBishops = GetBitCount(board.GetPieceBB(BLACK_BISHOP));
+    int WhiteKnights = GetBitCount(board.GetPieceBB(WHITE_KNIGHT));
+    int BlackKnights = GetBitCount(board.GetPieceBB(BLACK_KNIGHT));
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 
@@ -66,8 +67,8 @@ bool DeadPosition(const Position& position)
     return false;
 }
 
-void TempoAdjustment(int& eval, const Position& position)
+void TempoAdjustment(int& eval, const BoardState& board)
 {
     constexpr static int TEMPO = 10;
-    eval += position.GetTurn() == WHITE ? TEMPO : -TEMPO;
+    eval += board.stm == WHITE ? TEMPO : -TEMPO;
 }

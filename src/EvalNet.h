@@ -1,7 +1,11 @@
 #pragma once
 
-class EvalCacheTable;
-class Position;
+#include "GameState.h"
+#include "Zobrist.h"
 
-bool DeadPosition(const Position& position);
-int EvaluatePositionNet(const Position& position, EvalCacheTable& evalTable);
+class EvalCacheTable;
+class BoardState;
+class GameState;
+
+bool DeadPosition(const BoardState& board);
+int EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable);

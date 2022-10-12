@@ -9,9 +9,9 @@ EVALFILE  = d7d569e5.nn
 
 # Find all the C++ files we want to compile
 # I'd use a bash command but not all client have bash
-SRCS := ./BitBoard.cpp \
+SRCS := \
 	BitBoardDefine.cpp \
-	BoardParameters.cpp \
+	BoardState.cpp \
 	EvalCache.cpp \
 	EvalNet.cpp \
 	main.cpp \
@@ -19,7 +19,7 @@ SRCS := ./BitBoard.cpp \
 	MoveGeneration.cpp \
 	MoveList.cpp \
 	Network.cpp \
-	Position.cpp \
+	GameState.cpp \
 	Search.cpp \
 	SearchData.cpp \
 	SearchLimits.cpp \

@@ -9,7 +9,7 @@
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;
 
-class Position;
+class BoardState;
 
 struct HalfAccumulator
 {
@@ -19,7 +19,7 @@ struct HalfAccumulator
 class Network
 {
 public:
-    void Recalculate(const Position& position);
+    void Recalculate(const BoardState& board);
 
     // calculates starting from the first hidden layer and skips input -> hidden
     int16_t Eval(Players stm) const;
