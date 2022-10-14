@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <vector>
 
+#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "MoveList.h"
@@ -164,48 +165,35 @@ uint64_t PinnedMask(const BoardState& board)
     if (IsInCheck(board))
         return UNIVERSE;
 
-    uint64_t mask = EMPTY;
-    uint64_t possiblePins = QueenAttacks[king] & board.GetPiecesColour(STM);
-    uint64_t maskAll = board.GetAllPieces();
+    uint64_t pins = EMPTY;
+    uint64_t all_pieces = board.GetAllPieces();
+    uint64_t our_pieces = board.GetPiecesColour(STM);
 
-    while (possiblePins != 0)
-    {
-        unsigned int sq = LSBpop(possiblePins);
-
-        if (!mayMove(king, sq, maskAll)) //if you can't move from the square to the king, it can't be pinned
-            continue;
-
-        //If a piece is moving from the same diagonal as the king, and that diagonal contains an enemy bishop or queen
-        if ((GetDiagonal(king) == GetDiagonal(sq)) && (DiagonalBB[GetDiagonal(king)] & (board.GetPieceBB(BISHOP, !STM) | board.GetPieceBB(QUEEN, !STM))))
+    auto check_for_pins = [&](uint64_t threats) {
+        while (threats)
         {
-            mask |= SquareBB[sq];
-            continue;
-        }
+            Square threat_sq = static_cast<Square>(LSBpop(threats));
 
-        //If a piece is moving from the same anti-diagonal as the king, and that diagonal contains an enemy bishop or queen
-        if ((GetAntiDiagonal(king) == GetAntiDiagonal(sq)) && (AntiDiagonalBB[GetAntiDiagonal(king)] & (board.GetPieceBB(BISHOP, !STM) | board.GetPieceBB(QUEEN, !STM))))
-        {
-            mask |= SquareBB[sq];
-            continue;
-        }
+            // get the pieces standing in between the king and the threat
+            uint64_t possible_pins = betweenArray[king][threat_sq] & all_pieces;
 
-        //If a piece is moving from the same file as the king, and that file contains an enemy rook or queen
-        if ((GetFile(king) == GetFile(sq)) && (FileBB[GetFile(king)] & (board.GetPieceBB(ROOK, !STM) | board.GetPieceBB(QUEEN, !STM))))
-        {
-            mask |= SquareBB[sq];
-            continue;
+            // if there is just one piece and it's ours it's pinned
+            if (GetBitCount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
+            {
+                pins |= SquareBB[LSBpop(possible_pins)];
+            }
         }
+    };
 
-        //If a piece is moving from the same rank as the king, and that rank contains an enemy rook or queen
-        if ((GetRank(king) == GetRank(sq)) && (RankBB[GetRank(king)] & (board.GetPieceBB(ROOK, !STM) | board.GetPieceBB(QUEEN, !STM))))
-        {
-            mask |= SquareBB[sq];
-            continue;
-        }
-    }
+    // get the enemy bishops and queens on the kings diagonal
+    check_for_pins(DiagonalBB[GetDiagonal(king)] & (board.GetPieceBB(BISHOP, !STM) | board.GetPieceBB(QUEEN, !STM)));
+    check_for_pins(AntiDiagonalBB[GetAntiDiagonal(king)] & (board.GetPieceBB(BISHOP, !STM) | board.GetPieceBB(QUEEN, !STM)));
+    check_for_pins(RankBB[GetRank(king)] & (board.GetPieceBB(ROOK, !STM) | board.GetPieceBB(QUEEN, !STM)));
+    check_for_pins(FileBB[GetFile(king)] & (board.GetPieceBB(ROOK, !STM) | board.GetPieceBB(QUEEN, !STM)));
 
-    mask |= SquareBB[king];
-    return mask;
+    pins |= SquareBB[king];
+
+    return pins;
 }
 
 //Moves going from a square to squares on a bitboard
