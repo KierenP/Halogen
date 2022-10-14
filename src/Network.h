@@ -14,12 +14,17 @@ class BoardState;
 struct HalfAccumulator
 {
     std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
+
+    bool operator==(const HalfAccumulator& rhs) { return side == rhs.side; }
 };
 
 class Network
 {
 public:
     void Recalculate(const BoardState& board);
+
+    // return true if the incrementally updated accumulators are correct
+    bool Verify(const BoardState& board) const;
 
     // calculates starting from the first hidden layer and skips input -> hidden
     int16_t Eval(Players stm) const;
@@ -36,6 +41,8 @@ public:
     static void Init();
 
 private:
+    static int index(Square square, Pieces piece, Players view);
+
     std::vector<HalfAccumulator> AccumulatorStack;
 
     static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;

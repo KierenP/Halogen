@@ -46,18 +46,36 @@ bool Move::IsCapture() const
     return ((data & CAPTURE_MASK) != 0);
 }
 
-std::string Move::to_string() const
+std::string Move::to_string(Players stm, uint64_t castle_sq) const
 {
-    Square prev = GetFrom();
-    Square current = GetTo();
+    Square from = GetFrom();
+    Square to = GetTo();
+
+    // in chess960, castle moves are encoded as king takes rook
+    if (GetFlag() == A_SIDE_CASTLE && stm == WHITE)
+    {
+        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_1]));
+    }
+    if (GetFlag() == H_SIDE_CASTLE && stm == WHITE)
+    {
+        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_1]));
+    }
+    if (GetFlag() == A_SIDE_CASTLE && stm == BLACK)
+    {
+        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_8]));
+    }
+    if (GetFlag() == H_SIDE_CASTLE && stm == BLACK)
+    {
+        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_8]));
+    }
 
     std::string str;
     str.reserve(5);
 
-    str += GetFile(prev) + 'a';
-    str += GetRank(prev) + '1';
-    str += GetFile(current) + 'a';
-    str += GetRank(current) + '1';
+    str += GetFile(from) + 'a';
+    str += GetRank(from) + '1';
+    str += GetFile(to) + 'a';
+    str += GetRank(to) + '1';
 
     if (IsPromotion())
     {
@@ -74,9 +92,9 @@ std::string Move::to_string() const
     return str;
 }
 
-void Move::Print() const
+void Move::Print(Players stm, uint64_t castle_sq) const
 {
-    std::cout << to_string();
+    std::cout << to_string(stm, castle_sq);
 }
 
 void Move::SetFrom(Square from)

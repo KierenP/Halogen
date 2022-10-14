@@ -25,7 +25,7 @@
 
 using namespace ::std;
 
-void PerftSuite();
+void PerftSuite(std::string path, int depth_reduce);
 void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, GameState& position);
 uint64_t Perft(unsigned int depth, GameState& position);
@@ -272,7 +272,10 @@ int main(int argc, char* argv[])
             iss >> token;
 
             if (token == "perft")
-                PerftSuite();
+                PerftSuite("perftsuite.txt", 0);
+
+            if (token == "perft960")
+                PerftSuite("perft960.txt", 1);
         }
 
         else if (token == "stop")
@@ -344,9 +347,9 @@ void PrintVersion()
 #endif
 }
 
-void PerftSuite()
+void PerftSuite(std::string path, int depth_reduce)
 {
-    ifstream infile("perftsuite.txt");
+    ifstream infile(path);
 
     unsigned int Perfts = 0;
     unsigned int Correct = 0;
@@ -368,17 +371,26 @@ void PerftSuite()
             arrayTokens.push_back(stub);
         } while (iss);
 
-        position.InitialiseFromFen(line);
+        string fen = arrayTokens[0] + " "
+            + arrayTokens[1] + " "
+            + arrayTokens[2] + " "
+            + arrayTokens[3] + " "
+            + arrayTokens[4] + " "
+            + arrayTokens[5];
 
-        uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
-        if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
+        position.InitialiseFromFen(fen);
+
+        int depth = (arrayTokens.size() - 7) / 2 - depth_reduce;
+        uint64_t nodes = Perft(depth, position);
+        uint64_t correct = stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce)));
+        if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce))))
         {
-            cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+            cout << "CORRECT   (" << nodes << " == " << correct << ") [" << fen << "] depth: " << depth << std::endl;
             Correct++;
         }
         else
         {
-            cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+            cout << "INCORRECT (" << nodes << " != " << correct << ") [" << fen << "] depth: " << depth << std::endl;
         }
 
         Totalnodes += nodes;
@@ -390,6 +402,7 @@ void PerftSuite()
     cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
     cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
     cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
+    std::cout << std::endl;
 }
 
 uint64_t PerftDivide(unsigned int depth, GameState& position)
@@ -406,7 +419,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position)
         uint64_t ChildNodeCount = Perft(depth - 1, position);
         position.RevertMove();
 
-        moves[i].Print();
+        moves[i].Print(position.Board().stm, position.Board().castle_squares);
         cout << ": " << ChildNodeCount << endl;
         nodeCount += ChildNodeCount;
     }

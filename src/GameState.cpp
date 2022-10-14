@@ -1,4 +1,5 @@
 #include "GameState.h"
+#include "BitBoardDefine.h"
 #include "BoardState.h"
 
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <memory>
 #include <sstream>
 
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
 
@@ -46,18 +48,18 @@ void GameState::ApplyMove(const std::string& strmove)
         if (Board().GetSquare(prev) == WHITE_PAWN || Board().GetSquare(prev) == BLACK_PAWN)
             flag = EN_PASSANT;
 
-    //Castling
+    //Castling (normal chess)
     if (prev == SQ_E1 && next == SQ_G1 && Board().GetSquare(prev) == WHITE_KING)
-        flag = KING_CASTLE;
+        flag = H_SIDE_CASTLE;
 
     if (prev == SQ_E1 && next == SQ_C1 && Board().GetSquare(prev) == WHITE_KING)
-        flag = QUEEN_CASTLE;
+        flag = A_SIDE_CASTLE;
 
     if (prev == SQ_E8 && next == SQ_G8 && Board().GetSquare(prev) == BLACK_KING)
-        flag = KING_CASTLE;
+        flag = H_SIDE_CASTLE;
 
     if (prev == SQ_E8 && next == SQ_C8 && Board().GetSquare(prev) == BLACK_KING)
-        flag = QUEEN_CASTLE;
+        flag = A_SIDE_CASTLE;
 
     //Promotion
     if (strmove.length() == 5) //promotion: c7c8q or d2d1n	etc.
@@ -73,6 +75,35 @@ void GameState::ApplyMove(const std::string& strmove)
 
         if (Board().IsOccupied(next)) //if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag == capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
             flag = static_cast<MoveFlag>(flag + CAPTURE); //might be slow, but don't care.
+    }
+
+    // Castling (chess960)
+    if (Board().GetSquare(prev) == WHITE_KING && Board().GetSquare(next) == WHITE_ROOK)
+    {
+        if (prev > next)
+        {
+            flag = A_SIDE_CASTLE;
+            next = SQ_C1;
+        }
+        else
+        {
+            flag = H_SIDE_CASTLE;
+            next = SQ_G1;
+        }
+    }
+
+    if (Board().GetSquare(prev) == BLACK_KING && Board().GetSquare(next) == BLACK_ROOK)
+    {
+        if (prev > next)
+        {
+            flag = A_SIDE_CASTLE;
+            next = SQ_C8;
+        }
+        else
+        {
+            flag = H_SIDE_CASTLE;
+            next = SQ_G8;
+        }
     }
 
     ApplyMove(Move(prev, next, flag));

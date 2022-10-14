@@ -41,7 +41,7 @@ const std::array<std::array<int, 64>, 64> LMR_reduction = []
     return ret;
 }();
 
-void PrintBestMove(Move Best);
+void PrintBestMove(Move Best, const BoardState& board);
 bool UseTransposition(const TTEntry& entry, int alpha, int beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
 bool AllowedNull(bool allowedNull, const BoardState& board, int beta, int alpha, bool InCheck);
@@ -75,15 +75,12 @@ uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
 {
     //Probe TB at root
     if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
-        && position.Board().white_king_castle == false
-        && position.Board().black_king_castle == false
-        && position.Board().white_queen_castle == false
-        && position.Board().black_queen_castle == false)
+        && position.Board().castle_squares == EMPTY)
     {
         unsigned int result = ProbeTBRoot(position.Board());
         if (result != TB_RESULT_FAILED)
         {
-            PrintBestMove(GetTBMove(result));
+            PrintBestMove(GetTBMove(result), position.Board());
             return 0;
         }
     }
@@ -110,14 +107,14 @@ uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
         threads[i].join();
     }
 
-    PrintBestMove(sharedData.GetBestMove());
+    PrintBestMove(sharedData.GetBestMove(), position.Board());
     return sharedData.getNodes(); //Used by bench searches. Otherwise is discarded.
 }
 
-void PrintBestMove(Move Best)
+void PrintBestMove(Move Best, const BoardState& board)
 {
     std::cout << "bestmove ";
-    Best.Print();
+    Best.Print(board.stm, board.castle_squares);
     std::cout << std::endl;
 }
 
@@ -246,10 +243,7 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
     //Probe TB in search
     if (position.Board().fifty_move_count == 0
         && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
-        && position.Board().white_king_castle == false
-        && position.Board().black_king_castle == false
-        && position.Board().white_queen_castle == false
-        && position.Board().black_queen_castle == false)
+        && position.Board().castle_squares == EMPTY)
     {
         unsigned int result = ProbeTBSearch(position.Board());
         if (result != TB_RESULT_FAILED)

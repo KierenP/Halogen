@@ -25,10 +25,7 @@ public:
     unsigned int half_turn_count;
 
     Players stm = N_PLAYERS;
-    bool white_king_castle;
-    bool white_queen_castle;
-    bool black_king_castle;
-    bool black_queen_castle;
+    uint64_t castle_squares;
 
     Pieces GetSquare(Square square) const;
 

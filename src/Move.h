@@ -9,8 +9,8 @@ enum MoveFlag
 {
     QUIET,
     PAWN_DOUBLE_MOVE,
-    KING_CASTLE,
-    QUEEN_CASTLE,
+    A_SIDE_CASTLE,
+    H_SIDE_CASTLE,
     CAPTURE,
     EN_PASSANT = 5,
 
@@ -40,8 +40,8 @@ public:
     bool IsPromotion() const;
     bool IsCapture() const;
 
-    std::string to_string() const;
-    void Print() const;
+    std::string to_string(Players stm, uint64_t castle_sq) const;
+    void Print(Players stm, uint64_t castle_sq) const;
 
     constexpr bool operator==(const Move& rhs) const
     {

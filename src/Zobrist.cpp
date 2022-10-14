@@ -3,10 +3,11 @@
 #include <cstddef>
 #include <random>
 
+#include "BitBoardDefine.h"
 #include "BoardState.h"
 
-const std::array<uint64_t, 781> Zobrist::ZobristTable = [] {
-    std::array<uint64_t, 781> table;
+const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Zobrist::ZobristTable = [] {
+    std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
 
     std::mt19937_64 gen(0);
     std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
@@ -19,35 +20,42 @@ const std::array<uint64_t, 781> Zobrist::ZobristTable = [] {
     return table;
 }();
 
+void Zobrist::ToggleCastle(Square sq)
+{
+    assert(GetRank(sq) == RANK_1 || GetRank(sq) == RANK_8);
+
+    if (GetRank(sq) == RANK_1)
+        key ^= ZobristTable[12 * 64 + 1 + GetFile(sq)];
+    else
+        key ^= ZobristTable[12 * 64 + 9 + GetFile(sq)];
+}
+
 uint64_t Zobrist::Generate(const BoardState& board)
 {
-    uint64_t Key = EMPTY;
+    Zobrist Key;
 
     for (int i = 0; i < N_PIECES; i++)
     {
         uint64_t bitboard = board.GetPieceBB(static_cast<Pieces>(i));
         while (bitboard != 0)
         {
-            Key ^= ZobristTable.at(i * 64 + LSBpop(bitboard));
+            Key.TogglePieceSquare(static_cast<Pieces>(i), static_cast<Square>(LSBpop(bitboard)));
         }
     }
 
     if (board.stm == WHITE)
-        Key ^= ZobristTable.at(12 * 64);
+        Key.ToggleSTM();
 
-    if (board.white_king_castle)
-        Key ^= ZobristTable.at(12 * 64 + 1);
-    if (board.white_queen_castle)
-        Key ^= ZobristTable.at(12 * 64 + 2);
-    if (board.black_king_castle)
-        Key ^= ZobristTable.at(12 * 64 + 3);
-    if (board.black_queen_castle)
-        Key ^= ZobristTable.at(12 * 64 + 4);
+    auto castle_rights = board.castle_squares;
+    while (castle_rights != 0)
+    {
+        Key.ToggleCastle(static_cast<Square>(LSBpop(castle_rights)));
+    }
 
     if (board.en_passant <= SQ_H8)
     {
-        Key ^= ZobristTable.at(12 * 64 + 5 + GetFile(board.en_passant));
+        Key.ToggleEnpassant(GetFile(board.en_passant));
     }
 
-    return Key;
+    return Key.Key();
 }

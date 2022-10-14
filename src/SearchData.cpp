@@ -248,7 +248,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 
     for (size_t i = 0; i < pv.size(); i++)
     {
-        ss << pv[i].to_string();
+        ss << pv[i].to_string(board.stm, board.castle_squares);
         ss << " ";
     }
 
