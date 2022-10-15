@@ -84,18 +84,18 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
         if (letter == '-')
             continue;
 
-        // parse classic fen (KQkq)
+        // parse classic fen or chess960 fen (KQkq)
         if (letter == 'K')
-            castle_squares |= SquareBB[SQ_H1];
+            castle_squares |= SquareBB[MSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
 
         else if (letter == 'Q')
-            castle_squares |= SquareBB[SQ_A1];
+            castle_squares |= SquareBB[LSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
 
         else if (letter == 'k')
-            castle_squares |= SquareBB[SQ_H8];
+            castle_squares |= SquareBB[MSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
 
         else if (letter == 'q')
-            castle_squares |= SquareBB[SQ_A8];
+            castle_squares |= SquareBB[LSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
 
         // parse Shredder-FEN (HAha)
         else if (letter >= 'A' && letter <= 'H')

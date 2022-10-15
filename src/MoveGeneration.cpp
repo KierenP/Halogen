@@ -641,8 +641,8 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (ColourOfPiece(piece) != board.stm)
         return false;
 
-    /*Make sure we aren't capturing our own piece*/
-    if (board.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(board.GetSquare(move.GetTo())) == board.stm)
+    /*Make sure we aren't capturing our own piece - except when castling it's ok (chess960)*/
+    if (!move.IsCastle() && board.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(board.GetSquare(move.GetTo())) == board.stm)
         return false;
 
     /*We don't use these flags*/
@@ -709,7 +709,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
             return false;
     }
 
-    if ((piece == WHITE_KING || piece == BLACK_KING) && !(move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE))
+    if ((piece == WHITE_KING || piece == BLACK_KING) && !move.IsCastle())
     {
         if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
             return false;

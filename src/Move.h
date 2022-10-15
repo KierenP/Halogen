@@ -32,6 +32,7 @@ class Move
 public:
     Move() = default;
     Move(Square from, Square to, MoveFlag flag);
+    Move(uint64_t data);
 
     Square GetFrom() const;
     Square GetTo() const;
@@ -39,9 +40,13 @@ public:
 
     bool IsPromotion() const;
     bool IsCapture() const;
+    bool IsCastle() const;
 
-    std::string to_string(Players stm, uint64_t castle_sq) const;
-    void Print(Players stm, uint64_t castle_sq) const;
+    std::string to_string() const;
+    void Print() const;
+
+    std::string to_string_960(Players stm, uint64_t castle_sq) const;
+    void Print960(Players stm, uint64_t castle_sq) const;
 
     constexpr bool operator==(const Move& rhs) const
     {

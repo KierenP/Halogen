@@ -99,6 +99,7 @@ struct SearchParameters
 {
     int threads = 1;
     int multiPV = 0;
+    bool chess960 = false;
 };
 
 class ThreadSharedData
@@ -109,7 +110,7 @@ public:
     Move GetBestMove() const;
     unsigned int GetDepth() const;
     bool ThreadAbort(unsigned int initialDepth) const;
-    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const BoardState& position, Move move, const SearchData& locals);
+    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move, const SearchData& locals, bool chess960);
     void ReportWantsToStop(unsigned int threadID);
     int GetAspirationScore() const;
     int GetMultiPVSetting() const { return param.multiPV; };
@@ -125,6 +126,7 @@ public:
     void SetLimits(SearchLimits limits);
     void SetMultiPv(int multiPv) { param.multiPV = multiPv; }
     void SetThreads(int threads);
+    void SetChess960(bool val) { param.chess960 = val; }
     const SearchParameters& GetParameters() { return param; }
     const SearchLimits& GetLimits() { return limits_; }
 
@@ -132,7 +134,7 @@ public:
     void ResetNewGame();
 
 private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const BoardState& position, const SearchData& locals) const;
+    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
     mutable std::mutex ioMutex;
