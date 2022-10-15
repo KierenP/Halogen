@@ -441,7 +441,7 @@ void BoardState::ApplyMove(Move move, Network& net)
     stm = !stm;
 
     assert(key.Verify(*this));
-    assert(network.Verify(*this));
+    assert(net.Verify(*this));
 }
 
 void BoardState::ApplyNullMove()
@@ -458,7 +458,6 @@ void BoardState::ApplyNullMove()
     stm = !stm;
 
     assert(key.Verify(*this));
-    assert(network.Verify(*this));
 }
 
 void BoardState::SetSquareAndUpdate(Square square, Pieces piece, Network& net)
