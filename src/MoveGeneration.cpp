@@ -11,13 +11,9 @@
 #include "MoveList.h"
 
 template <Players STM, typename T>
-void GenerateLegalMoves(const BoardState& board, T& moves, uint64_t pinned);
-template <Players STM, typename T>
 void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned); // captures and/or promotions
 template <Players STM, typename T>
 void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned);
-template <Players STM, typename T>
-void InCheckMoves(const BoardState& board, T& moves, uint64_t pinned);
 
 //Pawn moves
 template <Players STM, typename T>
@@ -56,59 +52,11 @@ void CaptureThreat(const BoardState& board, T& moves, uint64_t threats); // capt
 template <Players STM, typename T>
 void BlockThreat(const BoardState& board, T& moves, uint64_t threats); // block the attacker (single threat only)
 
-template <Players STM, typename T>
-void LegalMoves(const BoardState& board, T& moves)
-{
-    uint64_t pinned = PinnedMask<STM>(board);
-
-    if (IsInCheck(board))
-    {
-        InCheckMoves<STM>(board, moves, pinned);
-    }
-    else
-    {
-        GenerateLegalMoves<STM>(board, moves, pinned);
-    }
-}
-
 template <typename T>
 void LegalMoves(const BoardState& board, T& moves)
 {
-    switch (board.stm)
-    {
-    case WHITE:
-        return LegalMoves<WHITE>(board, moves);
-    case BLACK:
-        return LegalMoves<BLACK>(board, moves);
-    default:
-        throw std::invalid_argument("board object without turn set");
-    }
-}
-
-template <Players STM, typename T>
-void InCheckMoves(const BoardState& board, T& moves, uint64_t pinned)
-{
-    uint64_t Threats = GetThreats(board, board.GetKing(STM), STM);
-    assert(Threats != 0);
-
-    if (GetBitCount(Threats) > 1) //double check
-    {
-        KingEvasions<STM>(board, moves);
-        KingCapturesEvade<STM>(board, moves);
-    }
-    else
-    {
-        PawnPushes<STM>(board, moves, pinned); //pawn moves are hard :( so we calculate those normally
-        PawnDoublePushes<STM>(board, moves, pinned);
-        PawnCaptures<STM>(board, moves, pinned);
-        PawnEnPassant<STM>(board, moves);
-        PawnPromotions<STM>(board, moves, pinned);
-
-        KingEvasions<STM>(board, moves);
-        KingCapturesEvade<STM>(board, moves);
-        CaptureThreat<STM>(board, moves, Threats);
-        BlockThreat<STM>(board, moves, Threats);
-    }
+    QuiescenceMoves(board, moves);
+    QuietMoves(board, moves);
 }
 
 template <typename T>
@@ -122,6 +70,46 @@ void QuiescenceMoves(const BoardState& board, T& moves)
         return AddQuiescenceMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
     default:
         throw std::invalid_argument("board object without turn set");
+    }
+}
+
+template <Players STM, typename T>
+void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
+{
+    uint64_t threats = GetThreats(board, board.GetKing(STM), STM);
+    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
+
+    if (GetBitCount(threats) == 2)
+    {
+        // double check
+        KingCapturesEvade<STM>(board, moves);
+    }
+    else if (GetBitCount(threats) == 1)
+    {
+        // single check
+        PawnCaptures<STM>(board, moves, pinned);
+        PawnEnPassant<STM>(board, moves);
+        PawnPromotions<STM>(board, moves, pinned);
+        KingCapturesEvade<STM>(board, moves);
+        CaptureThreat<STM>(board, moves, threats);
+    }
+    else
+    {
+        // not in check
+        PawnCaptures<STM>(board, moves, pinned);
+        PawnEnPassant<STM>(board, moves);
+        PawnPromotions<STM>(board, moves, pinned);
+
+        for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
+            GenerateMoves<KNIGHT, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
+            GenerateMoves<BISHOP, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
+            GenerateMoves<KING, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
+            GenerateMoves<ROOK, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
+            GenerateMoves<QUEEN, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
     }
 }
 
@@ -140,22 +128,41 @@ void QuietMoves(const BoardState& board, T& moves)
 }
 
 template <Players STM, typename T>
-void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
+void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
-    PawnCaptures<STM>(board, moves, pinned);
-    PawnEnPassant<STM>(board, moves);
-    PawnPromotions<STM>(board, moves, pinned);
+    uint64_t threats = GetThreats(board, board.GetKing(STM), STM);
+    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
 
-    for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
-        GenerateMoves<KNIGHT, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
-        GenerateMoves<BISHOP, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
-        GenerateMoves<KING, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
-        GenerateMoves<ROOK, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
-        GenerateMoves<QUEEN, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+    if (GetBitCount(threats) == 2)
+    {
+        // double check
+        KingEvasions<STM>(board, moves);
+    }
+    else if (GetBitCount(threats) == 1)
+    {
+        // single check
+        PawnPushes<STM>(board, moves, pinned);
+        PawnDoublePushes<STM>(board, moves, pinned);
+        KingEvasions<STM>(board, moves);
+        BlockThreat<STM>(board, moves, threats);
+    }
+    else
+    {
+        PawnPushes<STM>(board, moves, pinned);
+        PawnDoublePushes<STM>(board, moves, pinned);
+        CastleMoves<STM>(board, moves);
+
+        for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
+            GenerateMoves<KNIGHT, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
+            GenerateMoves<BISHOP, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
+            GenerateMoves<QUEEN, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
+            GenerateMoves<ROOK, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+        for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
+            GenerateMoves<KING, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+    }
 }
 
 template <Players STM>
@@ -267,32 +274,6 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
         uint64_t potentialBlockers = GetThreats(board, square, !STM) & ~board.GetPieceBB(Piece(PAWN, STM)); //pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
         AppendLegalMoves<STM>(potentialBlockers, square, board, QUIET, moves);
     }
-}
-
-template <Players STM, typename T>
-void GenerateLegalMoves(const BoardState& board, T& moves, uint64_t pinned)
-{
-    AddQuietMoves<STM>(board, moves, pinned);
-    AddQuiescenceMoves<STM>(board, moves, pinned);
-}
-
-template <Players STM, typename T>
-void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
-{
-    PawnPushes<STM>(board, moves, pinned);
-    PawnDoublePushes<STM>(board, moves, pinned);
-    CastleMoves<STM>(board, moves);
-
-    for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
-        GenerateMoves<KNIGHT, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
-        GenerateMoves<BISHOP, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
-        GenerateMoves<QUEEN, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
-        GenerateMoves<ROOK, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
-    for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
-        GenerateMoves<KING, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
 }
 
 template <Players STM, typename T>
