@@ -21,7 +21,7 @@ Move::Move(Square from, Square to, MoveFlag flag)
     SetFlag(flag);
 }
 
-Move::Move(uint64_t data_)
+Move::Move(uint16_t data_)
     : data(data_)
 {
 }

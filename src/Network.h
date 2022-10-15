@@ -15,7 +15,7 @@ struct HalfAccumulator
 {
     std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
 
-    bool operator==(const HalfAccumulator& rhs) { return side == rhs.side; }
+    bool operator==(const HalfAccumulator& rhs) const { return side == rhs.side; }
 };
 
 class Network

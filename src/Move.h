@@ -32,7 +32,7 @@ class Move
 public:
     Move() = default;
     Move(Square from, Square to, MoveFlag flag);
-    Move(uint64_t data);
+    explicit Move(uint16_t data);
 
     Square GetFrom() const;
     Square GetTo() const;
