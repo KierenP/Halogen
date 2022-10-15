@@ -1,5 +1,6 @@
 #include "BoardState.h"
 
+#include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "Network.h"
@@ -19,10 +20,7 @@ void BoardState::Reset()
     half_turn_count = 1;
 
     stm = N_PLAYERS;
-    white_king_castle = false;
-    white_queen_castle = false;
-    black_king_castle = false;
-    black_queen_castle = false;
+    castle_squares = EMPTY;
 
     board = {};
 
@@ -76,21 +74,39 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
 
     if (fen[1] == "w")
         stm = WHITE;
-
-    if (fen[1] == "b")
+    else if (fen[1] == "b")
         stm = BLACK;
+    else
+        return false;
 
-    if (fen[2].find('K') != std::string::npos)
-        white_king_castle = true;
+    for (auto& letter : fen[2])
+    {
+        if (letter == '-')
+            continue;
 
-    if (fen[2].find('Q') != std::string::npos)
-        white_queen_castle = true;
+        // parse classic fen or chess960 fen (KQkq)
+        if (letter == 'K')
+            castle_squares |= SquareBB[MSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
 
-    if (fen[2].find('k') != std::string::npos)
-        black_king_castle = true;
+        else if (letter == 'Q')
+            castle_squares |= SquareBB[LSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
 
-    if (fen[2].find('q') != std::string::npos)
-        black_queen_castle = true;
+        else if (letter == 'k')
+            castle_squares |= SquareBB[MSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
+
+        else if (letter == 'q')
+            castle_squares |= SquareBB[LSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
+
+        // parse Shredder-FEN (HAha)
+        else if (letter >= 'A' && letter <= 'H')
+            castle_squares |= SquareBB[letter - 'A'];
+
+        else if (letter >= 'a' && letter <= 'h')
+            castle_squares |= SquareBB[SQ_A8 + letter - 'a'];
+
+        else
+            return false;
+    }
 
     en_passant = static_cast<Square>(AlgebraicToPos(fen[3]));
 
@@ -213,60 +229,49 @@ uint64_t BoardState::GetBlackPieces() const
 
 void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
 {
-    if (move.GetFrom() == SQ_E1 || move.GetTo() == SQ_E1) //Check for the piece moving off the square, or a capture happening on the square (enemy moving to square)
+    // check for the king or rook moving, or a rook being captured
+    // we must remember that the move has already been applied
+
+    if (move.GetTo() == GetKing(WHITE))
     {
-        if (white_king_castle)
-            zobrist.ToggleWhiteKingside();
+        // get castle squares on white side
+        uint64_t white_castle = castle_squares & RankBB[RANK_1];
 
-        if (white_queen_castle)
-            zobrist.ToggleWhiteQueenside();
+        while (white_castle)
+        {
+            auto sq = static_cast<Square>(LSBpop(white_castle));
+            zobrist.ToggleCastle(sq);
+        }
 
-        white_king_castle = false;
-        white_queen_castle = false;
+        // switch any set bits on first rank to 0
+        castle_squares &= ~(RankBB[RANK_1]);
     }
 
-    if (move.GetFrom() == SQ_E8 || move.GetTo() == SQ_E8)
+    if (move.GetTo() == GetKing(BLACK))
     {
-        if (black_king_castle)
-            zobrist.ToggleBlackKingsize();
+        // get castle squares on black side
+        uint64_t black_castle = castle_squares & RankBB[RANK_8];
 
-        if (black_queen_castle)
-            zobrist.ToggleBlackQueensize();
+        while (black_castle)
+        {
+            auto sq = static_cast<Square>(LSBpop(black_castle));
+            zobrist.ToggleCastle(sq);
+        }
 
-        black_king_castle = false;
-        black_queen_castle = false;
+        // switch any set bits on first rank to 0
+        castle_squares &= ~(RankBB[RANK_8]);
     }
 
-    if (move.GetFrom() == SQ_A1 || move.GetTo() == SQ_A1)
+    if (SquareBB[move.GetTo()] & castle_squares)
     {
-        if (white_queen_castle)
-            zobrist.ToggleWhiteQueenside();
-
-        white_queen_castle = false;
+        zobrist.ToggleCastle(move.GetTo());
+        castle_squares &= ~SquareBB[move.GetTo()];
     }
 
-    if (move.GetFrom() == SQ_A8 || move.GetTo() == SQ_A8)
+    if (SquareBB[move.GetFrom()] & castle_squares)
     {
-        if (black_queen_castle)
-            zobrist.ToggleBlackQueensize();
-
-        black_queen_castle = false;
-    }
-
-    if (move.GetFrom() == SQ_H1 || move.GetTo() == SQ_H1)
-    {
-        if (white_king_castle)
-            zobrist.ToggleWhiteKingside();
-
-        white_king_castle = false;
-    }
-
-    if (move.GetFrom() == SQ_H8 || move.GetTo() == SQ_H8)
-    {
-        if (black_king_castle)
-            zobrist.ToggleBlackKingsize();
-
-        black_king_castle = false;
+        zobrist.ToggleCastle(move.GetFrom());
+        castle_squares &= ~SquareBB[move.GetFrom()];
     }
 }
 
@@ -307,32 +312,13 @@ void BoardState::ApplyMove(Move move, Network& net)
         key.ToggleEnpassant(GetFile(en_passant));
 
     en_passant = N_SQUARES;
-    fifty_move_count++;
 
-    if (move.IsCapture() && move.GetFlag() != EN_PASSANT)
-    {
-        net.RemoveInput(move.GetTo(), GetSquare(move.GetTo()));
-        key.TogglePieceSquare(GetSquare(move.GetTo()), move.GetTo());
-    }
-
-    if (!move.IsPromotion())
-        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()), net);
-
-    if (move.GetFlag() == KING_CASTLE)
-    {
-        SetSquareAndUpdate(GetPosition(FILE_F, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_H, GetRank(move.GetFrom()))), net);
-        ClearSquareAndUpdate(GetPosition(FILE_H, GetRank(move.GetFrom())), net);
-    }
-
-    if (move.GetFlag() == QUEEN_CASTLE)
-    {
-        SetSquareAndUpdate(GetPosition(FILE_D, GetRank(move.GetFrom())), GetSquare(GetPosition(FILE_A, GetRank(move.GetFrom()))), net);
-        ClearSquareAndUpdate(GetPosition(FILE_A, GetRank(move.GetFrom())), net);
-    }
-
-    //for some special moves we need to do other things
     switch (move.GetFlag())
     {
+    case QUIET:
+        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
     case PAWN_DOUBLE_MOVE:
     {
         //average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
@@ -362,40 +348,100 @@ void BoardState::ApplyMove(Move move, Network& net)
             }
         }
 
+        SetSquareAndUpdate(move.GetTo(), Piece(PAWN, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     }
+    case A_SIDE_CASTLE:
+    {
+        Square king_start = move.GetFrom();
+        Square king_end = move.GetTo();
+        Square rook_start = static_cast<Square>(LSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]));
+        Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
+
+        ClearSquareAndUpdate(king_start, net);
+        ClearSquareAndUpdate(rook_start, net);
+        SetSquareAndUpdate(king_end, Piece(KING, stm), net);
+        SetSquareAndUpdate(rook_end, Piece(ROOK, stm), net);
+
+        break;
+    }
+    case H_SIDE_CASTLE:
+    {
+        Square king_start = move.GetFrom();
+        Square king_end = move.GetTo();
+        Square rook_start = static_cast<Square>(MSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]));
+        Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
+
+        ClearSquareAndUpdate(king_start, net);
+        ClearSquareAndUpdate(rook_start, net);
+        SetSquareAndUpdate(king_end, Piece(KING, stm), net);
+        SetSquareAndUpdate(rook_end, Piece(ROOK, stm), net);
+
+        break;
+    }
+    case CAPTURE:
+        ClearSquareAndUpdate(move.GetTo(), net);
+        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
     case EN_PASSANT:
+        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()), net);
         ClearSquareAndUpdate(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     case KNIGHT_PROMOTION:
-    case KNIGHT_PROMOTION_CAPTURE:
         SetSquareAndUpdate(move.GetTo(), Piece(KNIGHT, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     case BISHOP_PROMOTION:
-    case BISHOP_PROMOTION_CAPTURE:
         SetSquareAndUpdate(move.GetTo(), Piece(BISHOP, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     case ROOK_PROMOTION:
-    case ROOK_PROMOTION_CAPTURE:
         SetSquareAndUpdate(move.GetTo(), Piece(ROOK, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     case QUEEN_PROMOTION:
-    case QUEEN_PROMOTION_CAPTURE:
         SetSquareAndUpdate(move.GetTo(), Piece(QUEEN, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
+    case KNIGHT_PROMOTION_CAPTURE:
+        ClearSquareAndUpdate(move.GetTo(), net);
+        SetSquareAndUpdate(move.GetTo(), Piece(KNIGHT, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
+    case BISHOP_PROMOTION_CAPTURE:
+        ClearSquareAndUpdate(move.GetTo(), net);
+        SetSquareAndUpdate(move.GetTo(), Piece(BISHOP, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
+    case ROOK_PROMOTION_CAPTURE:
+        ClearSquareAndUpdate(move.GetTo(), net);
+        SetSquareAndUpdate(move.GetTo(), Piece(ROOK, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
+        break;
+    case QUEEN_PROMOTION_CAPTURE:
+        ClearSquareAndUpdate(move.GetTo(), net);
+        SetSquareAndUpdate(move.GetTo(), Piece(QUEEN, stm), net);
+        ClearSquareAndUpdate(move.GetFrom(), net);
         break;
     default:
-        break;
+        assert(0);
     }
+
+    UpdateCastleRights(move, key);
 
     if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, stm) || move.IsPromotion())
         fifty_move_count = 0;
+    else
+        fifty_move_count++;
 
-    ClearSquareAndUpdate(move.GetFrom(), net);
     half_turn_count += 1;
     stm = !stm;
-    UpdateCastleRights(move, key);
 
     assert(key.Verify(*this));
+    assert(net.Verify(*this));
 }
 
 void BoardState::ApplyNullMove()

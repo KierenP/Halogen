@@ -25,13 +25,13 @@
 
 using namespace ::std;
 
-void PerftSuite();
+void PerftSuite(std::string path, int depth_reduce, bool check_legality);
 void PrintVersion();
-uint64_t PerftDivide(unsigned int depth, GameState& position);
-uint64_t Perft(unsigned int depth, GameState& position);
+uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality);
+uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 14);
 
-string version = "11.3";
+string version = "11.4";
 
 int main(int argc, char* argv[])
 {
@@ -75,6 +75,7 @@ int main(int argc, char* argv[])
             cout << "option name Threads type spin default 1 min 1 max 256" << endl;
             cout << "option name SyzygyPath type string default <empty>" << endl;
             cout << "option name MultiPV type spin default 1 min 1 max 500" << endl;
+            cout << "option name UCI_Chess960 type check default false" << endl;
             cout << "uciok" << endl;
         }
 
@@ -246,6 +247,14 @@ int main(int argc, char* argv[])
                 data.SetMultiPv(stoi(token));
             }
 
+            else if (token == "UCI_Chess960")
+            {
+                iss >> token; //'value'
+                iss >> token;
+                std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
+                data.SetChess960(token == "true" ? true : false);
+            }
+
             else if (token == "timeIncCoeffA")
             {
                 iss >> token; //'value'
@@ -264,7 +273,7 @@ int main(int argc, char* argv[])
         else if (token == "perft")
         {
             iss >> token;
-            PerftDivide(stoi(token), position);
+            PerftDivide(stoi(token), position, data.GetParameters().chess960, false);
         }
 
         else if (token == "test")
@@ -272,7 +281,16 @@ int main(int argc, char* argv[])
             iss >> token;
 
             if (token == "perft")
-                PerftSuite();
+                PerftSuite("perftsuite.txt", 0, false);
+
+            if (token == "perft960")
+                PerftSuite("perft960.txt", 0, false);
+
+            if (token == "perft_legality")
+                PerftSuite("perftsuite.txt", 2, true);
+
+            if (token == "perft960_legality")
+                PerftSuite("perft960.txt", 3, true);
         }
 
         else if (token == "stop")
@@ -344,9 +362,9 @@ void PrintVersion()
 #endif
 }
 
-void PerftSuite()
+void PerftSuite(std::string path, int depth_reduce, bool check_legality)
 {
-    ifstream infile("perftsuite.txt");
+    ifstream infile(path);
 
     unsigned int Perfts = 0;
     unsigned int Correct = 0;
@@ -368,17 +386,26 @@ void PerftSuite()
             arrayTokens.push_back(stub);
         } while (iss);
 
-        position.InitialiseFromFen(line);
+        string fen = arrayTokens[0] + " "
+            + arrayTokens[1] + " "
+            + arrayTokens[2] + " "
+            + arrayTokens[3] + " "
+            + arrayTokens[4] + " "
+            + arrayTokens[5];
 
-        uint64_t nodes = Perft((arrayTokens.size() - 7) / 2, position);
-        if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2)))
+        position.InitialiseFromFen(fen);
+
+        int depth = (arrayTokens.size() - 7) / 2 - depth_reduce;
+        uint64_t nodes = Perft(depth, position, check_legality);
+        uint64_t correct = stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce)));
+        if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce))))
         {
-            cout << "\nCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+            cout << "CORRECT   (" << nodes << " == " << correct << ") [" << fen << "] depth: " << depth << std::endl;
             Correct++;
         }
         else
         {
-            cout << "\nINCORRECT Perft with depth " << (arrayTokens.size() - 7) / 2 << " = " << nodes << " leaf nodes";
+            cout << "INCORRECT (" << nodes << " != " << correct << ") [" << fen << "] depth: " << depth << std::endl;
         }
 
         Totalnodes += nodes;
@@ -390,9 +417,10 @@ void PerftSuite()
     cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
     cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
     cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
+    std::cout << std::endl;
 }
 
-uint64_t PerftDivide(unsigned int depth, GameState& position)
+uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality)
 {
     auto before = std::chrono::steady_clock::now();
 
@@ -403,10 +431,18 @@ uint64_t PerftDivide(unsigned int depth, GameState& position)
     for (size_t i = 0; i < moves.size(); i++)
     {
         position.ApplyMove(moves[i]);
-        uint64_t ChildNodeCount = Perft(depth - 1, position);
+        uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();
 
-        moves[i].Print();
+        if (chess960)
+        {
+            moves[i].Print960(position.Board().stm, position.Board().castle_squares);
+        }
+        else
+        {
+            moves[i].Print();
+        }
+
         cout << ": " << ChildNodeCount << endl;
         nodeCount += ChildNodeCount;
     }
@@ -419,7 +455,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position)
     return nodeCount;
 }
 
-uint64_t Perft(unsigned int depth, GameState& position)
+uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 {
     if (depth == 0)
         return 1; //if perftdivide is called with 1 this is necesary
@@ -428,29 +464,26 @@ uint64_t Perft(unsigned int depth, GameState& position)
     BasicMoveList moves;
     LegalMoves(position.Board(), moves);
 
-    /*for (int i = 0; i < UINT16_MAX; i++)
-	{
-		Move test(i);
-		bool legal = MoveIsLegal(position, test);
+    if (check_legality)
+    {
+        for (int i = 0; i < UINT16_MAX; i++)
+        {
+            Move move(i);
+            bool legal = MoveIsLegal(position.Board(), move);
 
-		bool present = false;
+            bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
-		for (size_t j = 0; j < moves.size(); j++)
-		{
-			if (moves[j].GetData() == i)
-				present = true;
-		}
-
-		if (present != legal)
-		{
-			position.Print();
-			test.Print();
-			std::cout << std::endl;
-			std::cout << present << " " << legal << std::endl;
-			std::cout << test.GetFrom() << " " << test.GetTo() << " " << test.GetFlag() << std::endl;
-			std::cout << MoveIsLegal(position, test);
-		}
-	}*/
+            if (present != legal)
+            {
+                position.Board().Print();
+                move.Print();
+                std::cout << std::endl;
+                std::cout << present << " " << legal << std::endl;
+                std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;
+                return 0; // cause perft answer to be incorrect
+            }
+        }
+    }
 
     if (depth == 1)
         return moves.size();
@@ -458,7 +491,7 @@ uint64_t Perft(unsigned int depth, GameState& position)
     for (size_t i = 0; i < moves.size(); i++)
     {
         position.ApplyMove(moves[i]);
-        nodeCount += Perft(depth - 1, position);
+        nodeCount += Perft(depth - 1, position, check_legality);
         position.RevertMove();
     }
 

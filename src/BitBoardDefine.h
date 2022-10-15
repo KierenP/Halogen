@@ -444,6 +444,7 @@ constexpr std::array<uint64_t, N_SQUARES> QueenAttacks = BitBoardInit::Queen();
 
 int LSBpop(uint64_t& bb);
 int LSB(uint64_t bb);
+int MSB(uint64_t bb);
 
 constexpr bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
 {

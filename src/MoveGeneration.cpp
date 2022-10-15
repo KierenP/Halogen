@@ -33,7 +33,7 @@ void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pi
 
 //misc
 template <Players STM, typename T>
-void CastleMoves(const BoardState& board, T& moves);
+void CastleMoves(const BoardState& board, T& moves, uint64_t pinned);
 
 //utility functions
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move);
@@ -150,7 +150,7 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
     {
         PawnPushes<STM>(board, moves, pinned);
         PawnDoublePushes<STM>(board, moves, pinned);
-        CastleMoves<STM>(board, moves);
+        CastleMoves<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
             GenerateMoves<KNIGHT, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
@@ -453,60 +453,79 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
     }
 }
 
-void CastleMoves(const BoardState& board, std::vector<Move>& moves)
+bool CheckCastleMove(const BoardState& board, Square king_start_sq, Square king_end_sq, Square rook_start_sq, Square rook_end_sq)
 {
-    uint64_t Pieces = board.GetAllPieces();
+    uint64_t blockers = board.GetAllPieces() ^ SquareBB[king_start_sq] ^ SquareBB[rook_start_sq];
 
-    if (board.white_king_castle && board.stm == WHITE)
+    if ((betweenArray[rook_start_sq][rook_end_sq] | SquareBB[rook_end_sq]) & blockers)
     {
-        if (mayMove(SQ_E1, SQ_H1, Pieces))
+        return false;
+    }
+
+    if ((betweenArray[king_start_sq][king_end_sq] | SquareBB[king_end_sq]) & blockers)
+    {
+        return false;
+    }
+
+    uint64_t king_path = betweenArray[king_start_sq][king_end_sq] | SquareBB[king_start_sq] | SquareBB[king_end_sq];
+
+    while (king_path)
+    {
+        Square sq = static_cast<Square>(LSBpop(king_path));
+        if (IsSquareThreatened(board, sq, board.stm))
         {
-            if (!IsSquareThreatened(board, SQ_E1, board.stm) && !IsSquareThreatened(board, SQ_F1, board.stm) && !IsSquareThreatened(board, SQ_G1, board.stm))
-            {
-                moves.emplace_back(SQ_E1, SQ_G1, KING_CASTLE);
-            }
+            return false;
         }
     }
 
-    if (board.white_queen_castle && board.stm == WHITE)
+    return true;
+}
+
+void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pinned)
+{
+    // tricky edge case, if the rook is pinned then castling will put the king in check,
+    // but it is possible none of the squares the king will move through will be threatened
+    // before the rook is moved.
+    uint64_t white_castle = board.castle_squares & RankBB[RANK_1] & ~pinned;
+
+    while (board.stm == WHITE && white_castle)
     {
-        if (mayMove(SQ_E1, SQ_A1, Pieces))
+        Square king_sq = board.GetKing(WHITE);
+        Square rook_sq = static_cast<Square>(LSBpop(white_castle));
+
+        if (king_sq > rook_sq && CheckCastleMove(board, king_sq, SQ_C1, rook_sq, SQ_D1))
         {
-            if (!IsSquareThreatened(board, SQ_E1, board.stm) && !IsSquareThreatened(board, SQ_D1, board.stm) && !IsSquareThreatened(board, SQ_C1, board.stm))
-            {
-                moves.emplace_back(SQ_E1, SQ_C1, QUEEN_CASTLE);
-            }
+            moves.emplace_back(king_sq, SQ_C1, A_SIDE_CASTLE);
+        }
+        if (king_sq < rook_sq && CheckCastleMove(board, king_sq, SQ_G1, rook_sq, SQ_F1))
+        {
+            moves.emplace_back(king_sq, SQ_G1, H_SIDE_CASTLE);
         }
     }
 
-    if (board.black_king_castle && board.stm == BLACK)
-    {
-        if (mayMove(SQ_E8, SQ_H8, Pieces))
-        {
-            if (!IsSquareThreatened(board, SQ_E8, board.stm) && !IsSquareThreatened(board, SQ_F8, board.stm) && !IsSquareThreatened(board, SQ_G8, board.stm))
-            {
-                moves.emplace_back(SQ_E8, SQ_G8, KING_CASTLE);
-            }
-        }
-    }
+    uint64_t black_castle = board.castle_squares & RankBB[RANK_8] & ~pinned;
 
-    if (board.black_queen_castle && board.stm == BLACK)
+    while (board.stm == BLACK && black_castle)
     {
-        if (mayMove(SQ_E8, SQ_A8, Pieces))
+        Square king_sq = board.GetKing(BLACK);
+        Square rook_sq = static_cast<Square>(LSBpop(black_castle));
+
+        if (king_sq > rook_sq && CheckCastleMove(board, king_sq, SQ_C8, rook_sq, SQ_D8))
         {
-            if (!IsSquareThreatened(board, SQ_E8, board.stm) && !IsSquareThreatened(board, SQ_D8, board.stm) && !IsSquareThreatened(board, SQ_C8, board.stm))
-            {
-                moves.emplace_back(SQ_E8, SQ_C8, QUEEN_CASTLE);
-            }
+            moves.emplace_back(king_sq, SQ_C8, A_SIDE_CASTLE);
+        }
+        if (king_sq < rook_sq && CheckCastleMove(board, king_sq, SQ_G8, rook_sq, SQ_F8))
+        {
+            moves.emplace_back(king_sq, SQ_G8, H_SIDE_CASTLE);
         }
     }
 }
 
 template <Players STM, typename T>
-void CastleMoves(const BoardState& board, T& moves)
+void CastleMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     std::vector<Move> tmp;
-    CastleMoves(board, tmp);
+    CastleMoves(board, tmp, pinned);
     for (auto& move : tmp)
         moves.emplace_back(move);
 }
@@ -622,8 +641,8 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (ColourOfPiece(piece) != board.stm)
         return false;
 
-    /*Make sure we aren't capturing our own piece*/
-    if (board.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(board.GetSquare(move.GetTo())) == board.stm)
+    /*Make sure we aren't capturing our own piece - except when castling it's ok (chess960)*/
+    if (!move.IsCastle() && board.GetSquare(move.GetTo()) != N_PIECES && ColourOfPiece(board.GetSquare(move.GetTo())) == board.stm)
         return false;
 
     /*We don't use these flags*/
@@ -690,7 +709,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
             return false;
     }
 
-    if ((piece == WHITE_KING || piece == BLACK_KING) && !(move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE))
+    if ((piece == WHITE_KING || piece == BLACK_KING) && !move.IsCastle())
     {
         if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
             return false;
@@ -715,10 +734,10 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     }
 
     /*For castle moves, just generate them and see if we find a match*/
-    if (move.GetFlag() == KING_CASTLE || move.GetFlag() == QUEEN_CASTLE)
+    if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
     {
         std::vector<Move> moves;
-        CastleMoves(board, moves);
+        CastleMoves(board, moves, board.stm == WHITE ? PinnedMask<WHITE>(board) : PinnedMask<BLACK>(board));
 
         for (size_t i = 0; i < moves.size(); i++)
         {
@@ -746,19 +765,6 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (move.GetTo() == board.en_passant)
         if (board.GetSquare(move.GetFrom()) == WHITE_PAWN || board.GetSquare(move.GetFrom()) == BLACK_PAWN)
             flag = EN_PASSANT;
-
-    //Castling
-    if (move.GetFrom() == SQ_E1 && move.GetTo() == SQ_G1 && board.GetSquare(move.GetFrom()) == WHITE_KING)
-        flag = KING_CASTLE;
-
-    if (move.GetFrom() == SQ_E1 && move.GetTo() == SQ_C1 && board.GetSquare(move.GetFrom()) == WHITE_KING)
-        flag = QUEEN_CASTLE;
-
-    if (move.GetFrom() == SQ_E8 && move.GetTo() == SQ_G8 && board.GetSquare(move.GetFrom()) == BLACK_KING)
-        flag = KING_CASTLE;
-
-    if (move.GetFrom() == SQ_E8 && move.GetTo() == SQ_C8 && board.GetSquare(move.GetFrom()) == BLACK_KING)
-        flag = QUEEN_CASTLE;
 
     //Promotion
     if ((board.GetSquare(move.GetFrom()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_8)
@@ -801,8 +807,8 @@ This function does not work for casteling moves. They are tested for legality th
 */
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
 {
-    assert(move.GetFlag() != KING_CASTLE);
-    assert(move.GetFlag() != QUEEN_CASTLE);
+    assert(move.GetFlag() != A_SIDE_CASTLE);
+    assert(move.GetFlag() != H_SIDE_CASTLE);
 
     BoardState copy = board;
 

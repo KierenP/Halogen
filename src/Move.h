@@ -9,8 +9,8 @@ enum MoveFlag
 {
     QUIET,
     PAWN_DOUBLE_MOVE,
-    KING_CASTLE,
-    QUEEN_CASTLE,
+    A_SIDE_CASTLE,
+    H_SIDE_CASTLE,
     CAPTURE,
     EN_PASSANT = 5,
 
@@ -32,6 +32,7 @@ class Move
 public:
     Move() = default;
     Move(Square from, Square to, MoveFlag flag);
+    explicit Move(uint16_t data);
 
     Square GetFrom() const;
     Square GetTo() const;
@@ -39,9 +40,13 @@ public:
 
     bool IsPromotion() const;
     bool IsCapture() const;
+    bool IsCastle() const;
 
     std::string to_string() const;
     void Print() const;
+
+    std::string to_string_960(Players stm, uint64_t castle_sq) const;
+    void Print960(Players stm, uint64_t castle_sq) const;
 
     constexpr bool operator==(const Move& rhs) const
     {

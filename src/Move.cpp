@@ -21,6 +21,11 @@ Move::Move(Square from, Square to, MoveFlag flag)
     SetFlag(flag);
 }
 
+Move::Move(uint16_t data_)
+    : data(data_)
+{
+}
+
 Square Move::GetFrom() const
 {
     return static_cast<Square>(data & FROM_MASK);
@@ -46,18 +51,41 @@ bool Move::IsCapture() const
     return ((data & CAPTURE_MASK) != 0);
 }
 
-std::string Move::to_string() const
+bool Move::IsCastle() const
 {
-    Square prev = GetFrom();
-    Square current = GetTo();
+    return GetFlag() == A_SIDE_CASTLE || GetFlag() == H_SIDE_CASTLE;
+}
+
+std::string Move::to_string_960(Players stm, uint64_t castle_sq) const
+{
+    Square from = GetFrom();
+    Square to = GetTo();
+
+    // in chess960, castle moves are encoded as king takes rook
+    if (GetFlag() == A_SIDE_CASTLE && stm == WHITE)
+    {
+        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_1]));
+    }
+    if (GetFlag() == H_SIDE_CASTLE && stm == WHITE)
+    {
+        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_1]));
+    }
+    if (GetFlag() == A_SIDE_CASTLE && stm == BLACK)
+    {
+        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_8]));
+    }
+    if (GetFlag() == H_SIDE_CASTLE && stm == BLACK)
+    {
+        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_8]));
+    }
 
     std::string str;
     str.reserve(5);
 
-    str += GetFile(prev) + 'a';
-    str += GetRank(prev) + '1';
-    str += GetFile(current) + 'a';
-    str += GetRank(current) + '1';
+    str += GetFile(from) + 'a';
+    str += GetRank(from) + '1';
+    str += GetFile(to) + 'a';
+    str += GetRank(to) + '1';
 
     if (IsPromotion())
     {
@@ -72,6 +100,39 @@ std::string Move::to_string() const
     }
 
     return str;
+}
+
+std::string Move::to_string() const
+{
+    Square from = GetFrom();
+    Square to = GetTo();
+
+    std::string str;
+    str.reserve(5);
+
+    str += GetFile(from) + 'a';
+    str += GetRank(from) + '1';
+    str += GetFile(to) + 'a';
+    str += GetRank(to) + '1';
+
+    if (IsPromotion())
+    {
+        if (GetFlag() == KNIGHT_PROMOTION || GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+            str += "n";
+        if (GetFlag() == BISHOP_PROMOTION || GetFlag() == BISHOP_PROMOTION_CAPTURE)
+            str += "b";
+        if (GetFlag() == QUEEN_PROMOTION || GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            str += "q";
+        if (GetFlag() == ROOK_PROMOTION || GetFlag() == ROOK_PROMOTION_CAPTURE)
+            str += "r";
+    }
+
+    return str;
+}
+
+void Move::Print960(Players stm, uint64_t castle_sq) const
+{
+    std::cout << to_string_960(stm, castle_sq);
 }
 
 void Move::Print() const

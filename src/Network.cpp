@@ -82,6 +82,46 @@ void Network::Recalculate(const BoardState& board)
     }
 }
 
+Square MirrorVertically(Square sq)
+{
+    return static_cast<Square>(sq ^ 56);
+}
+
+int Network::index(Square square, Pieces piece, Players view)
+{
+    Square sq = view == WHITE ? square : MirrorVertically(square);
+    Pieces relativeColor = static_cast<Pieces>(view == ColourOfPiece(piece));
+    PieceTypes pieceType = GetPieceType(piece);
+
+    return sq + pieceType * 64 + relativeColor * 64 * 6;
+}
+
+bool Network::Verify(const BoardState& board) const
+{
+    HalfAccumulator correct_answer = { hiddenBias, hiddenBias };
+
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        Pieces piece = static_cast<Pieces>(i);
+        uint64_t bb = board.GetPieceBB(piece);
+
+        while (bb)
+        {
+            Square sq = static_cast<Square>(LSBpop(bb));
+            size_t white_index = index(sq, piece, WHITE);
+            size_t black_index = index(sq, piece, BLACK);
+
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+            {
+                correct_answer.side[WHITE][j] += hiddenWeights[white_index][j];
+                correct_answer.side[BLACK][j] += hiddenWeights[black_index][j];
+            }
+        }
+    }
+
+    return correct_answer == AccumulatorStack.back();
+}
+
 void Network::AccumulatorPush()
 {
     AccumulatorStack.push_back(AccumulatorStack.back());
@@ -90,20 +130,6 @@ void Network::AccumulatorPush()
 void Network::AccumulatorPop()
 {
     AccumulatorStack.pop_back();
-}
-
-Square MirrorVertically(Square sq)
-{
-    return static_cast<Square>(sq ^ 56);
-}
-
-int index(Square square, Pieces piece, Players view)
-{
-    Square sq = view == WHITE ? square : MirrorVertically(square);
-    Pieces relativeColor = static_cast<Pieces>(view == ColourOfPiece(piece));
-    PieceTypes pieceType = GetPieceType(piece);
-
-    return sq + pieceType * 64 + relativeColor * 64 * 6;
 }
 
 void Network::AddInput(Square square, Pieces piece)

@@ -104,13 +104,13 @@ bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
     return initialDepth <= threadDepthCompleted;
 }
 
-void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, const BoardState& board, Move move, const SearchData& locals)
+void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move, const SearchData& locals, bool chess960)
 {
     std::scoped_lock lock(ioMutex);
 
     if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
 
         if (GetMultiPVCount() == 0)
         {
@@ -131,13 +131,13 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
     if (score < lowestAlpha && score <= alpha && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
         lowestAlpha = alpha;
     }
 
     if (score > highestBeta && score >= beta && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, board, locals);
+        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
         highestBeta = beta;
     }
 }
@@ -203,7 +203,7 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, const BoardState& board, const SearchData& locals) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
 	Here we avoid excessive use of std::cout and instead append to a string in order
@@ -238,7 +238,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     ss << " time " << Time //Time in ms
        << " nodes " << getNodes()
        << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(board.half_turn_count) //thousondths full
+       << " hashfull " << tTable.GetCapacity(position.Board().half_turn_count) //thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)
@@ -248,8 +248,24 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
 
     for (size_t i = 0; i < pv.size(); i++)
     {
-        ss << pv[i].to_string();
+        if (chess960)
+        {
+            ss << pv[i].to_string_960(position.Board().stm, position.Board().castle_squares);
+        }
+        else
+        {
+            ss << pv[i].to_string();
+        }
+
+        // for chess960 positions to be printed correctly, we must have the correct board state at time of printing
+        position.ApplyMove(pv[i]);
+
         ss << " ";
+    }
+
+    for (size_t i = 0; i < pv.size(); i++)
+    {
+        position.RevertMove();
     }
 
     std::cout << ss.str() << std::endl;
