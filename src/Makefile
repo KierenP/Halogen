@@ -2,9 +2,6 @@ BUILD_DIR := ../build
 BINARY_DIR := ../bin
 SRC_DIRS := .
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
-EVALFILE  = d7d569e5.nn
-
 #----------------------------------------------------------------------------------------------------------------------
 
 # Find all the C++ files we want to compile
@@ -18,7 +15,6 @@ SRCS := \
 	Move.cpp \
 	MoveGeneration.cpp \
 	MoveList.cpp \
-	Network.cpp \
 	GameState.cpp \
 	Search.cpp \
 	SearchData.cpp \
@@ -32,7 +28,11 @@ SRCS := \
 	EGTB.cpp \
 	History.cpp \
 	Magic.cpp \
-	Pyrrhic/tbprobe.c
+	Pyrrhic/tbprobe.c \
+	td-leaf/HalogenNetwork.cpp \
+	td-leaf/td-leaf-learn.cpp \
+	td-leaf/TrainableNetwork.cpp \
+	td-leaf/temporal_coherence.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -45,7 +45,7 @@ DEPS := $(OBJS:.o=.d)
 #----------------------------------------------------------------------------------------------------------------------
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++17 
+AFLAGS = $(WFLAGS) -g -std=c++17 -ffast-math
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
@@ -57,7 +57,7 @@ PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
 AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-CXXFLAGS := -fno-exceptions -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
+CXXFLAGS := -fno-exceptions -MMD -MP
 
 # Detect OS
 ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
@@ -175,24 +175,6 @@ release:
 
 #----------------------------------------------------------------------------------------------------------------------
 
-# Copied from the Stockfish makefile
-.PHONY: net
-net:
-	@echo "net: $(EVALFILE)"
-	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	@if test -f "$(EVALFILE)"; then \
-        echo "Already available."; \
-	else \
-		if [ "x$(curl_or_wget)" = "x" ]; then \
-			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
-		else \
-			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
-			echo "Download complete."; \
-		fi; \
-	fi;
-
-#----------------------------------------------------------------------------------------------------------------------
-
 # The final build step.
 .PHONY: binary
 binary: $(OBJS)
@@ -200,7 +182,7 @@ binary: $(OBJS)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.o: % net
+$(BUILD_DIR)/%.o: %
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

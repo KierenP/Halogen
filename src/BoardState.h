@@ -3,11 +3,12 @@
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "Zobrist.h"
+#include "td-leaf/HalogenNetwork.h"
 
 #include <vector>
 
 class Move;
-class Network;
+class HalogenNetwork;
 
 /*
 
@@ -83,15 +84,15 @@ public:
     bool InitialiseFromFen(const std::vector<std::string>& fen);
     void UpdateCastleRights(Move move, Zobrist& zobrist_key);
 
-    void ApplyMove(Move move, Network& net);
+    void ApplyMove(Move move, HalogenNetwork& net);
     void ApplyNullMove();
 
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
     MoveFlag GetMoveFlag(Square from, Square to) const;
 
 private:
-    void SetSquareAndUpdate(Square square, Pieces piece, Network& net);
-    void ClearSquareAndUpdate(Square square, Network& net);
+    void SetSquareAndUpdate(Square square, Pieces piece, HalogenNetwork& net);
+    void ClearSquareAndUpdate(Square square, HalogenNetwork& net);
 
     // optimization: GetWhitePieces/GetBlackPieces can return a precalculated bitboard
     // which is updated only when needed

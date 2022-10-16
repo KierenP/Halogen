@@ -146,6 +146,7 @@ public:
     void report_thread_wants_to_stop(int thread_id);
 
     bool chess_960 = false;
+    bool silent_mode = false;
     SearchLimits limits;
 
 private:

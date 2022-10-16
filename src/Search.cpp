@@ -110,8 +110,8 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     {
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
-        threads.emplace_back(
-            std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
+        // Avoid creating redundant short lived threads
+        SearchPosition(position, local, shared);
     }
 
     for (size_t i = 0; i < threads.size(); i++)
@@ -119,8 +119,11 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         threads[i].join();
     }
 
-    const auto& search_result = shared.get_best_search_result();
-    PrintBestMove(search_result.best_move, position.Board(), shared.chess_960);
+    if (!shared.silent_mode)
+    {
+        const auto& search_result = shared.get_best_search_result();
+        PrintBestMove(search_result.best_move, position.Board(), shared.chess_960);
+    }
 }
 
 void PrintBestMove(Move Best, const BoardState& board, bool chess960)

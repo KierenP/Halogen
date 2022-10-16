@@ -3,8 +3,8 @@
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
-#include "Network.h"
 #include "Zobrist.h"
+#include "td-leaf/HalogenNetwork.h"
 
 #include <iostream>
 
@@ -306,7 +306,7 @@ void BoardState::Print() const
     std::cout << std::endl;
 }
 
-void BoardState::ApplyMove(Move move, Network& net)
+void BoardState::ApplyMove(Move move, HalogenNetwork& net)
 {
     key.ToggleSTM();
 
@@ -446,7 +446,6 @@ void BoardState::ApplyMove(Move move, Network& net)
     stm = !stm;
 
     assert(key.Verify(*this));
-    assert(net.Verify(*this));
 }
 
 void BoardState::ApplyNullMove()
@@ -465,14 +464,14 @@ void BoardState::ApplyNullMove()
     assert(key.Verify(*this));
 }
 
-void BoardState::SetSquareAndUpdate(Square square, Pieces piece, Network& net)
+void BoardState::SetSquareAndUpdate(Square square, Pieces piece, HalogenNetwork& net)
 {
     net.AddInput(square, piece);
     key.TogglePieceSquare(piece, square);
     SetSquare(square, piece);
 }
 
-void BoardState::ClearSquareAndUpdate(Square square, Network& net)
+void BoardState::ClearSquareAndUpdate(Square square, HalogenNetwork& net)
 {
     Pieces piece = GetSquare(square);
     net.RemoveInput(square, piece);

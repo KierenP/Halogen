@@ -18,12 +18,14 @@
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
-#include "Network.h"
 #include "Search.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
+#include "td-leaf/HalogenNetwork.h"
+#include "td-leaf/TrainableNetwork.h"
+#include "td-leaf/td-leaf-learn.h"
 
 using namespace ::std;
 
@@ -38,8 +40,6 @@ string version = "11.18.2";
 int main(int argc, char* argv[])
 {
     PrintVersion();
-
-    Network::Init();
 
     string Line; // to read the command given by the GUI
 
@@ -339,6 +339,21 @@ int main(int argc, char* argv[])
                 Bench(stoi(token));
             else
                 Bench();
+        }
+
+        else if (token == "learn")
+        {
+            iss >> token; // filename
+            std::string file = token;
+            iss >> token; // epoch
+            int epoch = stoi(token);
+            learn(file, epoch);
+        }
+
+        else if (token == "load_weights")
+        {
+            iss >> token;
+            TrainableNetwork::LoadWeights(token);
         }
 
         // Non uci commands
