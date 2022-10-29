@@ -108,7 +108,17 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
             return false;
     }
 
-    en_passant = static_cast<Square>(AlgebraicToPos(fen[3]));
+    if (fen[3] == "-")
+    {
+        en_passant = N_SQUARES;
+    }
+    else
+    {
+        if (fen[3].length() != 2)
+            return false;
+
+        en_passant = static_cast<Square>((fen[3][0] - 'a') + (fen[3][1] - '1') * 8);
+    };
 
     fifty_move_count = std::stoi(fen[4]);
     half_turn_count = std::stoi(fen[5]) * 2 - (stm == WHITE); // convert full move count to half move count
@@ -175,7 +185,7 @@ uint64_t BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
 Square BoardState::GetKing(Players colour) const
 {
     assert(GetPieceBB(KING, colour) != 0); //assert only runs in debug so I don't care about the double call
-    return static_cast<Square>(LSB(GetPieceBB(KING, colour)));
+    return LSB(GetPieceBB(KING, colour));
 }
 
 bool BoardState::IsEmpty(Square square) const
@@ -239,7 +249,7 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
 
         while (white_castle)
         {
-            auto sq = static_cast<Square>(LSBpop(white_castle));
+            auto sq = LSBpop(white_castle);
             zobrist.ToggleCastle(sq);
         }
 
@@ -254,7 +264,7 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
 
         while (black_castle)
         {
-            auto sq = static_cast<Square>(LSBpop(black_castle));
+            auto sq = LSBpop(black_castle);
             zobrist.ToggleCastle(sq);
         }
 
@@ -281,14 +291,15 @@ void BoardState::Print() const
 
     char Letter[N_SQUARES];
 
-    for (int i = 0; i < N_SQUARES; i++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
     {
-        Letter[i] = PieceToChar(GetSquare(static_cast<Square>(i)));
+        constexpr static char PieceChar[13] = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
+        Letter[i] = PieceChar[GetSquare(i)];
     }
 
-    for (int i = 0; i < N_SQUARES; i++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
     {
-        unsigned int square = GetPosition(GetFile(i), 7 - GetRank(i)); //7- to flip on the y axis and do rank 8, 7 ...
+        auto square = GetPosition(GetFile(i), Mirror(GetRank(i)));
 
         if (GetFile(square) == FILE_A)
         {
@@ -329,7 +340,7 @@ void BoardState::ApplyMove(Move move, Network& net)
 
         while (potentialAttackers)
         {
-            Square threat_sq = static_cast<Square>(LSBpop(potentialAttackers));
+            Square threat_sq = LSBpop(potentialAttackers);
 
             // carefully apply the potential ep capture, check for legality, then undo
             SetSquare(ep_sq, Piece(PAWN, !stm));
@@ -356,7 +367,7 @@ void BoardState::ApplyMove(Move move, Network& net)
     {
         Square king_start = move.GetFrom();
         Square king_end = move.GetTo();
-        Square rook_start = static_cast<Square>(LSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]));
+        Square rook_start = LSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
         ClearSquareAndUpdate(king_start, net);
@@ -370,7 +381,7 @@ void BoardState::ApplyMove(Move move, Network& net)
     {
         Square king_start = move.GetFrom();
         Square king_end = move.GetTo();
-        Square rook_start = static_cast<Square>(MSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]));
+        Square rook_start = MSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
         ClearSquareAndUpdate(king_start, net);

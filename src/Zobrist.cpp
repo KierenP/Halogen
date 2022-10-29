@@ -39,7 +39,7 @@ uint64_t Zobrist::Generate(const BoardState& board)
         uint64_t bitboard = board.GetPieceBB(static_cast<Pieces>(i));
         while (bitboard != 0)
         {
-            Key.TogglePieceSquare(static_cast<Pieces>(i), static_cast<Square>(LSBpop(bitboard)));
+            Key.TogglePieceSquare(static_cast<Pieces>(i), LSBpop(bitboard));
         }
     }
 
@@ -49,7 +49,7 @@ uint64_t Zobrist::Generate(const BoardState& board)
     auto castle_rights = board.castle_squares;
     while (castle_rights != 0)
     {
-        Key.ToggleCastle(static_cast<Square>(LSBpop(castle_rights)));
+        Key.ToggleCastle(LSBpop(castle_rights));
     }
 
     if (board.en_passant <= SQ_H8)

@@ -64,19 +64,19 @@ std::string Move::to_string_960(Players stm, uint64_t castle_sq) const
     // in chess960, castle moves are encoded as king takes rook
     if (GetFlag() == A_SIDE_CASTLE && stm == WHITE)
     {
-        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_1]));
+        to = LSB(castle_sq & RankBB[RANK_1]);
     }
     if (GetFlag() == H_SIDE_CASTLE && stm == WHITE)
     {
-        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_1]));
+        to = MSB(castle_sq & RankBB[RANK_1]);
     }
     if (GetFlag() == A_SIDE_CASTLE && stm == BLACK)
     {
-        to = static_cast<Square>(LSB(castle_sq & RankBB[RANK_8]));
+        to = LSB(castle_sq & RankBB[RANK_8]);
     }
     if (GetFlag() == H_SIDE_CASTLE && stm == BLACK)
     {
-        to = static_cast<Square>(MSB(castle_sq & RankBB[RANK_8]));
+        to = MSB(castle_sq & RankBB[RANK_8]);
     }
 
     std::string str;
