@@ -101,15 +101,15 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
         PawnPromotions<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
-            GenerateMoves<KNIGHT, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<KNIGHT, true, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
-            GenerateMoves<BISHOP, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
-            GenerateMoves<KING, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<KING, true, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
-            GenerateMoves<ROOK, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
-            GenerateMoves<QUEEN, true, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<QUEEN, true, STM>(board, moves, LSBpop(pieces), pinned);
     }
 }
 
@@ -153,15 +153,15 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
         CastleMoves<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB(KNIGHT, STM); pieces != 0;)
-            GenerateMoves<KNIGHT, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<KNIGHT, false, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(BISHOP, STM); pieces != 0;)
-            GenerateMoves<BISHOP, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(QUEEN, STM); pieces != 0;)
-            GenerateMoves<QUEEN, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<QUEEN, false, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(ROOK, STM); pieces != 0;)
-            GenerateMoves<ROOK, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<ROOK, false, STM>(board, moves, LSBpop(pieces), pinned);
         for (uint64_t pieces = board.GetPieceBB(KING, STM); pieces != 0;)
-            GenerateMoves<KING, false, STM>(board, moves, static_cast<Square>(LSBpop(pieces)), pinned);
+            GenerateMoves<KING, false, STM>(board, moves, LSBpop(pieces), pinned);
     }
 }
 
@@ -179,7 +179,7 @@ uint64_t PinnedMask(const BoardState& board)
     auto check_for_pins = [&](uint64_t threats) {
         while (threats)
         {
-            Square threat_sq = static_cast<Square>(LSBpop(threats));
+            Square threat_sq = LSBpop(threats);
 
             // get the pieces standing in between the king and the threat
             uint64_t possible_pins = betweenArray[king][threat_sq] & all_pieces;
@@ -209,7 +209,7 @@ void AppendLegalMoves(Square from, uint64_t to, const BoardState& board, MoveFla
 {
     while (to != 0)
     {
-        Square target = static_cast<Square>(LSBpop(to));
+        Square target = LSBpop(to);
         Move move(from, target, flag);
         if (!(pinned & SquareBB[from]) || !MovePutsSelfInCheck(board, move))
             moves.emplace_back(move);
@@ -222,7 +222,7 @@ void AppendLegalMoves(uint64_t from, Square to, const BoardState& board, MoveFla
 {
     while (from != 0)
     {
-        Square source = static_cast<Square>(LSBpop(from));
+        Square source = LSBpop(from);
         Move move(source, to, flag);
         if (!(pinned & SquareBB[source]) || !MovePutsSelfInCheck(board, move))
             moves.emplace_back(move);
@@ -248,7 +248,7 @@ void KingCapturesEvade(const BoardState& board, T& moves)
 template <Players STM, typename T>
 void CaptureThreat(const BoardState& board, T& moves, uint64_t threats)
 {
-    Square square = static_cast<Square>(LSBpop(threats));
+    Square square = LSBpop(threats);
 
     uint64_t potentialCaptures = GetThreats(board, square, !STM)
         & ~SquareBB[board.GetKing(STM)] //King captures handelled in KingCapturesEvade()
@@ -260,7 +260,7 @@ void CaptureThreat(const BoardState& board, T& moves, uint64_t threats)
 template <Players STM, typename T>
 void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
 {
-    Square threatSquare = static_cast<Square>(LSBpop(threats));
+    Square threatSquare = LSBpop(threats);
     Pieces piece = board.GetSquare(threatSquare);
 
     if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
@@ -270,7 +270,7 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
 
     while (blockSquares != 0)
     {
-        Square square = static_cast<Square>(LSBpop(blockSquares));
+        Square square = LSBpop(blockSquares);
         uint64_t potentialBlockers = GetThreats(board, square, !STM) & ~board.GetPieceBB(Piece(PAWN, STM)); //pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
         AppendLegalMoves<STM>(potentialBlockers, square, board, QUIET, moves);
     }
@@ -298,7 +298,7 @@ void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
 
     while (pawnPushes != 0)
     {
-        Square end = static_cast<Square>(LSBpop(pawnPushes));
+        Square end = LSBpop(pawnPushes);
         Square start = static_cast<Square>(end - foward);
 
         Move move(start, end, QUIET);
@@ -330,7 +330,7 @@ void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
 
     while (pawnPromotions != 0)
     {
-        Square end = static_cast<Square>(LSBpop(pawnPromotions));
+        Square end = LSBpop(pawnPromotions);
         Square start = static_cast<Square>(end - foward);
 
         Move move(start, end, KNIGHT_PROMOTION);
@@ -368,7 +368,7 @@ void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned)
 
     while (targets != 0)
     {
-        Square end = static_cast<Square>(LSBpop(targets));
+        Square end = LSBpop(targets);
         Square start = static_cast<Square>(end - foward);
 
         Move move(start, end, PAWN_DOUBLE_MOVE);
@@ -414,7 +414,7 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
 
     while (leftAttack != 0)
     {
-        Square end = static_cast<Square>(LSBpop(leftAttack));
+        Square end = LSBpop(leftAttack);
         Square start = static_cast<Square>(end - fowardleft);
 
         Move move(start, end, CAPTURE);
@@ -434,7 +434,7 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
 
     while (rightAttack != 0)
     {
-        Square end = static_cast<Square>(LSBpop(rightAttack));
+        Square end = LSBpop(rightAttack);
         Square start = static_cast<Square>(end - fowardright);
 
         Move move(start, end, CAPTURE);
@@ -471,7 +471,7 @@ bool CheckCastleMove(const BoardState& board, Square king_start_sq, Square king_
 
     while (king_path)
     {
-        Square sq = static_cast<Square>(LSBpop(king_path));
+        Square sq = LSBpop(king_path);
         if (IsSquareThreatened(board, sq, board.stm))
         {
             return false;
@@ -491,7 +491,7 @@ void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pin
     while (board.stm == WHITE && white_castle)
     {
         Square king_sq = board.GetKing(WHITE);
-        Square rook_sq = static_cast<Square>(LSBpop(white_castle));
+        Square rook_sq = LSBpop(white_castle);
 
         if (king_sq > rook_sq && CheckCastleMove(board, king_sq, SQ_C1, rook_sq, SQ_D1))
         {
@@ -508,7 +508,7 @@ void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pin
     while (board.stm == BLACK && black_castle)
     {
         Square king_sq = board.GetKing(BLACK);
-        Square rook_sq = static_cast<Square>(LSBpop(black_castle));
+        Square rook_sq = LSBpop(black_castle);
 
         if (king_sq > rook_sq && CheckCastleMove(board, king_sq, SQ_C8, rook_sq, SQ_D8))
         {
@@ -554,7 +554,7 @@ bool IsSquareThreatened(const BoardState& board, Square square, Players colour)
     uint64_t queen = board.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
     while (queen != 0)
     {
-        unsigned int start = LSBpop(queen);
+        auto start = LSBpop(queen);
         if (mayMove(start, square, Pieces))
             return true;
     }
@@ -562,7 +562,7 @@ bool IsSquareThreatened(const BoardState& board, Square square, Players colour)
     uint64_t bishops = board.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
     while (bishops != 0)
     {
-        unsigned int start = LSBpop(bishops);
+        auto start = LSBpop(bishops);
         if (mayMove(start, square, Pieces))
             return true;
     }
@@ -570,7 +570,7 @@ bool IsSquareThreatened(const BoardState& board, Square square, Players colour)
     uint64_t rook = board.GetPieceBB(ROOK, !colour) & RookAttacks[square];
     while (rook != 0)
     {
-        unsigned int start = LSBpop(rook);
+        auto start = LSBpop(rook);
         if (mayMove(start, square, Pieces))
             return true;
     }
@@ -601,7 +601,7 @@ uint64_t GetThreats(const BoardState& board, Square square, Players colour)
     uint64_t queen = board.GetPieceBB(QUEEN, !colour) & QueenAttacks[square];
     while (queen != 0)
     {
-        unsigned int start = LSBpop(queen);
+        auto start = LSBpop(queen);
         if (mayMove(start, square, Pieces))
             threats |= SquareBB[start];
     }
@@ -609,7 +609,7 @@ uint64_t GetThreats(const BoardState& board, Square square, Players colour)
     uint64_t bishops = board.GetPieceBB(BISHOP, !colour) & BishopAttacks[square];
     while (bishops != 0)
     {
-        unsigned int start = LSBpop(bishops);
+        auto start = LSBpop(bishops);
         if (mayMove(start, square, Pieces))
             threats |= SquareBB[start];
     }
@@ -617,7 +617,7 @@ uint64_t GetThreats(const BoardState& board, Square square, Players colour)
     uint64_t rook = board.GetPieceBB(ROOK, !colour) & RookAttacks[square];
     while (rook != 0)
     {
-        unsigned int start = LSBpop(rook);
+        auto start = LSBpop(rook);
         if (mayMove(start, square, Pieces))
             threats |= SquareBB[start];
     }

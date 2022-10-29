@@ -1,9 +1,12 @@
 #pragma once
+
 #include <algorithm>
 #include <array>
 #include <assert.h>
+#include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <type_traits>
 
@@ -23,6 +26,13 @@ enum Square
     // clang-format on
 };
 
+constexpr Square& operator++(Square& sq)
+{
+    assert(sq < N_SQUARES);
+    sq = static_cast<Square>(sq + 1);
+    return sq;
+}
+
 enum Players
 {
     BLACK,
@@ -31,7 +41,10 @@ enum Players
     N_PLAYERS
 };
 
-Players operator!(const Players& val);
+constexpr Players operator!(const Players& val)
+{
+    return val == WHITE ? BLACK : WHITE;
+}
 
 enum Pieces
 {
@@ -78,6 +91,19 @@ enum Rank
     N_RANKS
 };
 
+constexpr Rank Mirror(Rank rank)
+{
+    assert(rank < N_RANKS);
+    return static_cast<Rank>(RANK_8 - rank);
+}
+
+constexpr Rank& operator++(Rank& rank)
+{
+    assert(rank < N_RANKS);
+    rank = static_cast<Rank>(rank + 1);
+    return rank;
+}
+
 enum File
 {
     FILE_A,
@@ -91,6 +117,13 @@ enum File
 
     N_FILES
 };
+
+constexpr File& operator++(File& file)
+{
+    assert(file < N_FILES);
+    file = static_cast<File>(file + 1);
+    return file;
+}
 
 enum Diagonal
 {
@@ -113,6 +146,13 @@ enum Diagonal
     N_DIAGONALS
 };
 
+constexpr Diagonal& operator++(Diagonal& diagonal)
+{
+    assert(diagonal < N_DIAGONALS);
+    diagonal = static_cast<Diagonal>(diagonal + 1);
+    return diagonal;
+}
+
 enum AntiDiagonal
 {
     DIAG_H8H8,
@@ -134,12 +174,12 @@ enum AntiDiagonal
     N_ANTI_DIAGONALS
 };
 
-enum GameStages
+constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal)
 {
-    MIDGAME,
-    ENDGAME,
-    N_STAGES
-};
+    assert(antidiagonal < N_ANTI_DIAGONALS);
+    antidiagonal = static_cast<AntiDiagonal>(antidiagonal + 1);
+    return antidiagonal;
+}
 
 enum Score
 {
@@ -158,12 +198,29 @@ enum Score
     DRAW = 0,
 };
 
-int GetBitCount(uint64_t bb);
-char PieceToChar(unsigned int piece);
-unsigned int Piece(unsigned int piecetype, unsigned int colour);
-unsigned int GetPosition(unsigned int file, unsigned int rank);
-unsigned int AlgebraicToPos(const std::string& str);
-unsigned int ColourOfPiece(unsigned int piece);
+constexpr int GetBitCount(uint64_t bb)
+{
+#if defined(__GNUG__) && defined(USE_POPCNT)
+    return __builtin_popcountll(bb);
+#else
+    //https://www.chessprogramming.org/Population_Count
+    const uint64_t k1 = uint64_t(0x5555555555555555); /*  -1/3   */
+    const uint64_t k2 = uint64_t(0x3333333333333333); /*  -1/5   */
+    const uint64_t k4 = uint64_t(0x0f0f0f0f0f0f0f0f); /*  -1/17  */
+    const uint64_t kf = uint64_t(0x0101010101010101); /*  -1/255 */
+    bb = bb - ((bb >> 1) & k1); /* put count of each 2 bits into those 2 bits */
+    bb = (bb & k2) + ((bb >> 2) & k2); /* put count of each 4 bits into those 4 bits */
+    bb = (bb + (bb >> 4)) & k4; /* put count of each 8 bits into those 8 bits */
+    bb = (bb * kf) >> 56; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
+    return (int)bb;
+#endif
+}
+
+constexpr Players ColourOfPiece(Pieces piece)
+{
+    assert(piece < N_PIECES);
+    return static_cast<Players>(piece / N_PIECE_TYPES);
+}
 
 constexpr PieceTypes GetPieceType(Pieces piece)
 {
@@ -230,106 +287,27 @@ constexpr unsigned int AbsFileDiff(Square sq1, Square sq2)
     return abs_constexpr(static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2)));
 }
 
-//-------------------------
-// Non enum overrides
-
-constexpr unsigned int GetFile(unsigned int square)
+constexpr Pieces Piece(PieceTypes type, Players colour)
 {
-    return GetFile(static_cast<Square>(square));
+    assert(type < N_PIECE_TYPES);
+    assert(colour < N_PLAYERS);
+
+    return static_cast<Pieces>(type + N_PIECE_TYPES * colour);
 }
 
-constexpr unsigned int GetRank(unsigned int square)
+constexpr Square GetPosition(File file, Rank rank)
 {
-    return GetRank(static_cast<Square>(square));
+    assert(file < N_FILES);
+    assert(rank < N_RANKS);
+
+    return static_cast<Square>(rank * 8 + file);
 }
-
-constexpr unsigned int GetDiagonal(unsigned int square)
-{
-    return GetDiagonal(static_cast<Square>(square));
-}
-
-constexpr unsigned int GetAntiDiagonal(unsigned int square)
-{
-    return GetAntiDiagonal(static_cast<Square>(square));
-}
-
-constexpr int RankDiff(unsigned int sq1, unsigned int sq2)
-{
-    return RankDiff(static_cast<Square>(sq1), static_cast<Square>(sq2));
-}
-
-constexpr int FileDiff(unsigned int sq1, unsigned int sq2)
-{
-    return FileDiff(static_cast<Square>(sq1), static_cast<Square>(sq2));
-}
-
-constexpr unsigned int AbsRankDiff(unsigned int sq1, unsigned int sq2)
-{
-    return AbsRankDiff(static_cast<Square>(sq1), static_cast<Square>(sq2));
-}
-
-constexpr unsigned int AbsFileDiff(unsigned int sq1, unsigned int sq2)
-{
-    return AbsFileDiff(static_cast<Square>(sq1), static_cast<Square>(sq2));
-}
-
-//-------------------------
-
-//TODO slowly change over the functions to use constexpr
-Pieces Piece(PieceTypes type, Players colour);
-Square GetPosition(File file, Rank rank);
 
 constexpr uint64_t EMPTY = 0;
 constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 
-namespace BitBoardInit //so these don't polute the global scope
+namespace Detail //so these don't polute the global scope
 {
-constexpr std::array<uint64_t, N_RANKS> Rank()
-{
-    std::array<uint64_t, N_RANKS> ret {};
-    for (unsigned int i = 0; i < N_RANKS; i++)
-        ret[i] = 0xffULL << (8 * i);
-    return ret;
-}
-
-constexpr std::array<uint64_t, N_FILES> File()
-{
-    std::array<uint64_t, N_FILES> ret {};
-    for (unsigned int i = 0; i < N_FILES; i++)
-        ret[i] = 0x101010101010101 << i;
-    return ret;
-}
-
-constexpr std::array<uint64_t, N_SQUARES> Square()
-{
-    std::array<uint64_t, N_SQUARES> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
-        ret[i] = 1ULL << i;
-    return ret;
-}
-
-constexpr std::array<uint64_t, N_DIAGONALS> Diagonal()
-{
-    std::array<uint64_t, N_DIAGONALS> ret { 0x100000000000000 };
-    for (unsigned int i = 1; i < N_DIAGONALS; i++)
-        if (i > N_DIAGONALS / 2)
-            ret[i] = (ret[i - 1] >> 8);
-        else
-            ret[i] = (ret[i - 1] << 1) | (ret[i - 1] >> 8);
-    return ret;
-}
-
-constexpr std::array<uint64_t, N_ANTI_DIAGONALS> AntiDiagonal()
-{
-    std::array<uint64_t, N_ANTI_DIAGONALS> ret { 0x8000000000000000 };
-    for (unsigned int i = 1; i < N_ANTI_DIAGONALS; i++)
-        if (i > N_ANTI_DIAGONALS / 2)
-            ret[i] = (ret[i - 1] >> 8);
-        else
-            ret[i] = (ret[i - 1] >> 1) | (ret[i - 1] >> 8);
-    return ret;
-}
-
 //Not my code, slightly modified
 constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 {
@@ -348,105 +326,187 @@ constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
     line = int64_t(uint64_t(line) << (std::min)(sq1, sq2)); /* shift by smaller square */
     return line & btwn; /* return the bits on that line in-between */
 }
+}
 
-constexpr std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> BetweenArray()
-{
+constexpr auto RankBB = []() {
+    std::array<uint64_t, N_RANKS> ret {};
+    for (Rank i = RANK_1; i <= RANK_8; ++i)
+        ret[i] = 0xffULL << (8 * i);
+    return ret;
+}();
+
+constexpr auto FileBB = []() {
+    std::array<uint64_t, N_FILES> ret {};
+    for (File i = FILE_A; i <= FILE_H; ++i)
+        ret[i] = 0x101010101010101 << i;
+    return ret;
+}();
+
+constexpr auto SquareBB = []() {
+    std::array<uint64_t, N_SQUARES> ret {};
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+        ret[i] = 1ULL << i;
+    return ret;
+}();
+
+constexpr auto DiagonalBB = []() {
+    std::array<uint64_t, N_DIAGONALS> ret { 0x100000000000000 };
+    for (Diagonal i = DIAG_A7B8; i <= DIAG_H1H1; ++i)
+        if (i > N_DIAGONALS / 2)
+            ret[i] = (ret[i - 1] >> 8);
+        else
+            ret[i] = (ret[i - 1] << 1) | (ret[i - 1] >> 8);
+    return ret;
+}();
+
+constexpr auto AntiDiagonalBB = []() {
+    std::array<uint64_t, N_ANTI_DIAGONALS> ret { 0x8000000000000000 };
+    for (AntiDiagonal i = DIAG_G8H7; i <= DIAG_A1A1; ++i)
+        if (i > N_ANTI_DIAGONALS / 2)
+            ret[i] = (ret[i - 1] >> 8);
+        else
+            ret[i] = (ret[i - 1] >> 1) | (ret[i - 1] >> 8);
+    return ret;
+}();
+
+constexpr auto betweenArray = []() {
     std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> ret {};
     for (int i = 0; i < 64; i++)
     {
         for (int j = 0; j < 64; j++)
         {
-            ret[i][j] = inBetween(i, j);
+            ret[i][j] = Detail::inBetween(i, j);
         }
     }
     return ret;
-}
-}
+}();
 
-constexpr std::array<uint64_t, N_RANKS> RankBB = BitBoardInit::Rank();
-constexpr std::array<uint64_t, N_FILES> FileBB = BitBoardInit::File();
-constexpr std::array<uint64_t, N_SQUARES> SquareBB = BitBoardInit::Square();
-constexpr std::array<uint64_t, N_DIAGONALS> DiagonalBB = BitBoardInit::Diagonal();
-constexpr std::array<uint64_t, N_ANTI_DIAGONALS> AntiDiagonalBB = BitBoardInit::AntiDiagonal();
-constexpr std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> betweenArray = BitBoardInit::BetweenArray();
-
-namespace BitBoardInit
-{
-constexpr std::array<uint64_t, N_SQUARES> Knight()
-{
+constexpr auto KnightAttacks = []() {
     std::array<uint64_t, N_SQUARES> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
-        for (unsigned int j = 0; j < N_SQUARES; j++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+        for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
                 ret[i] |= SquareBB[j];
     return ret;
-}
+}();
 
-constexpr std::array<uint64_t, N_SQUARES> Rook()
-{
+constexpr auto RookAttacks = []() {
     std::array<uint64_t, N_SQUARES> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];
     return ret;
-}
+}();
 
-constexpr std::array<uint64_t, N_SQUARES> Bishop()
-{
+constexpr auto BishopAttacks = []() {
     std::array<uint64_t, N_SQUARES> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];
     return ret;
-}
+}();
 
-constexpr std::array<uint64_t, N_SQUARES> King()
-{
+constexpr auto KingAttacks = []() {
     std::array<uint64_t, N_SQUARES> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
-        for (unsigned int j = 0; j < N_SQUARES; j++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+        for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if (i != j && AbsFileDiff(i, j) <= 1 && AbsRankDiff(i, j) <= 1)
                 ret[i] |= SquareBB[j];
     return ret;
-}
+}();
 
-constexpr std::array<std::array<uint64_t, N_SQUARES>, N_PLAYERS> Pawn()
-{
+constexpr auto PawnAttacks = []() {
     std::array<std::array<uint64_t, N_SQUARES>, N_PLAYERS> ret {};
-    for (unsigned int i = 0; i < N_SQUARES; i++)
-        for (unsigned int j = 0; j < N_SQUARES; j++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+        for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1) //either side one ahead
                 ret[WHITE][i] |= SquareBB[j];
-    for (unsigned int i = 0; i < N_SQUARES; i++)
-        for (unsigned int j = 0; j < N_SQUARES; j++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+        for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1) //either side one behind
                 ret[BLACK][i] |= SquareBB[j];
     return ret;
-}
-}
+}();
 
-constexpr std::array<uint64_t, N_SQUARES> KnightAttacks = BitBoardInit::Knight();
-constexpr std::array<uint64_t, N_SQUARES> RookAttacks = BitBoardInit::Rook();
-constexpr std::array<uint64_t, N_SQUARES> BishopAttacks = BitBoardInit::Bishop();
-constexpr std::array<uint64_t, N_SQUARES> KingAttacks = BitBoardInit::King();
-constexpr std::array<std::array<uint64_t, N_SQUARES>, N_PLAYERS> PawnAttacks = BitBoardInit::Pawn();
-
-namespace BitBoardInit
-{
-constexpr std::array<uint64_t, N_SQUARES> Queen()
-{
+constexpr auto QueenAttacks = []() {
     std::array<uint64_t, N_SQUARES> ret {};
-    for (size_t i = 0; i < N_SQUARES; i++)
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = RookAttacks[i] | BishopAttacks[i];
     return ret;
+}();
+
+constexpr Square LSB(uint64_t bb)
+{
+    assert(bb != 0);
+
+#if defined(__GNUG__) && defined(USE_POPCNT)
+    return static_cast<Square>(__builtin_ctzll(bb));
+#else
+    /**
+	 * bitScanForward
+	 * @author Kim Walisch (2012)
+	 * @param bb bitboard to scan
+	 * @precondition bb != 0
+	 * @return index (0..63) of least significant one bit
+	 */
+    static constexpr std::array<int, N_SQUARES> index64 = {
+        0, 47, 1, 56, 48, 27, 2, 60,
+        57, 49, 41, 37, 28, 16, 3, 61,
+        54, 58, 35, 52, 50, 42, 21, 44,
+        38, 32, 29, 23, 17, 11, 4, 62,
+        46, 55, 26, 59, 40, 36, 15, 53,
+        34, 51, 20, 43, 31, 22, 10, 45,
+        25, 39, 14, 33, 19, 30, 9, 24,
+        13, 18, 8, 12, 7, 6, 5, 63
+    };
+    static constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
+    return static_cast<Square>(index64[((bb ^ (bb - 1)) * debruijn64) >> 58]);
+#endif
 }
+
+constexpr Square LSBpop(uint64_t& bb)
+{
+    assert(bb != 0);
+
+    auto index = LSB(bb);
+    bb &= bb - 1;
+
+    return index;
 }
 
-constexpr std::array<uint64_t, N_SQUARES> QueenAttacks = BitBoardInit::Queen();
+constexpr Square MSB(uint64_t bb)
+{
+    assert(bb != 0);
 
-int LSBpop(uint64_t& bb);
-int LSB(uint64_t bb);
-int MSB(uint64_t bb);
-
-constexpr bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
+#if defined(__GNUG__) && defined(USE_POPCNT)
+    return static_cast<Square>(SQ_H8 - __builtin_clzll(bb));
+#else
+    /**
+    * bitScanReverse
+    * @authors Kim Walisch, Mark Dickinson
+    * @param bb bitboard to scan
+    * @precondition bb != 0
+    * @return index (0..63) of most significant one bit
+    */
+    static constexpr std::array<int, N_SQUARES> index64 = {
+        0, 47, 1, 56, 48, 27, 2, 60,
+        57, 49, 41, 37, 28, 16, 3, 61,
+        54, 58, 35, 52, 50, 42, 21, 44,
+        38, 32, 29, 23, 17, 11, 4, 62,
+        46, 55, 26, 59, 40, 36, 15, 53,
+        34, 51, 20, 43, 31, 22, 10, 45,
+        25, 39, 14, 33, 19, 30, 9, 24,
+        13, 18, 8, 12, 7, 6, 5, 63
+    };
+    static constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
+    bb |= bb >> 1;
+    bb |= bb >> 2;
+    bb |= bb >> 4;
+    bb |= bb >> 8;
+    bb |= bb >> 16;
+    bb |= bb >> 32;
+    static_cast<Square>(return index64[(bb * debruijn64) >> 58]);
+#endif
+}
+constexpr bool mayMove(Square from, Square to, uint64_t pieces)
 {
     return (betweenArray[from][to] & pieces) == 0;
 }
@@ -454,7 +514,7 @@ constexpr bool mayMove(unsigned int from, unsigned int to, uint64_t pieces)
 const int MAX_DEPTH = 100;
 
 //--------------------------------------------------------------------------
-// Thanks Terje
+// Below code adapted with permission from Terje, author of Weiss.
 #ifdef USE_PEXT
 // Uses the bmi2 pext instruction in place of magic bitboards
 #include "x86intrin.h"
@@ -464,12 +524,9 @@ const int MAX_DEPTH = 100;
 // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
 #define AttackIndex(sq, occ, table) (((occ & table[sq].mask) * table[sq].magic) >> table[sq].shift)
 #endif
-//--------------------------------------------------------------------------
 
 namespace detail
 {
-//--------------------------------------------------------------------------
-// Thanks Terje
 struct Magic
 {
     uint64_t* attacks;
@@ -479,7 +536,6 @@ struct Magic
     int shift;
 #endif
 };
-//--------------------------------------------------------------------------
 
 template <uint64_t size>
 class MagicTable
@@ -508,7 +564,6 @@ private:
 
 class BishopTable : public MagicTable<0x1480>
 {
-    // Thanks Terje
     constexpr static std::array<uint64_t, N_SQUARES> magics = {
         // clang-format off
         0xFFEDF9FD7CFCFFFFULL, 0xFC0962854A77F576ULL, 0x5822022042000000ULL, 0x2CA804A100200020ULL,
@@ -539,7 +594,6 @@ public:
 
 class RookTable : public MagicTable<0x19000>
 {
-    // Thanks Terje
     constexpr static std::array<uint64_t, N_SQUARES> magics = {
         // clang-format off
         0xA180022080400230ULL, 0x0040100040022000ULL, 0x0080088020001002ULL, 0x0080080280841000ULL,
@@ -567,8 +621,65 @@ public:
     RookTable()
         : MagicTable(steps, magics) {};
 };
+
+constexpr uint64_t LandingSquareBB(const int sq, const int step)
+{
+    int to = sq + step;
+
+    if (to < SQ_A1 || to > SQ_H8 || std::abs(sq % 8 - to % 8) >= 2 || std::abs(sq / 8 - to / 8) >= 2)
+        return EMPTY;
+
+    return SquareBB[to];
+}
+
+// Helper function that makes a slider attack bitboard
+constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied, const std::array<int, 4>& steps)
+{
+    uint64_t attacks = 0;
+
+    for (int dir = 0; dir < 4; dir++)
+    {
+
+        int s = sq;
+        while (!(occupied & SquareBB[s]) && LandingSquareBB(s, steps[dir]))
+            attacks |= SquareBB[(s += steps[dir])];
+    }
+
+    return attacks;
+}
+
+template <uint64_t size>
+void MagicTable<size>::InitSliderAttacks()
+{
+    uint64_t* attack = attacks.data();
+
+    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
+    {
+        table[sq].attacks = attack;
+
+        // Construct the mask
+        uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[GetRank(sq)])
+            | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[GetFile(sq)]);
+
+        table[sq].mask = MakeSliderAttackBB(sq, 0, steps) & ~edges;
+
+#ifndef USE_PEXT
+        table[sq].magic = magics[sq];
+        table[sq].shift = 64 - GetBitCount(table[sq].mask);
+#endif
+
+        uint64_t occupied = 0;
+        do
+        {
+            AttackMask(sq, occupied) = MakeSliderAttackBB(sq, occupied, steps);
+            occupied = (occupied - table[sq].mask) & table[sq].mask; // Carry rippler
+            attack++;
+        } while (occupied);
+    }
+}
 }
 
 const detail::BishopTable bishopTable;
 const detail::RookTable rookTable;
+
 //--------------------------------------------------------------------------

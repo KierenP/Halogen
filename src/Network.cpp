@@ -76,7 +76,7 @@ void Network::Recalculate(const BoardState& board)
 
         while (bb)
         {
-            Square sq = static_cast<Square>(LSBpop(bb));
+            Square sq = LSBpop(bb);
             AddInput(sq, piece);
         }
     }
@@ -107,7 +107,7 @@ bool Network::Verify(const BoardState& board) const
 
         while (bb)
         {
-            Square sq = static_cast<Square>(LSBpop(bb));
+            Square sq = LSBpop(bb);
             size_t white_index = index(sq, piece, WHITE);
             size_t black_index = index(sq, piece, BLACK);
 
