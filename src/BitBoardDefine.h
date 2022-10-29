@@ -447,7 +447,7 @@ constexpr Square LSB(uint64_t bb)
 	 * @precondition bb != 0
 	 * @return index (0..63) of least significant one bit
 	 */
-    static constexpr std::array<int, N_SQUARES> index64 = {
+    constexpr std::array<int, N_SQUARES> index64 = {
         0, 47, 1, 56, 48, 27, 2, 60,
         57, 49, 41, 37, 28, 16, 3, 61,
         54, 58, 35, 52, 50, 42, 21, 44,
@@ -457,7 +457,7 @@ constexpr Square LSB(uint64_t bb)
         25, 39, 14, 33, 19, 30, 9, 24,
         13, 18, 8, 12, 7, 6, 5, 63
     };
-    static constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
+    constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
     return static_cast<Square>(index64[((bb ^ (bb - 1)) * debruijn64) >> 58]);
 #endif
 }
@@ -486,7 +486,7 @@ constexpr Square MSB(uint64_t bb)
     * @precondition bb != 0
     * @return index (0..63) of most significant one bit
     */
-    static constexpr std::array<int, N_SQUARES> index64 = {
+    constexpr std::array<int, N_SQUARES> index64 = {
         0, 47, 1, 56, 48, 27, 2, 60,
         57, 49, 41, 37, 28, 16, 3, 61,
         54, 58, 35, 52, 50, 42, 21, 44,
@@ -496,14 +496,14 @@ constexpr Square MSB(uint64_t bb)
         25, 39, 14, 33, 19, 30, 9, 24,
         13, 18, 8, 12, 7, 6, 5, 63
     };
-    static constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
+    constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
     bb |= bb >> 1;
     bb |= bb >> 2;
     bb |= bb >> 4;
     bb |= bb >> 8;
     bb |= bb >> 16;
     bb |= bb >> 32;
-    static_cast<Square>(return index64[(bb * debruijn64) >> 58]);
+    return static_cast<Square>(index64[(bb * debruijn64) >> 58]);
 #endif
 }
 constexpr bool mayMove(Square from, Square to, uint64_t pieces)
