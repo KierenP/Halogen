@@ -27,6 +27,7 @@ jobs:
         if: matrix.target != 'release'
         run: |
           cd bin
+          ./Halogen bench
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
