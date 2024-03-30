@@ -13,7 +13,7 @@ class BoardState;
 
 struct HalfAccumulator
 {
-    std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
+    alignas(32) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
 
     bool operator==(const HalfAccumulator& rhs) const { return side == rhs.side; }
 };
@@ -45,8 +45,8 @@ private:
 
     std::vector<HalfAccumulator> AccumulatorStack;
 
-    static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;
-    static std::array<int16_t, HIDDEN_NEURONS> hiddenBias;
-    static std::array<int16_t, HIDDEN_NEURONS * 2> outputWeights;
-    static int16_t outputBias;
+    alignas(32) static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;
+    alignas(32) static std::array<int16_t, HIDDEN_NEURONS> hiddenBias;
+    alignas(32) static std::array<int16_t, HIDDEN_NEURONS * 2> outputWeights;
+    alignas(32) static int16_t outputBias;
 };
