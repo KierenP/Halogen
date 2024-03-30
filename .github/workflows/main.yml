@@ -8,11 +8,11 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        compiler: [g++-9, clang++-10]
+        compiler: [g++-9, clang++-13]
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, release]
 
     steps:
@@ -32,7 +32,7 @@ jobs:
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
 
   Windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     strategy:
       matrix:
