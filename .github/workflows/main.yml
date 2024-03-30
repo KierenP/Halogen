@@ -71,7 +71,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, clang++-10]
+        compiler: [g++-9, clang++-13]
 
     steps:
       - uses: actions/checkout@v2
@@ -91,7 +91,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-9, clang++-10]
+        compiler: [g++-9, clang++-13]
 
     steps:
       - uses: actions/checkout@v2
