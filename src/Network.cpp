@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <iostream>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -48,20 +49,60 @@ void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 
 void Network::Init()
 {
-    // Koi nets must skip 8 bytes
-    auto Data = reinterpret_cast<const float*>(gNetData + 8);
+    auto Data = reinterpret_cast<const float*>(gNetData);
 
-    for (size_t i = 0; i < INPUT_NEURONS; i++)
-        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = (int16_t)round(*Data++ * L1_SCALE);
+    float l1_weight_min = std::numeric_limits<float>::max();
+    float l1_weight_max = std::numeric_limits<float>::min();
+
+    float l1_bias_min = std::numeric_limits<float>::max();
+    float l1_bias_max = std::numeric_limits<float>::min();
+
+    float l2_weight_min = std::numeric_limits<float>::max();
+    float l2_weight_max = std::numeric_limits<float>::min();
+
+    float l2_bias_min = std::numeric_limits<float>::max();
+    float l2_bias_max = std::numeric_limits<float>::min();
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        hiddenBias[i] = (int16_t)round(*Data++ * L1_SCALE);
+    {    
+        for (size_t j = 0; j < INPUT_NEURONS; j++)
+        {
+            auto val = *Data++;
+            l1_weight_min = std::min(l1_weight_min, val);
+            l1_weight_max = std::max(l1_weight_max, val);
+            hiddenWeights[j][i] = (int16_t)round(val * L1_SCALE);
+        }
+    }
+
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+    {
+        auto val = *Data++;
+        l1_bias_min = std::min(l1_bias_min, val);
+        l1_bias_max = std::max(l1_bias_max, val);
+        hiddenBias[i] = (int16_t)round(val * L1_SCALE);
+    }
 
     for (size_t i = 0; i < HIDDEN_NEURONS * 2; i++)
-        outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+    {
+        auto val = *Data++;
+        l2_weight_min = std::min(l2_weight_min, val);
+        l2_weight_max = std::max(l2_weight_max, val);
+        outputWeights[i] = (int16_t)round(val * SCALE_FACTOR * L2_SCALE);
+    }
 
-    outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+    auto val = *Data++;
+    l2_bias_min = std::min(l2_bias_min, val);
+    l2_bias_max = std::max(l2_bias_max, val);
+    outputBias = (int16_t)round(val * SCALE_FACTOR * L2_SCALE);
+
+    std::cout << "l1_weight_min: " << l1_weight_min << std::endl;
+    std::cout << "l1_weight_max: " << l1_weight_max << std::endl;
+    std::cout << "l1_bias_min: " << l1_bias_min << std::endl;
+    std::cout << "l1_bias_max: " << l1_bias_max << std::endl;
+    std::cout << "l2_weight_min: " << l2_weight_min << std::endl;
+    std::cout << "l2_weight_max: " << l2_weight_max << std::endl;
+    std::cout << "l2_bias_min: " << l2_bias_min << std::endl;
+    std::cout << "l2_bias_max: " << l2_bias_max << std::endl;
 
     assert(reinterpret_cast<const unsigned char*>(Data) == gNetData + gNetSize);
 }
