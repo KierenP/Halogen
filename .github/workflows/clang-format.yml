@@ -16,4 +16,3 @@ jobs:
         clang-format-version: '18'
         check-path: 'src'
         exclude-regex: 'incbin|Pyrrhic|test'
-        fallback-style: 'Mozilla' # optional

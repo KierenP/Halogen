@@ -208,10 +208,10 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     int beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
-        Here we avoid excessive use of std::cout and instead append to a string in order
-        to output only once at the end. This causes a noticeable speedup for very fast
-        time controls.
-        */
+    Here we avoid excessive use of std::cout and instead append to a string in order
+    to output only once at the end. This causes a noticeable speedup for very fast
+    time controls.
+    */
 
     const BasicMoveList& pv = locals.PvTable[0];
 
