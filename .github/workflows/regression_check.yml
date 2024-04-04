@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, release]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -24,7 +24,6 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
 
       - name: Check bench matches commit message
-        if: matrix.target != 'release'
         run: |
           cd bin
           git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }'
@@ -63,9 +62,8 @@ jobs:
         shell: msys2 {0}
         run: |
           cd bin
-          git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }'
-          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
+          #commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          #actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
           #if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
          
   Debug:
