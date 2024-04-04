@@ -35,7 +35,8 @@ string version = "11.4.2";
 
 int main(int argc, char* argv[])
 {
-    PrintVersion();
+    PrintVersion()
+    ;
     tb_init("<empty>");
 
     Network::Init();
