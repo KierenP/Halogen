@@ -1,5 +1,11 @@
 name: Regression Check
-on: [pull_request]
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
 jobs:
   Ubuntu:
     runs-on: ubuntu-latest
