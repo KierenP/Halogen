@@ -70,7 +70,8 @@ void ThreadSharedData::ResetNewSearch()
     highestBeta = 0;
 
     limits_.ResetTimer();
-    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewSearch(); });
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data)
+        { data.ResetNewSearch(); });
     MultiPVExclusion.clear();
 }
 
@@ -83,7 +84,8 @@ void ThreadSharedData::ResetNewGame()
     highestBeta = 0;
 
     limits_.ResetTimer();
-    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewGame(); });
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data)
+        { data.ResetNewGame(); });
     MultiPVExclusion.clear();
 }
 
@@ -164,7 +166,7 @@ int ThreadSharedData::GetAspirationScore() const
 
 int ThreadSharedData::GetMultiPVCount() const
 {
-    //can't lock, this is used during search
+    // can't lock, this is used during search
     return MultiPVExclusion.size();
 }
 
@@ -188,13 +190,15 @@ bool ThreadSharedData::MultiPVExcludeMoveUnlocked(Move move) const
 uint64_t ThreadSharedData::getTBHits() const
 {
     return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0),
-        [](uint64_t sum, const SearchData& data) { return sum + data.tbHits; });
+        [](uint64_t sum, const SearchData& data)
+        { return sum + data.tbHits; });
 }
 
 uint64_t ThreadSharedData::getNodes() const
 {
     return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0),
-        [](uint64_t sum, const SearchData& data) { return sum + data.nodes; });
+        [](uint64_t sum, const SearchData& data)
+        { return sum + data.nodes; });
 }
 
 SearchData& ThreadSharedData::GetData(unsigned int threadID)
@@ -206,17 +210,17 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
 void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
-	Here we avoid excessive use of std::cout and instead append to a string in order
-	to output only once at the end. This causes a noticeable speedup for very fast
-	time controls.
-	*/
+        Here we avoid excessive use of std::cout and instead append to a string in order
+        to output only once at the end. This causes a noticeable speedup for very fast
+        time controls.
+        */
 
     const BasicMoveList& pv = locals.PvTable[0];
 
     std::stringstream ss;
 
-    ss << "info depth " << depth //the depth of search
-       << " seldepth " << locals.GetSelDepth(); //the selective depth (for example searching further for checks and captures)
+    ss << "info depth " << depth // the depth of search
+       << " seldepth " << locals.GetSelDepth(); // the selective depth (for example searching further for checks and captures)
 
     if (isCheckmate)
     {
@@ -227,7 +231,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     }
     else
     {
-        ss << " score cp " << score; //The score in hundreths of a pawn (a 1 pawn advantage is +100)
+        ss << " score cp " << score; // The score in hundreths of a pawn (a 1 pawn advantage is +100)
     }
 
     if (score <= alpha)
@@ -235,16 +239,16 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     if (score >= beta)
         ss << " lowerbound";
 
-    ss << " time " << Time //Time in ms
+    ss << " time " << Time // Time in ms
        << " nodes " << getNodes()
        << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(position.Board().half_turn_count) //thousondths full
+       << " hashfull " << tTable.GetCapacity(position.Board().half_turn_count) // thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)
         ss << " multipv " << GetMultiPVCount() + 1;
 
-    ss << " pv "; //the current best line found
+    ss << " pv "; // the current best line found
 
     for (size_t i = 0; i < pv.size(); i++)
     {

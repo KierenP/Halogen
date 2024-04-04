@@ -13,7 +13,7 @@ INCBIN(Net, EVALFILE);
 
 alignas(32) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
 alignas(32) std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
-alignas(32) std::array<int16_t, HIDDEN_NEURONS* 2> Network::outputWeights = {};
+alignas(32) std::array<int16_t, HIDDEN_NEURONS * 2> Network::outputWeights = {};
 alignas(32) int16_t Network::outputBias = {};
 
 constexpr int16_t L1_SCALE = 128;

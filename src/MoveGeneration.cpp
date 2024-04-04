@@ -15,7 +15,7 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned); // 
 template <Players STM, typename T>
 void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned);
 
-//Pawn moves
+// Pawn moves
 template <Players STM, typename T>
 void PawnPushes(const BoardState& board, T& moves, uint64_t pinned);
 template <Players STM, typename T>
@@ -27,22 +27,22 @@ void PawnEnPassant(const BoardState& board, T& moves); // Ep moves are always ch
 template <Players STM, typename T>
 void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned);
 
-//All other pieces
+// All other pieces
 template <PieceTypes pieceType, bool capture, Players STM, typename T>
 void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned);
 
-//misc
+// misc
 template <Players STM, typename T>
 void CastleMoves(const BoardState& board, T& moves, uint64_t pinned);
 
-//utility functions
+// utility functions
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move);
 template <Players STM>
 uint64_t PinnedMask(const BoardState& board);
-bool IsSquareThreatened(const BoardState& board, Square square, Players colour); //will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
-uint64_t GetThreats(const BoardState& board, Square square, Players colour); //colour is of the attacked piece! So to get the black threats of a white piece pass colour = WHITE!
+bool IsSquareThreatened(const BoardState& board, Square square, Players colour); // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
+uint64_t GetThreats(const BoardState& board, Square square, Players colour); // colour is of the attacked piece! So to get the black threats of a white piece pass colour = WHITE!
 
-//special generators for when in check
+// special generators for when in check
 template <Players STM, typename T>
 void KingEvasions(const BoardState& board, T& moves); // move the king out of danger	(single or multi threat)
 template <Players STM, typename T>
@@ -176,7 +176,8 @@ uint64_t PinnedMask(const BoardState& board)
     uint64_t all_pieces = board.GetAllPieces();
     uint64_t our_pieces = board.GetPiecesColour(STM);
 
-    auto check_for_pins = [&](uint64_t threats) {
+    auto check_for_pins = [&](uint64_t threats)
+    {
         while (threats)
         {
             Square threat_sq = LSBpop(threats);
@@ -203,7 +204,7 @@ uint64_t PinnedMask(const BoardState& board)
     return pins;
 }
 
-//Moves going from a square to squares on a bitboard
+// Moves going from a square to squares on a bitboard
 template <Players STM, typename T>
 void AppendLegalMoves(Square from, uint64_t to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned = UNIVERSE)
 {
@@ -216,7 +217,7 @@ void AppendLegalMoves(Square from, uint64_t to, const BoardState& board, MoveFla
     }
 }
 
-//Moves going to a square from squares on a bitboard
+// Moves going to a square from squares on a bitboard
 template <Players STM, typename T>
 void AppendLegalMoves(uint64_t from, Square to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned = UNIVERSE)
 {
@@ -251,8 +252,8 @@ void CaptureThreat(const BoardState& board, T& moves, uint64_t threats)
     Square square = LSBpop(threats);
 
     uint64_t potentialCaptures = GetThreats(board, square, !STM)
-        & ~SquareBB[board.GetKing(STM)] //King captures handelled in KingCapturesEvade()
-        & ~board.GetPieceBB(Piece(PAWN, STM)); //Pawn captures handelled elsewhere
+        & ~SquareBB[board.GetKing(STM)] // King captures handelled in KingCapturesEvade()
+        & ~board.GetPieceBB(Piece(PAWN, STM)); // Pawn captures handelled elsewhere
 
     AppendLegalMoves<STM>(potentialCaptures, square, board, CAPTURE, moves);
 }
@@ -264,14 +265,14 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
     Pieces piece = board.GetSquare(threatSquare);
 
     if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
-        return; //cant block non-sliders. Also cant be threatened by enemy king
+        return; // cant block non-sliders. Also cant be threatened by enemy king
 
     uint64_t blockSquares = betweenArray[threatSquare][board.GetKing(STM)];
 
     while (blockSquares != 0)
     {
         Square square = LSBpop(blockSquares);
-        uint64_t potentialBlockers = GetThreats(board, square, !STM) & ~board.GetPieceBB(Piece(PAWN, STM)); //pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
+        uint64_t potentialBlockers = GetThreats(board, square, !STM) & ~board.GetPieceBB(Piece(PAWN, STM)); // pawn moves need to be handelled elsewhere because they might threaten a square without being able to move there
         AppendLegalMoves<STM>(potentialBlockers, square, board, QUIET, moves);
     }
 }
@@ -294,7 +295,7 @@ void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
         targets = (pawnSquares >> 8) & board.GetEmptySquares();
     }
 
-    uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); //pushes that aren't to the back ranks
+    uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); // pushes that aren't to the back ranks
 
     while (pawnPushes != 0)
     {
@@ -326,7 +327,7 @@ void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
         targets = (pawnSquares >> 8) & board.GetEmptySquares();
     }
 
-    uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); //pushes that are to the back ranks
+    uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); // pushes that are to the back ranks
 
     while (pawnPromotions != 0)
     {
@@ -546,7 +547,7 @@ bool IsSquareThreatened(const BoardState& board, Square square, Players colour)
     if ((PawnAttacks[colour][square] & board.GetPieceBB(Piece(PAWN, !colour))) != 0)
         return true;
 
-    if ((KingAttacks[square] & board.GetPieceBB(KING, !colour)) != 0) //if I can attack the enemy king he can attack me
+    if ((KingAttacks[square] & board.GetPieceBB(KING, !colour)) != 0) // if I can attack the enemy king he can attack me
         return true;
 
     uint64_t Pieces = board.GetAllPieces();
@@ -664,35 +665,35 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
         int forward = piece == WHITE_PAWN ? 1 : -1;
         Rank startingRank = piece == WHITE_PAWN ? RANK_2 : RANK_7;
 
-        //pawn push
+        // pawn push
         if (RankDiff(move.GetTo(), move.GetFrom()) == forward && FileDiff(move.GetFrom(), move.GetTo()) == 0)
         {
-            if (board.IsOccupied(move.GetTo())) //Something in the way!
+            if (board.IsOccupied(move.GetTo())) // Something in the way!
                 return false;
         }
 
-        //pawn double push
+        // pawn double push
         else if (RankDiff(move.GetTo(), move.GetFrom()) == forward * 2 && FileDiff(move.GetFrom(), move.GetTo()) == 0)
         {
-            if (GetRank(move.GetFrom()) != startingRank) //double move not from starting rank
+            if (GetRank(move.GetFrom()) != startingRank) // double move not from starting rank
                 return false;
-            if (board.IsOccupied(move.GetTo())) //something on target square
+            if (board.IsOccupied(move.GetTo())) // something on target square
                 return false;
-            if (!board.IsEmpty(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2))) //something in between
+            if (!board.IsEmpty(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2))) // something in between
                 return false;
         }
 
-        //pawn capture (not EP)
+        // pawn capture (not EP)
         else if (RankDiff(move.GetTo(), move.GetFrom()) == forward && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1 && board.en_passant != move.GetTo())
         {
-            if (board.IsEmpty(move.GetTo())) //nothing there to capture
+            if (board.IsEmpty(move.GetTo())) // nothing there to capture
                 return false;
         }
 
-        //pawn capture (EP)
+        // pawn capture (EP)
         else if (RankDiff(move.GetTo(), move.GetFrom()) == forward && AbsFileDiff(move.GetFrom(), move.GetTo()) == 1 && board.en_passant == move.GetTo())
         {
-            if (board.IsEmpty(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())))) //nothing there to capture
+            if (board.IsEmpty(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())))) // nothing there to capture
                 return false;
         }
 
@@ -748,25 +749,25 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     }
 
     //-----------------------------
-    //Now, we make sure the moves flag makes sense given the move
+    // Now, we make sure the moves flag makes sense given the move
 
     MoveFlag flag = QUIET;
 
-    //Captures
+    // Captures
     if (board.IsOccupied(move.GetTo()))
         flag = CAPTURE;
 
-    //Double pawn moves
+    // Double pawn moves
     if (AbsRankDiff(move.GetFrom(), move.GetTo()) == 2)
         if (board.GetSquare(move.GetFrom()) == WHITE_PAWN || board.GetSquare(move.GetFrom()) == BLACK_PAWN)
             flag = PAWN_DOUBLE_MOVE;
 
-    //En passant
+    // En passant
     if (move.GetTo() == board.en_passant)
         if (board.GetSquare(move.GetFrom()) == WHITE_PAWN || board.GetSquare(move.GetFrom()) == BLACK_PAWN)
             flag = EN_PASSANT;
 
-    //Promotion
+    // Promotion
     if ((board.GetSquare(move.GetFrom()) == WHITE_PAWN && GetRank(move.GetTo()) == RANK_8)
         || (board.GetSquare(move.GetFrom()) == BLACK_PAWN && GetRank(move.GetTo()) == RANK_1))
     {
@@ -789,7 +790,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     }
     else
     {
-        //check the decided on flag matches
+        // check the decided on flag matches
         if (flag != move.GetFlag())
             return false;
     }

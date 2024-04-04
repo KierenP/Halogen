@@ -30,7 +30,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
 {
     size_t hash = HashFunction(ZobristKey);
 
-    //checkmate node or TB win/loss
+    // checkmate node or TB win/loss
     if (Score > EVAL_MAX)
         Score += distanceFromRoot;
     if (Score < EVAL_MIN)
@@ -45,7 +45,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
         }
     }
 
-    int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot); //Keep in mind age from each generation goes up so lower (generally) means older
+    int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot); // Keep in mind age from each generation goes up so lower (generally) means older
     std::array<int8_t, TTBucket::SIZE> scores = {};
 
     for (size_t i = 0; i < TTBucket::SIZE; i++)
@@ -90,7 +90,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 {
     int count = 0;
 
-    for (int i = 0; i < 1000; i++) //1000 chosen specifically, because result needs to be 'per mill'
+    for (int i = 0; i < 1000; i++) // 1000 chosen specifically, because result needs to be 'per mill'
     {
         if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == TTEntry::CalculateAge(halfmove, 0))
             count++;
