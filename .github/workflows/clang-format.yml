@@ -9,3 +9,4 @@ jobs:
         with:
           sources: "src/*.h,src/*.cpp"
           excludes: "src/incbin/*,src/Pyrrhic/*,src/test/*"
+          style: file
