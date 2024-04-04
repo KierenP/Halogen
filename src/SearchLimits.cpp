@@ -14,7 +14,10 @@ public:
 class NullDepthChecker : public iDepthChecker
 {
 public:
-    bool HitDepthLimit(int) const override { return false; }
+    bool HitDepthLimit(int) const override
+    {
+        return false;
+    }
 };
 
 class DepthChecker : public iDepthChecker
@@ -46,15 +49,27 @@ public:
 class NullTimeChecker : public iTimeChecker
 {
 public:
-    bool HitTimeLimit(const SearchTimeManage&) const override { return false; }
-    bool ShouldContinueSearch(const SearchTimeManage&) const override { return true; };
+    bool HitTimeLimit(const SearchTimeManage&) const override
+    {
+        return false;
+    }
+    bool ShouldContinueSearch(const SearchTimeManage&) const override
+    {
+        return true;
+    };
 };
 
 class TimeChecker : public iTimeChecker
 {
 public:
-    bool HitTimeLimit(const SearchTimeManage& timer) const override { return timer.AbortSearch(); }
-    bool ShouldContinueSearch(const SearchTimeManage& timer) const override { return timer.ContinueSearch(); };
+    bool HitTimeLimit(const SearchTimeManage& timer) const override
+    {
+        return timer.AbortSearch();
+    }
+    bool ShouldContinueSearch(const SearchTimeManage& timer) const override
+    {
+        return timer.ContinueSearch();
+    };
 };
 
 // MateChecker component. Will compare the score to see if we found a sufficently fast mate.
@@ -69,7 +84,10 @@ public:
 class NullMateChecker : public iMateChecker
 {
 public:
-    bool HitMateLimit(int) const override { return false; };
+    bool HitMateLimit(int) const override
+    {
+        return false;
+    };
 };
 
 class MateChecker : public iMateChecker
@@ -82,7 +100,10 @@ public:
     {
     }
 
-    bool HitMateLimit(int score) const override { return (MATE)-abs(score) <= 2 * mateLimit_; };
+    bool HitMateLimit(int score) const override
+    {
+        return (MATE)-abs(score) <= 2 * mateLimit_;
+    };
 };
 
 // NodeCheker component. Will compare the number of searched nodes to see if we have exceeded our limit.
@@ -97,7 +118,10 @@ public:
 class NullNodeChecker : public iNodeChecker
 {
 public:
-    bool HitNodeLimit(uint64_t) const override { return false; };
+    bool HitNodeLimit(uint64_t) const override
+    {
+        return false;
+    };
 };
 
 class NodeChecker : public iNodeChecker
@@ -110,7 +134,10 @@ public:
     {
     }
 
-    bool HitNodeLimit(uint64_t nodes) const override { return nodes > nodeLimit_; };
+    bool HitNodeLimit(uint64_t nodes) const override
+    {
+        return nodes > nodeLimit_;
+    };
 };
 
 // Now put all the pieces together into a single object.

@@ -15,7 +15,8 @@ SearchTimeManage::SearchTimeManage(int maxTime, int allocatedTime)
 
 bool SearchTimeManage::ContinueSearch() const
 {
-    // if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort search early
+    // if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort
+    // search early
     return (AllocatedSearchTimeMS == MaxTimeMS || timer.ElapsedMs() < AllocatedSearchTimeMS / 2);
 }
 

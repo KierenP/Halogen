@@ -32,7 +32,8 @@ template <typename T, size_t SIZE>
 }
 
 template <typename T_out, typename T_in, size_t SIZE>
-void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other, const std::array<T_in, SIZE * 2>& weights, T_out& output)
+void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
+    const std::array<T_in, SIZE * 2>& weights, T_out& output)
 {
     for (size_t i = 0; i < SIZE; i++)
     {
@@ -159,7 +160,8 @@ void Network::RemoveInput(Square square, Pieces piece)
 int16_t Network::Eval(Players stm) const
 {
     int32_t output = outputBias * L1_SCALE;
-    DotProductHalves(ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+    DotProductHalves(
+        ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
     output /= L1_SCALE * L2_SCALE;
 
     // 'half' or 'relative' nets return a score relative to the side to move

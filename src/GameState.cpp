@@ -73,8 +73,8 @@ void GameState::ApplyMove(const std::string& strmove)
         if (tolower(strmove[4]) == 'b')
             flag = BISHOP_PROMOTION;
 
-        if (Board().IsOccupied(next)) // if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag == capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
-            flag = static_cast<MoveFlag>(flag + CAPTURE); // might be slow, but don't care.
+        if (Board().IsOccupied(next)) // if it's a capture we need to shift the flag up 4
+            flag = static_cast<MoveFlag>(flag + CAPTURE);
     }
 
     // Castling (chess960)
@@ -158,7 +158,8 @@ bool GameState::InitialiseFromFen(std::vector<std::string> fen)
     return ret;
 }
 
-bool GameState::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
+bool GameState::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle,
+    const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
 {
     std::vector<std::string> splitFen;
     splitFen.push_back(board);

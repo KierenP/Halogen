@@ -70,8 +70,7 @@ void ThreadSharedData::ResetNewSearch()
     highestBeta = 0;
 
     limits_.ResetTimer();
-    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data)
-        { data.ResetNewSearch(); });
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewSearch(); });
     MultiPVExclusion.clear();
 }
 
@@ -84,8 +83,7 @@ void ThreadSharedData::ResetNewGame()
     highestBeta = 0;
 
     limits_.ResetTimer();
-    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data)
-        { data.ResetNewGame(); });
+    std::for_each(threadlocalData.begin(), threadlocalData.end(), [](auto& data) { data.ResetNewGame(); });
     MultiPVExclusion.clear();
 }
 
@@ -106,7 +104,8 @@ bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
     return initialDepth <= threadDepthCompleted;
 }
 
-void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move, const SearchData& locals, bool chess960)
+void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta,
+    GameState& position, Move move, const SearchData& locals, bool chess960)
 {
     std::scoped_lock lock(ioMutex);
 
@@ -190,15 +189,13 @@ bool ThreadSharedData::MultiPVExcludeMoveUnlocked(Move move) const
 uint64_t ThreadSharedData::getTBHits() const
 {
     return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0),
-        [](uint64_t sum, const SearchData& data)
-        { return sum + data.tbHits; });
+        [](uint64_t sum, const SearchData& data) { return sum + data.tbHits; });
 }
 
 uint64_t ThreadSharedData::getNodes() const
 {
     return std::accumulate(threadlocalData.begin(), threadlocalData.end(), uint64_t(0),
-        [](uint64_t sum, const SearchData& data)
-        { return sum + data.nodes; });
+        [](uint64_t sum, const SearchData& data) { return sum + data.nodes; });
 }
 
 SearchData& ThreadSharedData::GetData(unsigned int threadID)
@@ -207,7 +204,8 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha,
+    int beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
         Here we avoid excessive use of std::cout and instead append to a string in order
@@ -220,7 +218,8 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     std::stringstream ss;
 
     ss << "info depth " << depth // the depth of search
-       << " seldepth " << locals.GetSelDepth(); // the selective depth (for example searching further for checks and captures)
+       << " seldepth "
+       << locals.GetSelDepth(); // the selective depth (for example searching further for checks and captures)
 
     if (isCheckmate)
     {
@@ -240,9 +239,8 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
         ss << " lowerbound";
 
     ss << " time " << Time // Time in ms
-       << " nodes " << getNodes()
-       << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(position.Board().half_turn_count) // thousondths full
+       << " nodes " << getNodes() << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000) << " hashfull "
+       << tTable.GetCapacity(position.Board().half_turn_count) // thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)
@@ -300,7 +298,8 @@ void History::AddButterfly(const GameState& position, Move move, int change)
     assert(move.GetFrom() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
+    AddHistory(
+        (*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
 }
 
 int16_t History::GetButterfly(const GameState& position, Move move) const
@@ -331,7 +330,8 @@ void History::AddCounterMove(const GameState& position, Move move, int change)
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
+    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change,
+        CounterMove_max, CounterMove_scale);
 }
 
 int16_t History::GetCounterMove(const GameState& position, Move move) const

@@ -5,7 +5,8 @@
 
 #include "BitBoardDefine.h"
 
-TTEntry::TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff)
+TTEntry::TTEntry(
+    Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff)
     : bestMove(best)
 {
     assert(Score < SHRT_MAX && Score > SHRT_MIN);

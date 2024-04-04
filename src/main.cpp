@@ -188,8 +188,10 @@ int main(int argc, char* argv[])
                 if (movestogo != 0)
                     AllocatedTime = myTime / (movestogo + 1) * 3 / 2; // repeating time control
                 else if (myInc != 0)
-                    // use a greater proportion of remaining time as the game continues, so that we use it all up and get to just increment
-                    AllocatedTime = myTime * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB + myInc; // increment time control
+                    // use a greater proportion of remaining time as the game continues, so that we use it all up and
+                    // get to just increment
+                    AllocatedTime = myTime * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
+                        + myInc; // increment time control
                 else
                     AllocatedTime = myTime / 20; // sudden death time control
 
@@ -200,8 +202,7 @@ int main(int argc, char* argv[])
                 searchThread.join();
 
             data.SetLimits(std::move(limits));
-            searchThread = thread([position, &data]
-                { SearchThread(position, data); });
+            searchThread = thread([position, &data] { SearchThread(position, data); });
         }
 
         else if (token == "setoption")
@@ -252,8 +253,8 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c)
-                    { return std::tolower(c); });
+                std::transform(
+                    token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
                 data.SetChess960(token == "true" ? true : false);
             }
 
@@ -388,12 +389,8 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
             arrayTokens.push_back(stub);
         } while (iss);
 
-        string fen = arrayTokens[0] + " "
-            + arrayTokens[1] + " "
-            + arrayTokens[2] + " "
-            + arrayTokens[3] + " "
-            + arrayTokens[4] + " "
-            + arrayTokens[5];
+        string fen = arrayTokens[0] + " " + arrayTokens[1] + " " + arrayTokens[2] + " " + arrayTokens[3] + " "
+            + arrayTokens[4] + " " + arrayTokens[5];
 
         position.InitialiseFromFen(fen);
 

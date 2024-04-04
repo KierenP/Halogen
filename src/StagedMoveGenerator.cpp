@@ -13,7 +13,8 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(const GameState& pos, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(
+    const GameState& pos, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
     : position(pos)
     , locals(Locals)
     , distanceFromRoot(DistanceFromRoot)
@@ -155,8 +156,7 @@ void selection_sort(ExtendedMoveList& v)
     }
 }
 
-constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000,
-    91, 532, 568, 715, 1279, 5000 };
+constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000, 91, 532, 568, 715, 1279, 5000 };
 
 uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
@@ -167,10 +167,8 @@ uint64_t AttackersToSq(const BoardState& board, Square sq)
     uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
     uint64_t occ = board.GetAllPieces();
 
-    return (pawn_mask & board.GetPieceBB<PAWN>())
-        | (AttackBB<KNIGHT>(sq) & board.GetPieceBB<KNIGHT>())
-        | (AttackBB<KING>(sq) & board.GetPieceBB<KING>())
-        | (AttackBB<BISHOP>(sq, occ) & bishops)
+    return (pawn_mask & board.GetPieceBB<PAWN>()) | (AttackBB<KNIGHT>(sq) & board.GetPieceBB<KNIGHT>())
+        | (AttackBB<KING>(sq) & board.GetPieceBB<KING>()) | (AttackBB<BISHOP>(sq, occ) & bishops)
         | (AttackBB<ROOK>(sq, occ) & rooks);
 }
 
@@ -298,7 +296,8 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         else
         {
             int history = locals.history.Get(position, moves[i].move);
-            moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(), std::numeric_limits<decltype(moves[i].score)>::max());
+            moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
+                std::numeric_limits<decltype(moves[i].score)>::max());
         }
     }
 
