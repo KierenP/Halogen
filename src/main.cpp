@@ -40,13 +40,13 @@ int main(int argc, char* argv[])
 
     Network::Init();
 
-    string Line; //to read the command given by the GUI
+    string Line; // to read the command given by the GUI
 
     GameState position;
     thread searchThread;
     ThreadSharedData data;
 
-    for (int i = 1; i < argc; i++) //read any command line input as a regular UCI instruction
+    for (int i = 1; i < argc; i++) // read any command line input as a regular UCI instruction
     {
         Line += argv[i];
         Line += " ";
@@ -186,12 +186,12 @@ int main(int argc, char* argv[])
                 int AllocatedTime = 0;
 
                 if (movestogo != 0)
-                    AllocatedTime = myTime / (movestogo + 1) * 3 / 2; //repeating time control
+                    AllocatedTime = myTime / (movestogo + 1) * 3 / 2; // repeating time control
                 else if (myInc != 0)
                     // use a greater proportion of remaining time as the game continues, so that we use it all up and get to just increment
-                    AllocatedTime = myTime * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB + myInc; //increment time control
+                    AllocatedTime = myTime * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB + myInc; // increment time control
                 else
-                    AllocatedTime = myTime / 20; //sudden death time control
+                    AllocatedTime = myTime / 20; // sudden death time control
 
                 limits.SetTimeLimits(myTime, AllocatedTime);
             }
@@ -200,7 +200,8 @@ int main(int argc, char* argv[])
                 searchThread.join();
 
             data.SetLimits(std::move(limits));
-            searchThread = thread([position, &data] { SearchThread(position, data); });
+            searchThread = thread([position, &data]
+                { SearchThread(position, data); });
         }
 
         else if (token == "setoption")
@@ -251,7 +252,8 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
+                std::transform(token.begin(), token.end(), token.begin(), [](unsigned char c)
+                    { return std::tolower(c); });
                 data.SetChess960(token == "true" ? true : false);
             }
 
@@ -281,16 +283,16 @@ int main(int argc, char* argv[])
             iss >> token;
 
             if (token == "perft")
-                PerftSuite("perftsuite.txt", 0, false);
+                PerftSuite("test/perftsuite.txt", 0, false);
 
             if (token == "perft960")
-                PerftSuite("perft960.txt", 0, false);
+                PerftSuite("test/perft960.txt", 0, false);
 
             if (token == "perft_legality")
-                PerftSuite("perftsuite.txt", 2, true);
+                PerftSuite("test/perftsuite.txt", 2, true);
 
             if (token == "perft960_legality")
-                PerftSuite("perft960.txt", 3, true);
+                PerftSuite("test/perft960.txt", 3, true);
         }
 
         else if (token == "stop")
@@ -316,7 +318,7 @@ int main(int argc, char* argv[])
                 Bench();
         }
 
-        //Non uci commands
+        // Non uci commands
         else if (token == "print")
             position.Board().Print();
         else
@@ -324,7 +326,7 @@ int main(int argc, char* argv[])
 
         Line.clear();
 
-        if (argc != 1) //Temporary fix to quit after a command line UCI argument is done
+        if (argc != 1) // Temporary fix to quit after a command line UCI argument is done
             break;
     }
 
@@ -458,7 +460,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 {
     if (depth == 0)
-        return 1; //if perftdivide is called with 1 this is necesary
+        return 1; // if perftdivide is called with 1 this is necesary
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
