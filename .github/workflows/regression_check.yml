@@ -47,6 +47,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4.1.1
+        # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+        # This ensures we can extract the expected bench from the commit message.
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
@@ -66,10 +71,9 @@ jobs:
         shell: msys2 {0}
         run: |
           cd bin
-          #commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
-          #if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
-          echo "Got correct bench $actual_bench"
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
          
   Debug:
     runs-on: ubuntu-latest
