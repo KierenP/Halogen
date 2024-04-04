@@ -1,4 +1,4 @@
-name: regression_check
+name: Regression Check
 
 on:
   push:
