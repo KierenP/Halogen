@@ -51,7 +51,10 @@ public:
     void SkipQuiets();
 
     // Note this will be the stage of the coming move, not the one that was last returned.
-    Stage GetStage() const { return stage; }
+    Stage GetStage() const
+    {
+        return stage;
+    }
 
 private:
     void OrderMoves(ExtendedMoveList& moves);

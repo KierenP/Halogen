@@ -34,21 +34,21 @@ void GameState::ApplyMove(const std::string& strmove)
     Square next = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
     MoveFlag flag = QUIET;
 
-    //Captures
+    // Captures
     if (Board().IsOccupied(next))
         flag = CAPTURE;
 
-    //Double pawn moves
+    // Double pawn moves
     if (AbsRankDiff(prev, next) == 2)
         if (Board().GetSquare(prev) == WHITE_PAWN || Board().GetSquare(prev) == BLACK_PAWN)
             flag = PAWN_DOUBLE_MOVE;
 
-    //En passant
+    // En passant
     if (next == Board().en_passant)
         if (Board().GetSquare(prev) == WHITE_PAWN || Board().GetSquare(prev) == BLACK_PAWN)
             flag = EN_PASSANT;
 
-    //Castling (normal chess)
+    // Castling (normal chess)
     if (prev == SQ_E1 && next == SQ_G1 && Board().GetSquare(prev) == WHITE_KING)
         flag = H_SIDE_CASTLE;
 
@@ -61,8 +61,8 @@ void GameState::ApplyMove(const std::string& strmove)
     if (prev == SQ_E8 && next == SQ_C8 && Board().GetSquare(prev) == BLACK_KING)
         flag = A_SIDE_CASTLE;
 
-    //Promotion
-    if (strmove.length() == 5) //promotion: c7c8q or d2d1n	etc.
+    // Promotion
+    if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
     {
         if (tolower(strmove[4]) == 'n')
             flag = KNIGHT_PROMOTION;
@@ -73,8 +73,8 @@ void GameState::ApplyMove(const std::string& strmove)
         if (tolower(strmove[4]) == 'b')
             flag = BISHOP_PROMOTION;
 
-        if (Board().IsOccupied(next)) //if it's a capture we need to shift the flag up 4 to turn it from eg: KNIGHT_PROMOTION to KNIGHT_PROMOTION_CAPTURE. EDIT: flag == capture wont work because we just changed the flag!! This was a bug back from 2018 found in 2020
-            flag = static_cast<MoveFlag>(flag + CAPTURE); //might be slow, but don't care.
+        if (Board().IsOccupied(next)) // if it's a capture we need to shift the flag up 4
+            flag = static_cast<MoveFlag>(flag + CAPTURE);
     }
 
     // Castling (chess960)
@@ -151,14 +151,15 @@ bool GameState::InitialiseFromFen(std::vector<std::string> fen)
     }
 
     if (fen.size() < 6)
-        return false; //bad fen
+        return false; // bad fen
 
     bool ret = MutableBoard().InitialiseFromFen(fen);
     net.Recalculate(Board());
     return ret;
 }
 
-bool GameState::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
+bool GameState::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle,
+    const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
 {
     std::vector<std::string> splitFen;
     splitFen.push_back(board);
@@ -173,7 +174,7 @@ bool GameState::InitialiseFromFen(const std::string& board, const std::string& t
 
 bool GameState::InitialiseFromFen(std::string fen)
 {
-    std::vector<std::string> splitFen; //Split the line into an array of strings seperated by each space
+    std::vector<std::string> splitFen; // Split the line into an array of strings seperated by each space
     std::istringstream iss(fen);
     splitFen.push_back("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
     splitFen.push_back("w");
@@ -217,9 +218,9 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
             totalRep++;
 
         if (totalRep == maxReps)
-            return true; //maxReps (usually 3) reps is always a draw
+            return true; // maxReps (usually 3) reps is always a draw
         if (totalRep == 2 && static_cast<int>(previousStates.size() - i) < distanceFromRoot)
-            return true; //Don't allow 2 reps if its in the local search history (not part of the actual played game)
+            return true; // Don't allow 2 reps if its in the local search history (not part of the actual played game)
 
         // the fifty move count is reset when a irreversible move is made. As such, we can stop here
         // and know no repitition has taken place. Becuase we move by two at a time, we stop at 0 or 1.

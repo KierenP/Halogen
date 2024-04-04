@@ -6,7 +6,8 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 
-const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Zobrist::ZobristTable = [] {
+const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Zobrist::ZobristTable = []
+{
     std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
 
     std::mt19937_64 gen(0);

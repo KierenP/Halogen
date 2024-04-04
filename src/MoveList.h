@@ -27,10 +27,15 @@ struct ExtendedMove
     {
     }
 
-    //If you need a constructor that sets score or SEE then feel free to add one.
+    bool operator<(const ExtendedMove& rhs) const
+    {
+        return score < rhs.score;
+    };
 
-    bool operator<(const ExtendedMove& rhs) const { return score < rhs.score; };
-    bool operator>(const ExtendedMove& rhs) const { return score > rhs.score; };
+    bool operator>(const ExtendedMove& rhs) const
+    {
+        return score > rhs.score;
+    };
 
     Move move;
     int16_t score;
@@ -69,8 +74,15 @@ public:
     void clear();
     void erase(size_t index);
 
-    const T& operator[](size_t index) const { return list[index]; }
-    T& operator[](size_t index) { return list[index]; }
+    const T& operator[](size_t index) const
+    {
+        return list[index];
+    }
+
+    T& operator[](size_t index)
+    {
+        return list[index];
+    }
 
     template <typename... Args>
     void emplace_back(Args&&... args)

@@ -40,8 +40,15 @@ struct SearchResult
     {
     }
 
-    int GetScore() const { return m_score; }
-    Move GetMove() const { return m_move; }
+    int GetScore() const
+    {
+        return m_score;
+    }
+
+    Move GetMove() const
+    {
+        return m_move;
+    }
 
 private:
     short m_score;

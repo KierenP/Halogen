@@ -22,7 +22,11 @@ class GameState;
 class History
 {
 public:
-    History() { Reset(); }
+    History()
+    {
+        Reset();
+    }
+
     void Reset();
 
     void Add(const GameState& position, Move move, int change);
@@ -48,7 +52,9 @@ private:
     using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
 
     // [side][prev_piece][prev_to][piece][to]
-    using CounterMoveType = std::array<std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECE_TYPES>, N_SQUARES>, N_PIECE_TYPES>, N_PLAYERS>;
+    using CounterMoveType = std::array<
+        std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECE_TYPES>, N_SQUARES>, N_PIECE_TYPES>,
+        N_PLAYERS>;
 
     std::unique_ptr<ButterflyType> butterfly;
     std::unique_ptr<CounterMoveType> counterMove;
@@ -60,24 +66,45 @@ struct SearchData
 
     //--------------------------------------------------------------------------------------------
 private:
-    uint64_t padding1[8] = {}; //To avoid false sharing between adjacent SearchData objects
+    uint64_t padding1[8] = {}; // To avoid false sharing between adjacent SearchData objects
     //--------------------------------------------------------------------------------------------
 
 public:
     std::array<BasicMoveList, MAX_DEPTH> PvTable = {};
-    std::array<std::array<Move, 2>, MAX_DEPTH> KillerMoves = {}; //2 moves indexed by distanceFromRoot
+    std::array<std::array<Move, 2>, MAX_DEPTH> KillerMoves = {}; // 2 moves indexed by distanceFromRoot
 
     EvalCacheTable evalTable;
     History history;
 
-    void AddNode() { nodes++; }
-    void AddTbHit() { tbHits++; }
+    void AddNode()
+    {
+        nodes++;
+    }
 
-    uint64_t GetThreadNodes() const { return nodes; }
+    void AddTbHit()
+    {
+        tbHits++;
+    }
 
-    void ResetSeldepth() { selDepth = 0; }
-    void ReportDepth(int distanceFromRoot) { selDepth = std::max(distanceFromRoot, selDepth); }
-    int GetSelDepth() const { return selDepth; }
+    uint64_t GetThreadNodes() const
+    {
+        return nodes;
+    }
+
+    void ResetSeldepth()
+    {
+        selDepth = 0;
+    }
+
+    void ReportDepth(int distanceFromRoot)
+    {
+        selDepth = std::max(distanceFromRoot, selDepth);
+    }
+
+    int GetSelDepth() const
+    {
+        return selDepth;
+    }
 
     void ResetNewSearch();
     void ResetNewGame();
@@ -91,7 +118,7 @@ private:
 
     //--------------------------------------------------------------------------------------------
 private:
-    uint64_t padding2[8] = {}; //To avoid false sharing between adjacent SearchData objects
+    uint64_t padding2[8] = {}; // To avoid false sharing between adjacent SearchData objects
     //--------------------------------------------------------------------------------------------
 };
 
@@ -110,10 +137,16 @@ public:
     Move GetBestMove() const;
     unsigned int GetDepth() const;
     bool ThreadAbort(unsigned int initialDepth) const;
-    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move, const SearchData& locals, bool chess960);
+    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move,
+        const SearchData& locals, bool chess960);
     void ReportWantsToStop(unsigned int threadID);
     int GetAspirationScore() const;
-    int GetMultiPVSetting() const { return param.multiPV; };
+
+    int GetMultiPVSetting() const
+    {
+        return param.multiPV;
+    };
+
     int GetMultiPVCount() const;
     bool MultiPVExcludeMove(Move move) const;
     void UpdateBestMove(Move move);
@@ -124,23 +157,45 @@ public:
     SearchData& GetData(unsigned int threadID);
 
     void SetLimits(SearchLimits limits);
-    void SetMultiPv(int multiPv) { param.multiPV = multiPv; }
+
+    void SetMultiPv(int multiPv)
+    {
+        param.multiPV = multiPv;
+    }
+
     void SetThreads(int threads);
-    void SetChess960(bool val) { param.chess960 = val; }
-    const SearchParameters& GetParameters() { return param; }
-    const SearchLimits& GetLimits() { return limits_; }
+
+    void SetChess960(bool val)
+    {
+        param.chess960 = val;
+    }
+
+    const SearchParameters& GetParameters()
+    {
+        return param;
+    }
+
+    const SearchLimits& GetLimits()
+    {
+        return limits_;
+    }
 
     void ResetNewSearch();
     void ResetNewGame();
 
 private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const;
+    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta,
+        GameState& position, const SearchData& locals, bool chess960) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
     mutable std::mutex ioMutex;
-    unsigned int threadDepthCompleted; //The depth that has been completed. When the first thread finishes a depth it increments this. All other threads should stop searching that depth
-    Move currentBestMove; //Whoever finishes first gets to update this as long as they searched deeper than threadDepth
-    int prevScore; //if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+    // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
+    // should stop searching that depth
+    unsigned int threadDepthCompleted;
+    // Whoever finishes first gets to update this as long as they searched deeper than threadDepth
+    Move currentBestMove;
+    // if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
+    int prevScore;
     int lowestAlpha;
     int highestBeta;
 
@@ -148,5 +203,5 @@ private:
     SearchLimits limits_;
 
     std::vector<SearchData> threadlocalData;
-    std::vector<Move> MultiPVExclusion; //Moves that we ignore at the root for MPV mode
+    std::vector<Move> MultiPVExclusion; // Moves that we ignore at the root for MPV mode
 };

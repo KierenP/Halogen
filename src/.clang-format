@@ -1,2 +1,5 @@
 BasedOnStyle: WebKit
 BreakBeforeBraces: Allman
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Empty
+AlwaysBreakTemplateDeclarations: true

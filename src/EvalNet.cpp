@@ -43,13 +43,14 @@ bool DeadPosition(const BoardState& board)
 
     /*
     From the Chess Programming Wiki:
-        According to the rules of a dead position, Article 5.2 b, when there is no possibility of checkmate for either side with any series of legal moves, the position is an immediate draw if
-        - both sides have a bare king													1.
-        - one side has a king and a minor piece against a bare king						2.
-        - both sides have a king and a bishop, the bishops being the same color			Not covered
+        According to the rules of a dead position, Article 5.2 b, when there is no possibility of checkmate for either
+        side with any series of legal moves, the position is an immediate draw if:
+            1: both sides have a bare king
+            2: one side has a king and a minor piece against a bare king
+            Not covered: both sides have a king and a bishop, the bishops being the same color
     */
 
-    //We know the board must contain just knights, bishops and kings
+    // We know the board must contain just knights, bishops and kings
     int WhiteBishops = GetBitCount(board.GetPieceBB(WHITE_BISHOP));
     int BlackBishops = GetBitCount(board.GetPieceBB(BLACK_BISHOP));
     int WhiteKnights = GetBitCount(board.GetPieceBB(WHITE_KNIGHT));
@@ -58,11 +59,11 @@ bool DeadPosition(const BoardState& board)
     int BlackMinor = BlackBishops + BlackKnights;
 
     if (WhiteMinor == 0 && BlackMinor == 0)
-        return true; //1
+        return true; // 1
     if (WhiteMinor == 1 && BlackMinor == 0)
-        return true; //2
+        return true; // 2
     if (WhiteMinor == 0 && BlackMinor == 1)
-        return true; //2
+        return true; // 2
 
     return false;
 }

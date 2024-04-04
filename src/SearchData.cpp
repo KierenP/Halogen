@@ -104,7 +104,8 @@ bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
     return initialDepth <= threadDepthCompleted;
 }
 
-void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move, const SearchData& locals, bool chess960)
+void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta,
+    GameState& position, Move move, const SearchData& locals, bool chess960)
 {
     std::scoped_lock lock(ioMutex);
 
@@ -164,7 +165,7 @@ int ThreadSharedData::GetAspirationScore() const
 
 int ThreadSharedData::GetMultiPVCount() const
 {
-    //can't lock, this is used during search
+    // can't lock, this is used during search
     return MultiPVExclusion.size();
 }
 
@@ -203,20 +204,22 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta, GameState& position, const SearchData& locals, bool chess960) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha,
+    int beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
-	Here we avoid excessive use of std::cout and instead append to a string in order
-	to output only once at the end. This causes a noticeable speedup for very fast
-	time controls.
-	*/
+    Here we avoid excessive use of std::cout and instead append to a string in order
+    to output only once at the end. This causes a noticeable speedup for very fast
+    time controls.
+    */
 
     const BasicMoveList& pv = locals.PvTable[0];
 
     std::stringstream ss;
 
-    ss << "info depth " << depth //the depth of search
-       << " seldepth " << locals.GetSelDepth(); //the selective depth (for example searching further for checks and captures)
+    ss << "info depth " << depth // the depth of search
+       << " seldepth "
+       << locals.GetSelDepth(); // the selective depth (for example searching further for checks and captures)
 
     if (isCheckmate)
     {
@@ -227,7 +230,7 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     }
     else
     {
-        ss << " score cp " << score; //The score in hundreths of a pawn (a 1 pawn advantage is +100)
+        ss << " score cp " << score; // The score in hundreths of a pawn (a 1 pawn advantage is +100)
     }
 
     if (score <= alpha)
@@ -235,16 +238,15 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     if (score >= beta)
         ss << " lowerbound";
 
-    ss << " time " << Time //Time in ms
-       << " nodes " << getNodes()
-       << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000)
-       << " hashfull " << tTable.GetCapacity(position.Board().half_turn_count) //thousondths full
+    ss << " time " << Time // Time in ms
+       << " nodes " << getNodes() << " nps " << int(getNodes() / std::max(int(Time), 1) * 1000) << " hashfull "
+       << tTable.GetCapacity(position.Board().half_turn_count) // thousondths full
        << " tbhits " << getTBHits();
 
     if (param.multiPV > 0)
         ss << " multipv " << GetMultiPVCount() + 1;
 
-    ss << " pv "; //the current best line found
+    ss << " pv "; // the current best line found
 
     for (size_t i = 0; i < pv.size(); i++)
     {
@@ -296,7 +298,8 @@ void History::AddButterfly(const GameState& position, Move move, int change)
     assert(move.GetFrom() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
+    AddHistory(
+        (*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
 }
 
 int16_t History::GetButterfly(const GameState& position, Move move) const
@@ -327,7 +330,8 @@ void History::AddCounterMove(const GameState& position, Move move, int change)
     assert(prevMove.GetTo() != N_SQUARES);
     assert(move.GetTo() != N_SQUARES);
 
-    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change, CounterMove_max, CounterMove_scale);
+    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change,
+        CounterMove_max, CounterMove_scale);
 }
 
 int16_t History::GetCounterMove(const GameState& position, Move move) const

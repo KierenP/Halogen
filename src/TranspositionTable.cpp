@@ -26,11 +26,12 @@ bool CheckEntry(const TTEntry& entry, uint64_t key)
     return (entry.GetKey() == key);
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(
+    const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
 {
     size_t hash = HashFunction(ZobristKey);
 
-    //checkmate node or TB win/loss
+    // checkmate node or TB win/loss
     if (Score > EVAL_MAX)
         Score += distanceFromRoot;
     if (Score < EVAL_MIN)
@@ -45,7 +46,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
         }
     }
 
-    int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot); //Keep in mind age from each generation goes up so lower (generally) means older
+    // Keep in mind age from each generation goes up so lower (generally) means older
+    int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::SIZE> scores = {};
 
     for (size_t i = 0; i < TTBucket::SIZE; i++)
@@ -54,7 +56,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, int Sco
         scores[i] = table[hash].entry[i].GetDepth() - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
     }
 
-    table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))] = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
+    table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]
+        = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot) const
@@ -90,7 +93,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 {
     int count = 0;
 
-    for (int i = 0; i < 1000; i++) //1000 chosen specifically, because result needs to be 'per mill'
+    for (int i = 0; i < 1000; i++) // 1000 chosen specifically, because result needs to be 'per mill'
     {
         if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == TTEntry::CalculateAge(halfmove, 0))
             count++;

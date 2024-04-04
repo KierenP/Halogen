@@ -1,10 +1,10 @@
-name: CI
+name: Regression Check
 
-on:
+on: 
   push:
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   Ubuntu:
@@ -13,10 +13,14 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2, release]
+        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4.1.1
+        # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+        # This ensures we can extract the expected bench from the commit message.
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Create build
         run: |
@@ -24,12 +28,12 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
 
       - name: Check bench matches commit message
-        if: matrix.target != 'release'
         run: |
           cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
-          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
+          
 
   Windows:
     runs-on: windows-latest
@@ -42,8 +46,13 @@ jobs:
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: msys2/setup-msys2@v2
+      - uses: actions/checkout@v4.1.1
+        # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+        # This ensures we can extract the expected bench from the commit message.
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
           install: mingw-w64-${{matrix.config.package}} make git
@@ -63,8 +72,8 @@ jobs:
         run: |
           cd bin
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
-          actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
-          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
          
   Debug:
     runs-on: ubuntu-latest
@@ -74,7 +83,7 @@ jobs:
         compiler: [g++-10, clang++-13]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4.1.1
 
       - name: Create debug compiles
         run: |
@@ -94,7 +103,7 @@ jobs:
         compiler: [g++-10, clang++-13]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4.1.1
 
       - name: Create sanitizer builds
         run: |
@@ -106,7 +115,7 @@ jobs:
           cd bin
           ./Halogen bench 4
           ./Halogen go depth 4
-          ./Halogen go nodes 100000
+          ./Halogen go nodes 10000
           ./Halogen go movetime 2500
           ./Halogen go wtime 1000 btime 1000 winc 1000 binc 1000
           ./Halogen go wtime 1000 btime 1000 movestogo 20

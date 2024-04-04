@@ -203,7 +203,7 @@ constexpr int GetBitCount(uint64_t bb)
 #if defined(__GNUG__) && defined(USE_POPCNT)
     return __builtin_popcountll(bb);
 #else
-    //https://www.chessprogramming.org/Population_Count
+    // https://www.chessprogramming.org/Population_Count
     const uint64_t k1 = uint64_t(0x5555555555555555); /*  -1/3   */
     const uint64_t k2 = uint64_t(0x3333333333333333); /*  -1/5   */
     const uint64_t k4 = uint64_t(0x0f0f0f0f0f0f0f0f); /*  -1/17  */
@@ -263,8 +263,8 @@ constexpr int FileDiff(Square sq1, Square sq2)
     return static_cast<int>(GetFile(sq1)) - static_cast<int>(GetFile(sq2));
 }
 
-//std::abs is not constexpr (this is being added to the standard soon)
-//for now, define my own
+// std::abs is not constexpr (this is being added to the standard soon)
+// for now, define my own
 template <class T, std::enable_if_t<std::is_arithmetic_v<T>>...>
 constexpr auto abs_constexpr(T const& x) noexcept
 {
@@ -306,9 +306,9 @@ constexpr Square GetPosition(File file, Rank rank)
 constexpr uint64_t EMPTY = 0;
 constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 
-namespace Detail //so these don't polute the global scope
+namespace Detail // so these don't polute the global scope
 {
-//Not my code, slightly modified
+// Not my code, slightly modified
 constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 {
     const uint64_t a2a7 = uint64_t(0x0001010101010100);
@@ -328,28 +328,32 @@ constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
 }
 }
 
-constexpr auto RankBB = []() {
+constexpr auto RankBB = []()
+{
     std::array<uint64_t, N_RANKS> ret {};
     for (Rank i = RANK_1; i <= RANK_8; ++i)
         ret[i] = 0xffULL << (8 * i);
     return ret;
 }();
 
-constexpr auto FileBB = []() {
+constexpr auto FileBB = []()
+{
     std::array<uint64_t, N_FILES> ret {};
     for (File i = FILE_A; i <= FILE_H; ++i)
         ret[i] = 0x101010101010101 << i;
     return ret;
 }();
 
-constexpr auto SquareBB = []() {
+constexpr auto SquareBB = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = 1ULL << i;
     return ret;
 }();
 
-constexpr auto DiagonalBB = []() {
+constexpr auto DiagonalBB = []()
+{
     std::array<uint64_t, N_DIAGONALS> ret { 0x100000000000000 };
     for (Diagonal i = DIAG_A7B8; i <= DIAG_H1H1; ++i)
         if (i > N_DIAGONALS / 2)
@@ -359,7 +363,8 @@ constexpr auto DiagonalBB = []() {
     return ret;
 }();
 
-constexpr auto AntiDiagonalBB = []() {
+constexpr auto AntiDiagonalBB = []()
+{
     std::array<uint64_t, N_ANTI_DIAGONALS> ret { 0x8000000000000000 };
     for (AntiDiagonal i = DIAG_G8H7; i <= DIAG_A1A1; ++i)
         if (i > N_ANTI_DIAGONALS / 2)
@@ -369,7 +374,8 @@ constexpr auto AntiDiagonalBB = []() {
     return ret;
 }();
 
-constexpr auto betweenArray = []() {
+constexpr auto betweenArray = []()
+{
     std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> ret {};
     for (int i = 0; i < 64; i++)
     {
@@ -381,30 +387,35 @@ constexpr auto betweenArray = []() {
     return ret;
 }();
 
-constexpr auto KnightAttacks = []() {
+constexpr auto KnightAttacks = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
-            if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2) || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
+            if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2)
+                || (AbsRankDiff(i, j) == 2 && AbsFileDiff(i, j) == 1))
                 ret[i] |= SquareBB[j];
     return ret;
 }();
 
-constexpr auto RookAttacks = []() {
+constexpr auto RookAttacks = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];
     return ret;
 }();
 
-constexpr auto BishopAttacks = []() {
+constexpr auto BishopAttacks = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];
     return ret;
 }();
 
-constexpr auto KingAttacks = []() {
+constexpr auto KingAttacks = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
@@ -413,20 +424,22 @@ constexpr auto KingAttacks = []() {
     return ret;
 }();
 
-constexpr auto PawnAttacks = []() {
+constexpr auto PawnAttacks = []()
+{
     std::array<std::array<uint64_t, N_SQUARES>, N_PLAYERS> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
-            if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1) //either side one ahead
+            if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1) // either side one ahead
                 ret[WHITE][i] |= SquareBB[j];
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
-            if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1) //either side one behind
+            if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == -1) // either side one behind
                 ret[BLACK][i] |= SquareBB[j];
     return ret;
 }();
 
-constexpr auto QueenAttacks = []() {
+constexpr auto QueenAttacks = []()
+{
     std::array<uint64_t, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = RookAttacks[i] | BishopAttacks[i];
@@ -441,12 +454,13 @@ constexpr Square LSB(uint64_t bb)
     return static_cast<Square>(__builtin_ctzll(bb));
 #else
     /**
-	 * bitScanForward
-	 * @author Kim Walisch (2012)
-	 * @param bb bitboard to scan
-	 * @precondition bb != 0
-	 * @return index (0..63) of least significant one bit
-	 */
+     * bitScanForward
+     * @author Kim Walisch (2012)
+     * @param bb bitboard to scan
+     * @precondition bb != 0
+     * @return index (0..63) of least significant one bit
+     */
+    // clang-format off
     constexpr std::array<int, N_SQUARES> index64 = {
         0, 47, 1, 56, 48, 27, 2, 60,
         57, 49, 41, 37, 28, 16, 3, 61,
@@ -457,6 +471,7 @@ constexpr Square LSB(uint64_t bb)
         25, 39, 14, 33, 19, 30, 9, 24,
         13, 18, 8, 12, 7, 6, 5, 63
     };
+    // clang-format on
     constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
     return static_cast<Square>(index64[((bb ^ (bb - 1)) * debruijn64) >> 58]);
 #endif
@@ -480,12 +495,13 @@ constexpr Square MSB(uint64_t bb)
     return static_cast<Square>(SQ_H8 - __builtin_clzll(bb));
 #else
     /**
-    * bitScanReverse
-    * @authors Kim Walisch, Mark Dickinson
-    * @param bb bitboard to scan
-    * @precondition bb != 0
-    * @return index (0..63) of most significant one bit
-    */
+     * bitScanReverse
+     * @authors Kim Walisch, Mark Dickinson
+     * @param bb bitboard to scan
+     * @precondition bb != 0
+     * @return index (0..63) of most significant one bit
+     */
+    // clang-format off
     constexpr std::array<int, N_SQUARES> index64 = {
         0, 47, 1, 56, 48, 27, 2, 60,
         57, 49, 41, 37, 28, 16, 3, 61,
@@ -496,6 +512,7 @@ constexpr Square MSB(uint64_t bb)
         25, 39, 14, 33, 19, 30, 9, 24,
         13, 18, 8, 12, 7, 6, 5, 63
     };
+    // clang-format on
     constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
     bb |= bb >> 1;
     bb |= bb >> 2;
@@ -551,10 +568,16 @@ public:
     const std::array<int, 4> steps;
     const std::array<uint64_t, N_SQUARES> magics;
 
-    uint64_t AttackMask(Square sq, uint64_t occupied = EMPTY) const { return table[sq].attacks[AttackIndex(sq, occupied, table)]; }
+    uint64_t AttackMask(Square sq, uint64_t occupied = EMPTY) const
+    {
+        return table[sq].attacks[AttackIndex(sq, occupied, table)];
+    }
 
 private:
-    uint64_t& AttackMask(Square sq, uint64_t occupied = EMPTY) { return table[sq].attacks[AttackIndex(sq, occupied, table)]; }
+    uint64_t& AttackMask(Square sq, uint64_t occupied = EMPTY)
+    {
+        return table[sq].attacks[AttackIndex(sq, occupied, table)];
+    }
 
     void InitSliderAttacks();
 

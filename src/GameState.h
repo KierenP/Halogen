@@ -33,7 +33,8 @@ public:
     // returns true after sucsessful execution, false otherwise
     // TODO: are all these needed?
     bool InitialiseFromFen(std::vector<std::string> fen);
-    bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle, const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
+    bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle,
+        const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
     bool InitialiseFromFen(std::string fen);
 
     // TODO: is this needed?

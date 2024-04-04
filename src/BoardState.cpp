@@ -32,13 +32,14 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
 {
     Reset();
 
-    size_t FenLetter = 0; //index within the string
-    int square = 0; //index within the board
+    size_t FenLetter = 0; // index within the string
+    int square = 0; // index within the board
     while ((square < 64) && (FenLetter < fen[0].length()))
     {
         char letter = fen[0].at(FenLetter);
-        //ugly code, but surely this is the only time in the code that we iterate over squares in a different order than the Square enum
-        //the squares values go up as you move up the board towards black's starting side, but a fen starts from the black side and works downwards
+        // ugly code, but surely this is the only time in the code that we iterate over squares in a different order
+        // than the Square enum the squares values go up as you move up the board towards black's starting side, but a
+        // fen starts from the black side and works downwards
         Square sq = static_cast<Square>((RANK_8 - square / 8) * 8 + square % 8);
 
         // clang-format off
@@ -130,8 +131,10 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
 
 void BoardState::RecalculateWhiteBlackBoards()
 {
-    WhitePieces = GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK) | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
-    BlackPieces = GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK) | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
+    WhitePieces = GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK)
+        | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
+    BlackPieces = GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK)
+        | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
 }
 
 uint64_t BoardState::GetPiecesColour(Players colour) const
@@ -154,7 +157,9 @@ void BoardState::SetSquare(Square square, Pieces piece)
 
     ClearSquare(square);
 
-    if (piece < N_PIECES) //it is possible we might set a square to be empty using this function rather than using the ClearSquare function below.
+    // it is possible we might set a square to be empty using this function rather than using the ClearSquare function
+    // below.
+    if (piece < N_PIECES)
         board[piece] |= SquareBB[square];
 
     RecalculateWhiteBlackBoards();
@@ -184,7 +189,7 @@ uint64_t BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
 
 Square BoardState::GetKing(Players colour) const
 {
-    assert(GetPieceBB(KING, colour) != 0); //assert only runs in debug so I don't care about the double call
+    assert(GetPieceBB(KING, colour) != 0); // assert only runs in debug so I don't care about the double call
     return LSB(GetPieceBB(KING, colour));
 }
 
@@ -303,8 +308,8 @@ void BoardState::Print() const
 
         if (GetFile(square) == FILE_A)
         {
-            std::cout << std::endl; //Go to a new line
-            std::cout << 8 - GetRank(i); //Count down from 8
+            std::cout << std::endl; // Go to a new line
+            std::cout << 8 - GetRank(i); // Count down from 8
         }
 
         std::cout << " ";
@@ -332,10 +337,11 @@ void BoardState::ApplyMove(Move move, Network& net)
         break;
     case PAWN_DOUBLE_MOVE:
     {
-        //average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the same for black and white
+        // average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the
+        // same for black and white
         Square ep_sq = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
 
-        //it only counts as a ep square if a pawn could potentially do the capture!
+        // it only counts as a ep square if a pawn could potentially do the capture!
         uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & GetPieceBB(PAWN, !stm);
 
         while (potentialAttackers)

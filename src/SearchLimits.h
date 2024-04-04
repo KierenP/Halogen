@@ -32,9 +32,15 @@ public:
     void SetNodeLimit(uint64_t nodes);
     void SetInfinite(); // disables all other limits
 
-    int ElapsedTime() const { return timeManager.ElapsedMs(); }
+    int ElapsedTime() const
+    {
+        return timeManager.ElapsedMs();
+    }
 
-    void ResetTimer() { timeManager.Reset(); }
+    void ResetTimer()
+    {
+        timeManager.Reset();
+    }
 
 private:
     SearchTimeManage timeManager;
