@@ -17,6 +17,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4.1.1
+        with:
+          ref: ${{ env.GITHUB_SHA }}
+
+      - name: Get Head Commit Message
+        id: get_head_commit_message
+        run: echo "HEAD_COMMIT_MESSAGE=$(git show -s --format=%s)" >> "$GITHUB_OUTPUT"
 
       - name: Create build
         run: |
@@ -24,13 +30,15 @@ jobs:
          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
 
       - name: Check bench matches commit message
+        env:
+            HEAD_COMMIT_MESSAGE: ${{ steps.get_head_commit_message.outputs.HEAD_COMMIT_MESSAGE }}
         run: |
           cd bin
+          echo "Commit message:\n$HEAD_COMMIT_MESSAGE"
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           #if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
           echo "Got correct bench $actual_bench"
-          echo "Trying to debug $(git show --summary)"
 
   Windows:
     runs-on: windows-latest
