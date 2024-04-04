@@ -2,7 +2,8 @@
 #include <array>
 #include <string>
 
-//copied from stockfish
+// copied from stockfish
+// clang-format off
 const std::array<std::string, 35> benchMarkPositions = {
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -40,3 +41,4 @@ const std::array<std::string, 35> benchMarkPositions = {
     "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
     "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1"
 };
+// clang-format on

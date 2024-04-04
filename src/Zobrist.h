@@ -9,15 +9,37 @@ class BoardState;
 class Zobrist
 {
 public:
-    void Recalculate(const BoardState& board) { key = Generate(board); }
-    uint64_t Key() const { return key; }
+    void Recalculate(const BoardState& board)
+    {
+        key = Generate(board);
+    }
 
-    void ToggleSTM() { key ^= ZobristTable[12 * 64]; }
+    uint64_t Key() const
+    {
+        return key;
+    }
+
+    void ToggleSTM()
+    {
+        key ^= ZobristTable[12 * 64];
+    }
+
     void ToggleCastle(Square sq);
-    void ToggleEnpassant(File file) { key ^= ZobristTable[12 * 64 + 17 + file]; }
-    void TogglePieceSquare(Pieces piece, Square square) { key ^= ZobristTable[piece * 64 + square]; }
 
-    bool Verify(const BoardState& board) const { return Generate(board) == key; }
+    void ToggleEnpassant(File file)
+    {
+        key ^= ZobristTable[12 * 64 + 17 + file];
+    }
+
+    void TogglePieceSquare(Pieces piece, Square square)
+    {
+        key ^= ZobristTable[piece * 64 + square];
+    }
+
+    bool Verify(const BoardState& board) const
+    {
+        return Generate(board) == key;
+    }
 
 private:
     static uint64_t Generate(const BoardState& board);

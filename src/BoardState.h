@@ -44,7 +44,10 @@ public:
     Square GetKing(Players colour) const;
 
     template <PieceTypes type>
-    uint64_t GetPieceBB() const { return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK); }
+    uint64_t GetPieceBB() const
+    {
+        return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK);
+    }
 
     uint64_t GetZobristKey() const;
 
