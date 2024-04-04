@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
         with:
-          ref: ${{ env.GITHUB_SHA }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Get Head Commit Message
         id: get_head_commit_message
