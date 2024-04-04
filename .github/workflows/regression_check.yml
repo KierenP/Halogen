@@ -29,6 +29,7 @@ jobs:
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           #if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
+          echo "Got correct bench $actual_bench"
 
   Windows:
     runs-on: windows-latest
@@ -64,6 +65,7 @@ jobs:
           #commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen.exe bench | tail -1 | grep -o "^[0-9]*")
           #if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; fi
+          echo "Got correct bench $actual_bench"
          
   Debug:
     runs-on: ubuntu-latest
