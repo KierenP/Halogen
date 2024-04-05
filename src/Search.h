@@ -62,4 +62,4 @@ private:
     Move m_move;
 };
 
-uint64_t SearchThread(GameState position, ThreadSharedData& sharedData);
+uint64_t SearchThread(GameState& position, ThreadSharedData& sharedData);

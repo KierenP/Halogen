@@ -61,9 +61,9 @@ unsigned int ProbeTBSearch(const BoardState& board);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
 Move GetTBMove(unsigned int result);
 
-void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID);
+void SearchPosition(GameState& position, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData);
+    GameState& position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData);
 SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, Score alpha, Score beta,
     int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(Score score, Score& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
@@ -73,7 +73,7 @@ SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score al
 
 bool should_abort_search(int initial_depth, SearchData& locals, const ThreadSharedData& shared_data);
 
-uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
+uint64_t SearchThread(GameState& position, ThreadSharedData& sharedData)
 {
     // Probe TB at root
     if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
@@ -100,7 +100,8 @@ uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
 
     for (int i = 0; i < sharedData.GetParameters().threads; i++)
     {
-        threads.emplace_back(std::thread([=, &sharedData] { SearchPosition(position, sharedData, i); }));
+        threads.emplace_back(
+            std::thread([position, &sharedData, i]() mutable { SearchPosition(position, sharedData, i); }));
     }
 
     for (size_t i = 0; i < threads.size(); i++)
@@ -128,7 +129,7 @@ void PrintBestMove(Move Best, const BoardState& board, bool chess960)
     std::cout << std::endl;
 }
 
-void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID)
+void SearchPosition(GameState& position, ThreadSharedData& sharedData, unsigned int threadID)
 {
     auto alpha = std::numeric_limits<Score>::min();
     auto beta = std::numeric_limits<Score>::max();
@@ -174,7 +175,7 @@ void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned i
 }
 
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData)
+    GameState& position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData)
 {
     int delta = Aspiration_window;
 

@@ -203,7 +203,7 @@ int main(int argc, char* argv[])
                 searchThread.join();
 
             data.SetLimits(std::move(limits));
-            searchThread = thread([position, &data] { SearchThread(position, data); });
+            searchThread = thread([position, &data]() mutable { SearchThread(position, data); });
         }
 
         else if (token == "setoption")
