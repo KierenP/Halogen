@@ -31,6 +31,7 @@ void SearchData::ResetNewSearch()
     nodes = 0;
     selDepth = 0;
     threadWantsToStop = false;
+    aborting_search = false;
 
     PvTable = {};
     KillerMoves = {};

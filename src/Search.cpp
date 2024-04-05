@@ -6,10 +6,8 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
-#include <exception>
 #include <iostream>
 #include <limits>
-#include <memory>
 #include <thread>
 #include <vector>
 
@@ -63,9 +61,9 @@ unsigned int ProbeTBSearch(const BoardState& board);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
 Move GetTBMove(unsigned int result);
 
-void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID);
+void SearchPosition(GameState& position, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData);
+    GameState& position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData);
 SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, Score alpha, Score beta,
     int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
 void UpdateAlpha(Score score, Score& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
@@ -73,7 +71,9 @@ void UpdateScore(Score newScore, Score& score, Move& bestMove, const Move& move)
 SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score alpha, Score beta, int colour,
     unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
-uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
+bool should_abort_search(int initial_depth, SearchData& locals, const ThreadSharedData& shared_data);
+
+uint64_t SearchThread(GameState& position, ThreadSharedData& sharedData)
 {
     // Probe TB at root
     if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
@@ -100,7 +100,8 @@ uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
 
     for (int i = 0; i < sharedData.GetParameters().threads; i++)
     {
-        threads.emplace_back(std::thread([=, &sharedData] { SearchPosition(position, sharedData, i); }));
+        threads.emplace_back(
+            std::thread([position, &sharedData, i]() mutable { SearchPosition(position, sharedData, i); }));
     }
 
     for (size_t i = 0; i < threads.size(); i++)
@@ -128,23 +129,7 @@ void PrintBestMove(Move Best, const BoardState& board, bool chess960)
     std::cout << std::endl;
 }
 
-struct TimeAbort : public std::exception
-{
-    const char* what() const throw()
-    {
-        return "no more time remaining";
-    }
-};
-
-struct ThreadDepthAbort : public std::exception
-{
-    const char* what() const throw()
-    {
-        return "another thread finished this depth";
-    }
-};
-
-void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID)
+void SearchPosition(GameState& position, ThreadSharedData& sharedData, unsigned int threadID)
 {
     auto alpha = std::numeric_limits<Score>::min();
     auto beta = std::numeric_limits<Score>::max();
@@ -163,31 +148,34 @@ void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned i
         if (!sharedData.GetLimits().ShouldContinueSearch())
             sharedData.ReportWantsToStop(threadID);
 
-        try
+        SearchResult curSearch
+            = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData);
+
+        // If we aborted because another thread finished the depth we were on, get that score and continue to that
+        // depth.
+        if (sharedData.ThreadAbort(depth))
         {
-            SearchResult curSearch
-                = AspirationWindowSearch(position, depth, prevScore, sharedData.GetData(threadID), sharedData);
-            sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), curSearch.GetScore(), alpha, beta,
-                position, curSearch.GetMove(), sharedData.GetData(threadID), sharedData.GetParameters().chess960);
-            if (sharedData.GetLimits().HitMateLimit(curSearch.GetScore()))
-                break;
-            prevScore = curSearch.GetScore();
-        }
-        catch (ThreadDepthAbort&)
-        {
-            // curSearch probably is some garbage result, make sure not to use it for anything
             prevScore = sharedData.GetAspirationScore();
+            sharedData.GetData(threadID).aborting_search = false;
+            continue;
         }
-        catch (TimeAbort&)
+
+        // Else, if we aborted then we should return
+        if (sharedData.GetData(threadID).aborting_search)
         {
-            // no time to wait around, return immediately.
             return;
         }
+
+        sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), curSearch.GetScore(), alpha, beta,
+            position, curSearch.GetMove(), sharedData.GetData(threadID), sharedData.GetParameters().chess960);
+        if (sharedData.GetLimits().HitMateLimit(curSearch.GetScore()))
+            break;
+        prevScore = curSearch.GetScore();
     }
 }
 
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData)
+    GameState& position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData)
 {
     int delta = Aspiration_window;
 
@@ -200,6 +188,11 @@ SearchResult AspirationWindowSearch(
         locals.ResetSeldepth();
         search = NegaScout(
             position, depth, depth, alpha, beta, position.Board().stm ? 1 : -1, 0, false, locals, sharedData);
+
+        if (locals.aborting_search)
+        {
+            return SCORE_UNDEFINED;
+        }
 
         if (alpha < search.GetScore() && search.GetScore() < beta)
             break;
@@ -233,20 +226,18 @@ SearchResult AspirationWindowSearch(
 SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, Score alpha, Score beta,
     int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
+    // check if we should abort the search
+    if (should_abort_search(initialDepth, locals, sharedData))
+    {
+        return SCORE_UNDEFINED;
+    }
+
     locals.ReportDepth(distanceFromRoot);
     locals.AddNode();
 
     if (distanceFromRoot >= MAX_DEPTH)
         return 0; // Have we reached max depth?
     locals.PvTable[distanceFromRoot].clear();
-
-    // See if we should abort the search
-    if (initialDepth > 1 && !KeepSearching)
-        throw TimeAbort();
-    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && sharedData.GetLimits().HitTimeLimit())
-        throw TimeAbort(); // Am I out of time?
-    if (sharedData.ThreadAbort(initialDepth))
-        throw ThreadDepthAbort(); // Has this depth been finished by another thread?
 
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
@@ -460,7 +451,9 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
         UpdateScore(newScore, score, bestMove, move);
         UpdateAlpha(score, a, move, distanceFromRoot, locals);
 
-        if (a >= beta) // Fail high cutoff
+        // avoid updating Killers or History when aborting the search
+        // check for fail high cutoff
+        if (!locals.aborting_search && a >= beta)
         {
             AddKiller(move, distanceFromRoot, locals.KillerMoves);
             AddHistory(gen, move, locals, depthRemaining);
@@ -478,7 +471,11 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
 
     score = std::min(score, MaxScore);
 
-    AddScoreToTable(score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
+    // avoid adding scores to the TT when we are aborting the search
+    if (!locals.aborting_search)
+    {
+        AddScoreToTable(score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
+    }
 
     return SearchResult(score, bestMove);
 }
@@ -676,6 +673,12 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score alpha, Score beta, int colour,
     unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
+    // check if we should abort the search
+    if (should_abort_search(initialDepth, locals, sharedData))
+    {
+        return SCORE_UNDEFINED;
+    }
+
     locals.ReportDepth(distanceFromRoot);
     locals.AddNode();
 
@@ -683,13 +686,6 @@ SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score al
         return 0; // Have we reached max depth?
     locals.PvTable[distanceFromRoot].clear();
 
-    // See if we should abort the search
-    if (initialDepth > 1 && !KeepSearching)
-        throw TimeAbort();
-    if (initialDepth > 1 && locals.GetThreadNodes() % 1024 == 0 && sharedData.GetLimits().HitTimeLimit())
-        throw TimeAbort(); // Am I out of time?
-    if (sharedData.ThreadAbort(initialDepth))
-        throw ThreadDepthAbort(); // Has this depth been finished by another thread?
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
 
@@ -749,4 +745,37 @@ void AddHistory(const StagedMoveGenerator& gen, const Move& move, SearchData& lo
     if (depthRemaining > 20 || move.IsCapture() || move.IsPromotion())
         return;
     gen.AdjustHistory(move, locals, depthRemaining);
+}
+
+bool should_abort_search(int initial_depth, SearchData& locals, const ThreadSharedData& shared_data)
+{
+    // If we are currently in the process of aborting, do so as quickly as possible
+    if (locals.aborting_search)
+    {
+        return true;
+    }
+
+    // See if we should abort the search. We get this signal if all threads have decided they want to stop, or we
+    // receive a 'stop' command from the uci input
+    if (initial_depth > 1 && !KeepSearching)
+    {
+        locals.aborting_search = true;
+        return true;
+    }
+
+    // Check if we have breached the time limit.
+    if (initial_depth > 1 && locals.GetThreadNodes() % 1024 == 0 && shared_data.GetLimits().HitTimeLimit())
+    {
+        locals.aborting_search = true;
+        return true;
+    }
+
+    // If the current depth has been completed by another thread, we abort and resume at the higher depth
+    if (shared_data.ThreadAbort(initial_depth))
+    {
+        locals.aborting_search = true;
+        return true;
+    }
+
+    return false;
 }
