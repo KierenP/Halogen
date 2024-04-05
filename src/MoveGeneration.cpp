@@ -66,14 +66,13 @@ void LegalMoves(const BoardState& board, T& moves)
 template <typename T>
 void QuiescenceMoves(const BoardState& board, T& moves)
 {
-    switch (board.stm)
+    if (board.stm == WHITE)
     {
-    case WHITE:
         return AddQuiescenceMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
-    case BLACK:
+    }
+    else
+    {
         return AddQuiescenceMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
-    default:
-        throw std::invalid_argument("board object without turn set");
     }
 }
 
@@ -120,14 +119,13 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
 template <typename T>
 void QuietMoves(const BoardState& board, T& moves)
 {
-    switch (board.stm)
+    if (board.stm == WHITE)
     {
-    case WHITE:
         return AddQuietMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
-    case BLACK:
+    }
+    else
+    {
         return AddQuietMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
-    default:
-        throw std::invalid_argument("board object without turn set");
     }
 }
 

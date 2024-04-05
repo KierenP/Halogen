@@ -150,6 +150,8 @@ private:
 
 static_assert(std::is_trivial_v<Score>);
 
+static constexpr Score SCORE_UNDEFINED = -32768;
+
 namespace std
 {
 template <>

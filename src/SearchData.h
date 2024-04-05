@@ -109,6 +109,9 @@ public:
     void ResetNewSearch();
     void ResetNewGame();
 
+    // Set to true when the search is unwinding and trying to return.
+    bool aborting_search;
+
 private:
     friend class ThreadSharedData;
     uint64_t tbHits;
@@ -175,7 +178,7 @@ public:
         return param;
     }
 
-    const SearchLimits& GetLimits()
+    const SearchLimits& GetLimits() const
     {
         return limits_;
     }
