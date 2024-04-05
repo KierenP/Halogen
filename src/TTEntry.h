@@ -77,13 +77,13 @@ public:
 
 private:
     /*Arranged to minimize padding*/
-    uint64_t key_; // 8 bytes
-    Move bestMove_; // 2 bytes
-    Score score_; // 2 bytes
-    int8_t depth_; // 1 bytes
-    EntryType cutoff_; // 1 bytes
-    // halfmove is stored as the move count at the ROOT of this current search modulo 16 plus 1)
-    int8_t halfmove_; // 1 bytes
+    uint64_t key_ = 0; // 8 bytes
+    Move bestMove_ = Move::Uninitialized; // 2 bytes
+    Score score_ = 0; // 2 bytes
+    int8_t depth_ = 0; // 1 bytes
+    EntryType cutoff_ = EntryType::EMPTY_ENTRY; // 1 bytes
+    // is stored as the move count at the ROOT of this current search modulo 16 plus 1
+    int8_t halfmove_ = 0; // 1 bytes
 };
 
 struct TTBucket
@@ -96,4 +96,4 @@ struct TTBucket
 
 static_assert(sizeof(TTEntry) == 16, "TTEntry is not 16 bytes");
 static_assert(sizeof(TTBucket) == 64, "TTBucket is not 64 bytes");
-static_assert(std::is_trivial_v<TTBucket>);
+static_assert(std::is_trivially_copyable_v<TTBucket>);

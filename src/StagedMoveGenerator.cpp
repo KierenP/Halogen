@@ -304,27 +304,25 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
     selection_sort(moves);
 }
 
-Move GetHashMove(const BoardState& board, int depthRemaining, int distanceFromRoot)
+Move GetHashMoveMinDepth(const BoardState& board, int min_depth, int distanceFromRoot)
 {
-    TTEntry hash = tTable.GetEntry(board.GetZobristKey(), distanceFromRoot);
+    auto entry = tTable.GetEntryMinDepth(board.GetZobristKey(), distanceFromRoot, min_depth, board.half_turn_count);
 
-    if (CheckEntry(hash, board.GetZobristKey(), depthRemaining))
+    if (entry.has_value())
     {
-        tTable.ResetAge(board.GetZobristKey(), board.half_turn_count, distanceFromRoot);
-        return hash.GetMove();
+        return entry->GetMove();
     }
 
     return Move::Uninitialized;
 }
 
-Move GetHashMove(const BoardState& board, int distanceFromRoot)
+Move GetHashMove(const BoardState& board, int min_depth)
 {
-    TTEntry hash = tTable.GetEntry(board.GetZobristKey(), distanceFromRoot);
+    auto entry = tTable.GetEntry(board.GetZobristKey(), min_depth, board.half_turn_count);
 
-    if (CheckEntry(hash, board.GetZobristKey()))
+    if (entry.has_value())
     {
-        tTable.ResetAge(board.GetZobristKey(), board.half_turn_count, distanceFromRoot);
-        return hash.GetMove();
+        return entry->GetMove();
     }
 
     return Move::Uninitialized;

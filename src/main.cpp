@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Benchmark.h"
+#include "BitBoardDefine.h"
 #include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
@@ -224,6 +225,13 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
+
+                if (GetBitCount(stoi(token)) != 1)
+                {
+                    std::cout << "Error: transposition table size must be a power of two" << std::endl;
+                    return -1;
+                }
+
                 tTable.SetSize(stoi(token));
             }
 

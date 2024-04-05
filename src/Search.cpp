@@ -317,15 +317,13 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
     // Query the transpotition table
     if (!IsPV(beta, alpha))
     {
-        TTEntry entry = tTable.GetEntry(position.Board().GetZobristKey(), distanceFromRoot);
-        if (CheckEntry(entry, position.Board().GetZobristKey(), depthRemaining))
+        auto entry = tTable.GetEntryMinDepth(
+            position.Board().GetZobristKey(), depthRemaining, distanceFromRoot, position.Board().half_turn_count);
+        if (entry.has_value())
         {
-            tTable.ResetAge(position.Board().GetZobristKey(), position.Board().half_turn_count, distanceFromRoot);
-
             // Don't take scores from the TT if there's a two-fold repitition
-            if (!position.CheckForRep(distanceFromRoot, 2))
-                if (UseTransposition(entry, alpha, beta))
-                    return SearchResult(entry.GetScore(), entry.GetMove());
+            if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(entry.value(), alpha, beta))
+                return SearchResult(entry->GetScore(), entry->GetMove());
         }
     }
 
