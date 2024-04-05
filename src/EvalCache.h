@@ -1,11 +1,12 @@
 #pragma once
+#include "Score.h"
 #include <cstdint>
 #include <vector>
 
 struct EvalCacheEntry
 {
     uint64_t key = 0;
-    int eval = 0;
+    Score eval = 0;
 };
 
 class EvalCacheTable
@@ -13,8 +14,8 @@ class EvalCacheTable
 public:
     EvalCacheTable();
 
-    void AddEntry(uint64_t key, int eval);
-    bool GetEntry(uint64_t key, int& eval) const;
+    void AddEntry(uint64_t key, Score eval);
+    bool GetEntry(uint64_t key, Score& eval) const;
 
     void Reset();
 

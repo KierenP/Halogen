@@ -10,13 +10,13 @@ EvalCacheTable::EvalCacheTable()
     table.resize(TableSize);
 }
 
-void EvalCacheTable::AddEntry(uint64_t key, int eval)
+void EvalCacheTable::AddEntry(uint64_t key, Score eval)
 {
     table[key % TableSize].key = key;
     table[key % TableSize].eval = eval;
 }
 
-bool EvalCacheTable::GetEntry(uint64_t key, int& eval) const
+bool EvalCacheTable::GetEntry(uint64_t key, Score& eval) const
 {
     if (table[key % TableSize].key != key)
     {

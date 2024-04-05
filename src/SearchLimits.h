@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Score.h"
 #include "TimeManage.h"
 #include <memory>
 
@@ -20,7 +21,7 @@ public:
 
     bool HitTimeLimit() const;
     bool HitDepthLimit(int depth) const;
-    bool HitMateLimit(int score) const;
+    bool HitMateLimit(Score score) const;
     bool HitNodeLimit(int nodes) const;
 
     // Returns true if more than half of the allocated time is remaining

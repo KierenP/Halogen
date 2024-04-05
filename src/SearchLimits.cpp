@@ -78,13 +78,13 @@ class iMateChecker
 {
 public:
     virtual ~iMateChecker() = default;
-    virtual bool HitMateLimit(int score) const = 0;
+    virtual bool HitMateLimit(Score score) const = 0;
 };
 
 class NullMateChecker : public iMateChecker
 {
 public:
-    bool HitMateLimit(int) const override
+    bool HitMateLimit(Score) const override
     {
         return false;
     };
@@ -92,17 +92,17 @@ public:
 
 class MateChecker : public iMateChecker
 {
-    int mateLimit_;
+    Score mateLimit_;
 
 public:
-    MateChecker(int mateLimit)
+    MateChecker(Score mateLimit)
         : mateLimit_(mateLimit)
     {
     }
 
-    bool HitMateLimit(int score) const override
+    bool HitMateLimit(Score score) const override
     {
-        return (MATE)-abs(score) <= 2 * mateLimit_;
+        return (Score::Limits::MATE)-abs(score.value()) <= mateLimit_.value() * 2;
     };
 };
 
@@ -164,7 +164,7 @@ bool SearchLimits::HitDepthLimit(int depth) const
     return depthLimit->HitDepthLimit(depth);
 }
 
-bool SearchLimits::HitMateLimit(int score) const
+bool SearchLimits::HitMateLimit(Score score) const
 {
     return mateLimit->HitMateLimit(score);
 }

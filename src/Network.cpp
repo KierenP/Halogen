@@ -157,7 +157,7 @@ void Network::RemoveInput(Square square, Pieces piece)
     }
 }
 
-int16_t Network::Eval(Players stm) const
+Score Network::Eval(Players stm) const
 {
     int32_t output = outputBias * L1_SCALE;
     DotProductHalves(

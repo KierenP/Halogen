@@ -181,23 +181,6 @@ constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal)
     return antidiagonal;
 }
 
-enum Score
-{
-    HighINF = 30000,
-    LowINF = -30000,
-
-    MATED = -10000,
-    MATE = 10000,
-
-    TB_LOSS_SCORE = -9900,
-    TB_WIN_SCORE = 9900,
-
-    EVAL_MIN = -9800,
-    EVAL_MAX = 9800,
-
-    DRAW = 0,
-};
-
 constexpr int GetBitCount(uint64_t bb)
 {
 #if defined(__GNUG__) && defined(USE_POPCNT)

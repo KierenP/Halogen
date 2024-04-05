@@ -40,7 +40,7 @@ public:
     // TODO: is this needed?
     void Reset();
 
-    int16_t GetEvaluation() const;
+    Score GetEvaluation() const;
 
     bool CheckForRep(int distanceFromRoot, int maxReps) const;
 

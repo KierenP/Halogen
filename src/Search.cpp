@@ -8,6 +8,7 @@
 #include <ctime>
 #include <exception>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -18,6 +19,7 @@
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Pyrrhic/tbprobe.h"
+#include "Score.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
 #include "TTEntry.h"
@@ -42,24 +44,20 @@ const std::array<std::array<int, 64>, 64> LMR_reduction = []
 }();
 
 void PrintBestMove(Move Best, const BoardState& board, bool chess960);
-bool UseTransposition(const TTEntry& entry, int alpha, int beta);
+bool UseTransposition(const TTEntry& entry, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
-bool AllowedNull(bool allowedNull, const BoardState& board, int beta, int alpha, bool InCheck);
+bool AllowedNull(bool allowedNull, const BoardState& board, Score beta, Score alpha, bool InCheck);
 bool IsEndGame(const BoardState& board);
-bool IsPV(int beta, int alpha);
-void AddScoreToTable(int Score, int alphaOriginal, const BoardState& board, int depthRemaining, int distanceFromRoot,
-    int beta, Move bestMove);
-void UpdateBounds(const TTEntry& entry, int& alpha, int& beta);
-int TerminalScore(const BoardState& board, int distanceFromRoot);
+bool IsPV(Score beta, Score alpha);
+void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
+    int distanceFromRoot, Score beta, Move bestMove);
+void UpdateBounds(const TTEntry& entry, Score& alpha, Score& beta);
+Score TerminalScore(const BoardState& board, int distanceFromRoot);
 int extension(const BoardState& board);
 void AddKiller(Move move, int distanceFromRoot, std::array<std::array<Move, 2>, MAX_DEPTH>& KillerMoves);
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, SearchData& locals, int depthRemaining);
 void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEPTH>& PvTable);
 int Reduction(int depth, int i);
-constexpr int matedIn(int distanceFromRoot);
-constexpr int mateIn(int distanceFromRoot);
-constexpr int TBLossIn(int distanceFromRoot);
-constexpr int TBWinIn(int distanceFromRoot);
 unsigned int ProbeTBRoot(const BoardState& board);
 unsigned int ProbeTBSearch(const BoardState& board);
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
@@ -67,12 +65,12 @@ Move GetTBMove(unsigned int result);
 
 void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID);
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData);
-SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta,
+    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData);
+SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, Score alpha, Score beta,
     int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData);
-void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
-void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move);
-SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alpha, int beta, int colour,
+void UpdateAlpha(Score score, Score& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals);
+void UpdateScore(Score newScore, Score& score, Move& bestMove, const Move& move);
+SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score alpha, Score beta, int colour,
     unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData);
 
 uint64_t SearchThread(GameState position, ThreadSharedData& sharedData)
@@ -148,9 +146,9 @@ struct ThreadDepthAbort : public std::exception
 
 void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned int threadID)
 {
-    int alpha = LowINF;
-    int beta = HighINF;
-    int prevScore = 0;
+    auto alpha = std::numeric_limits<Score>::min();
+    auto beta = std::numeric_limits<Score>::max();
+    Score prevScore = 0;
 
     while (sharedData.GetDepth() < MAX_DEPTH)
     {
@@ -189,13 +187,13 @@ void SearchPosition(GameState position, ThreadSharedData& sharedData, unsigned i
 }
 
 SearchResult AspirationWindowSearch(
-    GameState position, int depth, int prevScore, SearchData& locals, ThreadSharedData& sharedData)
+    GameState position, int depth, Score prevScore, SearchData& locals, ThreadSharedData& sharedData)
 {
     int delta = Aspiration_window;
 
-    int alpha = prevScore - delta;
-    int beta = prevScore + delta;
-    SearchResult search = 0;
+    Score alpha = prevScore.value() - delta;
+    Score beta = prevScore.value() + delta;
+    SearchResult search = { 0 };
 
     while (true)
     {
@@ -215,7 +213,7 @@ SearchResult AspirationWindowSearch(
             sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), alpha, alpha, beta, position,
                 search.GetMove(), locals, sharedData.GetParameters().chess960);
             beta = (alpha + beta) / 2;
-            alpha = std::max<int>(MATED, alpha - delta);
+            alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
         }
 
         if (search.GetScore() >= beta)
@@ -223,7 +221,7 @@ SearchResult AspirationWindowSearch(
             sharedData.ReportResult(depth, sharedData.GetLimits().ElapsedTime(), beta, alpha, beta, position,
                 search.GetMove(), locals, sharedData.GetParameters().chess960);
             sharedData.UpdateBestMove(search.GetMove());
-            beta = std::min<int>(MATE, beta + delta);
+            beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 
         delta = delta + delta / 2;
@@ -232,7 +230,7 @@ SearchResult AspirationWindowSearch(
     return search;
 }
 
-SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, int alpha, int beta,
+SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depthRemaining, Score alpha, Score beta,
     int colour, unsigned int distanceFromRoot, bool allowedNull, SearchData& locals, ThreadSharedData& sharedData)
 {
     locals.ReportDepth(distanceFromRoot);
@@ -260,8 +258,8 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
                 & 0b1111); // as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
                            // with permission from Koivisto authors.
 
-    int Score = LowINF;
-    int MaxScore = HighINF;
+    auto score = std::numeric_limits<Score>::min();
+    auto MaxScore = std::numeric_limits<Score>::max();
 
     // Probe TB in search
     if (position.Board().fifty_move_count == 0 && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
@@ -273,11 +271,12 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
             locals.AddTbHit();
             auto probe = UseSearchTBScore(result, distanceFromRoot);
 
+            // TODO: check for boundary conditions
             if (probe.GetScore() == 0)
                 return probe;
-            if (probe.GetScore() >= TBWinIn(MAX_DEPTH) && probe.GetScore() >= beta)
+            if (probe.GetScore() >= Score::tb_win_in(MAX_DEPTH) && probe.GetScore() >= beta)
                 return probe;
-            if (probe.GetScore() <= TBLossIn(MAX_DEPTH) && probe.GetScore() <= alpha)
+            if (probe.GetScore() <= Score::tb_loss_in(MAX_DEPTH) && probe.GetScore() <= alpha)
                 return probe;
 
             // Why update score ?
@@ -302,9 +301,9 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
 
             if (IsPV(beta, alpha))
             {
-                if (probe.GetScore() >= TBWinIn(MAX_DEPTH))
+                if (probe.GetScore() >= Score::tb_win_in(MAX_DEPTH))
                 {
-                    Score = probe.GetScore();
+                    score = probe.GetScore();
                     alpha = std::max(alpha, probe.GetScore());
                 }
                 else
@@ -339,7 +338,7 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
             position, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining, locals, sharedData);
     }
 
-    int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+    auto staticScore = EvaluatePositionNet(position, locals.evalTable) * colour;
 
     // Static null move pruning
     if (depthRemaining < SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck
@@ -350,17 +349,18 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
     if (AllowedNull(allowedNull, position.Board(), beta, alpha, InCheck) && (staticScore > beta))
     {
         unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent
-            + std::min(3, (staticScore - beta) / Null_beta_quotent);
+            + std::min(3, (staticScore.value() - beta.value()) / Null_beta_quotent);
 
         position.ApplyNullMove();
-        int score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1, -colour,
-            distanceFromRoot + 1, false, locals, sharedData)
-                         .GetScore();
+        auto null_move_score = -NegaScout(position, initialDepth, depthRemaining - reduction - 1, -beta, -beta + 1,
+            -colour, distanceFromRoot + 1, false, locals, sharedData)
+                                    .GetScore();
         position.RevertNullMove();
 
-        if (score >= beta)
+        if (null_move_score >= beta)
         {
-            if (beta < matedIn(MAX_DEPTH) || depthRemaining >= 10) // TODO: I'm not sure about this first condition
+            if (beta < Score::mated_in(MAX_DEPTH)
+                || depthRemaining >= 10) // TODO: I'm not sure about this first condition
             {
                 // Do verification search for high depths
                 SearchResult result = NegaScout(position, initialDepth, depthRemaining - reduction - 1, beta - 1, beta,
@@ -376,15 +376,15 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
     }
 
     // mate distance pruning
-    alpha = std::max<int>(matedIn(distanceFromRoot), alpha);
-    beta = std::min<int>(mateIn(distanceFromRoot), beta);
+    alpha = std::max(Score::mated_in(distanceFromRoot), alpha);
+    beta = std::min(Score::mate_in(distanceFromRoot), beta);
     if (alpha >= beta)
         return alpha;
 
     // Set up search variables
     Move bestMove = Move::Uninitialized;
-    int a = alpha;
-    int b = beta;
+    auto a = alpha;
+    auto b = beta;
     int searchedMoves;
     bool noLegalMoves = true;
 
@@ -407,11 +407,11 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
 
         // late move pruning
         if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining
-            && Score > TBLossIn(MAX_DEPTH))
+            && score > Score::tb_loss_in(MAX_DEPTH))
             gen.SkipQuiets();
 
         // futility pruning
-        if (searchedMoves > 0 && FutileNode && !IsPV(beta, alpha) && !InCheck && Score > TBLossIn(MAX_DEPTH))
+        if (searchedMoves > 0 && FutileNode && !IsPV(beta, alpha) && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
             if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
@@ -436,20 +436,20 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
 
             reduction = std::max(0, reduction);
 
-            int score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a, -colour,
-                distanceFromRoot + 1, true, locals, sharedData)
-                             .GetScore();
+            auto late_move_score = -NegaScout(position, initialDepth, extendedDepth - 1 - reduction, -a - 1, -a,
+                -colour, distanceFromRoot + 1, true, locals, sharedData)
+                                        .GetScore();
 
-            if (score <= a)
+            if (late_move_score <= a)
             {
                 position.RevertMove();
                 continue;
             }
         }
 
-        int newScore = -NegaScout(
+        auto newScore = -NegaScout(
             position, initialDepth, extendedDepth - 1, -b, -a, -colour, distanceFromRoot + 1, true, locals, sharedData)
-                            .GetScore();
+                             .GetScore();
         if (newScore > a && newScore < beta && searchedMoves >= 1) // MultiPV issues here
         {
             newScore = -NegaScout(position, initialDepth, extendedDepth - 1, -beta, -a, -colour, distanceFromRoot + 1,
@@ -459,8 +459,8 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
 
         position.RevertMove();
 
-        UpdateScore(newScore, Score, bestMove, move);
-        UpdateAlpha(Score, a, move, distanceFromRoot, locals);
+        UpdateScore(newScore, score, bestMove, move);
+        UpdateAlpha(score, a, move, distanceFromRoot, locals);
 
         if (a >= beta) // Fail high cutoff
         {
@@ -478,11 +478,11 @@ SearchResult NegaScout(GameState& position, unsigned int initialDepth, int depth
         return TerminalScore(position.Board(), distanceFromRoot);
     }
 
-    Score = std::min(Score, MaxScore);
+    score = std::min(score, MaxScore);
 
-    AddScoreToTable(Score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
+    AddScoreToTable(score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
 
-    return SearchResult(Score, bestMove);
+    return SearchResult(score, bestMove);
 }
 
 unsigned int ProbeTBRoot(const BoardState& board)
@@ -519,22 +519,18 @@ unsigned int ProbeTBSearch(const BoardState& board)
 
 SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
 {
-    int score = -1;
-
     if (result == TB_LOSS)
-        score = TBLossIn(distanceFromRoot);
+        return Score::tb_loss_in(distanceFromRoot);
     else if (result == TB_BLESSED_LOSS)
-        score = 0;
+        return 0;
     else if (result == TB_DRAW)
-        score = 0;
+        return 0;
     else if (result == TB_CURSED_WIN)
-        score = 0;
+        return 0;
     else if (result == TB_WIN)
-        score = TBWinIn(distanceFromRoot);
+        return Score::tb_win_in(distanceFromRoot);
     else
         assert(0);
-
-    return score;
 }
 
 Move GetTBMove(unsigned int result)
@@ -558,16 +554,16 @@ Move GetTBMove(unsigned int result)
         static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
 }
 
-void UpdateAlpha(int Score, int& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals)
+void UpdateAlpha(Score score, Score& a, const Move& move, unsigned int distanceFromRoot, SearchData& locals)
 {
-    if (Score > a)
+    if (score > a)
     {
-        a = Score;
+        a = score;
         UpdatePV(move, distanceFromRoot, locals.PvTable);
     }
 }
 
-void UpdateScore(int newScore, int& Score, Move& bestMove, const Move& move)
+void UpdateScore(Score newScore, Score& Score, Move& bestMove, const Move& move)
 {
     if (newScore > Score)
     {
@@ -590,16 +586,16 @@ void UpdatePV(Move move, int distanceFromRoot, std::array<BasicMoveList, MAX_DEP
         PvTable[distanceFromRoot].append(PvTable[distanceFromRoot + 1].begin(), PvTable[distanceFromRoot + 1].end());
 }
 
-bool UseTransposition(const TTEntry& entry, int alpha, int beta)
+bool UseTransposition(const TTEntry& entry, Score alpha, Score beta)
 {
     if (entry.GetCutoff() == EntryType::EXACT)
         return true;
 
-    int NewAlpha = alpha;
-    int NewBeta = beta;
+    auto NewAlpha = alpha;
+    auto NewBeta = beta;
 
-    UpdateBounds(entry, NewAlpha,
-        NewBeta); // aspiration windows and search instability lead to issues with shrinking the original window
+    // aspiration windows and search instability lead to issues with shrinking the original window
+    UpdateBounds(entry, NewAlpha, NewBeta);
 
     if (NewAlpha >= NewBeta)
         return true;
@@ -622,7 +618,7 @@ int extension(const BoardState& board)
     return extension;
 }
 
-bool AllowedNull(bool allowedNull, const BoardState& board, int beta, int alpha, bool InCheck)
+bool AllowedNull(bool allowedNull, const BoardState& board, Score beta, Score alpha, bool InCheck)
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
@@ -635,71 +631,51 @@ bool IsEndGame(const BoardState& board)
         board.GetPiecesColour(board.stm) == (board.GetPieceBB(KING, board.stm) | board.GetPieceBB(PAWN, board.stm)));
 }
 
-bool IsPV(int beta, int alpha)
+bool IsPV(Score beta, Score alpha)
 {
     return beta != alpha + 1;
 }
 
-void AddScoreToTable(int Score, int alphaOriginal, const BoardState& board, int depthRemaining, int distanceFromRoot,
-    int beta, Move bestMove)
+void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
+    int distanceFromRoot, Score beta, Move bestMove)
 {
-    if (Score <= alphaOriginal)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.half_turn_count, distanceFromRoot,
+    if (score <= alphaOriginal)
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
             EntryType::UPPERBOUND); // mate score adjustent is done inside this function
-    else if (Score >= beta)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.half_turn_count, distanceFromRoot,
+    else if (score >= beta)
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
             EntryType::LOWERBOUND);
     else
-        tTable.AddEntry(bestMove, board.GetZobristKey(), Score, depthRemaining, board.half_turn_count, distanceFromRoot,
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
             EntryType::EXACT);
 }
 
-void UpdateBounds(const TTEntry& entry, int& alpha, int& beta)
+void UpdateBounds(const TTEntry& entry, Score& alpha, Score& beta)
 {
     if (entry.GetCutoff() == EntryType::LOWERBOUND)
     {
-        alpha = std::max<int>(alpha, entry.GetScore());
+        alpha = std::max(alpha, entry.GetScore());
     }
 
     if (entry.GetCutoff() == EntryType::UPPERBOUND)
     {
-        beta = std::min<int>(beta, entry.GetScore());
+        beta = std::min(beta, entry.GetScore());
     }
 }
 
-int TerminalScore(const BoardState& board, int distanceFromRoot)
+Score TerminalScore(const BoardState& board, int distanceFromRoot)
 {
     if (IsInCheck(board))
     {
-        return matedIn(distanceFromRoot);
+        return Score::mated_in(distanceFromRoot);
     }
     else
     {
-        return (DRAW);
+        return (Score::draw());
     }
 }
 
-constexpr int matedIn(int distanceFromRoot)
-{
-    return MATED + distanceFromRoot;
-}
-
-constexpr int mateIn(int distanceFromRoot)
-{
-    return MATE - distanceFromRoot;
-}
-
-constexpr int TBLossIn(int distanceFromRoot)
-{
-    return TB_LOSS_SCORE + distanceFromRoot;
-}
-
-constexpr int TBWinIn(int distanceFromRoot)
-{
-    return TB_WIN_SCORE - distanceFromRoot;
-}
-
-SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alpha, int beta, int colour,
+SearchResult Quiescence(GameState& position, unsigned int initialDepth, Score alpha, Score beta, int colour,
     unsigned int distanceFromRoot, int depthRemaining, SearchData& locals, ThreadSharedData& sharedData)
 {
     locals.ReportDepth(distanceFromRoot);
@@ -719,14 +695,14 @@ SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alph
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
 
-    int staticScore = colour * EvaluatePositionNet(position, locals.evalTable);
+    auto staticScore = EvaluatePositionNet(position, locals.evalTable) * colour;
     if (staticScore >= beta)
         return staticScore;
     if (staticScore > alpha)
         alpha = staticScore;
 
     Move bestmove = Move::Uninitialized;
-    int Score = staticScore;
+    auto Score = staticScore;
 
     StagedMoveGenerator gen(position, distanceFromRoot, locals, true);
     Move move;
@@ -746,9 +722,9 @@ SearchResult Quiescence(GameState& position, unsigned int initialDepth, int alph
             break;
 
         position.ApplyMove(move);
-        int newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1,
+        auto newScore = -Quiescence(position, initialDepth, -beta, -alpha, -colour, distanceFromRoot + 1,
             depthRemaining - 1, locals, sharedData)
-                            .GetScore();
+                             .GetScore();
         position.RevertMove();
 
         UpdateScore(newScore, Score, bestmove, move);

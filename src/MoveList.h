@@ -8,6 +8,7 @@
 
 #include "BitBoardDefine.h"
 #include "Move.h"
+#include "Score.h"
 
 // For move ordering we need to bundle the 'score' and SEE values
 // with the move objects

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "Score.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 512;
@@ -30,7 +31,7 @@ public:
     bool Verify(const BoardState& board) const;
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    int16_t Eval(Players stm) const;
+    Score Eval(Players stm) const;
 
     // call and then update inputs as required
     void AccumulatorPush();
