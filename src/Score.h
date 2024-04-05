@@ -7,10 +7,6 @@
 class Score
 {
 public:
-    // This makes Score trivial allowing uninitialized allocation within arrays.
-    // TODO: this isn't the case anymore
-    Score() = default;
-
     constexpr Score(int value)
         : value_(value)
     {
@@ -147,8 +143,6 @@ public:
 private:
     int16_t value_;
 };
-
-static_assert(std::is_trivial_v<Score>);
 
 static constexpr Score SCORE_UNDEFINED = -32768;
 
