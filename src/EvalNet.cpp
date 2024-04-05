@@ -1,17 +1,18 @@
 #include "EvalNet.h"
 
-#include <algorithm>
-
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "EvalCache.h"
 #include "GameState.h"
+#include "Score.h"
 
-void TempoAdjustment(int& eval, const BoardState& board);
+#include <algorithm>
 
-int EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
+void TempoAdjustment(Score& eval, const BoardState& board);
+
+Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
 {
-    int eval;
+    Score eval = 0;
 
     if (!evalTable.GetEntry(position.Board().GetZobristKey(), eval))
     {
@@ -22,7 +23,7 @@ int EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
         evalTable.AddEntry(position.Board().GetZobristKey(), eval);
     }
 
-    return std::min<int>(EVAL_MAX, std::max<int>(EVAL_MIN, eval));
+    return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
 bool DeadPosition(const BoardState& board)
@@ -68,7 +69,7 @@ bool DeadPosition(const BoardState& board)
     return false;
 }
 
-void TempoAdjustment(int& eval, const BoardState& board)
+void TempoAdjustment(Score& eval, const BoardState& board)
 {
     constexpr static int TEMPO = 10;
     eval += board.stm == WHITE ? TEMPO : -TEMPO;

@@ -104,14 +104,15 @@ bool ThreadSharedData::ThreadAbort(unsigned int initialDepth) const
     return initialDepth <= threadDepthCompleted;
 }
 
-void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, int alpha, int beta,
+void ThreadSharedData::ReportResult(unsigned int depth, double Time, Score score, Score alpha, Score beta,
     GameState& position, Move move, const SearchData& locals, bool chess960)
 {
     std::scoped_lock lock(ioMutex);
 
     if (alpha < score && score < beta && depth > threadDepthCompleted && !MultiPVExcludeMoveUnlocked(move))
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
+        PrintSearchInfo(depth, Time, abs(score.value()) > Score::Limits::TB_WIN_SCORE, score, alpha, beta, position,
+            locals, chess960);
 
         if (GetMultiPVCount() == 0)
         {
@@ -132,13 +133,15 @@ void ThreadSharedData::ReportResult(unsigned int depth, double Time, int score, 
 
     if (score < lowestAlpha && score <= alpha && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
+        PrintSearchInfo(depth, Time, abs(score.value()) > Score::Limits::TB_WIN_SCORE, score, alpha, beta, position,
+            locals, chess960);
         lowestAlpha = alpha;
     }
 
     if (score > highestBeta && score >= beta && Time > 5000 && depth == threadDepthCompleted + 1)
     {
-        PrintSearchInfo(depth, Time, abs(score) > TB_WIN_SCORE, score, alpha, beta, position, locals, chess960);
+        PrintSearchInfo(depth, Time, abs(score.value()) > Score::Limits::TB_WIN_SCORE, score, alpha, beta, position,
+            locals, chess960);
         highestBeta = beta;
     }
 }
@@ -157,7 +160,7 @@ void ThreadSharedData::ReportWantsToStop(unsigned int threadID)
     KeepSearching = false;
 }
 
-int ThreadSharedData::GetAspirationScore() const
+Score ThreadSharedData::GetAspirationScore() const
 {
     std::scoped_lock lock(ioMutex);
     return prevScore;
@@ -204,8 +207,8 @@ SearchData& ThreadSharedData::GetData(unsigned int threadID)
     return threadlocalData[threadID];
 }
 
-void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha,
-    int beta, GameState& position, const SearchData& locals, bool chess960) const
+void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, Score score, Score alpha,
+    Score beta, GameState& position, const SearchData& locals, bool chess960) const
 {
     /*
     Here we avoid excessive use of std::cout and instead append to a string in order
@@ -224,13 +227,13 @@ void ThreadSharedData::PrintSearchInfo(unsigned int depth, double Time, bool isC
     if (isCheckmate)
     {
         if (score > 0)
-            ss << " score mate " << ((MATE - abs(score)) + 1) / 2;
+            ss << " score mate " << ((Score::Limits::MATE - abs(score.value())) + 1) / 2;
         else
-            ss << " score mate " << -((MATE - abs(score)) + 1) / 2;
+            ss << " score mate " << -((Score::Limits::MATE - abs(score.value())) + 1) / 2;
     }
     else
     {
-        ss << " score cp " << score; // The score in hundreths of a pawn (a 1 pawn advantage is +100)
+        ss << " score cp " << score.value(); // The score in hundreths of a pawn (a 1 pawn advantage is +100)
     }
 
     if (score <= alpha)

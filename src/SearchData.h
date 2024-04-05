@@ -137,10 +137,10 @@ public:
     Move GetBestMove() const;
     unsigned int GetDepth() const;
     bool ThreadAbort(unsigned int initialDepth) const;
-    void ReportResult(unsigned int depth, double Time, int score, int alpha, int beta, GameState& position, Move move,
-        const SearchData& locals, bool chess960);
+    void ReportResult(unsigned int depth, double Time, Score score, Score alpha, Score beta, GameState& position,
+        Move move, const SearchData& locals, bool chess960);
     void ReportWantsToStop(unsigned int threadID);
-    int GetAspirationScore() const;
+    Score GetAspirationScore() const;
 
     int GetMultiPVSetting() const
     {
@@ -184,7 +184,7 @@ public:
     void ResetNewGame();
 
 private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, int score, int alpha, int beta,
+    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, Score score, Score alpha, Score beta,
         GameState& position, const SearchData& locals, bool chess960) const;
     bool MultiPVExcludeMoveUnlocked(Move move) const;
 
@@ -195,9 +195,9 @@ private:
     // Whoever finishes first gets to update this as long as they searched deeper than threadDepth
     Move currentBestMove;
     // if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
-    int prevScore;
-    int lowestAlpha;
-    int highestBeta;
+    Score prevScore;
+    Score lowestAlpha;
+    Score highestBeta;
 
     SearchParameters param;
     SearchLimits limits_;

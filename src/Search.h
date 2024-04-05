@@ -4,6 +4,7 @@
 
 #include "GameState.h"
 #include "Move.h"
+#include "Score.h"
 
 class ThreadSharedData;
 /*Tuneable search constants*/
@@ -34,13 +35,19 @@ constexpr int LMP_depth = 6;
 
 struct SearchResult
 {
-    SearchResult(short score, Move move = Move::Uninitialized)
+    SearchResult(int score, Move move = Move::Uninitialized)
         : m_score(score)
         , m_move(move)
     {
     }
 
-    int GetScore() const
+    SearchResult(Score score, Move move = Move::Uninitialized)
+        : m_score(score)
+        , m_move(move)
+    {
+    }
+
+    Score GetScore() const
     {
         return m_score;
     }
@@ -51,7 +58,7 @@ struct SearchResult
     }
 
 private:
-    short m_score;
+    Score m_score;
     Move m_move;
 };
 

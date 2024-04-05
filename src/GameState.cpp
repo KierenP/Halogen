@@ -201,7 +201,7 @@ void GameState::Reset()
     net.Recalculate(Board());
 }
 
-int16_t GameState::GetEvaluation() const
+Score GameState::GetEvaluation() const
 {
     return net.Eval(Board().stm);
 }

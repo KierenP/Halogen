@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "Move.h"
+#include "Score.h"
 
 constexpr unsigned int HALF_MOVE_MODULO = 16;
 
@@ -21,19 +22,19 @@ class TTEntry
 {
 public:
     TTEntry() = default;
-    TTEntry(Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot,
+    TTEntry(Move best, uint64_t ZobristKey, Score score, int Depth, int currentTurnCount, int distanceFromRoot,
         EntryType Cutoff);
 
     bool IsAncient(unsigned int currentTurnCount, unsigned int distanceFromRoot) const
     {
-        return halfmove != CalculateAge(currentTurnCount, distanceFromRoot);
+        return halfmove_ != CalculateAge(currentTurnCount, distanceFromRoot);
     }
 
     void SetHalfMove(int currentTurnCount, int distanceFromRoot)
     {
         // halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of
         // the search
-        halfmove = CalculateAge(currentTurnCount, distanceFromRoot);
+        halfmove_ = CalculateAge(currentTurnCount, distanceFromRoot);
     }
 
     void MateScoreAdjustment(int distanceFromRoot);
@@ -46,42 +47,43 @@ public:
 
     uint64_t GetKey() const
     {
-        return key;
+        return key_;
     }
 
-    int GetScore() const
+    Score GetScore() const
     {
-        return score;
+        return score_;
     }
 
     int GetDepth() const
     {
-        return depth;
+        return depth_;
     }
 
     EntryType GetCutoff() const
     {
-        return cutoff;
+        return cutoff_;
     }
 
     char GetAge() const
     {
-        return halfmove;
+        return halfmove_;
     }
 
     Move GetMove() const
     {
-        return bestMove;
+        return bestMove_;
     }
 
 private:
     /*Arranged to minimize padding*/
-    uint64_t key; // 8 bytes
-    Move bestMove; // 2 bytes
-    int16_t score; // 2 bytes
-    int8_t depth; // 1 bytes
-    EntryType cutoff; // 1 bytes
-    int8_t halfmove; // 1 bytes	(is stored as the move count at the ROOT of this current search modulo 16 plus 1)
+    uint64_t key_; // 8 bytes
+    Move bestMove_; // 2 bytes
+    Score score_; // 2 bytes
+    int8_t depth_; // 1 bytes
+    EntryType cutoff_; // 1 bytes
+    // halfmove is stored as the move count at the ROOT of this current search modulo 16 plus 1)
+    int8_t halfmove_; // 1 bytes
 };
 
 struct TTBucket

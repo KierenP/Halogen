@@ -26,22 +26,23 @@ bool CheckEntry(const TTEntry& entry, uint64_t key)
     return (entry.GetKey() == key);
 }
 
-void TranspositionTable::AddEntry(
-    const Move& best, uint64_t ZobristKey, int Score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
+    int distanceFromRoot, EntryType Cutoff)
 {
     size_t hash = HashFunction(ZobristKey);
 
     // checkmate node or TB win/loss
-    if (Score > EVAL_MAX)
-        Score += distanceFromRoot;
-    if (Score < EVAL_MIN)
-        Score -= distanceFromRoot;
+    // TODO: check for boundary conditions
+    if (score > Score::Limits::EVAL_MAX)
+        score += distanceFromRoot;
+    if (score < Score::Limits::EVAL_MIN)
+        score -= distanceFromRoot;
 
     for (auto& entry : table[hash].entry)
     {
         if (entry.GetKey() == EMPTY || entry.GetKey() == ZobristKey)
         {
-            entry = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
+            entry = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
             return;
         }
     }
@@ -57,7 +58,7 @@ void TranspositionTable::AddEntry(
     }
 
     table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]
-        = TTEntry(best, ZobristKey, Score, Depth, Turncount, distanceFromRoot, Cutoff);
+        = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
 TTEntry TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot) const

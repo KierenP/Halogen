@@ -5,38 +5,37 @@
 
 #include "BitBoardDefine.h"
 
-TTEntry::TTEntry(
-    Move best, uint64_t ZobristKey, int Score, int Depth, int currentTurnCount, int distanceFromRoot, EntryType Cutoff)
-    : bestMove(best)
+TTEntry::TTEntry(Move best, uint64_t ZobristKey, Score score, int depth, int currentTurnCount, int distanceFromRoot,
+    EntryType cutoff)
+    : key_(ZobristKey)
+    , bestMove_(best)
+    , score_(score)
+    , depth_(depth)
+    , cutoff_(cutoff)
 {
-    assert(Score < SHRT_MAX && Score > SHRT_MIN);
-    assert(Depth < CHAR_MAX && Depth > CHAR_MIN);
+    assert(depth < CHAR_MAX && depth > CHAR_MIN);
 
-    key = ZobristKey;
-    bestMove = best;
-    score = static_cast<short>(Score);
-    depth = static_cast<char>(Depth);
-    cutoff = Cutoff;
     SetHalfMove(currentTurnCount, distanceFromRoot);
 }
 
 void TTEntry::MateScoreAdjustment(int distanceFromRoot)
 {
     // checkmate node or TB win/loss
-    if (score > EVAL_MAX)
-        score -= static_cast<short>(distanceFromRoot);
-    if (score < EVAL_MIN)
-        score += static_cast<short>(distanceFromRoot);
+    // TODO: check boundary conditions
+    if (score_ > Score::Limits::EVAL_MAX)
+        score_ -= static_cast<short>(distanceFromRoot);
+    if (score_ < Score::Limits::EVAL_MIN)
+        score_ += static_cast<short>(distanceFromRoot);
 }
 
 void TTEntry::Reset()
 {
-    bestMove = Move::Uninitialized;
-    key = EMPTY;
-    score = -1;
-    depth = -1;
-    cutoff = EntryType::EMPTY_ENTRY;
-    halfmove = -1;
+    bestMove_ = Move::Uninitialized;
+    key_ = EMPTY;
+    score_ = -1;
+    depth_ = -1;
+    cutoff_ = EntryType::EMPTY_ENTRY;
+    halfmove_ = -1;
 }
 
 void TTBucket::Reset()
