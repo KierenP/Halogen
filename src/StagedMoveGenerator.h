@@ -82,5 +82,5 @@ private:
     bool skipQuiets = false;
 };
 
-Move GetHashMove(const BoardState& position, int depthRemaining, int distanceFromRoot);
-Move GetHashMove(const BoardState& position, int distanceFromRoot);
+Move GetHashMoveMinDepth(const BoardState& position, int min_depth, int distanceFromRoot);
+Move GetHashMove(const BoardState& position, int min_depth);

@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory> //required to compile with g++
+#include <optional>
 
 #include "TTEntry.h"
 
@@ -23,12 +24,20 @@ public:
     int GetCapacity(int halfmove) const;
 
     void ResetTable();
-    void SetSize(uint64_t MB); // will wipe the table and reconstruct a new empty table with a set size. units in MB!
-    void AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount, int distanceFromRoot,
+
+    // will wipe the table and reconstruct a new empty table with a set size. units in MB!
+    void SetSize(uint64_t MB);
+
+    void AddEntry(const Move& best, uint64_t ZobristKey, Score Score, int Depth, int Turncount, int distanceFromRoot,
         EntryType Cutoff);
-    TTEntry GetEntry(uint64_t key, int distanceFromRoot) const;
-    void ResetAge(uint64_t key, int halfmove, int distanceFromRoot);
+
     void PreFetch(uint64_t key) const;
+
+    // find a matching entry at any depth
+    std::optional<TTEntry> GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
+
+    // find a matching entry with minimum depth
+    std::optional<TTEntry> GetEntryMinDepth(uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count);
 
 private:
     uint64_t HashFunction(const uint64_t& key) const;
@@ -42,6 +51,7 @@ private:
     // raw array and memset allocates quicker than std::vector
     std::unique_ptr<TTBucket[]> table;
     size_t size_;
+    uint64_t hash_mask_;
 };
 
 bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);

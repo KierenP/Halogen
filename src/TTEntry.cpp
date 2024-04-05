@@ -27,21 +27,3 @@ void TTEntry::MateScoreAdjustment(int distanceFromRoot)
     if (score_ < Score::Limits::EVAL_MIN)
         score_ += static_cast<short>(distanceFromRoot);
 }
-
-void TTEntry::Reset()
-{
-    bestMove_ = Move::Uninitialized;
-    key_ = EMPTY;
-    score_ = -1;
-    depth_ = -1;
-    cutoff_ = EntryType::EMPTY_ENTRY;
-    halfmove_ = -1;
-}
-
-void TTBucket::Reset()
-{
-    entry[0].Reset();
-    entry[1].Reset();
-    entry[2].Reset();
-    entry[3].Reset();
-}

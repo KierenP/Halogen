@@ -5,25 +5,14 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <optional>
 
 #include "BitBoardDefine.h"
 #include "TTEntry.h"
 
-class Move;
-
-bool CheckEntry(const TTEntry& entry, uint64_t key, int depth)
-{
-    return (entry.GetKey() == key && entry.GetDepth() >= depth);
-}
-
 uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 {
-    return key % size_;
-}
-
-bool CheckEntry(const TTEntry& entry, uint64_t key)
-{
-    return (entry.GetKey() == key);
+    return key & hash_mask_;
 }
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
@@ -61,33 +50,45 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
-TTEntry TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot) const
+std::optional<TTEntry> TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
     size_t index = HashFunction(key);
 
-    for (auto entry : table[index].entry)
-    {
-        if (entry.GetKey() == key)
-        {
-            entry.MateScoreAdjustment(distanceFromRoot);
-            return entry;
-        }
-    }
-
-    return {};
-}
-
-void TranspositionTable::ResetAge(uint64_t key, int halfmove, int distanceFromRoot)
-{
-    size_t index = HashFunction(key);
-
+    // we return by copy here because other threads are reading/writing to this same table.
     for (auto& entry : table[index].entry)
     {
         if (entry.GetKey() == key)
         {
-            entry.SetHalfMove(halfmove, distanceFromRoot);
+            // reset the age of this entry to mark it as not old
+            entry.SetHalfMove(half_turn_count, distanceFromRoot);
+            auto copy = entry;
+            copy.MateScoreAdjustment(distanceFromRoot);
+            return copy;
         }
     }
+
+    return std::nullopt;
+}
+
+std::optional<TTEntry> TranspositionTable::GetEntryMinDepth(
+    uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count)
+{
+    size_t index = HashFunction(key);
+
+    // we return by copy here because other threads are reading/writing to this same table.
+    for (auto& entry : table[index].entry)
+    {
+        if (entry.GetKey() == key && entry.GetDepth() >= min_depth)
+        {
+            // reset the age of this entry to mark it as not old
+            entry.SetHalfMove(half_turn_count, distanceFromRoot);
+            auto copy = entry;
+            copy.MateScoreAdjustment(distanceFromRoot);
+            return copy;
+        }
+    }
+
+    return std::nullopt;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
@@ -105,7 +106,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    memset(table.get(), 0, size_ * sizeof(TTBucket));
+    std::fill(table.get(), table.get() + size_, TTBucket {});
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
@@ -115,9 +116,11 @@ void TranspositionTable::SetSize(uint64_t MB)
 
 void TranspositionTable::Reallocate(size_t size)
 {
+    // size should be a power of two
+    assert(GetBitCount(size) == 1);
     size_ = size;
+    hash_mask_ = size - 1;
     table.reset(new TTBucket[size]);
-    ResetTable();
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
