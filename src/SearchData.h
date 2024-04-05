@@ -195,9 +195,9 @@ private:
     // Whoever finishes first gets to update this as long as they searched deeper than threadDepth
     Move currentBestMove;
     // if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
-    Score prevScore;
-    Score lowestAlpha;
-    Score highestBeta;
+    Score prevScore = 0;
+    Score lowestAlpha = 0;
+    Score highestBeta = 0;
 
     SearchParameters param;
     SearchLimits limits_;
