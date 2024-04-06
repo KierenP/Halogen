@@ -13,10 +13,11 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& pos, int DistanceFromRoot, const SearchData& Locals, bool Quiescence)
-    : position(pos)
-    , locals(Locals)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local,
+    int DistanceFromRoot, bool Quiescence)
+    : position(position)
+    , local(local)
+    , ss(ss)
     , distanceFromRoot(DistanceFromRoot)
     , quiescence(Quiescence)
 {
@@ -68,7 +69,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GIVE_KILLER_1)
     {
-        Killer1 = locals.KillerMoves[distanceFromRoot][0];
+        Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
         if (MoveIsLegal(position.Board(), Killer1))
@@ -80,7 +81,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GIVE_KILLER_2)
     {
-        Killer2 = locals.KillerMoves[distanceFromRoot][1];
+        Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
         if (MoveIsLegal(position.Board(), Killer2))
@@ -130,16 +131,16 @@ bool StagedMoveGenerator::Next(Move& move)
     return false;
 }
 
-void StagedMoveGenerator::AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const
+void StagedMoveGenerator::AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    Locals.history.Add(position, move, depthRemaining * depthRemaining);
+    local.history.Add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        Locals.history.Add(position, m.move, -depthRemaining * depthRemaining);
+        local.history.Add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -295,7 +296,7 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = locals.history.Get(position, moves[i].move);
+            int history = local.history.Get(position, ss, moves[i].move);
             moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
                 std::numeric_limits<decltype(moves[i].score)>::max());
         }

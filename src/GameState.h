@@ -44,15 +44,12 @@ public:
 
     bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
-    Move GetPreviousMove() const;
-
     const BoardState& Board() const;
 
 private:
     BoardState& MutableBoard();
 
     Network net;
-    std::vector<Move> moveStack;
 
     std::vector<BoardState> previousStates;
 };

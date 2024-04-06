@@ -10,6 +10,7 @@
 #include "EvalCache.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "Search.h"
 #include "SearchLimits.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
@@ -18,6 +19,28 @@
 extern TranspositionTable tTable;
 
 class GameState;
+
+// Holds information about the search state for a particular recursion depth.
+struct SearchStackState
+{
+    BasicMoveList pv = {};
+    std::array<Move, 2> killers = {};
+
+    Move move = Move::Uninitialized;
+};
+
+class SearchStack
+{
+public:
+    // The search accesses [-1, MAX_DEPTH], so the root is [1] and we have MAX_DEPTH+2 elements
+    SearchStackState* root()
+    {
+        return &search_stack_array_[1];
+    }
+
+private:
+    std::array<SearchStackState, MAX_DEPTH + 2> search_stack_array_ = {};
+};
 
 class History
 {
@@ -29,8 +52,8 @@ public:
 
     void Reset();
 
-    void Add(const GameState& position, Move move, int change);
-    int Get(const GameState& position, Move move) const;
+    void Add(const GameState& position, const SearchStackState* ss, Move move, int change);
+    int Get(const GameState& position, const SearchStackState* ss, Move move) const;
 
 private:
     // Tuneable history constants
@@ -43,8 +66,8 @@ private:
     void AddButterfly(const GameState& position, Move move, int change);
     int16_t GetButterfly(const GameState& position, Move move) const;
 
-    void AddCounterMove(const GameState& position, Move move, int change);
-    int16_t GetCounterMove(const GameState& position, Move move) const;
+    void AddCounterMove(const GameState& position, const SearchStackState* ss, Move move, int change);
+    int16_t GetCounterMove(const GameState& position, const SearchStackState* ss, Move move) const;
 
     void AddHistory(int16_t& val, int change, int max, int scale);
 
@@ -60,64 +83,35 @@ private:
     std::unique_ptr<CounterMoveType> counterMove;
 };
 
-struct SearchData
+// Data local to a particular thread
+struct SearchLocalState
 {
-    explicit SearchData();
-
     //--------------------------------------------------------------------------------------------
 private:
     uint64_t padding1[8] = {}; // To avoid false sharing between adjacent SearchData objects
     //--------------------------------------------------------------------------------------------
 
 public:
-    std::array<BasicMoveList, MAX_DEPTH> PvTable = {};
-    std::array<std::array<Move, 2>, MAX_DEPTH> KillerMoves = {}; // 2 moves indexed by distanceFromRoot
+    SearchStack search_stack;
 
-    EvalCacheTable evalTable;
+    EvalCacheTable eval_cache;
     History history;
 
-    void AddNode()
-    {
-        nodes++;
-    }
+    uint64_t tb_hits = 0;
+    uint64_t nodes = 0;
+    int sel_septh = 0;
 
-    void AddTbHit()
-    {
-        tbHits++;
-    }
+    // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
+    // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
+    // the threads stopping early if other threads are continuing. This signal lets the SearchSharedData check which
+    // threads want to stop and if all threads do then we stop the search. TODO: could use a consensus model?
+    std::atomic<bool> thread_wants_to_stop = false;
 
-    uint64_t GetThreadNodes() const
-    {
-        return nodes;
-    }
-
-    void ResetSeldepth()
-    {
-        selDepth = 0;
-    }
-
-    void ReportDepth(int distanceFromRoot)
-    {
-        selDepth = std::max(distanceFromRoot, selDepth);
-    }
-
-    int GetSelDepth() const
-    {
-        return selDepth;
-    }
+    // Set to true when the search is unwinding and trying to return.
+    bool aborting_search = false;
 
     void ResetNewSearch();
     void ResetNewGame();
-
-    // Set to true when the search is unwinding and trying to return.
-    bool aborting_search;
-
-private:
-    friend class ThreadSharedData;
-    uint64_t tbHits;
-    uint64_t nodes;
-    int selDepth;
-    bool threadWantsToStop;
 
     //--------------------------------------------------------------------------------------------
 private:
@@ -125,86 +119,93 @@ private:
     //--------------------------------------------------------------------------------------------
 };
 
-struct SearchParameters
-{
-    int threads = 1;
-    int multiPV = 0;
-    bool chess960 = false;
-};
-
-class ThreadSharedData
+// Search state that is shared between threads.
+class SearchSharedState
 {
 public:
-    ThreadSharedData(SearchLimits limits = {}, const SearchParameters& parameters = {});
+    SearchSharedState(int threads);
 
-    Move GetBestMove() const;
-    unsigned int GetDepth() const;
-    bool ThreadAbort(unsigned int initialDepth) const;
-    void ReportResult(unsigned int depth, double Time, Score score, Score alpha, Score beta, GameState& position,
-        Move move, const SearchData& locals, bool chess960);
-    void ReportWantsToStop(unsigned int threadID);
-    Score GetAspirationScore() const;
+    // All below functions will block
+    // ------------------------------------
 
-    int GetMultiPVSetting() const
-    {
-        return param.multiPV;
-    };
+    void report_search_result(
+        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
+    void report_aspiration_low_result(
+        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
+    void report_aspiration_high_result(
+        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
 
-    int GetMultiPVCount() const;
-    bool MultiPVExcludeMove(Move move) const;
-    void UpdateBestMove(Move move);
+    bool is_multi_PV_excluded_move(Move move);
 
-    uint64_t getTBHits() const;
-    uint64_t getNodes() const;
+    // All below functions are non-blocking
+    // ------------------------------------
 
-    SearchData& GetData(unsigned int threadID);
+    // When one thread completes a particular depth, the other threads can use this to abort early and join at the
+    // higher depth
+    bool has_completed_depth(int depth) const;
 
-    void SetLimits(SearchLimits limits);
+    void report_thread_wants_to_stop(int thread_id);
 
-    void SetMultiPv(int multiPv)
-    {
-        param.multiPV = multiPv;
-    }
+    int get_next_search_depth() const;
 
-    void SetThreads(int threads);
+    Move get_best_move() const;
+    Score get_best_score() const;
 
-    void SetChess960(bool val)
-    {
-        param.chess960 = val;
-    }
+    uint64_t tb_hits() const;
+    uint64_t nodes() const;
 
-    const SearchParameters& GetParameters()
-    {
-        return param;
-    }
+    SearchLocalState& get_local_state(unsigned int thread_id);
 
-    const SearchLimits& GetLimits() const
-    {
-        return limits_;
-    }
+    int get_thread_count() const;
 
     void ResetNewSearch();
     void ResetNewGame();
 
-private:
-    void PrintSearchInfo(unsigned int depth, double Time, bool isCheckmate, Score score, Score alpha, Score beta,
-        GameState& position, const SearchData& locals, bool chess960) const;
-    bool MultiPVExcludeMoveUnlocked(Move move) const;
+    int multi_pv = 0;
+    bool chess_960 = false;
 
-    mutable std::mutex ioMutex;
+    SearchLimits limits;
+
+private:
+    mutable std::mutex lock_;
+
+    enum class SearchInfoType
+    {
+        EXACT,
+        LOWER_BOUND,
+        UPPER_BOUND,
+    };
+
+    void PrintSearchInfo(GameState& position, SearchStackState* ss, const SearchLocalState& local, int depth,
+        Score score, SearchInfoType type) const;
+
+    // For a particular depth, we store the results here. This lets us track how e.g the best move has changed while
+    // deepening
+    struct SearchDepthResults
+    {
+        Move best_move = Move::Uninitialized;
+        Score score = 0;
+
+        // When reporting lower/upper bound results we want to ensure with multiple threads we only report the most
+        // extreme lower/upper bound results.
+        Score lowest_alpha = 0;
+        Score highest_beta = 0;
+    };
+
+    std::array<SearchDepthResults, MAX_DEPTH> search_results_ = {};
+
     // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
     // should stop searching that depth
-    unsigned int threadDepthCompleted;
-    // Whoever finishes first gets to update this as long as they searched deeper than threadDepth
-    Move currentBestMove;
-    // if threads abandon the search, we need to know what the score was in order to set new alpha/beta bounds
-    Score prevScore = 0;
-    Score lowestAlpha = 0;
-    Score highestBeta = 0;
+    int highest_completed_depth_ = 0;
 
-    SearchParameters param;
-    SearchLimits limits_;
+    // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
+    // we start a search. search_local_states_.size() == number of threads. This vector is constructed once when the
+    // SearchSharedState is created. If the number of threads changes, we need to make a new SearchSharedState.
+    std::vector<SearchLocalState> search_local_states_;
 
-    std::vector<SearchData> threadlocalData;
-    std::vector<Move> MultiPVExclusion; // Moves that we ignore at the root for MPV mode
+    // Moves that we ignore at the root for MultiPV mode
+    std::vector<Move> multi_PV_excluded_moves_;
+
+    // ----------------------------
+    // bool MultiPVExcludeMoveUnlocked(Move move) const;
 };

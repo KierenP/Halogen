@@ -2,6 +2,7 @@
 #include <atomic>
 #include <time.h>
 
+// TODO: move this into SearchSharedState
 inline std::atomic<bool> KeepSearching;
 
 #if defined(_WIN32) || defined(_WIN64)

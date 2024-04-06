@@ -6,7 +6,8 @@
 #include "Move.h"
 #include "Score.h"
 
-class ThreadSharedData;
+class SearchSharedState;
+
 /*Tuneable search constants*/
 
 constexpr double LMR_constant = -1.76;
@@ -20,7 +21,7 @@ constexpr int Futility_constant = 20;
 constexpr int Futility_coeff = 82;
 constexpr int Futility_depth = 15;
 
-constexpr int Aspiration_window = 15;
+constexpr Score aspiration_window_mid_width = 15;
 
 constexpr int Delta_margin = 200;
 
@@ -62,4 +63,4 @@ private:
     Move m_move;
 };
 
-uint64_t SearchThread(GameState& position, ThreadSharedData& sharedData);
+void SearchThread(GameState& position, SearchSharedState& sharedData);
