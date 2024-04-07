@@ -150,6 +150,8 @@ void SearchSharedState::report_search_result(
         {
             search_results_[depth].best_move = result.GetMove();
             search_results_[depth].score = result.GetScore();
+            search_results_[depth].highest_beta = result.GetScore();
+            search_results_[depth].lowest_alpha = result.GetScore();
         }
 
         multi_PV_excluded_moves_.push_back(result.GetMove());
