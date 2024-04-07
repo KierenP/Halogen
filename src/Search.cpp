@@ -141,14 +141,25 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
 
     for (int depth = 1; depth < MAX_DEPTH; depth = shared.get_next_search_depth())
     {
-        if (!KeepSearching)
-            break;
         if (shared.limits.HitDepthLimit(depth))
-            break;
+        {
+            return;
+        }
+
         if (shared.limits.HitNodeLimit(shared.nodes()))
-            break;
+        {
+            return;
+        }
+
         if (!shared.limits.ShouldContinueSearch())
+        {
             shared.report_thread_wants_to_stop(thread_id);
+        }
+
+        if (depth > 1 && shared.limits.HitTimeLimit())
+        {
+            return;
+        }
 
         SearchResult result = AspirationWindowSearch(position, ss, local, shared, depth);
 
@@ -169,7 +180,9 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
         shared.report_search_result(position, ss, local, depth, result);
 
         if (shared.limits.HitMateLimit(result.GetScore()))
-            break;
+        {
+            return;
+        }
     }
 }
 
@@ -178,8 +191,8 @@ SearchResult AspirationWindowSearch(
 {
     Score delta = aspiration_window_mid_width;
     Score midpoint = shared.get_best_score();
-    Score alpha = midpoint - delta;
-    Score beta = midpoint + delta;
+    Score alpha = std::max<Score>(Score::Limits::MATED, midpoint - delta);
+    Score beta = std::min<Score>(Score::Limits::MATE, midpoint + delta);
 
     while (true)
     {
@@ -188,16 +201,6 @@ SearchResult AspirationWindowSearch(
             position, ss, local, shared, depth, depth, alpha, beta, position.Board().stm ? 1 : -1, 0, false);
 
         if (local.aborting_search)
-        {
-            return SCORE_UNDEFINED;
-        }
-
-        if (shared.has_completed_depth(depth))
-        {
-            return SCORE_UNDEFINED;
-        }
-
-        if (depth > 1 && shared.limits.HitTimeLimit())
         {
             return SCORE_UNDEFINED;
         }
