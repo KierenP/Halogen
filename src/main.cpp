@@ -33,7 +33,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 14);
 
-string version = "11.4.7";
+string version = "11.5.0";
 
 int main(int argc, char* argv[])
 {
@@ -127,6 +127,9 @@ int main(int argc, char* argv[])
         {
             shared->limits = {};
 
+            // The amount of time we leave on the clock for safety
+            constexpr static int BufferTime = 100;
+
             int wtime = 0;
             int btime = 0;
             int winc = 0;
@@ -169,7 +172,7 @@ int main(int argc, char* argv[])
                 {
                     int searchTime = 0;
                     iss >> searchTime;
-                    shared->limits.SetTimeLimits(searchTime, searchTime);
+                    shared->limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
                 }
 
                 else if (token == "nodes")
@@ -185,19 +188,31 @@ int main(int argc, char* argv[])
 
             if (myTime != 0)
             {
-                int AllocatedTime = 0;
-
                 if (movestogo != 0)
-                    AllocatedTime = myTime / (movestogo + 1) * 3 / 2; // repeating time control
-                else if (myInc != 0)
-                    // use a greater proportion of remaining time as the game continues, so that we use it all up and
-                    // get to just increment
-                    AllocatedTime = myTime * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
-                        + myInc; // increment time control
-                else
-                    AllocatedTime = myTime / 20; // sudden death time control
+                {
+                    // repeating time control
 
-                shared->limits.SetTimeLimits(myTime, AllocatedTime);
+                    // We divide the available time by the number of movestogo (which can be zero) and then adjust
+                    // by 1.5x. This ensures we use more of the available time earlier.
+                    shared->limits.SetTimeLimits(
+                        (myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
+                }
+                else if (myInc != 0)
+                {
+                    // increment time control
+
+                    // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
+                    // use a higher proportion of the available time so that we get down to just using the increment
+                    shared->limits.SetTimeLimits(
+                        (myTime - BufferTime) * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
+                            + myInc,
+                        (myTime - BufferTime));
+                }
+                else
+                {
+                    // Sudden death time control. We use 1/20th of the remaining time each turn
+                    shared->limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
+                }
             }
 
             if (searchThread.joinable())
