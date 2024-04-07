@@ -21,6 +21,7 @@
 #include "Pyrrhic/tbprobe.h"
 #include "Search.h"
 #include "SearchData.h"
+#include "SearchLimits.h"
 #include "TimeManage.h"
 #include "TranspositionTable.h"
 
@@ -45,7 +46,7 @@ int main(int argc, char* argv[])
 
     GameState position;
     thread searchThread;
-    ThreadSharedData data;
+    std::unique_ptr<SearchSharedState> shared = std::make_unique<SearchSharedState>(1);
 
     for (int i = 1; i < argc; i++) // read any command line input as a regular UCI instruction
     {
@@ -87,7 +88,7 @@ int main(int argc, char* argv[])
         {
             position.StartingPosition();
             tTable.ResetTable();
-            data.ResetNewGame();
+            shared->ResetNewGame();
         }
 
         else if (token == "position")
@@ -124,7 +125,7 @@ int main(int argc, char* argv[])
 
         else if (token == "go")
         {
-            SearchLimits limits;
+            shared->limits = {};
 
             int wtime = 0;
             int btime = 0;
@@ -149,33 +150,33 @@ int main(int argc, char* argv[])
                 {
                     int mate = 0;
                     iss >> mate;
-                    limits.SetMateLimit(mate);
+                    shared->limits.SetMateLimit(mate);
                 }
 
                 else if (token == "depth")
                 {
                     int depth = 0;
                     iss >> depth;
-                    limits.SetDepthLimit(depth);
+                    shared->limits.SetDepthLimit(depth);
                 }
 
                 else if (token == "infinite")
                 {
-                    limits.SetInfinite();
+                    shared->limits.SetInfinite();
                 }
 
                 else if (token == "movetime")
                 {
                     int searchTime = 0;
                     iss >> searchTime;
-                    limits.SetTimeLimits(searchTime, searchTime);
+                    shared->limits.SetTimeLimits(searchTime, searchTime);
                 }
 
                 else if (token == "nodes")
                 {
                     uint64_t nodes = 0;
                     iss >> nodes;
-                    limits.SetNodeLimit(nodes);
+                    shared->limits.SetNodeLimit(nodes);
                 }
             }
 
@@ -196,14 +197,13 @@ int main(int argc, char* argv[])
                 else
                     AllocatedTime = myTime / 20; // sudden death time control
 
-                limits.SetTimeLimits(myTime, AllocatedTime);
+                shared->limits.SetTimeLimits(myTime, AllocatedTime);
             }
 
             if (searchThread.joinable())
                 searchThread.join();
 
-            data.SetLimits(std::move(limits));
-            searchThread = thread([position, &data]() mutable { SearchThread(position, data); });
+            searchThread = thread([position, &shared]() mutable { SearchThread(position, *shared); });
         }
 
         else if (token == "setoption")
@@ -217,7 +217,9 @@ int main(int argc, char* argv[])
                 if (token == "Hash")
                 {
                     tTable.ResetTable();
-                    data.ResetNewGame();
+
+                    // We also reset the history tables, so the next search gives a fresh result.
+                    shared->ResetNewGame();
                 }
             }
 
@@ -239,7 +241,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                data.SetThreads(stoi(token));
+                shared = std::make_unique<SearchSharedState>(stoi(token));
             }
 
             else if (token == "SyzygyPath")
@@ -254,7 +256,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                data.SetMultiPv(stoi(token));
+                shared->multi_pv = stoi(token);
             }
 
             else if (token == "UCI_Chess960")
@@ -263,7 +265,7 @@ int main(int argc, char* argv[])
                 iss >> token;
                 std::transform(
                     token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
-                data.SetChess960(token == "true" ? true : false);
+                shared->chess_960 = (token == "true");
             }
 
             else if (token == "timeIncCoeffA")
@@ -284,7 +286,7 @@ int main(int argc, char* argv[])
         else if (token == "perft")
         {
             iss >> token;
-            PerftDivide(stoi(token), position, data.GetParameters().chess960, false);
+            PerftDivide(stoi(token), position, shared->chess_960, false);
         }
 
         else if (token == "test")
@@ -511,9 +513,8 @@ void Bench(int depth)
 
     uint64_t nodeCount = 0;
     GameState position;
-    SearchLimits limits;
-    limits.SetDepthLimit(depth);
-    ThreadSharedData data(std::move(limits));
+    SearchSharedState data(1);
+    data.limits.SetDepthLimit(depth);
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -525,7 +526,9 @@ void Bench(int depth)
 
         tTable.ResetTable();
         data.ResetNewGame();
-        nodeCount += SearchThread(position, data);
+        data.limits.ResetTimer();
+        SearchThread(position, data);
+        nodeCount += data.nodes();
     }
 
     cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;

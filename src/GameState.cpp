@@ -22,7 +22,6 @@ GameState::GameState()
 
 void GameState::ApplyMove(Move move)
 {
-    moveStack.push_back(move);
     net.AccumulatorPush();
     previousStates.push_back(previousStates.back());
     MutableBoard().ApplyMove(move, net);
@@ -116,12 +115,10 @@ void GameState::RevertMove()
 
     previousStates.pop_back();
     net.AccumulatorPop();
-    moveStack.pop_back();
 }
 
 void GameState::ApplyNullMove()
 {
-    moveStack.push_back(Move::Uninitialized);
     previousStates.push_back(previousStates.back());
 
     MutableBoard().ApplyNullMove();
@@ -132,7 +129,6 @@ void GameState::RevertNullMove()
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
-    moveStack.pop_back();
 }
 
 void GameState::StartingPosition()
@@ -196,7 +192,6 @@ bool GameState::InitialiseFromFen(std::string fen)
 
 void GameState::Reset()
 {
-    moveStack.clear();
     previousStates = { BoardState() };
     net.Recalculate(Board());
 }
@@ -229,14 +224,6 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
     }
 
     return false;
-}
-
-Move GameState::GetPreviousMove() const
-{
-    if (moveStack.size())
-        return moveStack.back();
-    else
-        return Move::Uninitialized;
 }
 
 const BoardState& GameState::Board() const

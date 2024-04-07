@@ -4,10 +4,10 @@
 
 #include "Move.h"
 #include "MoveList.h"
+#include "SearchData.h"
 #include "Zobrist.h"
 
 class GameState;
-struct SearchData;
 
 enum class Stage
 {
@@ -34,7 +34,8 @@ enum class Stage
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(const GameState& position, int DistanceFromRoot, const SearchData& Locals, bool Quiescence);
+    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local,
+        int DistanceFromRoot, bool Quiescence);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
@@ -45,7 +46,7 @@ public:
     int16_t GetSEE(Move move) const;
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
-    void AdjustHistory(const Move& move, SearchData& Locals, int depthRemaining) const;
+    void AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
 
     // Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
     void SkipQuiets();
@@ -61,7 +62,8 @@ private:
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
-    const SearchData& locals;
+    SearchLocalState& local;
+    const SearchStackState* ss;
     int distanceFromRoot;
     bool quiescence;
     ExtendedMoveList loudMoves;
