@@ -186,9 +186,9 @@ void SearchLimits::SetInfinite()
     mateLimit = std::make_unique<NullMateChecker>();
 }
 
-void SearchLimits::SetTimeLimits(int maxTime, int allocatedTime)
+void SearchLimits::SetTimeLimits(int soft_limit, int hard_limit)
 {
-    timeManager = SearchTimeManage(maxTime, allocatedTime);
+    timeManager = SearchTimeManage(soft_limit, hard_limit);
     timeLimit = std::make_unique<TimeChecker>();
 }
 

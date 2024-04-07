@@ -27,7 +27,7 @@ public:
     // Returns true if more than half of the allocated time is remaining
     bool ShouldContinueSearch() const;
 
-    void SetTimeLimits(int maxTime, int allocatedTime);
+    void SetTimeLimits(int soft_limit, int hard_limit);
     void SetDepthLimit(int depth);
     void SetMateLimit(int moves);
     void SetNodeLimit(uint64_t nodes);
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    SearchTimeManage timeManager;
+    SearchTimeManage timeManager { 0, 0 };
 
     std::unique_ptr<iDepthChecker> depthLimit;
     std::unique_ptr<iTimeChecker> timeLimit;

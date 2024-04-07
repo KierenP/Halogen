@@ -54,7 +54,7 @@ private:
 class SearchTimeManage
 {
 public:
-    SearchTimeManage(int maxTime = 0, int allocatedTime = 0);
+    SearchTimeManage(int soft_limit, int hard_limit);
 
     bool ContinueSearch() const;
     bool AbortSearch() const; // Is the remaining time all used up?
@@ -71,8 +71,10 @@ public:
 
 private:
     Timer timer;
-    int AllocatedSearchTimeMS;
-    int MaxTimeMS;
 
-    constexpr static int BufferTime = 100;
+    // The amount of time we have allocated to this turn. If the position is indecisive the search might extend this
+    int soft_limit_;
+
+    // The hard limit we cannot exceed.
+    int hard_limit_;
 };
