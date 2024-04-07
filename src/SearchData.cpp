@@ -213,16 +213,24 @@ bool SearchSharedState::has_completed_depth(int depth) const
 
 void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 {
-    // If all other threads also want to stop, we mark KeepSearching as false to signal the threads to stop.
+    // If at least half the threads (rounded up) want to stop, we abort
+
     search_local_states_[thread_id].thread_wants_to_stop = true;
+
+    int abort_votes = 0;
 
     for (const auto& local : search_local_states_)
     {
-        if (local.thread_wants_to_stop == false)
-            return;
+        if (local.thread_wants_to_stop == true)
+        {
+            abort_votes++;
+        }
     }
 
-    KeepSearching = false;
+    if (abort_votes * 2 >= (int)search_local_states_.size())
+    {
+        KeepSearching = false;
+    }
 }
 
 int SearchSharedState::get_next_search_depth() const

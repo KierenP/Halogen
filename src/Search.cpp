@@ -163,14 +163,6 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
 
         SearchResult result = AspirationWindowSearch(position, ss, local, shared, depth);
 
-        // If we aborted because another thread finished the depth we were on, get that score and continue to that
-        // depth.
-        if (shared.has_completed_depth(depth))
-        {
-            local.aborting_search = false;
-            continue;
-        }
-
         // Else, if we aborted then we should return
         if (local.aborting_search)
         {
@@ -773,13 +765,6 @@ bool should_abort_search(int initial_depth, SearchLocalState& local, const Searc
 
     // Check if we have breached the time limit.
     if (initial_depth > 1 && local.nodes % 1024 == 0 && shared.limits.HitTimeLimit())
-    {
-        local.aborting_search = true;
-        return true;
-    }
-
-    // If the current depth has been completed by another thread, we abort and resume at the higher depth
-    if (shared.has_completed_depth(initial_depth))
     {
         local.aborting_search = true;
         return true;
