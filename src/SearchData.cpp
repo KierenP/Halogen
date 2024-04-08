@@ -150,6 +150,8 @@ void SearchSharedState::report_search_result(
         {
             search_results_[depth].best_move = result.GetMove();
             search_results_[depth].score = result.GetScore();
+            search_results_[depth].highest_beta = result.GetScore();
+            search_results_[depth].lowest_alpha = result.GetScore();
         }
 
         multi_PV_excluded_moves_.push_back(result.GetMove());
@@ -170,10 +172,12 @@ void SearchSharedState::report_aspiration_low_result(
 
     auto elapsed_time = limits.ElapsedTime();
 
-    if (depth == highest_completed_depth_ + 1 && result.GetScore() < search_results_[depth].lowest_alpha
-        && elapsed_time > 5000)
+    if (depth == highest_completed_depth_ + 1 && result.GetScore() < search_results_[depth].lowest_alpha)
     {
-        PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::UPPER_BOUND);
+        if (elapsed_time > 5000)
+        {
+            PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::UPPER_BOUND);
+        }
         search_results_[depth].lowest_alpha = result.GetScore();
     }
 }
@@ -185,16 +189,17 @@ void SearchSharedState::report_aspiration_high_result(
 
     auto elapsed_time = limits.ElapsedTime();
 
-    // When we fail high, use this as the best move. It's worth a bit of elo but it seems my implementation is a bit
-    // buggy if there's multiple threads. Going to preserve the current behaviour but it probably makes more sense to
-    // put this inside the result.GetScore() > search_results_[depth].highest_beta condition.
-    search_results_[highest_completed_depth_ + 1].best_move = result.GetMove();
-
-    if (depth == highest_completed_depth_ + 1 && result.GetScore() > search_results_[depth].highest_beta
-        && elapsed_time > 5000)
+    if (depth == highest_completed_depth_ + 1 && result.GetScore() > search_results_[depth].highest_beta)
     {
-        PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::LOWER_BOUND);
+        if (elapsed_time > 5000)
+        {
+            PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::LOWER_BOUND);
+        }
         search_results_[depth].highest_beta = result.GetScore();
+
+        // When we fail high, use set this as the best move for the next depth. This gains elo becuase more often than
+        // not a fail high move turns out to be the best.
+        search_results_[highest_completed_depth_ + 1].best_move = result.GetMove();
     }
 }
 
