@@ -237,6 +237,8 @@ int SearchSharedState::get_next_search_depth() const
 
 Move SearchSharedState::get_best_move() const
 {
+    std::scoped_lock lock(lock_);
+
     // On a fail high we will report the best move. So we check at depth + 1 and return that if it's been set
     if (highest_completed_depth_ < MAX_DEPTH - 1
         && search_results_[highest_completed_depth_ + 1].best_move != Move::Uninitialized)
@@ -249,19 +251,21 @@ Move SearchSharedState::get_best_move() const
 
 Score SearchSharedState::get_best_score() const
 {
+    std::scoped_lock lock(lock_);
+
     return search_results_[highest_completed_depth_].score;
 }
 
 uint64_t SearchSharedState::tb_hits() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), 0,
-        [](const auto& val, const auto& state) { return val + state.tb_hits; });
+        [](const auto& val, const auto& state) { return val + state.tb_hits.load(std::memory_order_relaxed); });
 }
 
 uint64_t SearchSharedState::nodes() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), 0,
-        [](const auto& val, const auto& state) { return val + state.nodes; });
+        [](const auto& val, const auto& state) { return val + state.nodes.load(std::memory_order_relaxed); });
 }
 
 SearchLocalState& SearchSharedState::get_local_state(unsigned int thread_id)
