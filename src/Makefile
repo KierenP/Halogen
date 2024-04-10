@@ -87,6 +87,12 @@ sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
 sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
 sanitize: binary
 
+.PHONY: sanitize-thread
+sanitize-thread: CXXFLAGS += $(WFLAGS) -g -fsanitize=thread
+sanitize-thread: LDFLAGS += -fsanitize=thread
+sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread.exe
+sanitize-thread: binary
+
 .PHONY: nopopcnt
 nopopcnt: CXXFLAGS += $(RFLAGS)
 nopopcnt: LDFLAGS += -flto -static 
