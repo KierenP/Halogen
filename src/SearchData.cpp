@@ -151,8 +151,8 @@ void SearchSharedState::report_search_result(
         {
             search_results_[depth].best_move = result.GetMove();
             search_results_[depth].score = result.GetScore();
-            search_results_[depth].highest_beta = result.GetScore();
-            search_results_[depth].lowest_alpha = result.GetScore();
+            search_results_[depth + 1].highest_beta = result.GetScore();
+            search_results_[depth + 1].lowest_alpha = result.GetScore();
         }
 
         multi_PV_excluded_moves_.push_back(result.GetMove());
@@ -244,7 +244,7 @@ Move SearchSharedState::get_best_move() const
     auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
 
     // On a fail high we will report the best move. So we check at depth + 1 and return that if it's been set
-    if (completed_depth < MAX_DEPTH - 1 && search_results_[completed_depth + 1].best_move != Move::Uninitialized)
+    if (search_results_[completed_depth + 1].best_move != Move::Uninitialized)
     {
         return search_results_[completed_depth + 1].best_move;
     }

@@ -195,7 +195,7 @@ private:
         Score highest_beta = 0;
     };
 
-    std::array<SearchDepthResults, MAX_DEPTH> search_results_ = {};
+    std::array<SearchDepthResults, MAX_DEPTH + 1> search_results_ = {};
 
     // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
     // should stop searching that depth
