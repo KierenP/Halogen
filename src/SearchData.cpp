@@ -258,13 +258,13 @@ Score SearchSharedState::get_best_score() const
 
 uint64_t SearchSharedState::tb_hits() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), 0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
         [](const auto& val, const auto& state) { return val + state.tb_hits.load(std::memory_order_relaxed); });
 }
 
 uint64_t SearchSharedState::nodes() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), 0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
         [](const auto& val, const auto& state) { return val + state.nodes.load(std::memory_order_relaxed); });
 }
 
