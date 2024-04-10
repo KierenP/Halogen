@@ -146,7 +146,7 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
             return;
         }
 
-        if (shared.limits.HitNodeLimit(shared.nodes()))
+        if (shared.limits.HitNodeLimit(local.nodes.load(std::memory_order_relaxed)))
         {
             return;
         }
@@ -231,7 +231,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     local.sel_septh = std::max<int>(local.sel_septh, distanceFromRoot);
-    local.nodes++;
+    local.nodes.fetch_add(1, std::memory_order_relaxed);
 
     if (distanceFromRoot >= MAX_DEPTH)
         return 0; // Have we reached max depth?
@@ -244,7 +244,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         || position.Board().fifty_move_count
             > 100) // cannot use >= as it could currently be checkmate which would count as a win
         return 8
-            - (local.nodes
+            - (local.nodes.load(std::memory_order_relaxed)
                 & 0b1111); // as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
                            // with permission from Koivisto authors.
 
@@ -258,7 +258,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         unsigned int result = ProbeTBSearch(position.Board());
         if (result != TB_RESULT_FAILED)
         {
-            local.tb_hits++;
+            local.tb_hits.fetch_add(1, std::memory_order_relaxed);
             auto probe = UseSearchTBScore(result, distanceFromRoot);
 
             // TODO: check for boundary conditions
@@ -679,7 +679,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     }
 
     local.sel_septh = std::max<int>(local.sel_septh, distanceFromRoot);
-    local.nodes++;
+    local.nodes.fetch_add(1, std::memory_order_relaxed);
 
     if (distanceFromRoot >= MAX_DEPTH)
         return 0; // Have we reached max depth?
@@ -764,7 +764,7 @@ bool should_abort_search(int initial_depth, SearchLocalState& local, const Searc
     }
 
     // Check if we have breached the time limit.
-    if (initial_depth > 1 && local.nodes % 1024 == 0 && shared.limits.HitTimeLimit())
+    if (initial_depth > 1 && local.nodes.load(std::memory_order_relaxed) % 1024 == 0 && shared.limits.HitTimeLimit())
     {
         local.aborting_search = true;
         return true;

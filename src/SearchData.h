@@ -97,8 +97,8 @@ public:
     EvalCacheTable eval_cache;
     History history;
 
-    uint64_t tb_hits = 0;
-    uint64_t nodes = 0;
+    std::atomic<uint64_t> tb_hits = 0;
+    std::atomic<uint64_t> nodes = 0;
     int sel_septh = 0;
 
     // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
@@ -125,7 +125,13 @@ class SearchSharedState
 public:
     SearchSharedState(int threads);
 
-    // All below functions will block
+    // Below functions are not thread-safe and should not be called during search
+    // ------------------------------------
+
+    void ResetNewSearch();
+    void ResetNewGame();
+
+    // Below functions are thread-safe and blocking
     // ------------------------------------
 
     void report_search_result(
@@ -137,7 +143,10 @@ public:
 
     bool is_multi_PV_excluded_move(Move move);
 
-    // All below functions are non-blocking
+    Move get_best_move() const;
+    Score get_best_score() const;
+
+    // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
     // When one thread completes a particular depth, the other threads can use this to abort early and join at the
@@ -148,18 +157,12 @@ public:
 
     int get_next_search_depth() const;
 
-    Move get_best_move() const;
-    Score get_best_score() const;
-
     uint64_t tb_hits() const;
     uint64_t nodes() const;
 
     SearchLocalState& get_local_state(unsigned int thread_id);
 
     int get_thread_count() const;
-
-    void ResetNewSearch();
-    void ResetNewGame();
 
     int multi_pv = 0;
     bool chess_960 = false;
@@ -196,7 +199,7 @@ private:
 
     // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
     // should stop searching that depth
-    int highest_completed_depth_ = 0;
+    std::atomic<int> highest_completed_depth_ = 0;
 
     // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
     // we start a search. search_local_states_.size() == number of threads. This vector is constructed once when the
