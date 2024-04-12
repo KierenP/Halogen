@@ -27,6 +27,7 @@ struct SearchStackState
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
+    Move singular_exclusion = Move::Uninitialized;
 };
 
 class SearchStack

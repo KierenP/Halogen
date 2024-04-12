@@ -259,9 +259,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     auto score = std::numeric_limits<Score>::min();
     auto MaxScore = std::numeric_limits<Score>::max();
 
+    // If we are in a singular move search, we don't want to do any early pruning.
+
     // Probe TB in search
-    if (position.Board().fifty_move_count == 0 && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST
-        && position.Board().castle_squares == EMPTY)
+    if (ss->singular_exclusion == Move::Uninitialized && position.Board().fifty_move_count == 0
+        && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
     {
         unsigned int result = ProbeTBSearch(position.Board());
         if (result != TB_RESULT_FAILED)
@@ -312,16 +314,17 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    // Query the transpotition table
-    if (!IsPV(beta, alpha))
+    auto tt_entry
+        = tTable.GetEntry(position.Board().GetZobristKey(), distanceFromRoot, position.Board().half_turn_count);
+
+    // Check if we can abort early and return this tt_entry score
+    if (ss->singular_exclusion == Move::Uninitialized && !IsPV(beta, alpha))
     {
-        auto entry = tTable.GetEntryMinDepth(
-            position.Board().GetZobristKey(), depthRemaining, distanceFromRoot, position.Board().half_turn_count);
-        if (entry.has_value())
+        if (tt_entry.has_value() && tt_entry->GetDepth() >= depthRemaining)
         {
             // Don't take scores from the TT if there's a two-fold repitition
-            if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(entry.value(), alpha, beta))
-                return SearchResult(entry->GetScore(), entry->GetMove());
+            if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(tt_entry.value(), alpha, beta))
+                return SearchResult(tt_entry->GetScore(), tt_entry->GetMove());
         }
     }
 
@@ -337,12 +340,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     auto staticScore = EvaluatePositionNet(position, local.eval_cache) * colour;
 
     // Static null move pruning
-    if (depthRemaining < SNMP_depth && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck
-        && !IsPV(beta, alpha))
+    if (ss->singular_exclusion == Move::Uninitialized && depthRemaining < SNMP_depth
+        && staticScore - SNMP_coeff * depthRemaining >= beta && !InCheck && !IsPV(beta, alpha))
         return beta;
 
     // Null move pruning
-    if (AllowedNull(allowedNull, position.Board(), beta, alpha, InCheck) && (staticScore > beta))
+    if (ss->singular_exclusion == Move::Uninitialized
+        && AllowedNull(allowedNull, position.Board(), beta, alpha, InCheck) && (staticScore > beta))
     {
         unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent
             + std::min(3, (staticScore.value() - beta.value()) / Null_beta_quotent);
@@ -397,10 +401,19 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     for (searchedMoves = 0; gen.Next(move); searchedMoves++)
     {
-        if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
-            continue;
-
         noLegalMoves = false;
+
+        if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
+        {
+            searchedMoves--;
+            continue;
+        }
+
+        if (move == ss->singular_exclusion)
+        {
+            searchedMoves--;
+            continue;
+        }
 
         // late move pruning
         if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining
@@ -415,12 +428,46 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
                 break;
         }
 
+        int extensions = 0;
+
+        // Singular extensions.
+        //
+        // If one move is significantly better than all alternatives, we extend the search for that
+        // critical move. When looking for potentially singular moves, we look for TT moves at sufficient depth with
+        // an exact or lower-bound cutoff. We also avoid testing for singular moves at the root or when already
+        // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
+        // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
+        // is singular.
+        if (distanceFromRoot > 0 && ss->singular_exclusion == Move::Uninitialized && depthRemaining >= 6
+            && tt_entry.has_value() && tt_entry->GetDepth() + 2 >= depthRemaining
+            && tt_entry->GetCutoff() != EntryType::UPPERBOUND && tt_entry->GetMove() == move)
+        {
+            Score sbeta = tt_entry->GetScore() - depthRemaining * 2;
+            int sdepth = depthRemaining / 2;
+
+            ss->singular_exclusion = move;
+
+            auto result = NegaScout(
+                position, ss, local, shared, initialDepth, sdepth, sbeta - 1, sbeta, colour, distanceFromRoot, true);
+
+            ss->singular_exclusion = Move::Uninitialized;
+
+            if (result.GetScore() < sbeta)
+            {
+                extensions += 1;
+            }
+        }
+
         int history = local.history.Get(position, ss, move);
 
         ss->move = move;
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
-        int extendedDepth = depthRemaining + extension(position.Board());
+
+        if (IsInCheck(position.Board()))
+        {
+            extensions += 1;
+        }
 
         // late move reductions
         if (searchedMoves > 3)
@@ -435,7 +482,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             reduction = std::max(0, reduction);
 
             auto late_move_score = -NegaScout(position, ss + 1, local, shared, initialDepth,
-                extendedDepth - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true)
+                depthRemaining + extensions - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true)
                                         .GetScore();
 
             if (late_move_score <= a)
@@ -445,13 +492,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        auto newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, extendedDepth - 1, -b, -a, -colour,
-            distanceFromRoot + 1, true)
+        auto newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -b,
+            -a, -colour, distanceFromRoot + 1, true)
                              .GetScore();
         if (newScore > a && newScore < beta && searchedMoves >= 1) // MultiPV issues here
         {
-            newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, extendedDepth - 1, -beta, -a, -colour,
-                distanceFromRoot + 1, true)
+            newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -beta,
+                -a, -colour, distanceFromRoot + 1, true)
                             .GetScore();
         }
 
@@ -460,9 +507,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         UpdateScore(newScore, score, bestMove, move);
         UpdateAlpha(score, a, move, ss);
 
-        // avoid updating Killers or History when aborting the search
+        // avoid updating Killers or History when aborting the search, or during a singular extension
         // check for fail high cutoff
-        if (!local.aborting_search && a >= beta)
+        if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized && a >= beta)
         {
             AddKiller(move, ss->killers);
             AddHistory(gen, move, depthRemaining);
@@ -480,8 +527,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     score = std::min(score, MaxScore);
 
-    // avoid adding scores to the TT when we are aborting the search
-    if (!local.aborting_search)
+    // avoid adding scores to the TT when we are aborting the search, or during a singular extension
+    if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
         AddScoreToTable(score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
     }
