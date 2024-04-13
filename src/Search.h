@@ -28,7 +28,7 @@ constexpr int Delta_margin = 200;
 constexpr int SNMP_coeff = 119;
 constexpr int SNMP_depth = 8;
 
-constexpr int LMP_constant = 10;
+constexpr int LMP_constant = 11;
 constexpr int LMP_coeff = 7;
 constexpr int LMP_depth = 6;
 
