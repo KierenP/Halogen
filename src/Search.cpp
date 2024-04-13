@@ -382,7 +382,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     Move bestMove = Move::Uninitialized;
     auto a = alpha;
     auto b = beta;
-    int searchedMoves;
+    int seen_moves = 0;
     bool noLegalMoves = true;
 
     // Rebel style IID. Don't ask why this helps but it does.
@@ -395,24 +395,41 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     StagedMoveGenerator gen(position, ss, local, distanceFromRoot, false);
     Move move;
 
-    for (searchedMoves = 0; gen.Next(move); searchedMoves++)
+    while (gen.Next(move))
     {
-        if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
-            continue;
-
         noLegalMoves = false;
 
+        if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
+        {
+            continue;
+        }
+
+        seen_moves++;
+
+        if (seen_moves != 1 && move == gen.TTMove())
+        {
+            // StagedMoveGenerator has a bug(?) where if the killer move matches the TT move we will search that move
+            // twice. Trying to remove this duplicate move is an issue because it affects seen_moves, and hence affects
+            // LMP, LMR and other pruning decisions. It is hoped in a future patch we can remove this and retune the
+            // search.
+            continue;
+        }
+
         // late move pruning
-        if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining
+        if (depthRemaining < LMP_depth && seen_moves >= LMP_constant + LMP_coeff * depthRemaining
             && score > Score::tb_loss_in(MAX_DEPTH))
+        {
             gen.SkipQuiets();
+        }
 
         // futility pruning
-        if (searchedMoves > 0 && FutileNode && !IsPV(beta, alpha) && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
+        if (FutileNode && !IsPV(beta, alpha) && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
             if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
+            {
                 break;
+            }
         }
 
         int history = local.history.Get(position, ss, move);
@@ -423,9 +440,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         int extendedDepth = depthRemaining + extension(position.Board());
 
         // late move reductions
-        if (searchedMoves > 3)
+        if (seen_moves > 4)
         {
-            int reduction = Reduction(depthRemaining, searchedMoves);
+            // -1 to preserve old behaviour. If we retune LMR we should remove this adjustment
+            int reduction = Reduction(depthRemaining, seen_moves - 1);
 
             if (IsPV(beta, alpha))
                 reduction--;
@@ -448,7 +466,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         auto newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, extendedDepth - 1, -b, -a, -colour,
             distanceFromRoot + 1, true)
                              .GetScore();
-        if (newScore > a && newScore < beta && searchedMoves >= 1) // MultiPV issues here
+        if (newScore > a && newScore < beta && seen_moves > 1)
         {
             newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, extendedDepth - 1, -beta, -a, -colour,
                 distanceFromRoot + 1, true)
