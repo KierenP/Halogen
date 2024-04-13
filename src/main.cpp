@@ -33,7 +33,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 14);
 
-string version = "11.5.4";
+string version = "11.5.5";
 
 int main(int argc, char* argv[])
 {
