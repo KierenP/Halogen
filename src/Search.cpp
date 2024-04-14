@@ -447,7 +447,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             && tt_entry.has_value() && tt_entry->GetDepth() + 2 >= depthRemaining
             && tt_entry->GetCutoff() != EntryType::UPPERBOUND && tt_entry->GetMove() == move)
         {
-            Score sbeta = tt_entry->GetScore() - depthRemaining * 4;
+            Score sbeta = tt_entry->GetScore() - depthRemaining * 2;
             int sdepth = depthRemaining / 2;
 
             ss->singular_exclusion = move;
@@ -514,7 +514,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         // avoid updating Killers or History when aborting the search, or during a singular extension
         // check for fail high cutoff
-        if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized && a >= beta)
+        if (!local.aborting_search && a >= beta)
         {
             AddKiller(move, ss->killers);
             AddHistory(gen, move, depthRemaining);
