@@ -447,7 +447,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             && tt_entry.has_value() && tt_entry->GetDepth() + 2 >= depthRemaining
             && tt_entry->GetCutoff() != EntryType::UPPERBOUND && tt_entry->GetMove() == move)
         {
-            Score sbeta = tt_entry->GetScore() - depthRemaining * 2;
+            Score sbeta = tt_entry->GetScore() - depthRemaining * 4;
             int sdepth = depthRemaining / 2;
 
             ss->singular_exclusion = move;
