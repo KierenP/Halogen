@@ -512,7 +512,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         UpdateScore(newScore, score, bestMove, move);
         UpdateAlpha(score, a, move, ss);
 
-        // avoid updating Killers or History when aborting the search, or during a singular extension
+        // avoid updating Killers or History when aborting the search
         // check for fail high cutoff
         if (!local.aborting_search && a >= beta)
         {
