@@ -34,7 +34,8 @@ const std::array<std::array<int, 64>, 64> LMR_reduction = []
     {
         for (size_t j = 0; j < ret[i].size(); j++)
         {
-            ret[i][j] = static_cast<int>(std::round(LMR_constant + LMR_coeff * log(i + 1) * log(j + 1)));
+            ret[i][j] = static_cast<int>(std::round(LMR_constant + LMR_depth_coeff * log(i + 1)
+                + LMR_move_coeff * log(j + 1) + LMR_depth_move_coeff * log(i + 1) * log(j + 1)));
         }
     }
 
@@ -386,7 +387,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     Move bestMove = Move::Uninitialized;
     auto a = alpha;
     auto b = beta;
-    int searchedMoves;
+    int seen_moves = 0;
     bool noLegalMoves = true;
 
     // Rebel style IID. Don't ask why this helps but it does.
@@ -399,33 +400,37 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     StagedMoveGenerator gen(position, ss, local, distanceFromRoot, false);
     Move move;
 
-    for (searchedMoves = 0; gen.Next(move); searchedMoves++)
+    while (gen.Next(move))
     {
         noLegalMoves = false;
 
         if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
         {
-            searchedMoves--;
             continue;
         }
 
         if (move == ss->singular_exclusion)
         {
-            searchedMoves--;
             continue;
         }
 
+        seen_moves++;
+
         // late move pruning
-        if (depthRemaining < LMP_depth && searchedMoves >= LMP_constant + LMP_coeff * depthRemaining
+        if (depthRemaining < LMP_depth && seen_moves >= LMP_constant + LMP_coeff * depthRemaining
             && score > Score::tb_loss_in(MAX_DEPTH))
+        {
             gen.SkipQuiets();
+        }
 
         // futility pruning
-        if (searchedMoves > 0 && FutileNode && !IsPV(beta, alpha) && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
+        if (FutileNode && !IsPV(beta, alpha) && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
             if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
+            {
                 break;
+            }
         }
 
         int extensions = 0;
@@ -470,9 +475,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         // late move reductions
-        if (searchedMoves > 3)
+        if (seen_moves > 4)
         {
-            int reduction = Reduction(depthRemaining, searchedMoves);
+            int reduction = Reduction(depthRemaining, seen_moves);
 
             if (IsPV(beta, alpha))
                 reduction--;
@@ -495,7 +500,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         auto newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -b,
             -a, -colour, distanceFromRoot + 1, true)
                              .GetScore();
-        if (newScore > a && newScore < beta && searchedMoves >= 1) // MultiPV issues here
+        if (newScore > a && newScore < beta && seen_moves > 1)
         {
             newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -beta,
                 -a, -colour, distanceFromRoot + 1, true)

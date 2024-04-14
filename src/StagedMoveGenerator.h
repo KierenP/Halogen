@@ -57,6 +57,11 @@ public:
         return stage;
     }
 
+    Move TTMove()
+    {
+        return TTmove;
+    }
+
 private:
     void OrderMoves(ExtendedMoveList& moves);
 
