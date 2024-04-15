@@ -14,10 +14,10 @@
 #include "../SearchData.h"
 #include "HalogenNetwork.h"
 #include "TrainableNetwork.h"
-#include "training_values.h"
 #include "td-leaf-learn.h"
+#include "training_values.h"
 
-void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data);
+void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data);
 void PrintNetworkDiagnostics(TrainableNetwork& network);
 
 std::string weight_file_name(int epoch, int game);
@@ -43,11 +43,9 @@ std::atomic<bool> stop_signal = false;
 void learn_thread()
 {
     TrainableNetwork network;
-    SearchLimits limits;
-    SearchParameters params;
-    params.silent_mode = true;
-    limits.SetNodeLimit(training_nodes);
-    ThreadSharedData data(std::move(limits), params);
+    SearchSharedState data(1);
+    data.silent_mode = true;
+    data.limits.SetNodeLimit(training_nodes);
 
     while (!stop_signal)
     {
@@ -74,14 +72,16 @@ void info_thread(TrainableNetwork& network, int epoch)
         if (std::chrono::duration_cast<std::chrono::seconds>(now - last_print).count() >= 10)
         {
             auto duration = std::chrono::duration<float>(now - last_print).count();
-            lr_alpha = learning_rate_schedule(std::chrono::duration<float>(now - start).count() / (60.0 * 60.0 * training_time_hours));
+            lr_alpha = learning_rate_schedule(
+                std::chrono::duration<float>(now - start).count() / (60.0 * 60.0 * training_time_hours));
             td_lambda = prediction_quality_record.fit_psi();
 
             prediction_quality_record.debug_print();
 
             std::cout << "Game " << game_count << std::endl;
             std::cout << "Games per second: " << (game_count - game_count_last) / duration << std::endl;
-            std::cout << "Average search depth: " << static_cast<double>(depth_count) / static_cast<double>(move_count) << std::endl;
+            std::cout << "Average search depth: " << static_cast<double>(depth_count) / static_cast<double>(move_count)
+                      << std::endl;
             std::cout << "Learning rate: " << lr_alpha << std::endl;
             std::cout << "Lambda: " << td_lambda << std::endl;
             std::cout << std::endl;
@@ -121,7 +121,7 @@ void learn(const std::string initial_weights_file, int epoch)
 
     if (initial_weights_file == "none")
     {
-        std::cout << "Initializing weights randomly\n"; 
+        std::cout << "Initializing weights randomly\n";
         network.InitializeWeightsRandomly();
     }
     else
@@ -163,7 +163,7 @@ struct TD_game_result
     double delta = 0; // between this and next
 };
 
-void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
+void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data)
 {
     // std::chrono::steady_clock::time_point fn_begin = std::chrono::steady_clock::now();
     // uint64_t time_spend_in_search_ns = 0;
@@ -172,7 +172,7 @@ void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
     thread_local std::binomial_distribution<bool> turn(1);
 
     GameState position;
-    auto& searchData = data.GetData(0);
+    auto& searchData = data.get_local_state(0);
 
     std::vector<TD_game_result> results;
 
@@ -235,10 +235,10 @@ void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
         SearchThread(position, data);
         // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         // time_spend_in_search_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
-        depth_count += data.GetDepth() - 1;
+        depth_count += data.get_next_search_depth() - 1;
         move_count++;
 
-        const auto& pv = searchData.PvTable[0];
+        const auto& pv = searchData.search_stack.root()->pv;
 
         for (size_t i = 0; i < pv.size(); i++)
         {
@@ -250,14 +250,15 @@ void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
         In theory for basic alpha-beta search these would be equal. That is not the case in practice due to
         search instability (transposition table etc) and search score adjustments (checkmate, draw randomness etc).
         */
-        results.push_back({ sigmoid(position.GetEvaluation()), position.Board().stm, network.GetSparseInputs(position.Board()) });
+        results.push_back({ sigmoid(position.GetEvaluation().value()), position.Board().stm,
+            network.GetSparseInputs(position.Board()) });
 
         for (size_t i = 0; i < pv.size(); i++)
         {
             position.RevertMove();
         }
 
-        position.ApplyMove(data.GetBestMove());
+        position.ApplyMove(data.get_best_move());
     }
 
     if (results.size() <= 1)
@@ -268,7 +269,8 @@ void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
     for (size_t i = 0; i < results.size() - 1; i++)
     {
         results[i].delta = GAMMA * results[i + 1].score - results[i].score;
-        // std::cout << "difference: " << results[i].difference << " scores: " << results[i].score << ", " << results[i + 1].score << std::endl;
+        // std::cout << "difference: " << results[i].difference << " scores: " << results[i].score << ", " << results[i
+        // + 1].score << std::endl;
     }
 
     // main td-leaf update step:
@@ -303,11 +305,13 @@ void SelfPlayGame(TrainableNetwork& network, ThreadSharedData& data)
 
     // std::chrono::steady_clock::time_point fn_end = std::chrono::steady_clock::now();
     // auto total_time = std::chrono::duration_cast<std::chrono::nanoseconds>(fn_end - fn_begin).count();
-    // std::cout << "Time spend in search: " << static_cast<double>(time_spend_in_search_ns) / static_cast<double>(total_time) * 100 << "%" << std::endl;
+    // std::cout << "Time spend in search: " << static_cast<double>(time_spend_in_search_ns) /
+    // static_cast<double>(total_time) * 100 << "%" << std::endl;
 }
 
 std::string weight_file_name(int epoch, int game)
 {
-    // format: 768-512x2-1_e123_g1234567890.nn"
-    return "768-" + std::to_string(architecture[1]) + "x2-1_e" + std::to_string(epoch) + "_g" + std::to_string(game) + ".nn";
+    // format: 768-512x2-1_r123_g1234567890.nn"
+    return "768-" + std::to_string(architecture[1]) + "x2-1_r" + std::to_string(epoch) + "_g" + std::to_string(game)
+        + ".nn";
 }
