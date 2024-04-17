@@ -250,7 +250,7 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data)
                 auto tb_score = TB_GET_WDL(result);
 
                 if (tb_score == TB_LOSS)
-                    results.push_back({ 0.0f, position.Board().stm });
+                    results.push_back({ position.Board().stm == WHITE ? 0.f : 1.f, position.Board().stm });
                 else if (tb_score == TB_BLESSED_LOSS)
                     results.push_back({ 0.5f, position.Board().stm });
                 else if (tb_score == TB_DRAW)
@@ -258,7 +258,7 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data)
                 else if (tb_score == TB_CURSED_WIN)
                     results.push_back({ 0.5f, position.Board().stm });
                 else if (tb_score == TB_WIN)
-                    results.push_back({ 1.0f, position.Board().stm });
+                    results.push_back({ position.Board().stm == WHITE ? 1.f : 0.f, position.Board().stm });
                 else
                 {
                     std::cout << "Invalid Syzygy score\n";
