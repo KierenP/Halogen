@@ -18,8 +18,6 @@
 #include "td-leaf-learn.h"
 #include "training_values.h"
 
-#include "../Pyrrhic/tbprobe.h"
-
 void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data);
 void PrintNetworkDiagnostics(TrainableNetwork& network);
 
@@ -230,43 +228,6 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data)
             std::uniform_int_distribution<> move(0, moves.size() - 1);
             position.ApplyMove(moves[move(gen)]);
             continue;
-        }
-
-        // Syzygy adjudication
-        if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
-        {
-            // tb_probe_root is not thread_safe
-            static std::mutex syzygy_lock;
-            std::scoped_lock lk { syzygy_lock };
-
-            const auto& board = position.Board();
-            unsigned int result = tb_probe_root(board.GetWhitePieces(), board.GetBlackPieces(),
-                board.GetPieceBB<KING>(), board.GetPieceBB<QUEEN>(), board.GetPieceBB<ROOK>(),
-                board.GetPieceBB<BISHOP>(), board.GetPieceBB<KNIGHT>(), board.GetPieceBB<PAWN>(),
-                board.fifty_move_count, board.en_passant <= SQ_H8 ? board.en_passant : 0, board.stm == WHITE, nullptr);
-
-            if (result != TB_RESULT_FAILED)
-            {
-                auto tb_score = TB_GET_WDL(result);
-
-                if (tb_score == TB_LOSS)
-                    results.push_back({ position.Board().stm == WHITE ? 0.f : 1.f, position.Board().stm });
-                else if (tb_score == TB_BLESSED_LOSS)
-                    results.push_back({ 0.5f, position.Board().stm });
-                else if (tb_score == TB_DRAW)
-                    results.push_back({ 0.5f, position.Board().stm });
-                else if (tb_score == TB_CURSED_WIN)
-                    results.push_back({ 0.5f, position.Board().stm });
-                else if (tb_score == TB_WIN)
-                    results.push_back({ position.Board().stm == WHITE ? 1.f : 0.f, position.Board().stm });
-                else
-                {
-                    std::cout << "Invalid Syzygy score\n";
-                    position.Board().Print();
-                }
-
-                break;
-            }
         }
 
         // -----------------------------

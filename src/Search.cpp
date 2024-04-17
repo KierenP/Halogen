@@ -81,6 +81,38 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 {
     shared.ResetNewSearch();
 
+    // Probe TB at root
+    if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
+    {
+        // tb_probe_root is not thread_safe
+        static std::mutex syzygy_lock;
+        std::scoped_lock lk { syzygy_lock };
+        unsigned int result = ProbeTBRoot(position.Board());
+        if (result != TB_RESULT_FAILED)
+        {
+            if (!shared.silent_mode)
+            {
+                PrintBestMove(GetTBMove(result), position.Board(), shared.chess_960);
+            }
+            // important so the td-leaf loop can extract this move and apply it to the game.
+            auto tb_score = TB_GET_WDL(result);
+            Score halogen_score { 0 };
+            if (tb_score == TB_LOSS)
+                halogen_score = Score::tb_loss_in(0);
+            else if (tb_score == TB_BLESSED_LOSS)
+                halogen_score = Score::draw();
+            else if (tb_score == TB_DRAW)
+                halogen_score = Score::draw();
+            else if (tb_score == TB_CURSED_WIN)
+                halogen_score = Score::draw();
+            else if (tb_score == TB_WIN)
+                halogen_score = Score::tb_win_in(0);
+            shared.report_search_result(position, shared.get_local_state(0).search_stack.root(),
+                shared.get_local_state(0), 1, { halogen_score, GetTBMove(result) });
+            return;
+        }
+    }
+
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
