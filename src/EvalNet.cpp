@@ -72,5 +72,5 @@ bool DeadPosition(const BoardState& board)
 void TempoAdjustment(Score& eval, const BoardState& board)
 {
     constexpr static int TEMPO = 10;
-    eval += board.stm == WHITE ? TEMPO : -TEMPO;
+    eval += TEMPO;
 }

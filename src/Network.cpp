@@ -163,8 +163,5 @@ Score Network::Eval(Players stm) const
     DotProductHalves(
         ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
     output /= L1_SCALE * L2_SCALE;
-
-    // 'half' or 'relative' nets return a score relative to the side to move
-    // but Halogen expects a score relative to white
-    return stm == WHITE ? output : -output;
+    return output;
 }
