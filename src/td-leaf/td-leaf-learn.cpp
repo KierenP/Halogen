@@ -189,8 +189,6 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
     int turns = 0;
     while (true)
     {
-        position.Board().Print();
-
         turns++;
 
         // check for a terminal position
