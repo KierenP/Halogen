@@ -350,7 +350,9 @@ int main(int argc, char* argv[])
             iss >> token; // SyzygyPath
             std::string syzygy_path = token;
             tb_init(token.c_str());
-            learn(file, epoch);
+            iss >> token; // opening_book
+            std::string opening_book = token;
+            learn(file, epoch, opening_book);
         }
 
         else if (token == "load_weights")

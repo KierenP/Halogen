@@ -2,4 +2,4 @@
 
 #include <string>
 
-void learn(const std::string initial_weights_file, int epoch);
+void learn(const std::string& initial_weights_file, int epoch, const std::string& opening_book);

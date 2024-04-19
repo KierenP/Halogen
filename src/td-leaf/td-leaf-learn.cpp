@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <math.h>
@@ -18,10 +19,11 @@
 #include "td-leaf-learn.h"
 #include "training_values.h"
 
-void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data);
+void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std::vector<std::string>& openings);
 void PrintNetworkDiagnostics(TrainableNetwork& network);
 
 std::string weight_file_name(int epoch, int game);
+std::vector<std::string> parse_opening_book(std::string_view path);
 
 // hyperparameters
 constexpr double GAMMA = 1; // discount rate of future rewards
@@ -41,7 +43,7 @@ std::atomic<uint64_t> depth_count = 0;
 
 std::atomic<bool> stop_signal = false;
 
-void learn_thread()
+void learn_thread(const std::vector<std::string>& openings)
 {
     TrainableNetwork network;
     SearchSharedState data(1);
@@ -50,7 +52,7 @@ void learn_thread()
 
     while (!stop_signal)
     {
-        SelfPlayGame(network, data);
+        SelfPlayGame(network, data, openings);
         game_count++;
     }
 }
@@ -111,7 +113,7 @@ void info_thread(TrainableNetwork& network, int epoch)
     }
 }
 
-void learn(const std::string initial_weights_file, int epoch)
+void learn(const std::string& initial_weights_file, int epoch, const std::string& opening_book)
 {
     if (!TrainableNetwork::VerifyWeightReadWrite())
     {
@@ -134,6 +136,9 @@ void learn(const std::string initial_weights_file, int epoch)
     // Save the random weights as a baseline
     network.SaveWeights(weight_file_name(epoch, 0));
 
+    // Read in the opening book
+    auto openings = parse_opening_book(opening_book);
+
     std::vector<std::thread> threads;
 
     threads.emplace_back(info_thread, std::ref(network), epoch);
@@ -142,7 +147,7 @@ void learn(const std::string initial_weights_file, int epoch)
     // at most we want max_threads total threads.
     for (int i = 0; i < std::max(1, max_threads - 1); i++)
     {
-        threads.emplace_back(learn_thread);
+        threads.emplace_back([&]() { learn_thread(openings); });
     }
 
     for (auto& thread : threads)
@@ -164,22 +169,28 @@ struct TD_game_result
     double delta = 0; // between this and next
 };
 
-void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data)
+void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std::vector<std::string>& openings)
 {
     // std::chrono::steady_clock::time_point fn_begin = std::chrono::steady_clock::now();
     // uint64_t time_spend_in_search_ns = 0;
 
     thread_local std::mt19937 gen(0);
-    thread_local std::binomial_distribution<bool> turn(1);
+    std::uniform_int_distribution<> opening_line(0, openings.size() - 1);
 
     GameState position;
     auto& searchData = data.get_local_state(0);
 
     std::vector<TD_game_result> results;
 
+    // pick a random opening
+    const auto& opening = openings[opening_line(gen)];
+    position.InitialiseFromFen(opening);
+
     int turns = 0;
     while (true)
     {
+        position.Board().Print();
+
         turns++;
 
         // check for a terminal position
@@ -315,4 +326,27 @@ std::string weight_file_name(int epoch, int game)
     // format: 768-512x2-1_r123_g1234567890.nn"
     return "768-" + std::to_string(architecture[1]) + "x2-1_r" + std::to_string(epoch) + "_g" + std::to_string(game)
         + ".nn";
+}
+
+std::vector<std::string> parse_opening_book(std::string_view path)
+{
+    std::ifstream opening_book_file(path.data());
+
+    if (!opening_book_file)
+    {
+        std::cout << "Error reading opening book file" << std::endl;
+        return {};
+    }
+
+    std::string line;
+    std::vector<std::string> lines;
+
+    while (std::getline(opening_book_file, line))
+    {
+        lines.emplace_back(std::move(line));
+    }
+
+    std::cout << "Read " << lines.size() << " opening lines" << std::endl;
+
+    return lines;
 }
