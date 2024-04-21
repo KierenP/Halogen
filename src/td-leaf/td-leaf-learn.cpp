@@ -25,17 +25,6 @@ void PrintNetworkDiagnostics(TrainableNetwork& network);
 std::string weight_file_name(int epoch, int game);
 std::vector<std::string> parse_opening_book(std::string_view path);
 
-// hyperparameters
-constexpr double GAMMA = 1; // discount rate of future rewards
-
-constexpr int training_nodes = 2000;
-constexpr double sigmoid_coeff = 2.5 / 400.0;
-
-constexpr double training_time_hours = 16;
-// -----------------
-
-constexpr int max_threads = 20;
-
 std::atomic<uint64_t> game_count = 0;
 
 std::atomic<uint64_t> move_count = 0;
@@ -175,22 +164,54 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
     // uint64_t time_spend_in_search_ns = 0;
 
     thread_local std::mt19937 gen(0);
-    std::uniform_int_distribution<> opening_line(0, openings.size() - 1);
 
     GameState position;
     auto& searchData = data.get_local_state(0);
 
     std::vector<TD_game_result> results;
 
-    // pick a random opening
-    const auto& opening = openings[opening_line(gen)];
-    position.InitialiseFromFen(opening);
+    const auto& opening = [&openings]() -> std::string
+    {
+        // pick a random opening, or simply use the starting position
+        std::uniform_real_distribution<> opening_prob(0, 1);
 
+        if (opening_prob(gen) < opening_book_usage_pct)
+        {
+            std::uniform_int_distribution<> opening_line(0, openings.size() - 1);
+            return openings[opening_line(gen)];
+        }
+        else
+        {
+            // starting position;
+            return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        }
+    }();
+
+    position.InitialiseFromFen(opening);
     int turns = 0;
+
+    // play out 10 random moves
+    while (turns < 10)
+    {
+        BasicMoveList moves;
+        LegalMoves(position.Board(), moves);
+
+        if (moves.size() == 0)
+        {
+            // checkmate -> reset and generate a new opening line
+            position.InitialiseFromFen(opening);
+            turns = 0;
+            continue;
+        }
+
+        std::uniform_int_distribution<> move(0, moves.size() - 1);
+        position.ApplyMove(moves[move(gen)]);
+        turns++;
+        continue;
+    }
+
     while (true)
     {
-        turns++;
-
         // check for a terminal position
 
         // checkmate or stalemate
@@ -229,14 +250,6 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
         {
             results.push_back({ 0.5f, position.Board().stm });
             break;
-        }
-
-        // apply a random opening if at the start of the game and it's not over yet
-        if (turns < 10)
-        {
-            std::uniform_int_distribution<> move(0, moves.size() - 1);
-            position.ApplyMove(moves[move(gen)]);
-            continue;
         }
 
         // -----------------------------
@@ -344,7 +357,7 @@ std::vector<std::string> parse_opening_book(std::string_view path)
         lines.emplace_back(std::move(line));
     }
 
-    std::cout << "Read " << lines.size() << " opening lines" << std::endl;
+    std::cout << "Read " << lines.size() << " opening lines from file " << path << std::endl;
 
     return lines;
 }
