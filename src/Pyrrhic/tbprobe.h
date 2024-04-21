@@ -45,6 +45,12 @@
 #define TB_CURSED_WIN               3       /* WIN but 50-move draw  */
 #define TB_WIN                      4       /* WIN  */
 
+#define PYRRHIC_PROMOTES_NONE       0
+#define PYRRHIC_PROMOTES_QUEEN      1
+#define PYRRHIC_PROMOTES_ROOK       2
+#define PYRRHIC_PROMOTES_BISHOP     3
+#define PYRRHIC_PROMOTES_KNIGHT     4
+
 #define TB_RESULT_WDL_MASK          0x0000000F
 #define TB_RESULT_TO_MASK           0x000003F0
 #define TB_RESULT_FROM_MASK         0x0000FC00

@@ -28,7 +28,7 @@ SRCS := \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
-	Pyrrhic/tbprobe.cpp \
+	Pyrrhic/tbprobe.c \
 	Score.cpp
 
 # String substitution for every C/C++ file.
@@ -159,7 +159,7 @@ binary: $(OBJS)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp net clean_build
+$(BUILD_DIR)/%.o: % net clean_build
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

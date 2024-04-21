@@ -593,15 +593,15 @@ Move GetTBMove(unsigned int result)
 {
     int flag = -1;
 
-    if (TB_GET_PROMOTES(result) == TB_PROMOTES_NONE)
+    if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_NONE)
         flag = QUIET;
-    else if (TB_GET_PROMOTES(result) == TB_PROMOTES_KNIGHT)
+    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_KNIGHT)
         flag = KNIGHT_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == TB_PROMOTES_BISHOP)
+    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_BISHOP)
         flag = BISHOP_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == TB_PROMOTES_ROOK)
+    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_ROOK)
         flag = ROOK_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == TB_PROMOTES_QUEEN)
+    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_QUEEN)
         flag = QUEEN_PROMOTION;
     else
         assert(0);
