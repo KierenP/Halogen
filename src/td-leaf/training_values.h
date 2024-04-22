@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Score.h"
 #include "temporal_coherence.h"
 
 #include <cmath>
@@ -32,3 +33,5 @@ inline constexpr int max_threads = 20;
 
 // we want to add only 5% of DFRC positions into the training
 inline constexpr float opening_book_usage_pct = 0.05;
+
+inline constexpr Score opening_cutoff = 500;

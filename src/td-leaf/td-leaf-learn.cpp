@@ -187,27 +187,48 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
         }
     }();
 
-    position.InitialiseFromFen(opening);
-    int turns = 0;
+    bool valid_opening = false;
 
-    // play out 10 random moves
-    while (turns < 10)
+    while (!valid_opening)
     {
+        int turns = 0;
+        position.InitialiseFromFen(opening);
+
+        // play out 10 random moves
+        while (turns < 10)
+        {
+            BasicMoveList moves;
+            LegalMoves(position.Board(), moves);
+
+            if (moves.size() == 0)
+            {
+                // checkmate -> reset and generate a new opening line
+                break;
+            }
+
+            std::uniform_int_distribution<> move(0, moves.size() - 1);
+            position.ApplyMove(moves[move(gen)]);
+            turns++;
+            continue;
+        }
+
         BasicMoveList moves;
         LegalMoves(position.Board(), moves);
 
         if (moves.size() == 0)
         {
             // checkmate -> reset and generate a new opening line
-            position.InitialiseFromFen(opening);
-            turns = 0;
             continue;
         }
 
-        std::uniform_int_distribution<> move(0, moves.size() - 1);
-        position.ApplyMove(moves[move(gen)]);
-        turns++;
-        continue;
+        SearchThread(position, data);
+        auto eval = data.get_best_score();
+
+        // check static eval is within set margin
+        if (-opening_cutoff < eval && eval < opening_cutoff)
+        {
+            valid_opening = true;
+        }
     }
 
     while (true)
