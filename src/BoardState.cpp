@@ -371,8 +371,8 @@ void BoardState::ApplyMove(Move move, Network& net)
     }
     case A_SIDE_CASTLE:
     {
-        Square king_start = move.GetFrom();
-        Square king_end = move.GetTo();
+        Square king_start = GetKing(stm);
+        Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
         Square rook_start = LSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
@@ -385,8 +385,8 @@ void BoardState::ApplyMove(Move move, Network& net)
     }
     case H_SIDE_CASTLE:
     {
-        Square king_start = move.GetFrom();
-        Square king_end = move.GetTo();
+        Square king_start = GetKing(stm);
+        Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
         Square rook_start = MSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
@@ -490,4 +490,54 @@ void BoardState::ClearSquareAndUpdate(Square square, Network& net)
     net.RemoveInput(square, piece);
     key.TogglePieceSquare(piece, square);
     ClearSquare(square);
+}
+
+MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
+{
+    // Captures
+    if (IsOccupied(to))
+    {
+        return CAPTURE;
+    }
+
+    // Double pawn moves
+    if (AbsRankDiff(from, to) == 2 && (GetSquare(from) == WHITE_PAWN || GetSquare(from) == BLACK_PAWN))
+    {
+        return PAWN_DOUBLE_MOVE;
+    }
+
+    // En passant
+    if (to == en_passant && (GetSquare(from) == WHITE_PAWN || GetSquare(from) == BLACK_PAWN))
+    {
+        return EN_PASSANT;
+    }
+
+    // Castling (normal chess)
+    if ((from == SQ_E1 && to == SQ_G1 && GetSquare(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_G8 && GetSquare(from) == BLACK_KING))
+    {
+        return H_SIDE_CASTLE;
+    }
+
+    if ((from == SQ_E1 && to == SQ_C1 && GetSquare(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_C8 && GetSquare(from) == BLACK_KING))
+    {
+        return A_SIDE_CASTLE;
+    }
+
+    // Castling (chess960)
+    if ((GetSquare(from) == WHITE_KING && GetSquare(to) == WHITE_ROOK)
+        || (GetSquare(from) == BLACK_KING && GetSquare(to) == BLACK_ROOK))
+    {
+        if (from > to)
+        {
+            return A_SIDE_CASTLE;
+        }
+        else
+        {
+            return H_SIDE_CASTLE;
+        }
+    }
+
+    return QUIET;
 }

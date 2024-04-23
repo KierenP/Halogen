@@ -12,11 +12,11 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "EGTB.h"
 #include "EvalNet.h"
 #include "GameState.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
-#include "Pyrrhic/tbprobe.h"
 #include "Score.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
@@ -57,10 +57,6 @@ void AddKiller(Move move, std::array<Move, 2>& KillerMoves);
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining);
 void UpdatePV(Move move, SearchStackState* ss);
 int Reduction(int depth, int i);
-unsigned int ProbeTBRoot(const BoardState& board);
-unsigned int ProbeTBSearch(const BoardState& board);
-SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot);
-Move GetTBMove(unsigned int result);
 
 void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id);
 SearchResult AspirationWindowSearch(
@@ -80,14 +76,11 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     shared.ResetNewSearch();
 
     // Probe TB at root
-    if (GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
+    auto probe = Syzygy::probe_dtz_root(position.Board());
+    if (probe.has_value())
     {
-        unsigned int result = ProbeTBRoot(position.Board());
-        if (result != TB_RESULT_FAILED)
-        {
-            PrintBestMove(GetTBMove(result), position.Board(), shared.chess_960);
-            return;
-        }
+        PrintBestMove(probe->root_result_.get_move(position.Board()), position.Board(), shared.chess_960);
+        return;
     }
 
     // Limit the MultiPV setting to be at most the number of legal moves
@@ -263,22 +256,21 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // If we are in a singular move search, we don't want to do any early pruning.
 
     // Probe TB in search
-    if (ss->singular_exclusion == Move::Uninitialized && position.Board().fifty_move_count == 0
-        && GetBitCount(position.Board().GetAllPieces()) <= TB_LARGEST && position.Board().castle_squares == EMPTY)
+    if (ss->singular_exclusion == Move::Uninitialized)
     {
-        unsigned int result = ProbeTBSearch(position.Board());
-        if (result != TB_RESULT_FAILED)
+        auto probe = Syzygy::probe_wdl_search(position.Board());
+        if (probe.has_value())
         {
             local.tb_hits.fetch_add(1, std::memory_order_relaxed);
-            auto probe = UseSearchTBScore(result, distanceFromRoot);
+            const auto tb_score = probe->get_score(distanceFromRoot);
 
             // TODO: check for boundary conditions
-            if (probe.GetScore() == 0)
-                return probe;
-            if (probe.GetScore() >= Score::tb_win_in(MAX_DEPTH) && probe.GetScore() >= beta)
-                return probe;
-            if (probe.GetScore() <= Score::tb_loss_in(MAX_DEPTH) && probe.GetScore() <= alpha)
-                return probe;
+            if (tb_score == 0)
+                return tb_score;
+            if (tb_score >= Score::tb_win_in(MAX_DEPTH) && tb_score >= beta)
+                return tb_score;
+            if (tb_score <= Score::tb_loss_in(MAX_DEPTH) && tb_score <= alpha)
+                return tb_score;
 
             // Why update score ?
             // Because in a PV node we want the returned score to be accurate and reflect the TB score.
@@ -302,14 +294,14 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
             if (IsPV(beta, alpha))
             {
-                if (probe.GetScore() >= Score::tb_win_in(MAX_DEPTH))
+                if (tb_score >= Score::tb_win_in(MAX_DEPTH))
                 {
-                    score = probe.GetScore();
-                    alpha = std::max(alpha, probe.GetScore());
+                    score = tb_score;
+                    alpha = std::max(alpha, tb_score);
                 }
                 else
                 {
-                    MaxScore = probe.GetScore();
+                    MaxScore = tb_score;
                 }
             }
         }
@@ -539,75 +531,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     return SearchResult(score, bestMove);
-}
-
-unsigned int ProbeTBRoot(const BoardState& board)
-{
-    // clang-format off
-    return tb_probe_root(board.GetWhitePieces(), board.GetBlackPieces(),
-        board.GetPieceBB<KING>(),
-        board.GetPieceBB<QUEEN>(),
-        board.GetPieceBB<ROOK>(),
-        board.GetPieceBB<BISHOP>(),
-        board.GetPieceBB<KNIGHT>(),
-        board.GetPieceBB<PAWN>(),
-        board.fifty_move_count,
-        board.en_passant <= SQ_H8 ? board.en_passant : 0,
-        board.stm == WHITE,
-        NULL);
-    // clang-format on
-}
-
-unsigned int ProbeTBSearch(const BoardState& board)
-{
-    // clang-format off
-    return tb_probe_wdl(board.GetWhitePieces(), board.GetBlackPieces(),
-        board.GetPieceBB<KING>(),
-        board.GetPieceBB<QUEEN>(),
-        board.GetPieceBB<ROOK>(),
-        board.GetPieceBB<BISHOP>(),
-        board.GetPieceBB<KNIGHT>(),
-        board.GetPieceBB<PAWN>(),
-        board.en_passant <= SQ_H8 ? board.en_passant : 0,
-        board.stm == WHITE);
-    // clang-format on
-}
-
-SearchResult UseSearchTBScore(unsigned int result, int distanceFromRoot)
-{
-    if (result == TB_LOSS)
-        return Score::tb_loss_in(distanceFromRoot);
-    else if (result == TB_BLESSED_LOSS)
-        return 0;
-    else if (result == TB_DRAW)
-        return 0;
-    else if (result == TB_CURSED_WIN)
-        return 0;
-    else if (result == TB_WIN)
-        return Score::tb_win_in(distanceFromRoot);
-    else
-        assert(0);
-}
-
-Move GetTBMove(unsigned int result)
-{
-    int flag = -1;
-
-    if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_NONE)
-        flag = QUIET;
-    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_KNIGHT)
-        flag = KNIGHT_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_BISHOP)
-        flag = BISHOP_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_ROOK)
-        flag = ROOK_PROMOTION;
-    else if (TB_GET_PROMOTES(result) == PYRRHIC_PROMOTES_QUEEN)
-        flag = QUEEN_PROMOTION;
-    else
-        assert(0);
-
-    return Move(
-        static_cast<Square>(TB_GET_FROM(result)), static_cast<Square>(TB_GET_TO(result)), static_cast<MoveFlag>(flag));
 }
 
 void UpdateAlpha(Score score, Score& a, const Move& move, SearchStackState* ss)

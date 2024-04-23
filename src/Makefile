@@ -28,8 +28,9 @@ SRCS := \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
-	Pyrrhic/tbprobe.c \
-	Score.cpp
+	Score.cpp \
+	EGTB.cpp \
+	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o

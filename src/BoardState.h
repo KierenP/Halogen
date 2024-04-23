@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BitBoardDefine.h"
+#include "Move.h"
 #include "Zobrist.h"
 
 #include <vector>
@@ -62,6 +63,9 @@ public:
 
     void ApplyMove(Move move, Network& net);
     void ApplyNullMove();
+
+    // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
+    MoveFlag GetMoveFlag(Square from, Square to) const;
 
 private:
     void SetSquareAndUpdate(Square square, Pieces piece, Network& net);
