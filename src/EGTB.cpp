@@ -4,6 +4,7 @@
 #include "Pyrrhic/tbprobe.h"
 
 #include <iostream>
+#include <mutex>
 
 TbResult::TbResult(unsigned int result)
     : result_(result)
@@ -109,7 +110,9 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
     }
 
     uint32_t move_results[256];
+    static std::mutex tb_lock;
 
+    tb_lock.lock();
     // clang-format off
     auto probe = tb_probe_root(
         board.GetWhitePieces(), 
@@ -125,6 +128,7 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         board.stm == WHITE,
         move_results);
     // clang-format on
+    tb_lock.unlock();
 
     if (probe == TB_RESULT_FAILED || probe == TB_RESULT_STALEMATE || probe == TB_RESULT_CHECKMATE)
     {

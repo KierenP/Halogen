@@ -66,6 +66,10 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
 endif
 
+ifeq ($(detected_OS),Linux)
+	CXXFLAGS += -DMADV_RANDOM
+endif
+
 $(info LDFLAGS = [${LDFLAGS}])
 
 # Each target sets particular flags, and then builds the corresponding exe file.
