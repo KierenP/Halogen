@@ -43,17 +43,17 @@ Move TbResult::get_move(const BoardState& board) const
         {
             return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_KNIGHT)
+        if (promo == PYRRHIC_PROMOTES_BISHOP)
         {
-            return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
+            return (flag_without_promo == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_KNIGHT)
+        if (promo == PYRRHIC_PROMOTES_ROOK)
         {
-            return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
+            return (flag_without_promo == CAPTURE ? ROOK_PROMOTION_CAPTURE : ROOK_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_KNIGHT)
+        if (promo == PYRRHIC_PROMOTES_QUEEN)
         {
-            return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
+            return (flag_without_promo == CAPTURE ? QUEEN_PROMOTION_CAPTURE : QUEEN_PROMOTION);
         }
 
         return flag_without_promo;
