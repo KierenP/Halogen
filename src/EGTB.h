@@ -2,7 +2,9 @@
 
 #include "BoardState.h"
 #include "Move.h"
+#include "MoveList.h"
 #include "Score.h"
+#include "StaticVector.h"
 
 #include <optional>
 #include <string_view>
@@ -25,7 +27,7 @@ class RootProbeResult
 {
 public:
     TbResult root_result_;
-    std::vector<TbResult> move_results_;
+    BasicMoveList root_move_whitelist;
 };
 
 class Syzygy

@@ -102,6 +102,24 @@ int16_t History::GetCounterMove(const GameState& position, const SearchStackStat
     return (*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
 }
 
+bool SearchLocalState::RootExcludeMove(Move move)
+{
+    // if present in blacklist, exclude
+    if (std::find(root_move_blacklist.begin(), root_move_blacklist.end(), move) != root_move_blacklist.end())
+    {
+        return true;
+    }
+
+    // if not present in non-empty white list
+    if (!root_move_whitelist.empty()
+        && std::find(root_move_whitelist.begin(), root_move_whitelist.end(), move) == root_move_whitelist.end())
+    {
+        return true;
+    }
+
+    return false;
+}
+
 void SearchLocalState::ResetNewSearch()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
@@ -111,6 +129,8 @@ void SearchLocalState::ResetNewSearch()
     sel_septh = 0;
     thread_wants_to_stop = false;
     aborting_search = false;
+    root_move_blacklist = {};
+    root_move_whitelist = {};
 }
 
 void SearchLocalState::ResetNewGame()
@@ -206,14 +226,6 @@ void SearchSharedState::report_aspiration_high_result(
     }
 }
 
-bool SearchSharedState::is_multi_PV_excluded_move(Move move)
-{
-    std::scoped_lock lock(lock_);
-
-    return std::find(multi_PV_excluded_moves_.begin(), multi_PV_excluded_moves_.end(), move)
-        != multi_PV_excluded_moves_.end();
-}
-
 bool SearchSharedState::has_completed_depth(int depth) const
 {
     return highest_completed_depth_.load(std::memory_order_acquire) >= depth;
@@ -236,6 +248,12 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 int SearchSharedState::get_next_search_depth() const
 {
     return highest_completed_depth_.load(std::memory_order_acquire) + 1;
+}
+
+BasicMoveList SearchSharedState::get_multi_pv_excluded_moves()
+{
+    std::scoped_lock lock(lock_);
+    return multi_PV_excluded_moves_;
 }
 
 Move SearchSharedState::get_best_move() const

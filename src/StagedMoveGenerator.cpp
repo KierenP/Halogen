@@ -248,20 +248,20 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         // Hash move
         if (moves[i].move == TTmove)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 
         // Killers
         else if (moves[i].move == Killer1)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 
         else if (moves[i].move == Killer2)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 

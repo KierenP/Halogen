@@ -39,10 +39,6 @@ Move TbResult::get_move(const BoardState& board) const
         auto flag_without_promo = board.GetMoveFlag(from, to);
         const auto promo = TB_GET_PROMOTES(result_);
 
-        if (promo == PYRRHIC_PROMOTES_NONE)
-        {
-            return flag_without_promo;
-        }
         if (promo == PYRRHIC_PROMOTES_KNIGHT)
         {
             return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
@@ -59,6 +55,8 @@ Move TbResult::get_move(const BoardState& board) const
         {
             return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
         }
+
+        return flag_without_promo;
     }();
 
     return Move(from, to, flag);
@@ -135,9 +133,15 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
 
     RootProbeResult result;
     result.root_result_ = probe;
+
+    // filter out the results which preserve the WDL outcome
     for (int i = 0; i < 256 && move_results[i] != TB_RESULT_FAILED; i++)
     {
-        result.move_results_.push_back(move_results[i]);
+        if (TB_GET_WDL(probe) == TB_GET_WDL(move_results[i]))
+        {
+            result.root_move_whitelist.emplace_back(TbResult(move_results[i]).get_move(board));
+        }
     }
+
     return result;
 }

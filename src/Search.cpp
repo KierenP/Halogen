@@ -7,6 +7,7 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <thread>
 #include <vector>
@@ -77,10 +78,10 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position.Board());
+    BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
-        PrintBestMove(probe->root_result_.get_move(position.Board()), position.Board(), shared.chess_960);
-        return;
+        root_move_whitelist = probe->root_move_whitelist;
     }
 
     // Limit the MultiPV setting to be at most the number of legal moves
@@ -98,6 +99,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     for (int i = 0; i < shared.get_thread_count(); i++)
     {
+        shared.get_local_state(i).root_move_whitelist = root_move_whitelist;
         threads.emplace_back(std::thread([position, &shared, i]() mutable { SearchPosition(position, shared, i); }));
     }
 
@@ -154,6 +156,9 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
         {
             return;
         }
+
+        // copy the MultiPV exclusion
+        local.root_move_blacklist = shared.get_multi_pv_excluded_moves();
 
         SearchResult result = AspirationWindowSearch(position, ss, local, shared, depth);
 
@@ -251,7 +256,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
                            // with permission from Koivisto authors.
 
     auto score = std::numeric_limits<Score>::min();
-    auto MaxScore = std::numeric_limits<Score>::max();
+    auto max_score = std::numeric_limits<Score>::max();
+    auto min_score = std::numeric_limits<Score>::min();
 
     // If we are in a singular move search, we don't want to do any early pruning.
 
@@ -264,13 +270,15 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             local.tb_hits.fetch_add(1, std::memory_order_relaxed);
             const auto tb_score = probe->get_score(distanceFromRoot);
 
-            // TODO: check for boundary conditions
-            if (tb_score == 0)
-                return tb_score;
-            if (tb_score >= Score::tb_win_in(MAX_DEPTH) && tb_score >= beta)
-                return tb_score;
-            if (tb_score <= Score::tb_loss_in(MAX_DEPTH) && tb_score <= alpha)
-                return tb_score;
+            if (distanceFromRoot > 0)
+            {
+                if (tb_score == 0)
+                    return tb_score;
+                if (tb_score >= Score::tb_win_in(MAX_DEPTH) && tb_score >= beta)
+                    return tb_score;
+                if (tb_score <= Score::tb_loss_in(MAX_DEPTH) && tb_score <= alpha)
+                    return tb_score;
+            }
 
             // Why update score ?
             // Because in a PV node we want the returned score to be accurate and reflect the TB score.
@@ -296,12 +304,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             {
                 if (tb_score >= Score::tb_win_in(MAX_DEPTH))
                 {
-                    score = tb_score;
+                    min_score = tb_score;
                     alpha = std::max(alpha, tb_score);
                 }
                 else
                 {
-                    MaxScore = tb_score;
+                    max_score = tb_score;
                 }
             }
         }
@@ -396,12 +404,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     {
         noLegalMoves = false;
 
-        if (distanceFromRoot == 0 && shared.is_multi_PV_excluded_move(move))
+        if (move == ss->singular_exclusion)
         {
             continue;
         }
 
-        if (move == ss->singular_exclusion)
+        if (distanceFromRoot == 0 && local.RootExcludeMove(move))
         {
             continue;
         }
@@ -522,7 +530,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return TerminalScore(position.Board(), distanceFromRoot);
     }
 
-    score = std::min(score, MaxScore);
+    score = std::clamp(score, min_score, max_score);
 
     // avoid adding scores to the TT when we are aborting the search, or during a singular extension
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
@@ -560,7 +568,7 @@ void UpdatePV(Move move, SearchStackState* ss)
 {
     ss->pv.clear();
     ss->pv.emplace_back(move);
-    ss->pv.append((ss + 1)->pv.begin(), (ss + 1)->pv.end());
+    ss->pv.insert(ss->pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 }
 
 bool UseTransposition(const TTEntry& entry, Score alpha, Score beta)
