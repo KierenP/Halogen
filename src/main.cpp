@@ -31,7 +31,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality);
 void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality);
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
-void Bench(int depth = 14);
+void Bench(int depth = 10);
 
 string version = "11.7.3";
 
