@@ -63,12 +63,12 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
 SearchResult AspirationWindowSearch(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth);
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    unsigned int initialDepth, int depthRemaining, Score alpha, Score beta, int colour, unsigned int distanceFromRoot,
+    unsigned int initialDepth, int depthRemaining, Score alpha, Score beta, unsigned int distanceFromRoot,
     bool allowedNull);
 void UpdateAlpha(Score score, Score& a, const Move& move, SearchStackState* ss);
 void UpdateScore(Score newScore, Score& score, Move& bestMove, const Move& move);
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    unsigned int initialDepth, Score alpha, Score beta, int colour, unsigned int distanceFromRoot, int depthRemaining);
+    unsigned int initialDepth, Score alpha, Score beta, unsigned int distanceFromRoot, int depthRemaining);
 
 bool should_abort_search(int initial_depth, SearchLocalState& local, const SearchSharedState& shared);
 
@@ -196,8 +196,7 @@ SearchResult AspirationWindowSearch(
     while (true)
     {
         local.sel_septh = 0;
-        auto result = NegaScout(
-            position, ss, local, shared, depth, depth, alpha, beta, position.Board().stm ? 1 : -1, 0, false);
+        auto result = NegaScout(position, ss, local, shared, depth, depth, alpha, beta, 0, false);
 
         if (local.aborting_search)
         {
@@ -228,7 +227,7 @@ SearchResult AspirationWindowSearch(
 }
 
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    unsigned int initialDepth, int depthRemaining, Score alpha, Score beta, int colour, unsigned int distanceFromRoot,
+    unsigned int initialDepth, int depthRemaining, Score alpha, Score beta, unsigned int distanceFromRoot,
     bool allowedNull)
 {
     // check if we should abort the search
@@ -334,11 +333,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Drop into quiescence search
     if (depthRemaining <= 0 && !InCheck)
     {
-        return Quiescence(
-            position, ss, local, shared, initialDepth, alpha, beta, colour, distanceFromRoot, depthRemaining);
+        return Quiescence(position, ss, local, shared, initialDepth, alpha, beta, distanceFromRoot, depthRemaining);
     }
 
-    auto staticScore = EvaluatePositionNet(position, local.eval_cache) * colour;
+    auto staticScore = EvaluatePositionNet(position, local.eval_cache);
 
     // Static null move pruning
     if (ss->singular_exclusion == Move::Uninitialized && depthRemaining < SNMP_depth
@@ -355,7 +353,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         ss->move = Move::Uninitialized;
         position.ApplyNullMove();
         auto null_move_score = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining - reduction - 1,
-            -beta, -beta + 1, -colour, distanceFromRoot + 1, false)
+            -beta, -beta + 1, distanceFromRoot + 1, false)
                                     .GetScore();
         position.RevertNullMove();
 
@@ -366,7 +364,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             {
                 // Do verification search for high depths
                 SearchResult result = NegaScout(position, ss, local, shared, initialDepth,
-                    depthRemaining - reduction - 1, beta - 1, beta, colour, distanceFromRoot, false);
+                    depthRemaining - reduction - 1, beta - 1, beta, distanceFromRoot, false);
                 if (result.GetScore() >= beta)
                     return result;
             }
@@ -453,7 +451,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             ss->singular_exclusion = move;
 
             auto result = NegaScout(
-                position, ss, local, shared, initialDepth, sdepth, sbeta - 1, sbeta, colour, distanceFromRoot, true);
+                position, ss, local, shared, initialDepth, sdepth, sbeta - 1, sbeta, distanceFromRoot, true);
 
             ss->singular_exclusion = Move::Uninitialized;
 
@@ -487,7 +485,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             reduction = std::max(0, reduction);
 
             auto late_move_score = -NegaScout(position, ss + 1, local, shared, initialDepth,
-                depthRemaining + extensions - 1 - reduction, -a - 1, -a, -colour, distanceFromRoot + 1, true)
+                depthRemaining + extensions - 1 - reduction, -a - 1, -a, distanceFromRoot + 1, true)
                                         .GetScore();
 
             if (late_move_score <= a)
@@ -498,12 +496,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         auto newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -b,
-            -a, -colour, distanceFromRoot + 1, true)
+            -a, distanceFromRoot + 1, true)
                              .GetScore();
         if (newScore > a && newScore < beta && seen_moves > 1)
         {
             newScore = -NegaScout(position, ss + 1, local, shared, initialDepth, depthRemaining + extensions - 1, -beta,
-                -a, -colour, distanceFromRoot + 1, true)
+                -a, distanceFromRoot + 1, true)
                             .GetScore();
         }
 
@@ -661,7 +659,7 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 }
 
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    unsigned int initialDepth, Score alpha, Score beta, int colour, unsigned int distanceFromRoot, int depthRemaining)
+    unsigned int initialDepth, Score alpha, Score beta, unsigned int distanceFromRoot, int depthRemaining)
 {
     // check if we should abort the search
     if (should_abort_search(initialDepth, local, shared))
@@ -679,7 +677,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
 
-    auto staticScore = EvaluatePositionNet(position, local.eval_cache) * colour;
+    auto staticScore = EvaluatePositionNet(position, local.eval_cache);
     if (staticScore >= beta)
         return staticScore;
     if (staticScore > alpha)
@@ -707,8 +705,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
         ss->move = move;
         position.ApplyMove(move);
-        auto newScore = -Quiescence(position, ss + 1, local, shared, initialDepth, -beta, -alpha, -colour,
-            distanceFromRoot + 1, depthRemaining - 1)
+        auto newScore = -Quiescence(
+            position, ss + 1, local, shared, initialDepth, -beta, -alpha, distanceFromRoot + 1, depthRemaining - 1)
                              .GetScore();
         position.RevertMove();
 
