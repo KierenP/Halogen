@@ -13,12 +13,12 @@
 
 #include "Benchmark.h"
 #include "BitBoardDefine.h"
+#include "EGTB.h"
 #include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
-#include "Pyrrhic/tbprobe.h"
 #include "Search.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
@@ -33,12 +33,11 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 14);
 
-string version = "11.7.1";
+string version = "11.7.2";
 
 int main(int argc, char* argv[])
 {
     PrintVersion();
-    tb_init("<empty>");
 
     Network::Init();
 
@@ -263,8 +262,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-
-                tb_init(token.c_str());
+                Syzygy::init(token.c_str());
             }
 
             else if (token == "MultiPV")
