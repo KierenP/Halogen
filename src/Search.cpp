@@ -401,8 +401,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Set up search variables
     Move bestMove = Move::Uninitialized;
-    auto a = alpha;
-    auto b = beta;
+    auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
 
@@ -411,7 +410,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         depthRemaining--;
 
     bool FutileNode
-        = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < a;
+        = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < alpha;
 
     StagedMoveGenerator gen(position, ss, local, distanceFromRoot, false);
     Move move;
@@ -503,10 +502,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             reduction = std::max(0, reduction);
 
             auto late_move_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
-                depthRemaining + extensions - 1 - reduction, -a - 1, -a, distanceFromRoot + 1, true)
+                depthRemaining + extensions - 1 - reduction, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
                                         .GetScore();
 
-            if (late_move_score <= a)
+            if (late_move_score <= alpha)
             {
                 position.RevertMove();
                 continue;
@@ -515,24 +514,24 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         Score search_score = 0;
 
-        if constexpr (search_type == SearchType::PV || search_type == SearchType::ROOT)
+        if constexpr (pv_node)
         {
             if (seen_moves == 1)
             {
                 search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, initialDepth,
-                    depthRemaining + extensions - 1, -b, -a, distanceFromRoot + 1, true)
+                    depthRemaining + extensions - 1, -beta, -alpha, distanceFromRoot + 1, true)
                                     .GetScore();
             }
             else
             {
                 search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
-                    depthRemaining + extensions - 1, -b, -a, distanceFromRoot + 1, true)
+                    depthRemaining + extensions - 1, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
                                     .GetScore();
 
-                if (search_score > a && search_score < beta)
+                if (search_score > alpha && search_score < beta)
                 {
                     search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, initialDepth,
-                        depthRemaining + extensions - 1, -beta, -a, distanceFromRoot + 1, true)
+                        depthRemaining + extensions - 1, -beta, -alpha, distanceFromRoot + 1, true)
                                         .GetScore();
                 }
             }
@@ -540,25 +539,23 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         else
         {
             search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
-                depthRemaining + extensions - 1, -b, -a, distanceFromRoot + 1, true)
+                depthRemaining + extensions - 1, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
                                 .GetScore();
         }
 
         position.RevertMove();
 
         UpdateScore(search_score, score, bestMove, move);
-        UpdateAlpha(score, a, move, ss);
+        UpdateAlpha(score, alpha, move, ss);
 
         // avoid updating Killers or History when aborting the search
         // check for fail high cutoff
-        if (!local.aborting_search && a >= beta)
+        if (!local.aborting_search && alpha >= beta)
         {
             AddKiller(move, ss->killers);
             AddHistory(gen, move, depthRemaining);
             break;
         }
-
-        b = a + 1; // Set a new zero width window
     }
 
     // Checkmate or stalemate
@@ -572,7 +569,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // avoid adding scores to the TT when we are aborting the search, or during a singular extension
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(score, alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
+        AddScoreToTable(score, original_alpha, position.Board(), depthRemaining, distanceFromRoot, beta, bestMove);
     }
 
     return SearchResult(score, bestMove);
