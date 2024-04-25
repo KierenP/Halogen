@@ -16,6 +16,15 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
+#ifdef __cpp_lib_hardware_interference_size
+using std::hardware_constructive_interference_size;
+using std::hardware_destructive_interference_size;
+#else
+// 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+constexpr std::size_t hardware_constructive_interference_size = 64;
+constexpr std::size_t hardware_destructive_interference_size = 64;
+#endif
+
 extern TranspositionTable tTable;
 
 class GameState;
@@ -85,13 +94,8 @@ private:
 };
 
 // Data local to a particular thread
-struct SearchLocalState
+struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
-    //--------------------------------------------------------------------------------------------
-private:
-    uint64_t padding1[8] = {}; // To avoid false sharing between adjacent SearchData objects
-    //--------------------------------------------------------------------------------------------
-
 public:
     SearchStack search_stack;
 
@@ -120,11 +124,6 @@ public:
 
     void ResetNewSearch();
     void ResetNewGame();
-
-    //--------------------------------------------------------------------------------------------
-private:
-    uint64_t padding2[8] = {}; // To avoid false sharing between adjacent SearchData objects
-    //--------------------------------------------------------------------------------------------
 };
 
 // Search state that is shared between threads.
