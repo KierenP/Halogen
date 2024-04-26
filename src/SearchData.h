@@ -27,6 +27,7 @@ struct SearchStackState
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
+    Move singular_exclusion = Move::Uninitialized;
 };
 
 class SearchStack
@@ -110,6 +111,13 @@ public:
     // Set to true when the search is unwinding and trying to return.
     bool aborting_search = false;
 
+    // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
+    // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
+    BasicMoveList root_move_whitelist;
+    BasicMoveList root_move_blacklist;
+
+    bool RootExcludeMove(Move move);
+
     void ResetNewSearch();
     void ResetNewGame();
 
@@ -141,7 +149,7 @@ public:
     void report_aspiration_high_result(
         GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
 
-    bool is_multi_PV_excluded_move(Move move);
+    BasicMoveList get_multi_pv_excluded_moves();
 
     Move get_best_move() const;
     Score get_best_score() const;
@@ -195,7 +203,7 @@ private:
         Score highest_beta = 0;
     };
 
-    std::array<SearchDepthResults, MAX_DEPTH> search_results_ = {};
+    std::array<SearchDepthResults, MAX_DEPTH + 1> search_results_ = {};
 
     // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
     // should stop searching that depth
@@ -207,7 +215,7 @@ private:
     std::vector<SearchLocalState> search_local_states_;
 
     // Moves that we ignore at the root for MultiPV mode
-    std::vector<Move> multi_PV_excluded_moves_;
+    BasicMoveList multi_PV_excluded_moves_;
 
     // ----------------------------
     // bool MultiPVExcludeMoveUnlocked(Move move) const;

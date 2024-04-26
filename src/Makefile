@@ -28,8 +28,9 @@ SRCS := \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
-	Pyrrhic/tbprobe.cpp \
-	Score.cpp
+	Score.cpp \
+	EGTB.cpp \
+	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -63,6 +64,10 @@ $(info detected OS is [${detected_OS}])
 # Many users on windows use a environment to build so we must link statically
 ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
+endif
+
+ifeq ($(detected_OS),Linux)
+	CXXFLAGS += -DMADV_RANDOM
 endif
 
 $(info LDFLAGS = [${LDFLAGS}])
@@ -159,7 +164,7 @@ binary: $(OBJS)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.cpp.o: %.cpp net clean_build
+$(BUILD_DIR)/%.o: % net clean_build
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

@@ -72,7 +72,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (MoveIsLegal(position.Board(), Killer1))
+        if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
         {
             move = Killer1;
             return true;
@@ -84,7 +84,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (MoveIsLegal(position.Board(), Killer2))
+        if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
         {
             move = Killer2;
             return true;
@@ -248,20 +248,20 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         // Hash move
         if (moves[i].move == TTmove)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 
         // Killers
         else if (moves[i].move == Killer1)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 
         else if (moves[i].move == Killer2)
         {
-            moves.erase(i);
+            moves.erase(moves.begin() + i);
             i--;
         }
 

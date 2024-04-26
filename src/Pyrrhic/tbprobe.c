@@ -40,6 +40,7 @@
 
 #define TB_PIECES    (7)
 #define TB_HASHBITS  (TB_PIECES < 7 ?  11 : 12)
+#define TB_MAX_DTZ   (0x40000)
 #define TB_MAX_PIECE (TB_PIECES < 7 ? 254 : 650)
 #define TB_MAX_PAWN  (TB_PIECES < 7 ? 256 : 861)
 #define TB_MAX_SYMS  (4096)
@@ -71,7 +72,7 @@ typedef HANDLE map_t;
 #endif
 
 #ifdef __cplusplus
-using namespace std;
+    using namespace std;
 #endif
 
 #define DECOMP64
@@ -202,6 +203,11 @@ static void *map_file(FD fd, map_t *mapping)
   *mapping = statbuf.st_size;
   void *data = mmap(NULL, statbuf.st_size, PROT_READ,
 			      MAP_SHARED, fd, 0);
+
+  #if defined(MADV_RANDOM)
+  madvise(data, statbuf.st_size, MADV_RANDOM);
+  #endif
+
   if (data == MAP_FAILED) {
     perror("mmap");
     return NULL;
@@ -228,7 +234,7 @@ static void *map_file(FD fd, map_t *mapping)
 static void unmap_file(void *data, map_t size)
 {
   if (!data) return;
-  if (!munmap(data, size)) {
+  if (munmap(data, size) < 0) {
 	  perror("munmap");
   }
 }
@@ -247,6 +253,9 @@ static void unmap_file(void *data, map_t mapping)
 
 int TB_MaxCardinality = 0, TB_MaxCardinalityDTM = 0;
 int TB_LARGEST = 0;
+int TB_NUM_WDL = 0;
+int TB_NUM_DTM = 0;
+int TB_NUM_DTZ = 0;
 
 static const char *tbSuffix[] = { ".rtbw", ".rtbm", ".rtbz" };
 static uint32_t tbMagic[] = { 0x5d23e871, 0x88ac504b, 0xa50c66d7 };
@@ -255,7 +264,7 @@ enum { WDL, DTM, DTZ };
 enum { PIECE_ENC, FILE_ENC, RANK_ENC };
 
 // Attack and move generation code
-#include "tbchess.cpp"
+#include "tbchess.c"
 
 struct PairsData {
   uint8_t *indexTable;
@@ -613,6 +622,9 @@ bool tb_init(const char *path)
   }
 
   TB_LARGEST = 0;
+  TB_NUM_WDL = 0;
+  TB_NUM_DTZ = 0;
+  TB_NUM_DTM = 0;
 
   // if pathString is set, we need to clean up first.
   if (pathString) {
@@ -675,33 +687,33 @@ bool tb_init(const char *path)
   int i, j, k, l, m;
 
   for (i = 0; i < 5; i++) {
-    sprintf(str, "K%cvK", tb_pchr(i));
+    snprintf(str, 16, "K%cvK", tb_pchr(i));
     init_tb(str);
   }
 
   for (i = 0; i < 5; i++)
     for (j = i; j < 5; j++) {
-      sprintf(str, "K%cvK%c", tb_pchr(i), tb_pchr(j));
+      snprintf(str, 16, "K%cvK%c", tb_pchr(i), tb_pchr(j));
       init_tb(str);
     }
 
   for (i = 0; i < 5; i++)
     for (j = i; j < 5; j++) {
-      sprintf(str, "K%c%cvK", tb_pchr(i), tb_pchr(j));
+      snprintf(str, 16, "K%c%cvK", tb_pchr(i), tb_pchr(j));
       init_tb(str);
     }
 
   for (i = 0; i < 5; i++)
     for (j = i; j < 5; j++)
       for (k = 0; k < 5; k++) {
-        sprintf(str, "K%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k));
+        snprintf(str, 16, "K%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k));
         init_tb(str);
       }
 
   for (i = 0; i < 5; i++)
     for (j = i; j < 5; j++)
       for (k = j; k < 5; k++) {
-        sprintf(str, "K%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k));
+        snprintf(str, 16, "K%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k));
         init_tb(str);
       }
 
@@ -713,7 +725,7 @@ bool tb_init(const char *path)
     for (j = i; j < 5; j++)
       for (k = i; k < 5; k++)
         for (l = (i == k) ? j : k; l < 5; l++) {
-          sprintf(str, "K%c%cvK%c%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
+          snprintf(str, 16, "K%c%cvK%c%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
           init_tb(str);
         }
 
@@ -721,7 +733,7 @@ bool tb_init(const char *path)
     for (j = i; j < 5; j++)
       for (k = j; k < 5; k++)
         for (l = 0; l < 5; l++) {
-          sprintf(str, "K%c%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
+          snprintf(str, 16, "K%c%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
           init_tb(str);
         }
 
@@ -729,7 +741,7 @@ bool tb_init(const char *path)
     for (j = i; j < 5; j++)
       for (k = j; k < 5; k++)
         for (l = k; l < 5; l++) {
-          sprintf(str, "K%c%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
+          snprintf(str, 16, "K%c%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l));
           init_tb(str);
         }
 
@@ -741,7 +753,7 @@ bool tb_init(const char *path)
       for (k = j; k < 5; k++)
         for (l = k; l < 5; l++)
           for (m = l; m < 5; m++) {
-            sprintf(str, "K%c%c%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
+            snprintf(str, 16, "K%c%c%c%c%cvK", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
             init_tb(str);
           }
 
@@ -750,7 +762,7 @@ bool tb_init(const char *path)
       for (k = j; k < 5; k++)
         for (l = k; l < 5; l++)
           for (m = 0; m < 5; m++) {
-            sprintf(str, "K%c%c%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
+            snprintf(str, 16, "K%c%c%c%cvK%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
             init_tb(str);
           }
 
@@ -759,7 +771,7 @@ bool tb_init(const char *path)
       for (k = j; k < 5; k++)
         for (l = 0; l < 5; l++)
           for (m = l; m < 5; m++) {
-            sprintf(str, "K%c%c%cvK%c%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
+            snprintf(str, 16, "K%c%c%cvK%c%c", tb_pchr(i), tb_pchr(j), tb_pchr(k), tb_pchr(l), tb_pchr(m));
             init_tb(str);
           }
 
@@ -770,10 +782,9 @@ finished:
     if (TB_MaxCardinalityDTM > TB_LARGEST) {
         TB_LARGEST = TB_MaxCardinalityDTM;
     }
-
-    printf("info string Found %d WDL, %d DTM and %d DTZ tablebase files. Largest %d-men\n",
-        numWdl, numDtm, numDtz, TB_LARGEST);
-    fflush(stdout);
+    TB_NUM_WDL = numWdl;
+    TB_NUM_DTZ = numDtz;
+    TB_NUM_DTM = numDtm;
 
     return true;
 }
@@ -1349,7 +1360,7 @@ static bool init_table(struct BaseEntry *be, const char *str, int type)
         } else {
           data += (uintptr_t)data & 0x01;
           for (int i = 0; i < 4; i++) {
-            mapIdx[t][i] = (uint16_t)(data + 1 - (uint8_t *)map);
+            mapIdx[t][i] = (uint16_t)((uint16_t*)data + 1 - (uint16_t *)map);
             data += 2 + 2 * read_le_u16(data);
           }
         }
@@ -1889,7 +1900,7 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
 
   // The border between draw and win lies at rank 1 or rank 900, depending
   // on whether the 50-move rule is used.
-  int bound = useRule50 ? 900 : 1;
+  int bound = useRule50 ? (TB_MAX_DTZ - 100) : 1;
 
   // Probe, rank and score each move.
   PyrrhicMove rootMoves[TB_MAX_MOVES];
@@ -1925,8 +1936,8 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
     // Note that moves ranked 900 have dtz + cnt50 == 100, which in rare
     // cases may be insufficient to win as dtz may be one off (see the
     // comments before TB_probe_dtz()).
-    int r =  v > 0 ? (v + cnt50 <= 99 && !hasRepeated ? 1000 : 1000 - (v + cnt50))
-           : v < 0 ? (-v * 2 + cnt50 < 100 ? -1000 : -1000 + (-v + cnt50))
+    int r =  v > 0 ? (v + cnt50 <= 99 && !hasRepeated ? TB_MAX_DTZ : TB_MAX_DTZ - (v + cnt50))
+           : v < 0 ? (-v * 2 + cnt50 < 100 ? -TB_MAX_DTZ : -TB_MAX_DTZ + (-v + cnt50))
            : 0;
     m->tbRank = r;
 
@@ -1934,9 +1945,9 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
     // 1 cp to cursed wins and let it grow to 49 cp as the position gets
     // closer to a real win.
     m->tbScore =  r >= bound ? PYRRHIC_VALUE_MATE - PYRRHIC_MAX_MATE_PLY - 1
-                : r >  0     ? TB_MAX( 3, r - 800) * PYRRHIC_VALUE_PAWN / 200
+                : r >  0     ? TB_MAX( 3, r - (TB_MAX_DTZ - 200)) * PYRRHIC_VALUE_PAWN / 200
                 : r == 0     ? PYRRHIC_VALUE_DRAW
-                : r > -bound ? TB_MIN(-3, r + 800) * PYRRHIC_VALUE_PAWN / 200
+                : r > -bound ? TB_MIN(-3, r + (TB_MAX_DTZ - 200)) * PYRRHIC_VALUE_PAWN / 200
                 :             -PYRRHIC_VALUE_MATE + PYRRHIC_MAX_MATE_PLY + 1;
   }
   return 1;
@@ -1947,7 +1958,7 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
 // A return value of 0 means that not all probes were successful.
 int root_probe_wdl(const PyrrhicPosition *pos, bool useRule50, struct TbRootMoves *rm)
 {
-  static int WdlToRank[] = { -1000, -899, 0, 899, 1000 };
+  static int WdlToRank[] = { -TB_MAX_DTZ, -TB_MAX_DTZ + 101, 0, TB_MAX_DTZ - 101, TB_MAX_DTZ };
   static int WdlToValue[] = {
     -PYRRHIC_VALUE_MATE + PYRRHIC_MAX_MATE_PLY + 1,
     PYRRHIC_VALUE_DRAW - 2,
