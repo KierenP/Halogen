@@ -490,7 +490,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
             // the TT move having a LOWER_BOUND score of significantly above beta. In this case, we can assume the node
             // will fail high and we return a soft bound.
-            else if (sbeta > beta)
+            else if (sbeta >= beta)
             {
                 return sbeta;
             }
