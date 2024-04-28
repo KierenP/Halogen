@@ -47,7 +47,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         {
             // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
             // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
-            if (Cutoff == EntryType::EXACT || Depth >= bucket[i].GetDepth() - 2)
+            if (Cutoff == EntryType::EXACT || Depth >= bucket[i].GetDepth() - 3)
             {
                 bucket[i] = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
             }
