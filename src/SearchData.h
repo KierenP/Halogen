@@ -37,6 +37,7 @@ struct SearchStackState
 
     Move move = Move::Uninitialized;
     Move singular_exclusion = Move::Uninitialized;
+    int multiple_extensions = 0;
 };
 
 class SearchStack

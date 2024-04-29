@@ -259,6 +259,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return 0; // Have we reached max depth?
 
     ss->pv.clear();
+    ss->multiple_extensions = (ss - 1)->multiple_extensions;
 
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
@@ -472,9 +473,26 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
             ss->singular_exclusion = Move::Uninitialized;
 
-            if (result.GetScore() < sbeta)
+            // Extending the SE idea, if the score is far below sbeta we extend by two. To avoid extending too much down
+            // forced lines we limit the number of multiple_extensions down one line. We focus on non_pv nodes becuase
+            // in particular we want to verify cut nodes which rest on a single good move and ensure we haven't
+            // overlooked a potential non-pv line.
+            if (!pv_node && result.GetScore() < sbeta - 16 && ss->multiple_extensions < 8)
+            {
+                extensions += 2;
+                ss->multiple_extensions++;
+            }
+            else if (result.GetScore() < sbeta)
             {
                 extensions += 1;
+            }
+
+            // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
+            // the TT move having a LOWER_BOUND score of significantly above beta. In this case, we can assume the node
+            // will fail high and we return a soft bound.
+            else if (sbeta >= beta)
+            {
+                return sbeta;
             }
         }
 
@@ -489,10 +507,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             extensions += 1;
         }
 
+        int reduction = 0;
+        Score search_score = 0;
+
         // late move reductions
         if (seen_moves > 4)
         {
-            int reduction = Reduction(depthRemaining, seen_moves);
+            reduction = Reduction(depthRemaining, seen_moves);
 
             if constexpr (pv_node)
                 reduction--;
@@ -500,46 +521,36 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             reduction -= history / 8192;
 
             reduction = std::max(0, reduction);
-
-            auto late_move_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
-                depthRemaining + extensions - 1 - reduction, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
-                                        .GetScore();
-
-            if (late_move_score <= alpha)
-            {
-                position.RevertMove();
-                continue;
-            }
         }
 
-        Score search_score = 0;
+        bool full_search = true;
 
-        if constexpr (pv_node)
+        // If we are reducing, we do a zero width reduced depth search
+        if (reduction > 0)
         {
-            if (seen_moves == 1)
-            {
-                search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, initialDepth,
-                    depthRemaining + extensions - 1, -beta, -alpha, distanceFromRoot + 1, true)
-                                    .GetScore();
-            }
-            else
-            {
-                search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
-                    depthRemaining + extensions - 1, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
-                                    .GetScore();
+            search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
+                depthRemaining + extensions - 1 - reduction, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
+                                .GetScore();
 
-                if (search_score > alpha && search_score < beta)
-                {
-                    search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, initialDepth,
-                        depthRemaining + extensions - 1, -beta, -alpha, distanceFromRoot + 1, true)
-                                        .GetScore();
-                }
+            if (search_score <= alpha)
+            {
+                full_search = false;
             }
         }
-        else
+
+        // If the reduced depth search was skipped or failed high, we do a full depth zero width search
+        if (full_search && (!pv_node || seen_moves > 1))
         {
             search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, initialDepth,
                 depthRemaining + extensions - 1, -(alpha + 1), -alpha, distanceFromRoot + 1, true)
+                                .GetScore();
+        }
+
+        // If the ZW search was skipped or failed high, we do a full depth full width search
+        if (full_search && pv_node && (seen_moves == 1 || (search_score > alpha && search_score < beta)))
+        {
+            search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, initialDepth,
+                depthRemaining + extensions - 1, -beta, -alpha, distanceFromRoot + 1, true)
                                 .GetScore();
         }
 

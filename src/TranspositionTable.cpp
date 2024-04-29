@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <iterator>
 #include <optional>
 
@@ -27,26 +28,37 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     if (score < Score::Limits::EVAL_MIN)
         score -= distanceFromRoot;
 
-    for (auto& entry : table[hash].entry)
-    {
-        if (entry.GetKey() == EMPTY || entry.GetKey() == ZobristKey)
-        {
-            entry = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
-            return;
-        }
-    }
-
     // Keep in mind age from each generation goes up so lower (generally) means older
     int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::SIZE> scores = {};
+    auto& bucket = table[hash].entry;
 
     for (size_t i = 0; i < TTBucket::SIZE; i++)
     {
-        int8_t age_diff = currentAge - table[hash].entry[i].GetAge();
-        scores[i] = table[hash].entry[i].GetDepth() - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        // each bucket fills from the first entry, and only once all entries are full do we use the replacement scheme
+        if (bucket[i].GetKey() == EMPTY)
+        {
+            bucket[i] = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
+            return;
+        }
+
+        // avoid having multiple entries in a bucket for the same position.
+        if (bucket[i].GetKey() == ZobristKey)
+        {
+            // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
+            // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
+            if (Cutoff == EntryType::EXACT || Depth >= bucket[i].GetDepth() - 3)
+            {
+                bucket[i] = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
+            }
+            return;
+        }
+
+        int8_t age_diff = currentAge - bucket[i].GetAge();
+        scores[i] = bucket[i].GetDepth() - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
     }
 
-    table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]
+    bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]
         = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
