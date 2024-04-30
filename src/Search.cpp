@@ -62,7 +62,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 void PrintBestMove(Move Best, const BoardState& board, bool chess960);
 bool UseTransposition(const TTEntry& entry, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
-bool AllowedNull(bool allowedNull, const BoardState& board, Score beta, Score alpha, bool InCheck);
+bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
 bool IsEndGame(const BoardState& board);
 void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
     int distanceFromRoot, Score beta, Move bestMove);
@@ -363,8 +363,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return beta;
 
     // Null move pruning
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized
-        && AllowedNull(allowedNull, position.Board(), beta, alpha, InCheck) && (staticScore > beta))
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && AllowedNull(allowedNull, position.Board(), InCheck)
+        && (staticScore > beta))
     {
         unsigned int reduction = Null_constant + depthRemaining / Null_depth_quotent
             + std::min(3, (staticScore.value() - beta.value()) / Null_beta_quotent);
@@ -648,7 +648,7 @@ int extension(const BoardState& board)
     return extension;
 }
 
-bool AllowedNull(bool allowedNull, const BoardState& board, Score beta, Score alpha, bool InCheck)
+bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck)
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1

@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-void TempoAdjustment(Score& eval, const BoardState& board);
+void TempoAdjustment(Score& eval);
 
 Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
 {
@@ -18,7 +18,7 @@ Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
     {
         eval = position.GetEvaluation();
 
-        TempoAdjustment(eval, position.Board());
+        TempoAdjustment(eval);
 
         evalTable.AddEntry(position.Board().GetZobristKey(), eval);
     }
@@ -69,7 +69,7 @@ bool DeadPosition(const BoardState& board)
     return false;
 }
 
-void TempoAdjustment(Score& eval, const BoardState& board)
+void TempoAdjustment(Score& eval)
 {
     constexpr static int TEMPO = 10;
     eval += TEMPO;

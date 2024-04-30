@@ -42,9 +42,13 @@ DEPS := $(OBJS:.o=.d)
 
 #----------------------------------------------------------------------------------------------------------------------
 
-WFLAGS = -Wall -Wextra -Wshadow -std=c++17
-CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto
+WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size
+AFLAGS = $(WFLAGS) -g -std=c++17
+CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
+RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
+SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
+# only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
+DFLAGS = -O0 $(AFLAGS) -Werror
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
@@ -82,18 +86,24 @@ native: EXE = $(BINARY_DIR)/Halogen-native.exe
 native: binary
 
 .PHONY: debug
-debug: CXXFLAGS += $(WFLAGS) -g
+debug: CXXFLAGS += $(DFLAGS)
 debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
 debug: binary
 
-.PHONY: sanitize
-sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
-sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
-sanitize: binary
+.PHONY: sanitize-address
+sanitize-address: CXXFLAGS += $(SFLAGS) -fsanitize=address
+sanitize-address: LDFLAGS += -fsanitize=address
+sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address.exe
+sanitize-address: binary
+
+.PHONY: sanitize-undefined
+sanitize-undefined: CXXFLAGS += $(SFLAGS) -fsanitize=undefined
+sanitize-undefined: LDFLAGS += -fsanitize=undefined
+sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined.exe
+sanitize-undefined: binary
 
 .PHONY: sanitize-thread
-sanitize-thread: CXXFLAGS += $(WFLAGS) -g -fsanitize=thread
+sanitize-thread: CXXFLAGS += $(SFLAGS) -fsanitize=thread
 sanitize-thread: LDFLAGS += -fsanitize=thread
 sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread.exe
 sanitize-thread: binary
