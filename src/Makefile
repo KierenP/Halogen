@@ -42,7 +42,7 @@ DEPS := $(OBJS:.o=.d)
 
 #----------------------------------------------------------------------------------------------------------------------
 
-WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size
+WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
 AFLAGS = $(WFLAGS) -g -std=c++17
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto

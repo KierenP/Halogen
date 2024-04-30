@@ -14,7 +14,6 @@ Move::Move(Square from, Square to, MoveFlag flag)
 {
     assert(from < 64);
     assert(to < 64);
-    assert(flag < 16);
 
     SetFrom(from);
     SetTo(to);
