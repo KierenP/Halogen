@@ -34,7 +34,7 @@ enum class Stage
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local,
+    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
         int DistanceFromRoot, bool Quiescence);
 
     // Returns false if no more legal moves
@@ -82,12 +82,9 @@ private:
     // See the body of GetSEE for usage.
     std::optional<int16_t> moveSEE;
 
-    Move TTmove = Move::Uninitialized;
+    const Move TTmove = Move::Uninitialized;
     Move Killer1 = Move::Uninitialized;
     Move Killer2 = Move::Uninitialized;
 
     bool skipQuiets = false;
 };
-
-Move GetHashMoveMinDepth(const BoardState& position, int min_depth, int distanceFromRoot);
-Move GetHashMove(const BoardState& position, int min_depth);
