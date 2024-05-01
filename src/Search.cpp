@@ -563,8 +563,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // check for fail high cutoff
         if (!local.aborting_search && alpha >= beta)
         {
+            if (move != ss->killers[0] && move != ss->killers[1])
+            {
+                AddHistory(gen, move, depthRemaining);
+            }
             AddKiller(move, ss->killers);
-            AddHistory(gen, move, depthRemaining);
             break;
         }
     }
