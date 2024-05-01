@@ -311,7 +311,7 @@ Move GetHashMoveMinDepth(const BoardState& board, int min_depth, int distanceFro
 
     if (entry.has_value())
     {
-        return entry->GetMove();
+        return entry->move;
     }
 
     return Move::Uninitialized;
@@ -323,7 +323,7 @@ Move GetHashMove(const BoardState& board, int min_depth)
 
     if (entry.has_value())
     {
-        return entry->GetMove();
+        return entry->move;
     }
 
     return Move::Uninitialized;

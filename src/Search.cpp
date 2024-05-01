@@ -337,11 +337,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Check if we can abort early and return this tt_entry score
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized)
     {
-        if (tt_entry.has_value() && tt_entry->GetDepth() >= depthRemaining)
+        if (tt_entry.has_value() && tt_entry->depth >= depthRemaining)
         {
             // Don't take scores from the TT if there's a two-fold repitition
             if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(tt_entry.value(), alpha, beta))
-                return SearchResult(tt_entry->GetScore(), tt_entry->GetMove());
+                return SearchResult(tt_entry->score, tt_entry->move);
         }
     }
 
@@ -460,10 +460,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depthRemaining >= 6 && tt_entry.has_value()
-            && tt_entry->GetDepth() + 2 >= depthRemaining && tt_entry->GetCutoff() != EntryType::UPPERBOUND
-            && tt_entry->GetMove() == move)
+            && tt_entry->depth + 2 >= depthRemaining && tt_entry->cutoff != EntryType::UPPERBOUND
+            && tt_entry->move == move)
         {
-            Score sbeta = tt_entry->GetScore() - depthRemaining * 2;
+            Score sbeta = tt_entry->score - depthRemaining * 2;
             int sdepth = depthRemaining / 2;
 
             ss->singular_exclusion = move;
@@ -618,7 +618,7 @@ void UpdatePV(Move move, SearchStackState* ss)
 
 bool UseTransposition(const TTEntry& entry, Score alpha, Score beta)
 {
-    if (entry.GetCutoff() == EntryType::EXACT)
+    if (entry.cutoff == EntryType::EXACT)
         return true;
 
     auto NewAlpha = alpha;
@@ -677,14 +677,14 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
 
 void UpdateBounds(const TTEntry& entry, Score& alpha, Score& beta)
 {
-    if (entry.GetCutoff() == EntryType::LOWERBOUND)
+    if (entry.cutoff == EntryType::LOWERBOUND)
     {
-        alpha = std::max(alpha, entry.GetScore());
+        alpha = std::max(alpha, entry.score);
     }
 
-    if (entry.GetCutoff() == EntryType::UPPERBOUND)
+    if (entry.cutoff == EntryType::UPPERBOUND)
     {
-        beta = std::min(beta, entry.GetScore());
+        beta = std::min(beta, entry.score);
     }
 }
 
