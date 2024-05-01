@@ -564,7 +564,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         if (!local.aborting_search && alpha >= beta)
         {
             AddKiller(move, ss->killers);
-            AddHistory(gen, move, depthRemaining);
+            if (tt_entry.has_value() && move != tt_entry->move)
+            {
+                AddHistory(gen, move, depthRemaining);
+            }
             break;
         }
     }
