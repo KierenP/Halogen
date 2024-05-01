@@ -30,7 +30,7 @@ public:
         return halfmove_ != CalculateAge(currentTurnCount, distanceFromRoot);
     }
 
-    __attribute__((no_sanitize("thread"))) void SetHalfMove(int currentTurnCount, int distanceFromRoot)
+    void SetHalfMove(int currentTurnCount, int distanceFromRoot)
     {
         // halfmove is from current position, distanceFromRoot adjusts this to get what the halfmove was at the root of
         // the search

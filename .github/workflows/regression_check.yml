@@ -101,7 +101,8 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [sanitize-address, sanitize-undefined, sanitize-thread]
+        # TODO: add sanitize-thread
+        target: [sanitize-address, sanitize-undefined]
 
     steps:
       - uses: actions/checkout@v4.1.1

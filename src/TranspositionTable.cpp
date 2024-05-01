@@ -16,8 +16,8 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
     return key & hash_mask_;
 }
 
-__attribute__((no_sanitize("thread"))) void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey,
-    Score score, int Depth, int Turncount, int distanceFromRoot, EntryType Cutoff)
+void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
+    int distanceFromRoot, EntryType Cutoff)
 {
     size_t hash = HashFunction(ZobristKey);
 
@@ -62,8 +62,7 @@ __attribute__((no_sanitize("thread"))) void TranspositionTable::AddEntry(const M
         = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
 }
 
-__attribute__((no_sanitize("thread"))) std::optional<TTEntry> TranspositionTable::GetEntry(
-    uint64_t key, int distanceFromRoot, int half_turn_count)
+std::optional<TTEntry> TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
     size_t index = HashFunction(key);
 
@@ -83,7 +82,7 @@ __attribute__((no_sanitize("thread"))) std::optional<TTEntry> TranspositionTable
     return std::nullopt;
 }
 
-__attribute__((no_sanitize("thread"))) std::optional<TTEntry> TranspositionTable::GetEntryMinDepth(
+std::optional<TTEntry> TranspositionTable::GetEntryMinDepth(
     uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count)
 {
     size_t index = HashFunction(key);
@@ -127,7 +126,7 @@ void TranspositionTable::SetSize(uint64_t MB)
     Reallocate(CalculateEntryCount(MB));
 }
 
-__attribute__((no_sanitize("thread"))) void TranspositionTable::Reallocate(size_t size)
+void TranspositionTable::Reallocate(size_t size)
 {
     // size should be a power of two
     assert(GetBitCount(size) == 1);
