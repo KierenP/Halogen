@@ -143,7 +143,7 @@ public:
         return N;
     }
 
-    void reserve(std::size_t new_cap)
+    void reserve(std::size_t)
     {
         // no-op
     }

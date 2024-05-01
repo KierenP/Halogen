@@ -101,6 +101,8 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
+        # TODO: add sanitize-thread
+        target: [sanitize-address, sanitize-undefined]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -108,15 +110,15 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make sanitize CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
           
       - name: Run
         run: |
           cd bin
-          ./Halogen bench 4
-          ./Halogen go depth 4
-          ./Halogen go nodes 10000
-          ./Halogen go movetime 2500
-          ./Halogen go wtime 1000 btime 1000 winc 1000 binc 1000
-          ./Halogen go wtime 1000 btime 1000 movestogo 20
-          ./Halogen go wtime 1000 btime 1000
+          ./Halogen <<EOF
+            setoption name Threads value 2
+            setoption name MultiPV value 8
+            position startpos moves e2e4 e7e5
+            go wtime 1000 btime 1000 winc 1000 binc 1000 movestogo 20
+            go movetime 10000
+          EOF
