@@ -537,8 +537,6 @@ void Bench(int depth)
             break;
         }
 
-        tTable.ResetTable();
-        data.ResetNewGame();
         data.limits.ResetTimer();
         SearchThread(position, data);
         nodeCount += data.nodes();
