@@ -102,7 +102,7 @@ jobs:
       matrix:
         compiler: [g++-10, clang++-13]
         # TODO: add sanitize-thread
-        target: [sanitize-address, sanitize-undefined]
+        target: [sanitize-address, sanitize-undefined, sanitize-thread]
 
     steps:
       - uses: actions/checkout@v4.1.1
