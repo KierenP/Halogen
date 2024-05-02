@@ -333,10 +333,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // copy the values out of the table that we want, to avoid race conditions
     auto tt_entry
         = tTable.GetEntry(position.Board().GetZobristKey(), distanceFromRoot, position.Board().half_turn_count);
-    auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distanceFromRoot) : SCORE_UNDEFINED;
-    auto tt_depth = tt_entry ? tt_entry->depth : 0;
-    auto tt_cutoff = tt_entry ? tt_entry->cutoff : EntryType::EMPTY_ENTRY;
-    auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
+    const auto tt_score = tt_entry
+        ? convert_from_tt_score(tt_entry->score.load(std::memory_order_relaxed), distanceFromRoot)
+        : SCORE_UNDEFINED;
+    const auto tt_depth = tt_entry ? tt_entry->depth.load(std::memory_order_relaxed) : 0;
+    const auto tt_cutoff = tt_entry ? tt_entry->cutoff.load(std::memory_order_relaxed) : EntryType::EMPTY_ENTRY;
+    const auto tt_move = tt_entry ? tt_entry->move.load(std::memory_order_relaxed) : Move::Uninitialized;
 
     // Check if we can abort early and return this tt_entry score
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized)
