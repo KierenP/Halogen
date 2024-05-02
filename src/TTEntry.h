@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -28,13 +29,13 @@ public:
     TTEntry() = default;
 
     /*Arranged to minimize padding*/
-    uint64_t key = 0; // 8 bytes
-    Move move = Move::Uninitialized; // 2 bytes
-    Score score = 0; // 2 bytes
-    int8_t depth = 0; // 1 bytes
-    EntryType cutoff = EntryType::EMPTY_ENTRY; // 1 bytes
+    std::atomic<uint64_t> key = 0; // 8 bytes
+    std::atomic<Move> move = Move::Uninitialized; // 2 bytes
+    std::atomic<Score> score { 0 }; // 2 bytes
+    std::atomic<int8_t> depth = 0; // 1 bytes
+    std::atomic<EntryType> cutoff = EntryType::EMPTY_ENTRY; // 1 bytes
     // is stored as the move count at the ROOT of this current search modulo 16 plus 1
-    int8_t generation = 0; // 1 bytes
+    std::atomic<int8_t> generation = 0; // 1 bytes
 };
 
 struct alignas(64) TTBucket : public std::array<TTEntry, 4>

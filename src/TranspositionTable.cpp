@@ -98,7 +98,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    std::fill(table.get(), table.get() + size_, TTBucket {});
+    table.reset(new TTBucket[size_]);
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
