@@ -60,13 +60,12 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     unsigned int initialDepth, Score alpha, Score beta, unsigned int distanceFromRoot, int depthRemaining);
 
 void PrintBestMove(Move Best, const BoardState& board, bool chess960);
-bool UseTransposition(const TTEntry& entry, Score alpha, Score beta);
+bool UseTransposition(Score tt_score, EntryType cutoff, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
 bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
 bool IsEndGame(const BoardState& board);
 void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
     int distanceFromRoot, Score beta, Move bestMove);
-void UpdateBounds(const TTEntry& entry, Score& alpha, Score& beta);
 Score TerminalScore(const BoardState& board, int distanceFromRoot);
 int extension(const BoardState& board);
 void AddKiller(Move move, std::array<Move, 2>& KillerMoves);
@@ -331,17 +330,22 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
+    // copy the values out of the table that we want, to avoid race conditions
     auto tt_entry
         = tTable.GetEntry(position.Board().GetZobristKey(), distanceFromRoot, position.Board().half_turn_count);
+    auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distanceFromRoot) : SCORE_UNDEFINED;
+    auto tt_depth = tt_entry ? tt_entry->depth : 0;
+    auto tt_cutoff = tt_entry ? tt_entry->cutoff : EntryType::EMPTY_ENTRY;
+    auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
 
     // Check if we can abort early and return this tt_entry score
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized)
     {
-        if (tt_entry.has_value() && tt_entry->depth >= depthRemaining)
+        if (tt_entry && tt_depth >= depthRemaining)
         {
             // Don't take scores from the TT if there's a two-fold repitition
-            if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(tt_entry.value(), alpha, beta))
-                return SearchResult(tt_entry->score, tt_entry->move);
+            if (!position.CheckForRep(distanceFromRoot, 2) && UseTransposition(tt_score, tt_cutoff, alpha, beta))
+                return SearchResult(tt_score, tt_move);
         }
     }
 
@@ -407,13 +411,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     bool noLegalMoves = true;
 
     // Rebel style IID. Don't ask why this helps but it does.
-    if (GetHashMove(position.Board(), distanceFromRoot) == Move::Uninitialized && depthRemaining > 3)
+    if (!tt_entry && depthRemaining > 3)
         depthRemaining--;
 
     bool FutileNode
         = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < alpha;
 
-    StagedMoveGenerator gen(position, ss, local, distanceFromRoot, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
 
     while (gen.Next(move))
@@ -459,11 +463,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depthRemaining >= 6 && tt_entry.has_value()
-            && tt_entry->depth + 2 >= depthRemaining && tt_entry->cutoff != EntryType::UPPERBOUND
-            && tt_entry->move == move)
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depthRemaining >= 6 && tt_entry
+            && tt_depth + 2 >= depthRemaining && tt_cutoff != EntryType::UPPERBOUND && tt_move == move)
         {
-            Score sbeta = tt_entry->score - depthRemaining * 2;
+            Score sbeta = tt_score - depthRemaining * 2;
             int sdepth = depthRemaining / 2;
 
             ss->singular_exclusion = move;
@@ -616,19 +619,22 @@ void UpdatePV(Move move, SearchStackState* ss)
     ss->pv.insert(ss->pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 }
 
-bool UseTransposition(const TTEntry& entry, Score alpha, Score beta)
+bool UseTransposition(Score tt_score, EntryType cutoff, Score alpha, Score beta)
 {
-    if (entry.cutoff == EntryType::EXACT)
+    if (cutoff == EntryType::EXACT)
+    {
         return true;
+    }
 
-    auto NewAlpha = alpha;
-    auto NewBeta = beta;
-
-    // aspiration windows and search instability lead to issues with shrinking the original window
-    UpdateBounds(entry, NewAlpha, NewBeta);
-
-    if (NewAlpha >= NewBeta)
+    if (cutoff == EntryType::LOWERBOUND && tt_score >= beta)
+    {
         return true;
+    }
+
+    if (cutoff == EntryType::UPPERBOUND && tt_score <= alpha)
+    {
+        return true;
+    }
 
     return false;
 }
@@ -675,19 +681,6 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
             EntryType::EXACT);
 }
 
-void UpdateBounds(const TTEntry& entry, Score& alpha, Score& beta)
-{
-    if (entry.cutoff == EntryType::LOWERBOUND)
-    {
-        alpha = std::max(alpha, entry.score);
-    }
-
-    if (entry.cutoff == EntryType::UPPERBOUND)
-    {
-        beta = std::min(beta, entry.score);
-    }
-}
-
 Score TerminalScore(const BoardState& board, int distanceFromRoot)
 {
     if (IsInCheck(board))
@@ -732,7 +725,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     Move bestmove = Move::Uninitialized;
     auto Score = staticScore;
 
-    StagedMoveGenerator gen(position, ss, local, distanceFromRoot, true);
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
     Move move;
 
     while (gen.Next(move))

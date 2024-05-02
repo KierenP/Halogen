@@ -34,10 +34,7 @@ public:
     void PreFetch(uint64_t key) const;
 
     // find a matching entry at any depth
-    std::optional<TTEntry> GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
-
-    // find a matching entry with minimum depth
-    std::optional<TTEntry> GetEntryMinDepth(uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count);
+    TTEntry* GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
 
 private:
     uint64_t HashFunction(const uint64_t& key) const;

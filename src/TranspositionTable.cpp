@@ -65,7 +65,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
 }
 
-std::optional<TTEntry> TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
+TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
     size_t index = HashFunction(key);
 
@@ -76,34 +76,11 @@ std::optional<TTEntry> TranspositionTable::GetEntry(uint64_t key, int distanceFr
         {
             // reset the age of this entry to mark it as not old
             entry.generation = get_generation(half_turn_count, distanceFromRoot);
-            auto copy = entry;
-            copy.score = convert_from_tt_score(copy.score, distanceFromRoot);
-            return copy;
+            return &entry;
         }
     }
 
-    return std::nullopt;
-}
-
-std::optional<TTEntry> TranspositionTable::GetEntryMinDepth(
-    uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count)
-{
-    size_t index = HashFunction(key);
-
-    // we return by copy here because other threads are reading/writing to this same table.
-    for (auto& entry : table[index])
-    {
-        if (entry.key == key && entry.depth >= min_depth)
-        {
-            // reset the age of this entry to mark it as not old
-            entry.generation = get_generation(half_turn_count, distanceFromRoot);
-            auto copy = entry;
-            copy.score = convert_from_tt_score(copy.score, distanceFromRoot);
-            return copy;
-        }
-    }
-
-    return std::nullopt;
+    return nullptr;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const

@@ -13,13 +13,13 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
-    int DistanceFromRoot, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(
+    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
     : position(Position)
     , local(Local)
     , ss(SS)
-    , distanceFromRoot(DistanceFromRoot)
     , quiescence(Quiescence)
+    , TTmove(tt_move)
 {
     if (quiescence)
         stage = Stage::GEN_LOUD;
@@ -33,7 +33,6 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::TT_MOVE)
     {
-        TTmove = GetHashMove(position.Board(), distanceFromRoot);
         stage = Stage::GEN_LOUD;
 
         if (MoveIsLegal(position.Board(), TTmove))
@@ -303,28 +302,4 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
     }
 
     selection_sort(moves);
-}
-
-Move GetHashMoveMinDepth(const BoardState& board, int min_depth, int distanceFromRoot)
-{
-    auto entry = tTable.GetEntryMinDepth(board.GetZobristKey(), distanceFromRoot, min_depth, board.half_turn_count);
-
-    if (entry.has_value())
-    {
-        return entry->move;
-    }
-
-    return Move::Uninitialized;
-}
-
-Move GetHashMove(const BoardState& board, int min_depth)
-{
-    auto entry = tTable.GetEntry(board.GetZobristKey(), min_depth, board.half_turn_count);
-
-    if (entry.has_value())
-    {
-        return entry->move;
-    }
-
-    return Move::Uninitialized;
 }
