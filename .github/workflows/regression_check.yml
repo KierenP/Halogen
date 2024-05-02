@@ -101,7 +101,6 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-13, clang++-15]
-        # TODO: add sanitize-thread
         target: [sanitize-address, sanitize-undefined, sanitize-thread]
 
     steps:
