@@ -33,7 +33,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 10);
 
-string version = "11.11.1";
+string version = "11.12.0";
 
 int main(int argc, char* argv[])
 {
@@ -124,6 +124,9 @@ int main(int argc, char* argv[])
 
         else if (token == "go")
         {
+            if (searchThread.joinable())
+                searchThread.join();
+
             shared->limits = {};
 
             // The amount of time we leave on the clock for safety
@@ -213,9 +216,6 @@ int main(int argc, char* argv[])
                     shared->limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
                 }
             }
-
-            if (searchThread.joinable())
-                searchThread.join();
 
             searchThread = thread([position, &shared]() mutable { SearchThread(position, *shared); });
         }

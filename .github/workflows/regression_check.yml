@@ -80,7 +80,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-13]
+        compiler: [g++-13, clang++-15]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -100,9 +100,8 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-13]
-        # TODO: add sanitize-thread
-        target: [sanitize-address, sanitize-undefined]
+        compiler: [g++-13, clang++-15]
+        target: [sanitize-address, sanitize-undefined, sanitize-thread]
 
     steps:
       - uses: actions/checkout@v4.1.1
