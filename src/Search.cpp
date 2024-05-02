@@ -417,7 +417,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     bool FutileNode
         = depthRemaining < Futility_depth && staticScore + Futility_constant + Futility_coeff * depthRemaining < alpha;
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, distanceFromRoot, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
 
     while (gen.Next(move))
@@ -725,7 +725,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     Move bestmove = Move::Uninitialized;
     auto Score = staticScore;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, distanceFromRoot, true);
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
     Move move;
 
     while (gen.Next(move))

@@ -13,12 +13,11 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
-    Move tt_move, int DistanceFromRoot, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(
+    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
     : position(Position)
     , local(Local)
     , ss(SS)
-    , distanceFromRoot(DistanceFromRoot)
     , quiescence(Quiescence)
     , TTmove(tt_move)
 {
