@@ -503,9 +503,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
+        int history = local.history.get(position, ss, move);
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
-        int history = local.history.get(position, ss, move);
 
         if (IsInCheck(position.Board()))
         {

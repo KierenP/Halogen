@@ -21,8 +21,8 @@ int16_t* CountermoveHistory::get(const GameState& position, const SearchStackSta
     const auto& counter = (ss - 1)->move;
     const auto& stm = position.Board().stm;
 
-    const auto& curr_piece = GetPieceType(position.Board().GetSquare(move.GetTo()));
-    const auto& counter_piece = GetPieceType((ss - 1)->moved_piece);
+    const auto& curr_piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+    const auto& counter_piece = GetPieceType(position.Board().GetSquare(counter.GetTo()));
 
     if (move != Move::Uninitialized && counter != Move::Uninitialized && curr_piece != N_PIECE_TYPES
         && counter_piece != N_PIECE_TYPES)
