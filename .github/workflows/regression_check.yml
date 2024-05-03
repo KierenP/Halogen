@@ -117,6 +117,7 @@ jobs:
           ./Halogen <<EOF
             setoption name Threads value 2
             setoption name MultiPV value 8
+            ucinewgame
             position startpos moves e2e4 e7e5
             go wtime 1000 btime 1000 winc 1000 binc 1000 movestogo 20
             go movetime 10000
