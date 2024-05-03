@@ -502,7 +502,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         ss->move = move;
-        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         int history = local.history.get(position, ss, move);
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
@@ -745,7 +744,6 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
             break;
 
         ss->move = move;
-        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
         auto newScore = -Quiescence<search_type>(
             position, ss + 1, local, shared, initialDepth, -beta, -alpha, distanceFromRoot + 1, depthRemaining - 1)
