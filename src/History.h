@@ -30,7 +30,7 @@ struct HistoryTable
     constexpr void reset()
     {
         auto& table = static_cast<Derived&>(*this).table;
-        std::fill((int16_t*)&table, (int16_t*)&table + sizeof(table), 0);
+        memset(table, 0, sizeof(table));
     }
 };
 
