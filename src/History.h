@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <tuple>
 
-class SearchStackState;
+struct SearchStackState;
 
 template <typename Derived>
 struct HistoryTable
