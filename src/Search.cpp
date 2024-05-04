@@ -501,7 +501,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = local.history.Get(position, ss, move);
+        int history = local.history.get(position, ss, move);
 
         ss->move = move;
         position.ApplyMove(move);

@@ -30,6 +30,7 @@ SRCS := \
 	Zobrist.cpp \
 	Score.cpp \
 	EGTB.cpp \
+	History.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
