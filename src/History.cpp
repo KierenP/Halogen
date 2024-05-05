@@ -38,6 +38,7 @@ int History::get(const GameState& position, const SearchStackState* ss, Move mov
     };
 
     return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_);
+    //    / std::tuple_size_v<decltype(tables_)>;
 }
 
 void History::add(const GameState& position, const SearchStackState* ss, Move move, int change)
