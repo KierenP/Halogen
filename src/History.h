@@ -21,7 +21,7 @@ struct HistoryTable
     {
         if (static_cast<Derived&>(*this).valid(position, ss, move))
         {
-            auto hist = static_cast<Derived&>(*this).get(position, ss, move);
+            auto& hist = static_cast<Derived&>(*this).get(position, ss, move);
             adjust_history(hist, change);
         }
     }
