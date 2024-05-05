@@ -36,7 +36,7 @@ void History::reset()
 
 int History::get(const GameState& position, const SearchStackState* ss, Move move)
 {
-    size_t applied_histories = 0;
+    int applied_histories = 0;
     int history_sum = 0;
     auto sum_history = [&](auto& table)
     {
