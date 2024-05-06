@@ -499,6 +499,15 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             {
                 return sbeta;
             }
+
+            // Negative extensions: if the TT move is not singular, but also doesn't appear good enough to multi-cut, we
+            // might decide to reduce the TT move search. The TT move doesn't have LMR applied, to heuristically this
+            // reduction can be thought of as evening out the search depth between the moves and not favouring the TT
+            // move as heavily.
+            else if (tt_score >= beta)
+            {
+                extensions += -1;
+            }
         }
 
         int history = local.history.get(position, ss, move);
