@@ -83,10 +83,9 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
 void SearchThread(GameState& position, SearchSharedState& shared)
 {
     shared.ResetNewSearch();
-    const auto& board = position.Board();
 
     // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(board);
+    auto probe = Syzygy::probe_dtz_root(position.Board());
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
@@ -97,7 +96,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     auto multi_pv = shared.multi_pv;
     BasicMoveList moves;
     moves.clear();
-    LegalMoves(board, moves);
+    LegalMoves(position.Board(), moves);
     shared.multi_pv = std::min<int>(shared.multi_pv, moves.size());
 
     KeepSearching = true;
@@ -120,7 +119,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     // restore the MultiPV setting
     shared.multi_pv = multi_pv;
 
-    PrintBestMove(shared.get_best_move(), board, shared.chess_960);
+    PrintBestMove(shared.get_best_move(), position.Board(), shared.chess_960);
 }
 
 void PrintBestMove(Move Best, const BoardState& board, bool chess960)
@@ -245,7 +244,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     constexpr bool root_node = search_type == SearchType::ROOT;
 
     const auto distance_from_root = ss->distance_from_root;
-    const auto& board = position.Board();
 
     // check if we should abort the search
     if (should_abort_search(local, shared))
@@ -262,10 +260,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     ss->pv.clear();
     ss->multiple_extensions = (ss - 1)->multiple_extensions;
 
-    if (DeadPosition(board))
+    if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
     if (CheckForRep(position, distance_from_root) // Have we had a draw by repitition?
-        || board.fifty_move_count > 100) // cannot use >= as it could currently be checkmate which would count as a win
+        || position.Board().fifty_move_count
+            > 100) // cannot use >= as it could currently be checkmate which would count as a win
         return 8
             - (local.nodes.load(std::memory_order_relaxed)
                 & 0b1111); // as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
@@ -280,7 +279,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Probe TB in search
     if (ss->singular_exclusion == Move::Uninitialized)
     {
-        auto probe = Syzygy::probe_wdl_search(board);
+        auto probe = Syzygy::probe_wdl_search(position.Board());
         if (probe.has_value())
         {
             local.tb_hits.fetch_add(1, std::memory_order_relaxed);
@@ -332,7 +331,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     // copy the values out of the table that we want, to avoid race conditions
-    auto tt_entry = tTable.GetEntry(board.GetZobristKey(), distance_from_root, board.half_turn_count);
+    auto tt_entry
+        = tTable.GetEntry(position.Board().GetZobristKey(), distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry
         ? convert_from_tt_score(tt_entry->score.load(std::memory_order_relaxed), distance_from_root)
         : SCORE_UNDEFINED;
@@ -351,7 +351,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    bool InCheck = IsInCheck(board);
+    bool InCheck = IsInCheck(position.Board());
 
     // Drop into quiescence search
     if (depth <= 0 && !InCheck)
@@ -368,7 +368,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return beta;
 
     // Null move pruning
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && AllowedNull(allowedNull, board, InCheck)
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && AllowedNull(allowedNull, position.Board(), InCheck)
         && (staticScore > beta))
     {
         unsigned int reduction = Null_constant + depth / Null_depth_quotent
@@ -509,9 +509,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         ss->move = move;
         position.ApplyMove(move);
-        tTable.PreFetch(board.GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
+        tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
 
-        if (IsInCheck(board))
+        if (IsInCheck(position.Board()))
         {
             extensions += 1;
         }
@@ -581,7 +581,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Checkmate or stalemate
     if (noLegalMoves)
     {
-        return TerminalScore(board, distance_from_root);
+        return TerminalScore(position.Board(), distance_from_root);
     }
 
     score = std::clamp(score, min_score, max_score);
@@ -589,7 +589,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // avoid adding scores to the TT when we are aborting the search, or during a singular extension
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(score, original_alpha, board, depth, distance_from_root, beta, bestMove);
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove);
     }
 
     return SearchResult(score, bestMove);
@@ -707,7 +707,6 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
 
     const auto distance_from_root = ss->distance_from_root;
-    const auto& board = position.Board();
 
     // check if we should abort the search
     if (should_abort_search(local, shared))
@@ -722,7 +721,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         return 0; // Have we reached max depth?
     ss->pv.clear();
 
-    if (DeadPosition(board))
+    if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
 
     auto staticScore = EvaluatePositionNet(position, local.eval_cache);
