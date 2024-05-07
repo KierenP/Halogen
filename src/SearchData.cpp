@@ -16,6 +16,33 @@
 
 TranspositionTable tTable;
 
+SearchStackState::SearchStackState(int distance_from_root_)
+    : distance_from_root(distance_from_root_)
+{
+}
+
+void SearchStackState::reset()
+{
+    pv = {};
+    killers = {};
+    move = Move::Uninitialized;
+    singular_exclusion = Move::Uninitialized;
+    multiple_extensions = 0;
+}
+
+SearchStackState* SearchStack::root()
+{
+    return &search_stack_array_[-min_access];
+}
+
+void SearchStack::reset()
+{
+    for (auto& sss : search_stack_array_)
+    {
+        sss.reset();
+    }
+}
+
 bool SearchLocalState::RootExcludeMove(Move move)
 {
     // if present in blacklist, exclude
@@ -37,10 +64,11 @@ bool SearchLocalState::RootExcludeMove(Move move)
 void SearchLocalState::ResetNewSearch()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
-    search_stack = {};
+    search_stack.reset();
     tb_hits = 0;
     nodes = 0;
     sel_septh = 0;
+    search_depth = 0;
     thread_wants_to_stop = false;
     aborting_search = false;
     root_move_blacklist = {};
@@ -49,12 +77,7 @@ void SearchLocalState::ResetNewSearch()
 
 void SearchLocalState::ResetNewGame()
 {
-    search_stack = {};
-    tb_hits = 0;
-    nodes = 0;
-    sel_septh = 0;
-    thread_wants_to_stop = false;
-    aborting_search = false;
+    ResetNewSearch();
     history.reset();
 }
 
