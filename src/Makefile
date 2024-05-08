@@ -31,6 +31,7 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
+	Magic.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
@@ -44,7 +45,7 @@ DEPS := $(OBJS:.o=.d)
 #----------------------------------------------------------------------------------------------------------------------
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++17
+AFLAGS = $(WFLAGS) -g -std=c++17 -fconstexpr-ops-limit=1000000000
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
