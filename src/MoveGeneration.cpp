@@ -288,27 +288,16 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
 template <Players STM, typename T>
 void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
 {
-    int foward = 0;
+    constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB(PAWN, STM);
-
-    if constexpr (STM == WHITE)
-    {
-        foward = 8;
-        targets = (pawnSquares << 8) & board.GetEmptySquares();
-    }
-    if constexpr (STM == BLACK)
-    {
-        foward = -8;
-        targets = (pawnSquares >> 8) & board.GetEmptySquares();
-    }
-
+    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares();
     uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); // pushes that aren't to the back ranks
 
     while (pawnPushes != 0)
     {
         Square end = LSBpop(pawnPushes);
-        Square start = static_cast<Square>(end - foward);
+        Square start = end - foward;
 
         Move move(start, end, QUIET);
 
@@ -320,27 +309,16 @@ void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
 template <Players STM, typename T>
 void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
 {
-    int foward = 0;
+    constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB(PAWN, STM);
-
-    if constexpr (STM == WHITE)
-    {
-        foward = 8;
-        targets = (pawnSquares << 8) & board.GetEmptySquares();
-    }
-    if constexpr (STM == BLACK)
-    {
-        foward = -8;
-        targets = (pawnSquares >> 8) & board.GetEmptySquares();
-    }
-
+    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares();
     uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); // pushes that are to the back ranks
 
     while (pawnPromotions != 0)
     {
         Square end = LSBpop(pawnPromotions);
-        Square start = static_cast<Square>(end - foward);
+        Square start = end - foward;
 
         Move move(start, end, KNIGHT_PROMOTION);
         if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(board, move))
@@ -356,29 +334,27 @@ void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
 template <Players STM, typename T>
 void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned)
 {
-    int foward = 0;
+    constexpr Shift foward = STM == WHITE ? Shift::NN : Shift::SS;
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB(PAWN, STM);
 
     if constexpr (STM == WHITE)
     {
-        foward = 16;
         pawnSquares &= RankBB[RANK_2];
-        targets = (pawnSquares << 8) & board.GetEmptySquares();
-        targets = (targets << 8) & board.GetEmptySquares();
+        targets = shift_bb<Shift::N>(pawnSquares) & board.GetEmptySquares();
+        targets = shift_bb<Shift::N>(targets) & board.GetEmptySquares();
     }
     if constexpr (STM == BLACK)
     {
-        foward = -16;
         pawnSquares &= RankBB[RANK_7];
-        targets = (pawnSquares >> 8) & board.GetEmptySquares();
-        targets = (targets >> 8) & board.GetEmptySquares();
+        targets = shift_bb<Shift::S>(pawnSquares) & board.GetEmptySquares();
+        targets = shift_bb<Shift::S>(targets) & board.GetEmptySquares();
     }
 
     while (targets != 0)
     {
         Square end = LSBpop(targets);
-        Square start = static_cast<Square>(end - foward);
+        Square start = end - foward;
 
         Move move(start, end, PAWN_DOUBLE_MOVE);
 
@@ -400,31 +376,18 @@ void PawnEnPassant(const BoardState& board, T& moves)
 template <Players STM, typename T>
 void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
 {
-    int fowardleft = 0;
-    int fowardright = 0;
+    constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SW;
+    constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SE;
     uint64_t leftAttack = 0;
     uint64_t rightAttack = 0;
     uint64_t pawnSquares = board.GetPieceBB(PAWN, STM);
-
-    if constexpr (STM == WHITE)
-    {
-        fowardleft = 7;
-        fowardright = 9;
-        leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) << 7) & board.GetBlackPieces();
-        rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) << 9) & board.GetBlackPieces();
-    }
-    if constexpr (STM == BLACK)
-    {
-        fowardleft = -9;
-        fowardright = -7;
-        leftAttack = ((pawnSquares & ~(FileBB[FILE_A])) >> 9) & board.GetWhitePieces();
-        rightAttack = ((pawnSquares & ~(FileBB[FILE_H])) >> 7) & board.GetWhitePieces();
-    }
+    leftAttack = shift_bb<fowardleft>(pawnSquares) & board.GetPiecesColour(!STM);
+    rightAttack = shift_bb<fowardright>(pawnSquares) & board.GetPiecesColour(!STM);
 
     while (leftAttack != 0)
     {
         Square end = LSBpop(leftAttack);
-        Square start = static_cast<Square>(end - fowardleft);
+        Square start = end - fowardleft;
 
         Move move(start, end, CAPTURE);
         if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(board, move))
@@ -444,7 +407,7 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
     while (rightAttack != 0)
     {
         Square end = LSBpop(rightAttack);
-        Square start = static_cast<Square>(end - fowardright);
+        Square start = end - fowardright;
 
         Move move(start, end, CAPTURE);
         if ((pinned & SquareBB[start]) && MovePutsSelfInCheck(board, move))
