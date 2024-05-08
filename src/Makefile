@@ -31,6 +31,7 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
+	Magic.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
@@ -44,7 +45,7 @@ DEPS := $(OBJS:.o=.d)
 #----------------------------------------------------------------------------------------------------------------------
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++17
+AFLAGS = $(WFLAGS) -g -std=c++17 
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
@@ -58,7 +59,8 @@ AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 CXXFLAGS := -fno-exceptions -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
-ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+# Detect OS
+ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
     detected_OS := Windows
 else
     detected_OS := $(shell uname)
@@ -75,7 +77,17 @@ ifeq ($(detected_OS),Linux)
 	CXXFLAGS += -DMADV_RANDOM
 endif
 
+# Detect if CXX is g++ or clang++, in this order.
+ifeq '' '$(findstring clang++,$(CXX))'
+  	CXXFLAGS += -fconstexpr-ops-limit=1000000000
+  	$(info detected compiler is [g++])
+else
+  	CXXFLAGS += -fconstexpr-steps=100000000
+  	$(info detected compiler is [clang++])
+endif
+
 $(info LDFLAGS = [${LDFLAGS}])
+$(info CXXFLAGS = [${CXXFLAGS}])
 
 # Each target sets particular flags, and then builds the corresponding exe file.
 

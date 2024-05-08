@@ -7,6 +7,7 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "Magic.h"
 #include "Move.h"
 #include "MoveList.h"
 
