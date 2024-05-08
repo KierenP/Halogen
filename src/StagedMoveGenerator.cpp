@@ -160,8 +160,8 @@ constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000, 91, 532, 568, 715
 
 uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
-    uint64_t pawn_mask = (board.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
-    pawn_mask |= (board.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
+    uint64_t pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
+    pawn_mask |= (board.GetPieceBB<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
 
     uint64_t bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
     uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();

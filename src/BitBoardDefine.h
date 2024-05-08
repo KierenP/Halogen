@@ -516,15 +516,22 @@ const int MAX_DEPTH = 100;
 enum class Shift
 {
     // clang-format off
-    NW =  7,  N = 8, NE =  9,
+            NN = 16,
+    NW =  7, N =  8, NE =  9,
      W = -1,          E =  1,
     SW = -9, S = -8, SE = -7,
+            SS = -16
     // clang-format on
 };
 
 constexpr Square operator+(Square sq, Shift s)
 {
     return static_cast<Square>((int)sq + (int)s);
+};
+
+constexpr Square operator-(Square sq, Shift s)
+{
+    return static_cast<Square>((int)sq - (int)s);
 };
 
 template <Shift direction>

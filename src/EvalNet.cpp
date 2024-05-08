@@ -28,18 +28,18 @@ Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
 
 bool DeadPosition(const BoardState& board)
 {
-    if ((board.GetPieceBB(WHITE_PAWN)) != 0)
+    if ((board.GetPieceBB<WHITE_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB(WHITE_ROOK)) != 0)
+    if ((board.GetPieceBB<WHITE_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB(WHITE_QUEEN)) != 0)
+    if ((board.GetPieceBB<WHITE_QUEEN>()) != 0)
         return false;
 
-    if ((board.GetPieceBB(BLACK_PAWN)) != 0)
+    if ((board.GetPieceBB<BLACK_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB(BLACK_ROOK)) != 0)
+    if ((board.GetPieceBB<BLACK_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB(BLACK_QUEEN)) != 0)
+    if ((board.GetPieceBB<BLACK_QUEEN>()) != 0)
         return false;
 
     /*
@@ -52,10 +52,10 @@ bool DeadPosition(const BoardState& board)
     */
 
     // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = GetBitCount(board.GetPieceBB(WHITE_BISHOP));
-    int BlackBishops = GetBitCount(board.GetPieceBB(BLACK_BISHOP));
-    int WhiteKnights = GetBitCount(board.GetPieceBB(WHITE_KNIGHT));
-    int BlackKnights = GetBitCount(board.GetPieceBB(BLACK_KNIGHT));
+    int WhiteBishops = GetBitCount(board.GetPieceBB<WHITE_BISHOP>());
+    int BlackBishops = GetBitCount(board.GetPieceBB<BLACK_BISHOP>());
+    int WhiteKnights = GetBitCount(board.GetPieceBB<WHITE_KNIGHT>());
+    int BlackKnights = GetBitCount(board.GetPieceBB<BLACK_KNIGHT>());
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 

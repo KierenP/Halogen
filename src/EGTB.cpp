@@ -81,8 +81,8 @@ std::optional<TbResult> Syzygy::probe_wdl_search(const BoardState& board)
 
     // clang-format off
     auto probe = tb_probe_wdl(
-        board.GetWhitePieces(), 
-        board.GetBlackPieces(),
+        board.GetPieces<WHITE>(), 
+        board.GetPieces<BLACK>(),
         board.GetPieceBB<KING>(),
         board.GetPieceBB<QUEEN>(),
         board.GetPieceBB<ROOK>(),
@@ -115,8 +115,8 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
     tb_lock.lock();
     // clang-format off
     auto probe = tb_probe_root(
-        board.GetWhitePieces(), 
-        board.GetBlackPieces(),
+        board.GetPieces<WHITE>(), 
+        board.GetPieces<BLACK>(),
         board.GetPieceBB<KING>(),
         board.GetPieceBB<QUEEN>(),
         board.GetPieceBB<ROOK>(),
