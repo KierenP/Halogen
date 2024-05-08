@@ -87,16 +87,16 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
 
         // parse classic fen or chess960 fen (KQkq)
         if (letter == 'K')
-            castle_squares |= SquareBB[MSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
+            castle_squares |= SquareBB[MSB(GetPieceBB<WHITE_ROOK>() & RankBB[RANK_1])];
 
         else if (letter == 'Q')
-            castle_squares |= SquareBB[LSB(GetPieceBB(WHITE_ROOK) & RankBB[RANK_1])];
+            castle_squares |= SquareBB[LSB(GetPieceBB<WHITE_ROOK>() & RankBB[RANK_1])];
 
         else if (letter == 'k')
-            castle_squares |= SquareBB[MSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
+            castle_squares |= SquareBB[MSB(GetPieceBB<BLACK_ROOK>() & RankBB[RANK_8])];
 
         else if (letter == 'q')
-            castle_squares |= SquareBB[LSB(GetPieceBB(BLACK_ROOK) & RankBB[RANK_8])];
+            castle_squares |= SquareBB[LSB(GetPieceBB<BLACK_ROOK>() & RankBB[RANK_8])];
 
         // parse Shredder-FEN (HAha)
         else if (letter >= 'A' && letter <= 'H')
@@ -131,18 +131,18 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
 
 void BoardState::RecalculateWhiteBlackBoards()
 {
-    WhitePieces = GetPieceBB(WHITE_PAWN) | GetPieceBB(WHITE_KNIGHT) | GetPieceBB(WHITE_BISHOP) | GetPieceBB(WHITE_ROOK)
-        | GetPieceBB(WHITE_QUEEN) | GetPieceBB(WHITE_KING);
-    BlackPieces = GetPieceBB(BLACK_PAWN) | GetPieceBB(BLACK_KNIGHT) | GetPieceBB(BLACK_BISHOP) | GetPieceBB(BLACK_ROOK)
-        | GetPieceBB(BLACK_QUEEN) | GetPieceBB(BLACK_KING);
+    WhitePieces = GetPieceBB<WHITE_PAWN>() | GetPieceBB<WHITE_KNIGHT>() | GetPieceBB<WHITE_BISHOP>()
+        | GetPieceBB<WHITE_ROOK>() | GetPieceBB<WHITE_QUEEN>() | GetPieceBB<WHITE_KING>();
+    BlackPieces = GetPieceBB<BLACK_PAWN>() | GetPieceBB<BLACK_KNIGHT>() | GetPieceBB<BLACK_BISHOP>()
+        | GetPieceBB<BLACK_ROOK>() | GetPieceBB<BLACK_QUEEN>() | GetPieceBB<BLACK_KING>();
 }
 
 uint64_t BoardState::GetPiecesColour(Players colour) const
 {
     if (colour == WHITE)
-        return GetWhitePieces();
+        return GetPieces<WHITE>();
     else
-        return GetBlackPieces();
+        return GetPieces<BLACK>();
 }
 
 uint64_t BoardState::GetZobristKey() const
@@ -189,7 +189,7 @@ uint64_t BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
 
 Square BoardState::GetKing(Players colour) const
 {
-    assert(GetPieceBB(KING, colour) != 0); // assert only runs in debug so I don't care about the double call
+    assert(GetPieceBB(KING, colour) != 0);
     return LSB(GetPieceBB(KING, colour));
 }
 
@@ -205,12 +205,6 @@ bool BoardState::IsOccupied(Square square) const
     return (!IsEmpty(square));
 }
 
-bool BoardState::IsOccupied(Square square, Players colour) const
-{
-    assert(square != N_SQUARES);
-    return colour == WHITE ? (GetWhitePieces() & SquareBB[square]) : (GetBlackPieces() & SquareBB[square]);
-}
-
 Pieces BoardState::GetSquare(Square square) const
 {
     for (int i = 0; i < N_PIECES; i++)
@@ -224,22 +218,12 @@ Pieces BoardState::GetSquare(Square square) const
 
 uint64_t BoardState::GetAllPieces() const
 {
-    return GetWhitePieces() | GetBlackPieces();
+    return GetPieces<WHITE>() | GetPieces<BLACK>();
 }
 
 uint64_t BoardState::GetEmptySquares() const
 {
     return ~GetAllPieces();
-}
-
-uint64_t BoardState::GetWhitePieces() const
-{
-    return WhitePieces;
-}
-
-uint64_t BoardState::GetBlackPieces() const
-{
-    return BlackPieces;
 }
 
 void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
