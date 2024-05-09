@@ -5,7 +5,6 @@
 #include "Move.h"
 #include "MoveList.h"
 #include "SearchData.h"
-#include "Zobrist.h"
 
 class GameState;
 

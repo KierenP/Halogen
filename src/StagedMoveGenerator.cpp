@@ -9,7 +9,6 @@
 #include "GameState.h"
 #include "MoveGeneration.h"
 #include "SearchData.h"
-#include "TTEntry.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 

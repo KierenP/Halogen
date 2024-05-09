@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory> //required to compile with g++
-#include <optional>
 
 #include "TTEntry.h"
 

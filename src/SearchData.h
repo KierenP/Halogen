@@ -1,8 +1,6 @@
 #pragma once
-#include <algorithm>
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -14,9 +12,7 @@
 #include "MoveList.h"
 #include "Search.h"
 #include "SearchLimits.h"
-#include "TimeManage.h"
 #include "TranspositionTable.h"
-#include "Zobrist.h"
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
