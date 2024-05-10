@@ -1,6 +1,5 @@
 #include "SearchData.h"
 
-#include <assert.h>
 #include <atomic>
 #include <cstdint>
 #include <iostream>

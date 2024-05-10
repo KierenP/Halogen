@@ -122,3 +122,24 @@ jobs:
             go wtime 1000 btime 1000 winc 1000 binc 1000 movestogo 20
             go movetime 10000
           EOF
+
+  PGO:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
+        compiler: [g++-13]
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - name: Create PGO compiles
+        run: |
+         cd src
+         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         
+      - name: Run bench
+        run: |
+         cd bin
+         ./Halogen bench

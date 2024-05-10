@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"

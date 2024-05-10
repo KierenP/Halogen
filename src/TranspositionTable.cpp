@@ -4,9 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 #include <iterator>
-#include <optional>
 
 #include "BitBoardDefine.h"
 #include "TTEntry.h"

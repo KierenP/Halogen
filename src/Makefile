@@ -91,7 +91,24 @@ $(info CXXFLAGS = [${CXXFLAGS}])
 
 # Each target sets particular flags, and then builds the corresponding exe file.
 
-# for OpenBench support, we don't set a EXE name for the default (native) builds
+.PHONY: pgo
+pgo:
+	$(MAKE) pgo-instrumented
+	$(MAKE) pgo-compile
+
+.PHONY: pgo-instrumented
+pgo-instrumented: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS) -fprofile-generate
+pgo-instrumented: LDFLAGS += -flto -fprofile-generate
+pgo-instrumented: EXE = $(BINARY_DIR)/Halogen-pgo-instrumented.exe
+pgo-instrumented: binary
+	./$(EXE) bench
+
+.PHONY: pgo-compile
+pgo-compile: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS) -fprofile-use
+pgo-compile: LDFLAGS += -flto -fprofile-use
+pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo.exe
+pgo-compile: binary
+
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
@@ -183,12 +200,12 @@ net:
 # The final build step.
 .PHONY: binary
 binary: $(OBJS)
-	mkdir -p $(dir $(EXE))
+	@ mkdir -p $(BINARY_DIR)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.o: % net clean_build
-	mkdir -p $(dir $@)
+$(BUILD_DIR)/%.o: % net
+	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: clean_build
