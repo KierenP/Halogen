@@ -519,7 +519,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         Score search_score = 0;
 
         // late move reductions
-        if (seen_moves > 3)
+        if (seen_moves > 1)
         {
             reduction = Reduction(depth, seen_moves);
 

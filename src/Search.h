@@ -8,10 +8,10 @@ class SearchSharedState;
 
 /*Tuneable search constants*/
 
-constexpr double LMR_constant = -0.76;
-constexpr double LMR_depth_coeff = 0.39;
-constexpr double LMR_move_coeff = 0.12;
-constexpr double LMR_depth_move_coeff = 0.67;
+constexpr double LMR_constant = -0.71;
+constexpr double LMR_depth_coeff = -1.52;
+constexpr double LMR_move_coeff = 0.87;
+constexpr double LMR_depth_move_coeff = 0.70;
 
 constexpr int Null_constant = 4;
 constexpr int Null_depth_quotent = 6;
