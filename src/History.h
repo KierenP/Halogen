@@ -50,6 +50,15 @@ struct CountermoveHistory : HistoryTable<CountermoveHistory>
     bool valid(const GameState& position, const SearchStackState* ss, Move move);
 };
 
+struct CaptureHistory : HistoryTable<CaptureHistory>
+{
+    static constexpr int max_value = 16384;
+    static constexpr int scale = 32;
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
+    int16_t& get(const GameState& position, const SearchStackState* ss, Move move);
+    bool valid(const GameState& position, const SearchStackState* ss, Move move);
+};
+
 class History
 {
 public:
@@ -58,5 +67,5 @@ public:
     void add(const GameState& position, const SearchStackState* ss, Move move, int change);
 
 private:
-    std::tuple<ButterflyHistory, CountermoveHistory> tables_;
+    std::tuple<ButterflyHistory, CountermoveHistory, CaptureHistory> tables_;
 };

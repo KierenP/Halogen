@@ -1,5 +1,6 @@
 #include "History.h"
 #include "BitBoardDefine.h"
+#include "Move.h"
 #include "SearchData.h"
 
 int16_t& ButterflyHistory::get(const GameState& position, const SearchStackState*, Move move)
@@ -8,9 +9,9 @@ int16_t& ButterflyHistory::get(const GameState& position, const SearchStackState
     return table[stm][move.GetFrom()][move.GetTo()];
 }
 
-bool ButterflyHistory::valid(const GameState&, const SearchStackState*, Move)
+bool ButterflyHistory::valid(const GameState&, const SearchStackState*, Move move)
 {
-    return true;
+    return !move.IsCapture() && !move.IsPromotion();
 }
 
 int16_t& CountermoveHistory::get(const GameState& position, const SearchStackState* ss, Move move)
@@ -23,10 +24,25 @@ int16_t& CountermoveHistory::get(const GameState& position, const SearchStackSta
     return table[stm][counter_piece][counter.GetTo()][curr_piece][move.GetTo()];
 }
 
-bool CountermoveHistory::valid(const GameState&, const SearchStackState* ss, Move)
+bool CountermoveHistory::valid(const GameState&, const SearchStackState* ss, Move move)
 {
     const auto& counter = (ss - 1)->move;
-    return counter != Move::Uninitialized;
+    return !move.IsCapture() && !move.IsPromotion() && counter != Move::Uninitialized;
+}
+
+int16_t& CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
+{
+    const auto& stm = position.Board().stm;
+    const auto curr_piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+    const auto capture_piece
+        = move.GetFlag() == EN_PASSANT ? PAWN : GetPieceType(position.Board().GetSquare(move.GetTo()));
+
+    return table[stm][curr_piece][move.GetTo()][capture_piece];
+}
+
+bool CaptureHistory::valid(const GameState&, const SearchStackState*, Move move)
+{
+    return move.IsCapture();
 }
 
 void History::reset()
@@ -48,7 +64,7 @@ int History::get(const GameState& position, const SearchStackState* ss, Move mov
     };
 
     std::apply([&](auto&... table) { return (sum_history(table), ...); }, tables_);
-    return history_sum / applied_histories;
+    return applied_histories == 0 ? 0 : history_sum / applied_histories;
 }
 
 void History::add(const GameState& position, const SearchStackState* ss, Move move, int change)

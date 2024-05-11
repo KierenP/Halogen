@@ -799,7 +799,7 @@ void AddKiller(Move move, std::array<Move, 2>& killers)
 
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
-    if (depthRemaining > 20 || move.IsCapture() || move.IsPromotion())
+    if (depthRemaining > 20)
         return;
     gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
 }
