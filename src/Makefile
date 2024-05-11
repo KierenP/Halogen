@@ -73,10 +73,6 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
 endif
 
-ifeq ($(detected_OS),Linux)
-	CXXFLAGS += -DMADV_RANDOM
-endif
-
 # Detect if CXX is g++ or clang++, in this order.
 ifeq '' '$(findstring clang++,$(CXX))'
   	CXXFLAGS += -fconstexpr-ops-limit=1000000000

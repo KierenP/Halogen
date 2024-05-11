@@ -74,8 +74,6 @@ int Reduction(int depth, int i);
 void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id);
 SearchResult AspirationWindowSearch(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth);
-void UpdateAlpha(Score score, Score& a, const Move& move, SearchStackState* ss);
-void UpdateScore(Score newScore, Score& score, Move& bestMove, const Move& move);
 
 bool should_abort_search(SearchLocalState& local, const SearchSharedState& shared);
 
@@ -241,7 +239,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     assert((search_type != SearchType::ZW) || (beta == alpha + 1));
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
-
     const auto distance_from_root = ss->distance_from_root;
 
     // check if we should abort the search
@@ -250,13 +247,17 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return SCORE_UNDEFINED;
     }
 
-    local.sel_septh = std::max<int>(local.sel_septh, distance_from_root);
+    local.sel_septh = std::max(local.sel_septh, distance_from_root);
     local.nodes.fetch_add(1, std::memory_order_relaxed);
 
     if (distance_from_root >= MAX_DEPTH)
         return 0; // Have we reached max depth?
 
-    ss->pv.clear();
+    if constexpr (pv_node)
+    {
+        ss->pv.clear();
+    }
+
     ss->multiple_extensions = (ss - 1)->multiple_extensions;
 
     if (DeadPosition(position.Board()))
@@ -564,16 +565,32 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         position.RevertMove();
 
-        UpdateScore(search_score, score, bestMove, move);
-        UpdateAlpha(score, alpha, move, ss);
-
-        // avoid updating Killers or History when aborting the search
-        // check for fail high cutoff
-        if (!local.aborting_search && alpha >= beta)
+        if (local.aborting_search)
         {
-            AddKiller(move, ss->killers);
-            AddHistory(gen, move, depth);
-            break;
+            return SCORE_UNDEFINED;
+        }
+
+        if (search_score > score)
+        {
+            bestMove = move;
+            score = search_score;
+
+            if (score > alpha)
+            {
+                alpha = score;
+
+                if constexpr (pv_node)
+                {
+                    UpdatePV(move, ss);
+                }
+
+                if (alpha >= beta)
+                {
+                    AddKiller(move, ss->killers);
+                    AddHistory(gen, move, depth);
+                    break;
+                }
+            }
         }
     }
 
@@ -592,24 +609,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     return SearchResult(score, bestMove);
-}
-
-void UpdateAlpha(Score score, Score& a, const Move& move, SearchStackState* ss)
-{
-    if (score > a)
-    {
-        a = score;
-        UpdatePV(move, ss);
-    }
-}
-
-void UpdateScore(Score newScore, Score& Score, Move& bestMove, const Move& move)
-{
-    if (newScore > Score)
-    {
-        Score = newScore;
-        bestMove = move;
-    }
 }
 
 int Reduction(int depth, int i)
@@ -704,7 +703,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 {
     static_assert(search_type != SearchType::ROOT);
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
-
+    constexpr bool pv_node = search_type != SearchType::ZW;
     const auto distance_from_root = ss->distance_from_root;
 
     // check if we should abort the search
@@ -713,12 +712,16 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         return SCORE_UNDEFINED;
     }
 
-    local.sel_septh = std::max<int>(local.sel_septh, distance_from_root);
+    local.sel_septh = std::max(local.sel_septh, distance_from_root);
     local.nodes.fetch_add(1, std::memory_order_relaxed);
 
     if (distance_from_root >= MAX_DEPTH)
         return 0; // Have we reached max depth?
-    ss->pv.clear();
+
+    if constexpr (pv_node)
+    {
+        ss->pv.clear();
+    }
 
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
@@ -730,7 +733,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         alpha = staticScore;
 
     Move bestmove = Move::Uninitialized;
-    auto Score = staticScore;
+    auto score = staticScore;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
     Move move;
@@ -751,17 +754,38 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
         ss->move = move;
         position.ApplyMove(move);
-        auto newScore = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha).GetScore();
+        auto search_score
+            = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha).GetScore();
         position.RevertMove();
 
-        UpdateScore(newScore, Score, bestmove, move);
-        UpdateAlpha(Score, alpha, move, ss);
+        if (local.aborting_search)
+        {
+            return SCORE_UNDEFINED;
+        }
 
-        if (Score >= beta)
-            break;
+        if (search_score > score)
+        {
+            bestmove = move;
+            score = search_score;
+
+            if (score > alpha)
+            {
+                alpha = score;
+
+                if constexpr (pv_node)
+                {
+                    UpdatePV(move, ss);
+                }
+
+                if (alpha >= beta)
+                {
+                    break;
+                }
+            }
+        }
     }
 
-    return SearchResult(Score, bestmove);
+    return SearchResult(score, bestmove);
 }
 
 void AddKiller(Move move, std::array<Move, 2>& killers)
