@@ -46,3 +46,4 @@ static_assert(sizeof(TTEntry) == 16, "TTEntry is not 16 bytes");
 static_assert(sizeof(TTBucket) == 64, "TTBucket is not 64 bytes");
 static_assert(alignof(TTBucket) == 64, "TTBucket alignment is not 64 bytes");
 static_assert(std::is_trivially_copyable_v<TTBucket>);
+static_assert(std::is_trivially_destructible_v<TTBucket>);
