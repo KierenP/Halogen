@@ -3,7 +3,6 @@
 #include "BitBoardDefine.h"
 #include "GameState.h"
 
-#include <array>
 #include <cstdint>
 #include <tuple>
 

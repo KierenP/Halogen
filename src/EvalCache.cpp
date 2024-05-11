@@ -1,7 +1,6 @@
 #include "EvalCache.h"
 
 #include <cstddef>
-#include <memory>
 
 constexpr size_t TableSize = 65536;
 

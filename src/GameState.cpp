@@ -2,12 +2,8 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 
-#include <algorithm>
-#include <array>
 #include <assert.h>
 #include <ctype.h>
-#include <iostream>
-#include <memory>
 #include <sstream>
 
 #include "Move.h"

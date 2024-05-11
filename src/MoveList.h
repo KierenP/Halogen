@@ -1,14 +1,8 @@
 #pragma once
-#include <algorithm>
-#include <array>
-#include <cstddef>
 #include <cstdint>
-#include <iterator>
-#include <type_traits>
 
 #include "BitBoardDefine.h"
 #include "Move.h"
-#include "Score.h"
 #include "StaticVector.h"
 
 // For move ordering we need to bundle the 'score' and SEE values

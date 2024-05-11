@@ -1,9 +1,8 @@
 #pragma once
-#include <algorithm>
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 #include "BitBoardDefine.h"
@@ -13,9 +12,7 @@
 #include "MoveList.h"
 #include "Search.h"
 #include "SearchLimits.h"
-#include "TimeManage.h"
 #include "TranspositionTable.h"
-#include "Zobrist.h"
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
@@ -33,25 +30,37 @@ class GameState;
 // Holds information about the search state for a particular recursion depth.
 struct SearchStackState
 {
+    SearchStackState(int distance_from_root_);
+    void reset();
+
     BasicMoveList pv = {};
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
     Move singular_exclusion = Move::Uninitialized;
     int multiple_extensions = 0;
+    const int distance_from_root;
 };
 
 class SearchStack
 {
+    // The search accesses [ss-1, ss+1]
+    constexpr static int min_access = -1;
+    constexpr static int max_access = 1;
+    constexpr static size_t size = MAX_DEPTH + max_access - min_access;
+
 public:
-    // The search accesses [-1, MAX_DEPTH], so the root is [1] and we have MAX_DEPTH+2 elements
-    SearchStackState* root()
-    {
-        return &search_stack_array_[1];
-    }
+    SearchStackState* root();
+    void reset();
 
 private:
-    std::array<SearchStackState, MAX_DEPTH + 2> search_stack_array_ = {};
+    std::array<SearchStackState, size> search_stack_array_ { generate(std::make_integer_sequence<int, size>()) };
+
+    template <int... distances_from_root>
+    decltype(search_stack_array_) generate(std::integer_sequence<int, distances_from_root...>)
+    {
+        return { (distances_from_root + min_access)... };
+    }
 };
 
 // Data local to a particular thread
@@ -66,6 +75,7 @@ public:
     std::atomic<uint64_t> tb_hits = 0;
     std::atomic<uint64_t> nodes = 0;
     int sel_septh = 0;
+    int search_depth = 0;
 
     // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want

@@ -1,7 +1,5 @@
 #include "TimeManage.h"
 
-#include <algorithm>
-
 int Timer::ElapsedMs() const
 {
     return (get_time_point() - Begin);

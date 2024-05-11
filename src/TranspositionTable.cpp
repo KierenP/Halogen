@@ -3,13 +3,22 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <iterator>
-#include <optional>
+#include <memory>
+
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
 
 #include "BitBoardDefine.h"
 #include "TTEntry.h"
+
+TranspositionTable ::~TranspositionTable()
+{
+    Deallocate();
+}
 
 uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 {
@@ -98,21 +107,48 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    table.reset(new TTBucket[size_]);
+    Reallocate();
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-    Reallocate(CalculateEntryCount(MB));
+    size_ = CalculateEntryCount(MB);
+    hash_mask_ = size_ - 1;
+    Reallocate();
+
+    // size should be a power of two
+    assert(GetBitCount(size_) == 1);
 }
 
-void TranspositionTable::Reallocate(size_t size)
+void TranspositionTable::Reallocate()
 {
-    // size should be a power of two
-    assert(GetBitCount(size) == 1);
-    size_ = size;
-    hash_mask_ = size - 1;
-    table.reset(new TTBucket[size]);
+    Deallocate();
+
+#ifdef __linux__
+    constexpr static size_t huge_page_size = 2 * 1024 * 1024;
+    const size_t bytes = size_ * sizeof(TTBucket);
+    table = static_cast<TTBucket*>(std::aligned_alloc(huge_page_size, bytes));
+    madvise(table, bytes, MADV_HUGEPAGE);
+    std::uninitialized_default_construct_n(table, size_);
+#else
+    table = new TTBucket[size_];
+#endif
+}
+
+void TranspositionTable::Deallocate()
+{
+#ifdef __linux__
+    if (table)
+    {
+        std::destroy_n(table, size_);
+        std::free(table);
+    }
+#else
+    if (table)
+    {
+        delete[] table;
+    }
+#endif
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
