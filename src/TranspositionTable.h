@@ -12,8 +12,10 @@ class TranspositionTable
 public:
     TranspositionTable()
     {
-        Reallocate(CalculateEntryCount(32)); // 32MB default
+        SetSize(32); // 32MB default
     }
+
+    ~TranspositionTable();
 
     size_t GetSize() const
     {
@@ -37,7 +39,8 @@ public:
 
 private:
     uint64_t HashFunction(const uint64_t& key) const;
-    void Reallocate(size_t size);
+    void Reallocate();
+    void Deallocate();
 
     static constexpr uint64_t CalculateEntryCount(uint64_t MB)
     {
@@ -45,7 +48,7 @@ private:
     }
 
     // raw array and memset allocates quicker than std::vector
-    std::unique_ptr<TTBucket[]> table;
+    TTBucket* table;
     size_t size_;
     uint64_t hash_mask_;
 };
