@@ -228,7 +228,8 @@ int SearchSharedState::get_thread_count() const
 
 void SearchSharedState::ResetNewSearch()
 {
-    search_results_ = {};
+    search_results_.clear();
+    search_results_.resize(get_thread_count());
     best_result_ = nullptr;
     highest_completed_depth_ = 0;
     multi_PV_excluded_moves_.clear();
@@ -238,7 +239,8 @@ void SearchSharedState::ResetNewSearch()
 
 void SearchSharedState::ResetNewGame()
 {
-    search_results_ = {};
+    search_results_.clear();
+    search_results_.resize(get_thread_count());
     highest_completed_depth_ = 0;
     multi_PV_excluded_moves_.clear();
 
