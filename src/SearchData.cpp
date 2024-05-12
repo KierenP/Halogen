@@ -9,7 +9,9 @@
 
 #include "BitBoardDefine.h"
 #include "GameState.h"
+#include "Move.h"
 #include "MoveList.h"
+#include "Score.h"
 #include "Search.h"
 #include "Zobrist.h"
 
@@ -82,50 +84,27 @@ void SearchLocalState::ResetNewGame()
 
 SearchSharedState::SearchSharedState(int threads)
     : search_local_states_(threads)
+    , search_results_(threads)
 {
 }
 
 void SearchSharedState::report_search_result(
-    GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
+    int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
 {
     std::scoped_lock lock(lock_);
-    auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
 
-    if (depth > completed_depth
-        && std::find(multi_PV_excluded_moves_.begin(), multi_PV_excluded_moves_.end(), result.GetMove())
-            == multi_PV_excluded_moves_.end())
-    {
-        // The way we do MultiPV is a little wrong. Each time we complete the search at depth N we exclude that move
-        // from being used at the root and repeat the search. Once we have MultiPV searches complete at depth N then we
-        // move to depth N+1. The correct approach would be to store all depth N results until we have sufficiently
-        // many, and then print them all out ordered by score
+    auto& results = search_results_[thread_id][depth];
+    results.best_move = result.GetMove();
+    results.score = result.GetScore();
+    results.pv = ss->pv;
 
-        PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::EXACT);
-
-        // If this is the first time we have completed the search at depth N, record it into the table.
-        if (multi_PV_excluded_moves_.size() == 0)
-        {
-            search_results_[depth].best_move = result.GetMove();
-            search_results_[depth].score = result.GetScore();
-            search_results_[depth + 1].highest_beta = result.GetScore();
-            search_results_[depth + 1].lowest_alpha = result.GetScore();
-        }
-
-        multi_PV_excluded_moves_.push_back(result.GetMove());
-
-        // Once we have reported results for multi_pv searches, we continue to the next depth
-        if (multi_PV_excluded_moves_.size() >= (unsigned)multi_pv)
-        {
-            highest_completed_depth_.store(depth, std::memory_order_release);
-            multi_PV_excluded_moves_.clear();
-        }
-    }
+    PrintInfoDepthString(position, local, depth);
 }
 
 void SearchSharedState::report_aspiration_low_result(
     GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
 {
-    std::scoped_lock lock(lock_);
+    /*std::scoped_lock lock(lock_);
 
     auto elapsed_time = limits.ElapsedTime();
     auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
@@ -137,13 +116,13 @@ void SearchSharedState::report_aspiration_low_result(
             PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::UPPER_BOUND);
         }
         search_results_[depth].lowest_alpha = result.GetScore();
-    }
+    }*/
 }
 
 void SearchSharedState::report_aspiration_high_result(
     GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
 {
-    std::scoped_lock lock(lock_);
+    /*std::scoped_lock lock(lock_);
 
     auto elapsed_time = limits.ElapsedTime();
     auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
@@ -159,12 +138,7 @@ void SearchSharedState::report_aspiration_high_result(
         // When we fail high, use set this as the best move for the next depth. This gains elo becuase more often than
         // not a fail high move turns out to be the best.
         search_results_[completed_depth + 1].best_move = result.GetMove();
-    }
-}
-
-bool SearchSharedState::has_completed_depth(int depth) const
-{
-    return highest_completed_depth_.load(std::memory_order_acquire) >= depth;
+    }*/
 }
 
 void SearchSharedState::report_thread_wants_to_stop(int thread_id)
@@ -189,37 +163,45 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
     }
 }
 
-int SearchSharedState::get_next_search_depth() const
-{
-    return highest_completed_depth_.load(std::memory_order_acquire) + 1;
-}
-
 BasicMoveList SearchSharedState::get_multi_pv_excluded_moves()
 {
     std::scoped_lock lock(lock_);
     return multi_PV_excluded_moves_;
 }
 
-Move SearchSharedState::get_best_move() const
+const SearchSharedState::SearchDepthResults& SearchSharedState::get_best_search_result() const
 {
     std::scoped_lock lock(lock_);
-    auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
 
-    // On a fail high we will report the best move. So we check at depth + 1 and return that if it's been set
-    if (search_results_[completed_depth + 1].best_move != Move::Uninitialized)
+    // of each thread, we want the highest depth result. If multiple threads have reached the same depth, we pick the
+    // result with the highest score
+
+    const SearchDepthResults* best = nullptr;
+
+    for (int depth = MAX_DEPTH; depth >= 0; depth--)
     {
-        return search_results_[completed_depth + 1].best_move;
+        for (int thread = 0; thread < get_thread_count(); thread++)
+        {
+            const auto& result = search_results_[thread][depth];
+            if (result.score == SCORE_UNDEFINED)
+            {
+                continue;
+            }
+
+            if (!best || best->score < result.score)
+            {
+                best = &result;
+            }
+        }
+
+        if (best)
+        {
+            return *best;
+        }
     }
 
-    return search_results_[completed_depth].best_move;
-}
-
-Score SearchSharedState::get_best_score() const
-{
-    std::scoped_lock lock(lock_);
-    auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
-
-    return search_results_[completed_depth].score;
+    assert(false);
+    return search_results_[0][0];
 }
 
 uint64_t SearchSharedState::tb_hits() const
@@ -247,6 +229,7 @@ int SearchSharedState::get_thread_count() const
 void SearchSharedState::ResetNewSearch()
 {
     search_results_ = {};
+    best_result_ = nullptr;
     highest_completed_depth_ = 0;
     multi_PV_excluded_moves_.clear();
 
@@ -262,8 +245,31 @@ void SearchSharedState::ResetNewGame()
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data.ResetNewGame(); });
 }
 
-void SearchSharedState::PrintSearchInfo(GameState& position, SearchStackState* ss, const SearchLocalState& local,
-    int depth, Score score, SearchInfoType type) const
+void SearchSharedState::PrintInfoDepthString(GameState& position, const SearchLocalState& local, int depth)
+{
+    // check if every thread has finished this depth: if so, print out the result with the highest score.
+    SearchDepthResults* best = nullptr;
+
+    for (int thread_id = 0; thread_id < get_thread_count(); thread_id++)
+    {
+        auto& result = search_results_[thread_id][depth];
+
+        if (result.score == SCORE_UNDEFINED)
+        {
+            return;
+        }
+
+        if (!best || best->score < result.score)
+        {
+            best = &result;
+        }
+    }
+
+    PrintSearchInfo(position, local, depth, *best, SearchInfoType::EXACT);
+}
+
+void SearchSharedState::PrintSearchInfo(GameState& position, const SearchLocalState& local, int depth,
+    const SearchDepthResults& data, SearchInfoType type) const
 {
     /*
     Here we avoid excessive use of std::cout and instead append to a string in order
@@ -275,16 +281,16 @@ void SearchSharedState::PrintSearchInfo(GameState& position, SearchStackState* s
 
     stream << "info depth " << depth << " seldepth " << local.sel_septh;
 
-    if (Score(abs(score.value())) > Score::mate_in(MAX_DEPTH))
+    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
     {
-        if (score > 0)
-            stream << " score mate " << ((Score::Limits::MATE - abs(score.value())) + 1) / 2;
+        if (data.score > 0)
+            stream << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
         else
-            stream << " score mate " << -((Score::Limits::MATE - abs(score.value())) + 1) / 2;
+            stream << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
     }
     else
     {
-        stream << " score cp " << score.value();
+        stream << " score cp " << data.score.value();
     }
 
     if (type == SearchInfoType::UPPER_BOUND)
@@ -305,7 +311,7 @@ void SearchSharedState::PrintSearchInfo(GameState& position, SearchStackState* s
 
     stream << " pv "; // the current best line found
 
-    for (const auto& move : ss->pv)
+    for (const auto& move : data.pv)
     {
         if (chess_960)
         {
@@ -322,7 +328,7 @@ void SearchSharedState::PrintSearchInfo(GameState& position, SearchStackState* s
         stream << " ";
     }
 
-    for (size_t i = 0; i < ss->pv.size(); i++)
+    for (size_t i = 0; i < data.pv.size(); i++)
     {
         position.RevertMove();
     }

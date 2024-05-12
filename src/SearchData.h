@@ -10,6 +10,7 @@
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "Score.h"
 #include "Search.h"
 #include "SearchLimits.h"
 #include "TranspositionTable.h"
@@ -100,6 +101,20 @@ public:
 // Search state that is shared between threads.
 class SearchSharedState
 {
+    enum class SearchInfoType
+    {
+        EXACT,
+        LOWER_BOUND,
+        UPPER_BOUND,
+    };
+
+    struct SearchDepthResults
+    {
+        Move best_move = Move::Uninitialized;
+        Score score = SCORE_UNDEFINED;
+        BasicMoveList pv;
+    };
+
 public:
     SearchSharedState(int threads);
 
@@ -112,8 +127,8 @@ public:
     // Below functions are thread-safe and blocking
     // ------------------------------------
 
-    void report_search_result(
-        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
+    void report_search_result(int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local,
+        int depth, SearchResult result);
     void report_aspiration_low_result(
         GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
     void report_aspiration_high_result(
@@ -121,19 +136,12 @@ public:
 
     BasicMoveList get_multi_pv_excluded_moves();
 
-    Move get_best_move() const;
-    Score get_best_score() const;
+    const SearchDepthResults& get_best_search_result() const;
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
-    // When one thread completes a particular depth, the other threads can use this to abort early and join at the
-    // higher depth
-    bool has_completed_depth(int depth) const;
-
     void report_thread_wants_to_stop(int thread_id);
-
-    int get_next_search_depth() const;
 
     uint64_t tb_hits() const;
     uint64_t nodes() const;
@@ -150,30 +158,16 @@ public:
 private:
     mutable std::mutex lock_;
 
-    enum class SearchInfoType
-    {
-        EXACT,
-        LOWER_BOUND,
-        UPPER_BOUND,
-    };
+    void PrintInfoDepthString(GameState& position, const SearchLocalState& local, int depth);
 
-    void PrintSearchInfo(GameState& position, SearchStackState* ss, const SearchLocalState& local, int depth,
-        Score score, SearchInfoType type) const;
+    void PrintSearchInfo(GameState& position, const SearchLocalState& local, int depth, const SearchDepthResults& data,
+        SearchInfoType type) const;
 
-    // For a particular depth, we store the results here. This lets us track how e.g the best move has changed while
-    // deepening
-    struct SearchDepthResults
-    {
-        Move best_move = Move::Uninitialized;
-        Score score = 0;
+    // TODO: fix MultiPV
+    std::vector<std::array<SearchDepthResults, MAX_DEPTH + 1>> search_results_;
 
-        // When reporting lower/upper bound results we want to ensure with multiple threads we only report the most
-        // extreme lower/upper bound results.
-        Score lowest_alpha = 0;
-        Score highest_beta = 0;
-    };
-
-    std::array<SearchDepthResults, MAX_DEPTH + 1> search_results_ = {};
+    // Based on the voting model, this is the current best result
+    SearchDepthResults* best_result_ = nullptr;
 
     // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
     // should stop searching that depth
@@ -186,7 +180,4 @@ private:
 
     // Moves that we ignore at the root for MultiPV mode
     BasicMoveList multi_PV_excluded_moves_;
-
-    // ----------------------------
-    // bool MultiPVExcludeMoveUnlocked(Move move) const;
 };
