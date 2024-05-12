@@ -118,9 +118,10 @@ jobs:
             setoption name Threads value 2
             setoption name MultiPV value 8
             ucinewgame
-            position startpos moves e2e4 e7e5
-            go wtime 1000 btime 1000 winc 1000 binc 1000 movestogo 20
-            go movetime 10000
+            position fen r1bq1rk1/1p1nppbp/3p1np1/p1p5/2PP4/2N1PN2/PPQ1BPPP/R1B2RK1 w - - 0 1
+            go wtime 4810 btime 4810 winc 500 binc 500
+            position fen r1bq1rk1/1p1nppbp/3p1np1/p1p5/2PP4/2N1PN2/PPQ1BPPP/R1B2RK1 w - - 0 1 moves h2h3
+            go wtime 4710 btime 4810 winc 500 binc 500
           EOF
 
   PGO:
