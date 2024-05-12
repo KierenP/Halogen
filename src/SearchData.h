@@ -112,7 +112,7 @@ class SearchSharedState
     {
         Move best_move = Move::Uninitialized;
         Score score = SCORE_UNDEFINED;
-        BasicMoveList pv;
+        BasicMoveList pv = {};
     };
 
 public:

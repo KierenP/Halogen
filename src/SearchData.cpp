@@ -83,8 +83,8 @@ void SearchLocalState::ResetNewGame()
 }
 
 SearchSharedState::SearchSharedState(int threads)
-    : search_local_states_(threads)
-    , search_results_(threads)
+    : search_results_(threads)
+    , search_local_states_(threads)
 {
 }
 
@@ -102,7 +102,7 @@ void SearchSharedState::report_search_result(
 }
 
 void SearchSharedState::report_aspiration_low_result(
-    GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
+    GameState&, SearchStackState*, SearchLocalState&, int, SearchResult)
 {
     /*std::scoped_lock lock(lock_);
 
@@ -120,7 +120,7 @@ void SearchSharedState::report_aspiration_low_result(
 }
 
 void SearchSharedState::report_aspiration_high_result(
-    GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
+    GameState&, SearchStackState*, SearchLocalState&, int, SearchResult)
 {
     /*std::scoped_lock lock(lock_);
 
