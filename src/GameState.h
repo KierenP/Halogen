@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
 #include <string>
 #include <vector>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "Network.h"

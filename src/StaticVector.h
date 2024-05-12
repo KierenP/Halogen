@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cstdint>
 #include <iterator>
 
 // Stack allocated fixed capacity vector. Should be a drop-in replacement for std::vector, with some lesser
@@ -143,7 +142,7 @@ public:
         return N;
     }
 
-    void reserve(std::size_t new_cap)
+    void reserve(std::size_t)
     {
         // no-op
     }

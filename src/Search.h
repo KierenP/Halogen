@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "GameState.h"
 #include "Move.h"
 #include "Score.h"

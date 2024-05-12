@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <limits>
-#include <type_traits>
 
 class Score
 {

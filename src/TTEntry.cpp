@@ -1,29 +1,26 @@
 #include "TTEntry.h"
 
-#include <assert.h>
-#include <climits>
-
 #include "BitBoardDefine.h"
 
-TTEntry::TTEntry(Move best, uint64_t ZobristKey, Score score, int depth, int currentTurnCount, int distanceFromRoot,
-    EntryType cutoff)
-    : key_(ZobristKey)
-    , bestMove_(best)
-    , score_(score)
-    , depth_(depth)
-    , cutoff_(cutoff)
+Score convert_to_tt_score(Score val, int distance_from_root)
 {
-    assert(depth < CHAR_MAX && depth > CHAR_MIN);
-
-    SetHalfMove(currentTurnCount, distanceFromRoot);
+    if (val >= Score::tb_win_in(MAX_DEPTH))
+        return val + distance_from_root;
+    if (val <= Score::tb_loss_in(MAX_DEPTH))
+        return val - distance_from_root;
+    return val;
 }
 
-void TTEntry::MateScoreAdjustment(int distanceFromRoot)
+Score convert_from_tt_score(Score val, int distance_from_root)
 {
-    // checkmate node or TB win/loss
-    // TODO: check boundary conditions
-    if (score_ > Score::Limits::EVAL_MAX)
-        score_ -= static_cast<short>(distanceFromRoot);
-    if (score_ < Score::Limits::EVAL_MIN)
-        score_ += static_cast<short>(distanceFromRoot);
+    if (val >= Score::tb_win_in(MAX_DEPTH))
+        return val - distance_from_root;
+    if (val <= Score::tb_loss_in(MAX_DEPTH))
+        return val + distance_from_root;
+    return val;
+}
+
+uint8_t get_generation(int currentTurnCount, int distanceFromRoot)
+{
+    return (currentTurnCount - distanceFromRoot) % (HALF_MOVE_MODULO) + 1;
 }

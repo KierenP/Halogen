@@ -9,17 +9,16 @@
 #include "GameState.h"
 #include "MoveGeneration.h"
 #include "SearchData.h"
-#include "TTEntry.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local,
-    int DistanceFromRoot, bool Quiescence)
-    : position(position)
-    , local(local)
-    , ss(ss)
-    , distanceFromRoot(DistanceFromRoot)
+StagedMoveGenerator::StagedMoveGenerator(
+    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+    : position(Position)
+    , local(Local)
+    , ss(SS)
     , quiescence(Quiescence)
+    , TTmove(tt_move)
 {
     if (quiescence)
         stage = Stage::GEN_LOUD;
@@ -33,7 +32,6 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::TT_MOVE)
     {
-        TTmove = GetHashMove(position.Board(), distanceFromRoot);
         stage = Stage::GEN_LOUD;
 
         if (MoveIsLegal(position.Board(), TTmove))
@@ -133,14 +131,14 @@ bool StagedMoveGenerator::Next(Move& move)
 
 void StagedMoveGenerator::AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.history.Add(position, ss, move, positive_adjustment);
+    local.history.add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.history.Add(position, ss, m.move, negative_adjustment);
+        local.history.add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -161,8 +159,8 @@ constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000, 91, 532, 568, 715
 
 uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
-    uint64_t pawn_mask = (board.GetPieceBB(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
-    pawn_mask |= (board.GetPieceBB(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
+    uint64_t pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
+    pawn_mask |= (board.GetPieceBB<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
 
     uint64_t bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
     uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
@@ -296,35 +294,11 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.history.Get(position, ss, moves[i].move);
+            int history = local.history.get(position, ss, moves[i].move);
             moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
                 std::numeric_limits<decltype(moves[i].score)>::max());
         }
     }
 
     selection_sort(moves);
-}
-
-Move GetHashMoveMinDepth(const BoardState& board, int min_depth, int distanceFromRoot)
-{
-    auto entry = tTable.GetEntryMinDepth(board.GetZobristKey(), distanceFromRoot, min_depth, board.half_turn_count);
-
-    if (entry.has_value())
-    {
-        return entry->GetMove();
-    }
-
-    return Move::Uninitialized;
-}
-
-Move GetHashMove(const BoardState& board, int min_depth)
-{
-    auto entry = tTable.GetEntry(board.GetZobristKey(), min_depth, board.half_turn_count);
-
-    if (entry.has_value())
-    {
-        return entry->GetMove();
-    }
-
-    return Move::Uninitialized;
 }

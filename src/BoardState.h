@@ -32,22 +32,44 @@ public:
 
     bool IsEmpty(Square square) const;
     bool IsOccupied(Square square) const;
-    bool IsOccupied(Square square, Players colour) const;
 
     uint64_t GetAllPieces() const;
     uint64_t GetEmptySquares() const;
-    uint64_t GetWhitePieces() const;
-    uint64_t GetBlackPieces() const;
     uint64_t GetPiecesColour(Players colour) const;
     uint64_t GetPieceBB(PieceTypes pieceType, Players colour) const;
     uint64_t GetPieceBB(Pieces piece) const;
 
     Square GetKing(Players colour) const;
 
+    template <Players side>
+    uint64_t GetPieces() const
+    {
+        if constexpr (side == Players::WHITE)
+        {
+            return WhitePieces;
+        }
+        else
+        {
+            return BlackPieces;
+        }
+    }
+
     template <PieceTypes type>
     uint64_t GetPieceBB() const
     {
-        return GetPieceBB(type, WHITE) | GetPieceBB(type, BLACK);
+        return GetPieceBB<type, WHITE>() | GetPieceBB<type, BLACK>();
+    }
+
+    template <Pieces type>
+    uint64_t GetPieceBB() const
+    {
+        return board[type];
+    }
+
+    template <PieceTypes pieceType, Players colour>
+    uint64_t GetPieceBB() const
+    {
+        return GetPieceBB<Piece(pieceType, colour)>();
     }
 
     uint64_t GetZobristKey() const;

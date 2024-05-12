@@ -1,6 +1,5 @@
 #include "SearchData.h"
 
-#include <assert.h>
 #include <atomic>
 #include <cstdint>
 #include <iostream>
@@ -16,90 +15,31 @@
 
 TranspositionTable tTable;
 
-void History::Reset()
+SearchStackState::SearchStackState(int distance_from_root_)
+    : distance_from_root(distance_from_root_)
 {
-    butterfly = std::make_unique<ButterflyType>();
-    counterMove = std::make_unique<CounterMoveType>();
 }
 
-void History::Add(const GameState& position, const SearchStackState* ss, Move move, int change)
+void SearchStackState::reset()
 {
-    AddButterfly(position, move, change);
-    AddCounterMove(position, ss, move, change);
+    pv = {};
+    killers = {};
+    move = Move::Uninitialized;
+    singular_exclusion = Move::Uninitialized;
+    multiple_extensions = 0;
 }
 
-int History::Get(const GameState& position, const SearchStackState* ss, Move move) const
+SearchStackState* SearchStack::root()
 {
-    return GetButterfly(position, move) + GetCounterMove(position, ss, move);
+    return &search_stack_array_[-min_access];
 }
 
-void History::AddHistory(int16_t& val, int change, int max, int scale)
+void SearchStack::reset()
 {
-    val += scale * change - val * abs(change) * scale / max;
-}
-
-void History::AddButterfly(const GameState& position, Move move, int change)
-{
-    assert(move != Move::Uninitialized);
-
-    assert(ColourOfPiece(position.Board().GetSquare(move.GetFrom())) == position.Board().stm);
-    assert(position.Board().stm != N_PLAYERS);
-    assert(move.GetFrom() != N_SQUARES);
-    assert(move.GetTo() != N_SQUARES);
-
-    AddHistory(
-        (*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()], change, Butterfly_max, Butterfly_scale);
-}
-
-int16_t History::GetButterfly(const GameState& position, Move move) const
-{
-    assert(move != Move::Uninitialized);
-
-    assert(ColourOfPiece(position.Board().GetSquare(move.GetFrom())) == position.Board().stm);
-    assert(position.Board().stm != N_PLAYERS);
-    assert(move.GetFrom() != N_SQUARES);
-    assert(move.GetTo() != N_SQUARES);
-
-    return (*butterfly)[position.Board().stm][move.GetFrom()][move.GetTo()];
-}
-
-void History::AddCounterMove(const GameState& position, const SearchStackState* ss, Move move, int change)
-{
-    Move prevMove = (ss - 1)->move;
-    if (prevMove == Move::Uninitialized)
-        return;
-
-    assert(move != Move::Uninitialized);
-
-    PieceTypes prevPiece = GetPieceType(position.Board().GetSquare(prevMove.GetTo()));
-    PieceTypes currentPiece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
-
-    assert(prevPiece != N_PIECE_TYPES);
-    assert(currentPiece != N_PIECE_TYPES);
-    assert(prevMove.GetTo() != N_SQUARES);
-    assert(move.GetTo() != N_SQUARES);
-
-    AddHistory((*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()], change,
-        CounterMove_max, CounterMove_scale);
-}
-
-int16_t History::GetCounterMove(const GameState& position, const SearchStackState* ss, Move move) const
-{
-    Move prevMove = (ss - 1)->move;
-    if (prevMove == Move::Uninitialized)
-        return 0;
-
-    assert(move != Move::Uninitialized);
-
-    PieceTypes prevPiece = GetPieceType(position.Board().GetSquare(prevMove.GetTo()));
-    PieceTypes currentPiece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
-
-    assert(prevPiece != N_PIECE_TYPES);
-    assert(currentPiece != N_PIECE_TYPES);
-    assert(prevMove.GetTo() != N_SQUARES);
-    assert(move.GetTo() != N_SQUARES);
-
-    return (*counterMove)[position.Board().stm][prevPiece][prevMove.GetTo()][currentPiece][move.GetTo()];
+    for (auto& sss : search_stack_array_)
+    {
+        sss.reset();
+    }
 }
 
 bool SearchLocalState::RootExcludeMove(Move move)
@@ -123,10 +63,11 @@ bool SearchLocalState::RootExcludeMove(Move move)
 void SearchLocalState::ResetNewSearch()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
-    search_stack = {};
+    search_stack.reset();
     tb_hits = 0;
     nodes = 0;
     sel_septh = 0;
+    search_depth = 0;
     thread_wants_to_stop = false;
     aborting_search = false;
     root_move_blacklist = {};
@@ -135,13 +76,8 @@ void SearchLocalState::ResetNewSearch()
 
 void SearchLocalState::ResetNewGame()
 {
-    search_stack = {};
-    tb_hits = 0;
-    nodes = 0;
-    sel_septh = 0;
-    thread_wants_to_stop = false;
-    aborting_search = false;
-    history.Reset();
+    ResetNewSearch();
+    history.reset();
 }
 
 SearchSharedState::SearchSharedState(int threads)

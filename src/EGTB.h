@@ -4,7 +4,6 @@
 #include "Move.h"
 #include "MoveList.h"
 #include "Score.h"
-#include "StaticVector.h"
 
 #include <optional>
 #include <string_view>

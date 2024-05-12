@@ -1,20 +1,27 @@
 #pragma once
-#include <algorithm>
 #include <array>
 #include <cstdint>
-#include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 #include "BitBoardDefine.h"
 #include "EvalCache.h"
+#include "History.h"
 #include "Move.h"
 #include "MoveList.h"
 #include "Search.h"
 #include "SearchLimits.h"
-#include "TimeManage.h"
 #include "TranspositionTable.h"
-#include "Zobrist.h"
+
+#ifdef __cpp_lib_hardware_interference_size
+using std::hardware_constructive_interference_size;
+using std::hardware_destructive_interference_size;
+#else
+// 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+constexpr std::size_t hardware_constructive_interference_size = 64;
+constexpr std::size_t hardware_destructive_interference_size = 64;
+#endif
 
 extern TranspositionTable tTable;
 
@@ -23,75 +30,42 @@ class GameState;
 // Holds information about the search state for a particular recursion depth.
 struct SearchStackState
 {
+    SearchStackState(int distance_from_root_);
+    void reset();
+
     BasicMoveList pv = {};
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
     Move singular_exclusion = Move::Uninitialized;
+    int multiple_extensions = 0;
+    const int distance_from_root;
 };
 
 class SearchStack
 {
+    // The search accesses [ss-1, ss+1]
+    constexpr static int min_access = -1;
+    constexpr static int max_access = 1;
+    constexpr static size_t size = MAX_DEPTH + max_access - min_access;
+
 public:
-    // The search accesses [-1, MAX_DEPTH], so the root is [1] and we have MAX_DEPTH+2 elements
-    SearchStackState* root()
-    {
-        return &search_stack_array_[1];
-    }
+    SearchStackState* root();
+    void reset();
 
 private:
-    std::array<SearchStackState, MAX_DEPTH + 2> search_stack_array_ = {};
-};
+    std::array<SearchStackState, size> search_stack_array_ { generate(std::make_integer_sequence<int, size>()) };
 
-class History
-{
-public:
-    History()
+    template <int... distances_from_root>
+    decltype(search_stack_array_) generate(std::integer_sequence<int, distances_from_root...>)
     {
-        Reset();
+        return { (distances_from_root + min_access)... };
     }
-
-    void Reset();
-
-    void Add(const GameState& position, const SearchStackState* ss, Move move, int change);
-    int Get(const GameState& position, const SearchStackState* ss, Move move) const;
-
-private:
-    // Tuneable history constants
-    static constexpr int Butterfly_max = 16384;
-    static constexpr int Butterfly_scale = 32;
-
-    static constexpr int CounterMove_max = 16384;
-    static constexpr int CounterMove_scale = 64;
-
-    void AddButterfly(const GameState& position, Move move, int change);
-    int16_t GetButterfly(const GameState& position, Move move) const;
-
-    void AddCounterMove(const GameState& position, const SearchStackState* ss, Move move, int change);
-    int16_t GetCounterMove(const GameState& position, const SearchStackState* ss, Move move) const;
-
-    void AddHistory(int16_t& val, int change, int max, int scale);
-
-    // [side][from][to]
-    using ButterflyType = std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, N_PLAYERS>;
-
-    // [side][prev_piece][prev_to][piece][to]
-    using CounterMoveType = std::array<
-        std::array<std::array<std::array<std::array<int16_t, N_SQUARES>, N_PIECE_TYPES>, N_SQUARES>, N_PIECE_TYPES>,
-        N_PLAYERS>;
-
-    std::unique_ptr<ButterflyType> butterfly;
-    std::unique_ptr<CounterMoveType> counterMove;
 };
 
 // Data local to a particular thread
-struct SearchLocalState
+struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
-    //--------------------------------------------------------------------------------------------
-private:
-    uint64_t padding1[8] = {}; // To avoid false sharing between adjacent SearchData objects
-    //--------------------------------------------------------------------------------------------
-
 public:
     SearchStack search_stack;
 
@@ -101,6 +75,7 @@ public:
     std::atomic<uint64_t> tb_hits = 0;
     std::atomic<uint64_t> nodes = 0;
     int sel_septh = 0;
+    int search_depth = 0;
 
     // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
@@ -120,11 +95,6 @@ public:
 
     void ResetNewSearch();
     void ResetNewGame();
-
-    //--------------------------------------------------------------------------------------------
-private:
-    uint64_t padding2[8] = {}; // To avoid false sharing between adjacent SearchData objects
-    //--------------------------------------------------------------------------------------------
 };
 
 // Search state that is shared between threads.

@@ -30,6 +30,8 @@ SRCS := \
 	Zobrist.cpp \
 	Score.cpp \
 	EGTB.cpp \
+	History.cpp \
+	Magic.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
@@ -42,9 +44,13 @@ DEPS := $(OBJS:.o=.d)
 
 #----------------------------------------------------------------------------------------------------------------------
 
-WFLAGS = -Wall -Wextra -Wshadow -std=c++17
-CFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto -march=native 
-RFLAGS = -O3 $(WFLAGS) -DNDEBUG -flto
+WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
+AFLAGS = $(WFLAGS) -g -std=c++17 
+CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
+RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
+SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
+# only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
+DFLAGS = -O0 $(AFLAGS) -Werror
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt
 PEXTFLAGS   = $(POPCNTFLAGS) -DUSE_PEXT -mbmi2
@@ -53,7 +59,8 @@ AVX2FLAGS   = -DUSE_AVX2 -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 CXXFLAGS := -fno-exceptions -MMD -MP -DEVALFILE=\"$(EVALFILE)\"
 
-ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+# Detect OS
+ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
     detected_OS := Windows
 else
     detected_OS := $(shell uname)
@@ -66,15 +73,38 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
 endif
 
-ifeq ($(detected_OS),Linux)
-	CXXFLAGS += -DMADV_RANDOM
+# Detect if CXX is g++ or clang++, in this order.
+ifeq '' '$(findstring clang++,$(CXX))'
+  	CXXFLAGS += -fconstexpr-ops-limit=1000000000
+  	$(info detected compiler is [g++])
+else
+  	CXXFLAGS += -fconstexpr-steps=100000000
+  	$(info detected compiler is [clang++])
 endif
 
 $(info LDFLAGS = [${LDFLAGS}])
+$(info CXXFLAGS = [${CXXFLAGS}])
 
 # Each target sets particular flags, and then builds the corresponding exe file.
 
-# for OpenBench support, we don't set a EXE name for the default (native) builds
+.PHONY: pgo
+pgo:
+	$(MAKE) pgo-instrumented
+	$(MAKE) pgo-compile
+
+.PHONY: pgo-instrumented
+pgo-instrumented: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS) -fprofile-generate
+pgo-instrumented: LDFLAGS += -flto -fprofile-generate
+pgo-instrumented: EXE = $(BINARY_DIR)/Halogen-pgo-instrumented.exe
+pgo-instrumented: binary
+	./$(EXE) bench
+
+.PHONY: pgo-compile
+pgo-compile: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS) -fprofile-use
+pgo-compile: LDFLAGS += -flto -fprofile-use
+pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo.exe
+pgo-compile: binary
+
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS) $(POPCNTFLAGS)
 native: LDFLAGS += -flto
@@ -82,18 +112,24 @@ native: EXE = $(BINARY_DIR)/Halogen-native.exe
 native: binary
 
 .PHONY: debug
-debug: CXXFLAGS += $(WFLAGS) -g
+debug: CXXFLAGS += $(DFLAGS)
 debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
 debug: binary
 
-.PHONY: sanitize
-sanitize: CXXFLAGS += $(WFLAGS) -g -fsanitize=undefined -fsanitize=address
-sanitize: LDFLAGS += -fsanitize=undefined -fsanitize=address
-sanitize: EXE = $(BINARY_DIR)/Halogen-sanitize.exe
-sanitize: binary
+.PHONY: sanitize-address
+sanitize-address: CXXFLAGS += $(SFLAGS) -fsanitize=address
+sanitize-address: LDFLAGS += -fsanitize=address
+sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address.exe
+sanitize-address: binary
+
+.PHONY: sanitize-undefined
+sanitize-undefined: CXXFLAGS += $(SFLAGS) -fsanitize=undefined
+sanitize-undefined: LDFLAGS += -fsanitize=undefined
+sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined.exe
+sanitize-undefined: binary
 
 .PHONY: sanitize-thread
-sanitize-thread: CXXFLAGS += $(WFLAGS) -g -fsanitize=thread
+sanitize-thread: CXXFLAGS += $(SFLAGS) -fsanitize=thread
 sanitize-thread: LDFLAGS += -fsanitize=thread
 sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread.exe
 sanitize-thread: binary
@@ -160,12 +196,12 @@ net:
 # The final build step.
 .PHONY: binary
 binary: $(OBJS)
-	mkdir -p $(dir $(EXE))
+	@ mkdir -p $(BINARY_DIR)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.o: % net clean_build
-	mkdir -p $(dir $@)
+$(BUILD_DIR)/%.o: % net
+	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: clean_build

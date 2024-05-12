@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory> //required to compile with g++
-#include <optional>
 
 #include "TTEntry.h"
 
@@ -13,8 +12,10 @@ class TranspositionTable
 public:
     TranspositionTable()
     {
-        Reallocate(CalculateEntryCount(32)); // 32MB default
+        SetSize(32); // 32MB default
     }
+
+    ~TranspositionTable();
 
     size_t GetSize() const
     {
@@ -34,14 +35,12 @@ public:
     void PreFetch(uint64_t key) const;
 
     // find a matching entry at any depth
-    std::optional<TTEntry> GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
-
-    // find a matching entry with minimum depth
-    std::optional<TTEntry> GetEntryMinDepth(uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count);
+    TTEntry* GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
 
 private:
     uint64_t HashFunction(const uint64_t& key) const;
-    void Reallocate(size_t size);
+    void Reallocate();
+    void Deallocate();
 
     static constexpr uint64_t CalculateEntryCount(uint64_t MB)
     {
@@ -49,7 +48,7 @@ private:
     }
 
     // raw array and memset allocates quicker than std::vector
-    std::unique_ptr<TTBucket[]> table;
+    TTBucket* table;
     size_t size_;
     uint64_t hash_mask_;
 };
