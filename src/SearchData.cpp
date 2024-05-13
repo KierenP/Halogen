@@ -31,6 +31,11 @@ void SearchStackState::reset()
     multiple_extensions = 0;
 }
 
+const SearchStackState* SearchStack::root() const
+{
+    return &search_stack_array_[-min_access];
+}
+
 SearchStackState* SearchStack::root()
 {
     return &search_stack_array_[-min_access];
@@ -42,6 +47,11 @@ void SearchStack::reset()
     {
         sss.reset();
     }
+}
+
+SearchLocalState::SearchLocalState(int thread_id_)
+    : thread_id(thread_id_)
+{
 }
 
 bool SearchLocalState::RootExcludeMove(Move move)
@@ -69,7 +79,8 @@ void SearchLocalState::ResetNewSearch()
     tb_hits = 0;
     nodes = 0;
     sel_septh = 0;
-    search_depth = 0;
+    curr_depth = 0;
+    curr_multi_pv = 0;
     thread_wants_to_stop = false;
     aborting_search = false;
     root_move_blacklist = {};
@@ -83,72 +94,46 @@ void SearchLocalState::ResetNewGame()
 }
 
 SearchSharedState::SearchSharedState(int threads)
-    : search_results_(threads)
-    , search_local_states_(threads)
+    : threads_setting(threads)
+    , search_results_(threads)
 {
-}
-
-void SearchSharedState::report_search_result(int thread_id, GameState& position, SearchStackState* ss,
-    SearchLocalState& local, int depth, SearchResult result, SearchResultType type)
-{
-    std::scoped_lock lock(lock_);
-
-    // Store the result in the table (potentially overwriting a previous lower/upper bound)
-    auto& result_data = search_results_[thread_id][depth];
-    result_data = {
-        depth,
-        result.GetMove(),
-        result.GetScore(),
-        ss->pv,
-        type,
-    };
-
-    // Update the best search result. We want to pick the highest depth result, and using the higher score for
-    // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
-    if ((result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
-        && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
-            || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
+    for (int i = 0; i < threads_setting; i++)
     {
-        best_search_result_ = &result_data;
-    }
-
-    // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
-    // of search to avoid printing too much output
-    if (thread_id == 0)
-    {
-        if (type == SearchResultType::EXACT || limits.ElapsedTime() > 5000)
-        {
-            PrintSearchInfo(position, local, depth, result_data);
-        }
+        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
     }
 }
 
-void SearchSharedState::report_thread_wants_to_stop(int thread_id)
+void SearchSharedState::ResetNewSearch()
 {
-    // If at least half the threads (rounded up) want to stop, we abort
-
-    search_local_states_[thread_id].thread_wants_to_stop = true;
-
-    int abort_votes = 0;
-
-    for (const auto& local : search_local_states_)
-    {
-        if (local.thread_wants_to_stop == true)
-        {
-            abort_votes++;
-        }
-    }
-
-    if (abort_votes * 2 >= (int)search_local_states_.size())
-    {
-        KeepSearching = false;
-    }
+    search_results_.clear();
+    search_results_.resize(threads_setting, decltype(search_results_)::value_type(multi_pv_setting));
+    best_search_result_ = nullptr;
+    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
 }
 
-BasicMoveList SearchSharedState::get_multi_pv_excluded_moves() const
+void SearchSharedState::ResetNewGame()
 {
-    std::scoped_lock lock(lock_);
-    return multi_PV_excluded_moves_;
+    search_results_.clear();
+    search_results_.resize(threads_setting, decltype(search_results_)::value_type(multi_pv_setting));
+    best_search_result_ = nullptr;
+    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewGame(); });
+}
+
+void SearchSharedState::set_multi_pv(int multi_pv)
+{
+    multi_pv_setting = multi_pv;
+    ResetNewSearch();
+}
+
+void SearchSharedState::set_threads(int threads)
+{
+    threads_setting = threads;
+    search_local_states_.clear();
+    for (int i = 0; i < threads_setting; i++)
+    {
+        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
+    }
+    ResetNewSearch();
 }
 
 SearchSharedState::SearchResults SearchSharedState::get_best_search_result() const
@@ -157,50 +142,87 @@ SearchSharedState::SearchResults SearchSharedState::get_best_search_result() con
     return *best_search_result_;
 }
 
+void SearchSharedState::report_search_result(GameState& position, const SearchStackState* ss,
+    const SearchLocalState& local, SearchResult result, SearchResultType type)
+{
+    std::scoped_lock lock(lock_);
+
+    // Store the result in the table (potentially overwriting a previous lower/upper bound)
+    auto& result_data = search_results_[local.thread_id][local.curr_multi_pv - 1][local.curr_depth];
+    result_data = { local.curr_depth, local.curr_multi_pv, result.GetMove(), result.GetScore(), ss->pv, type };
+
+    // Update the best search result. We want to pick the highest depth result, and using the higher score for
+    // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
+    if (local.curr_multi_pv == 1
+        && (result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
+        && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
+            || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
+    {
+        best_search_result_ = &result_data;
+    }
+
+    // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
+    // of search to avoid printing too much output
+    if (local.thread_id == 0)
+    {
+        if (type == SearchResultType::EXACT || limits.ElapsedTime() > 5000)
+        {
+            PrintSearchInfo(position, local, result_data);
+        }
+    }
+}
+
 uint64_t SearchSharedState::tb_hits() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
-        [](const auto& val, const auto& state) { return val + state.tb_hits.load(std::memory_order_relaxed); });
+        [](const auto& val, const auto& state) { return val + state->tb_hits.load(std::memory_order_relaxed); });
 }
 
 uint64_t SearchSharedState::nodes() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
-        [](const auto& val, const auto& state) { return val + state.nodes.load(std::memory_order_relaxed); });
+        [](const auto& val, const auto& state) { return val + state->nodes.load(std::memory_order_relaxed); });
 }
 
-SearchLocalState& SearchSharedState::get_local_state(unsigned int thread_id)
+int SearchSharedState::get_threads_setting() const
 {
-    return search_local_states_[thread_id];
+    return threads_setting;
 }
 
-int SearchSharedState::get_thread_count() const
+int SearchSharedState::get_multi_pv_setting() const
 {
-    return search_local_states_.size();
+    return multi_pv_setting;
 }
 
-void SearchSharedState::ResetNewSearch()
+SearchLocalState& SearchSharedState::get_local_state(int thread_id)
 {
-    search_results_.clear();
-    search_results_.resize(get_thread_count());
-    best_search_result_ = nullptr;
-    multi_PV_excluded_moves_.clear();
-
-    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data.ResetNewSearch(); });
+    return *search_local_states_[thread_id];
 }
 
-void SearchSharedState::ResetNewGame()
+void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 {
-    search_results_.clear();
-    search_results_.resize(get_thread_count());
-    best_search_result_ = nullptr;
-    multi_PV_excluded_moves_.clear();
+    // If at least half the threads (rounded up) want to stop, we abort
 
-    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data.ResetNewGame(); });
+    search_local_states_[thread_id]->thread_wants_to_stop = true;
+
+    int abort_votes = 0;
+
+    for (const auto& local : search_local_states_)
+    {
+        if (local->thread_wants_to_stop == true)
+        {
+            abort_votes++;
+        }
+    }
+
+    if (abort_votes * 2 >= threads_setting)
+    {
+        KeepSearching = false;
+    }
 }
 
 void SearchSharedState::PrintSearchInfo(
-    GameState& position, const SearchLocalState& local, int depth, const SearchResults& data) const
+    GameState& position, const SearchLocalState& local, const SearchResults& data) const
 {
     /*
     Here we avoid excessive use of std::cout and instead append to a string in order
@@ -210,7 +232,7 @@ void SearchSharedState::PrintSearchInfo(
 
     std::stringstream stream;
 
-    stream << "info depth " << depth << " seldepth " << local.sel_septh;
+    stream << "info depth " << data.depth << " seldepth " << local.sel_septh;
 
     if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
     {
@@ -235,10 +257,7 @@ void SearchSharedState::PrintSearchInfo(
     auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
 
     stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
-           << " tbhits " << tb_hits();
-
-    if (multi_pv > 0)
-        stream << " multipv " << multi_PV_excluded_moves_.size() + 1;
+           << " tbhits " << tb_hits() << " multipv " << data.multi_pv;
 
     stream << " pv "; // the current best line found
 
