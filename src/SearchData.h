@@ -101,18 +101,13 @@ public:
 // Search state that is shared between threads.
 class SearchSharedState
 {
-    enum class SearchInfoType
+    struct SearchResults
     {
-        EXACT,
-        LOWER_BOUND,
-        UPPER_BOUND,
-    };
-
-    struct SearchDepthResults
-    {
+        int depth = 0;
         Move best_move = Move::Uninitialized;
         Score score = SCORE_UNDEFINED;
         BasicMoveList pv = {};
+        SearchResultType type = SearchResultType::EMPTY;
     };
 
 public:
@@ -128,15 +123,10 @@ public:
     // ------------------------------------
 
     void report_search_result(int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local,
-        int depth, SearchResult result);
-    void report_aspiration_low_result(
-        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
-    void report_aspiration_high_result(
-        GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result);
+        int depth, SearchResult result, SearchResultType type);
 
-    BasicMoveList get_multi_pv_excluded_moves();
-
-    const SearchDepthResults& get_best_search_result() const;
+    BasicMoveList get_multi_pv_excluded_moves() const;
+    SearchResults get_best_search_result() const;
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
@@ -158,20 +148,13 @@ public:
 private:
     mutable std::mutex lock_;
 
-    void PrintInfoDepthString(GameState& position, const SearchLocalState& local, int depth);
-
-    void PrintSearchInfo(GameState& position, const SearchLocalState& local, int depth, const SearchDepthResults& data,
-        SearchInfoType type) const;
+    void PrintSearchInfo(
+        GameState& position, const SearchLocalState& local, int depth, const SearchResults& data) const;
 
     // TODO: fix MultiPV
-    std::vector<std::array<SearchDepthResults, MAX_DEPTH + 1>> search_results_;
+    std::vector<std::array<SearchResults, MAX_DEPTH + 1>> search_results_;
 
-    // Based on the voting model, this is the current best result
-    SearchDepthResults* best_result_ = nullptr;
-
-    // The depth that has been completed. When the first thread finishes a depth it increments this. All other threads
-    // should stop searching that depth
-    std::atomic<int> highest_completed_depth_ = 0;
+    SearchResults* best_search_result_ = nullptr;
 
     // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
     // we start a search. search_local_states_.size() == number of threads. This vector is constructed once when the

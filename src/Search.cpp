@@ -58,7 +58,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     int depth, Score alpha, Score beta);
 
 void PrintBestMove(Move Best, const BoardState& board, bool chess960);
-bool UseTransposition(Score tt_score, EntryType cutoff, Score alpha, Score beta);
+bool UseTransposition(Score tt_score, SearchResultType cutoff, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
 bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
 bool IsEndGame(const BoardState& board);
@@ -72,8 +72,8 @@ void UpdatePV(Move move, SearchStackState* ss);
 int Reduction(int depth, int i);
 
 void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id);
-SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, int depth, Score mid_score);
+SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
+    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score);
 
 bool should_abort_search(SearchLocalState& local, const SearchSharedState& shared);
 
@@ -167,7 +167,7 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
         // copy the MultiPV exclusion
         local.root_move_blacklist = shared.get_multi_pv_excluded_moves();
         local.search_depth = depth;
-        SearchResult result = AspirationWindowSearch(position, ss, local, shared, depth, mid_score);
+        SearchResult result = AspirationWindowSearch(thread_id, position, ss, local, shared, depth, mid_score);
         mid_score = result.GetScore();
 
         // Else, if we aborted then we should return
@@ -176,7 +176,7 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
             return;
         }
 
-        shared.report_search_result(thread_id, position, ss, local, depth, result);
+        shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::EXACT);
 
         if (shared.limits.HitMateLimit(result.GetScore()))
         {
@@ -185,8 +185,8 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
     }
 }
 
-SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, int depth, Score mid_score)
+SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
+    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score)
 {
     Score delta = aspiration_window_mid_width;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
@@ -209,7 +209,8 @@ SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, S
 
         if (result.GetScore() <= alpha)
         {
-            shared.report_aspiration_low_result(position, ss, local, depth, result);
+            result = { alpha, result.GetMove() };
+            shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::UPPER_BOUND);
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
@@ -217,7 +218,8 @@ SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, S
 
         if (result.GetScore() >= beta)
         {
-            shared.report_aspiration_high_result(position, ss, local, depth, result);
+            result = { beta, result.GetMove() };
+            shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 
@@ -331,7 +333,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         ? convert_from_tt_score(tt_entry->score.load(std::memory_order_relaxed), distance_from_root)
         : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth.load(std::memory_order_relaxed) : 0;
-    const auto tt_cutoff = tt_entry ? tt_entry->cutoff.load(std::memory_order_relaxed) : EntryType::EMPTY_ENTRY;
+    const auto tt_cutoff = tt_entry ? tt_entry->cutoff.load(std::memory_order_relaxed) : SearchResultType::EMPTY;
     const auto tt_move = tt_entry ? tt_entry->move.load(std::memory_order_relaxed) : Move::Uninitialized;
 
     // Check if we can abort early and return this tt_entry score
@@ -456,7 +458,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 6 && tt_entry
-            && tt_depth + 2 >= depth && tt_cutoff != EntryType::UPPERBOUND && tt_move == move)
+            && tt_depth + 2 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
         {
             Score sbeta = tt_score - depth * 2;
             int sdepth = depth / 2;
@@ -617,19 +619,19 @@ void UpdatePV(Move move, SearchStackState* ss)
     ss->pv.insert(ss->pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 }
 
-bool UseTransposition(Score tt_score, EntryType cutoff, Score alpha, Score beta)
+bool UseTransposition(Score tt_score, SearchResultType cutoff, Score alpha, Score beta)
 {
-    if (cutoff == EntryType::EXACT)
+    if (cutoff == SearchResultType::EXACT)
     {
         return true;
     }
 
-    if (cutoff == EntryType::LOWERBOUND && tt_score >= beta)
+    if (cutoff == SearchResultType::LOWER_BOUND && tt_score >= beta)
     {
         return true;
     }
 
-    if (cutoff == EntryType::UPPERBOUND && tt_score <= alpha)
+    if (cutoff == SearchResultType::UPPER_BOUND && tt_score <= alpha)
     {
         return true;
     }
@@ -670,13 +672,13 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
 {
     if (score <= alphaOriginal)
         tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            EntryType::UPPERBOUND); // mate score adjustent is done inside this function
+            SearchResultType::UPPER_BOUND); // mate score adjustent is done inside this function
     else if (score >= beta)
         tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            EntryType::LOWERBOUND);
+            SearchResultType::LOWER_BOUND);
     else
         tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            EntryType::EXACT);
+            SearchResultType::EXACT);
 }
 
 Score TerminalScore(const BoardState& board, int distanceFromRoot)

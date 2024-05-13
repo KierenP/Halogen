@@ -6,6 +6,14 @@
 #include <cstdint>
 #include <type_traits>
 
+enum class SearchResultType : uint8_t
+{
+    EMPTY,
+    EXACT,
+    LOWER_BOUND,
+    UPPER_BOUND,
+};
+
 enum Square
 {
     // clang-format off

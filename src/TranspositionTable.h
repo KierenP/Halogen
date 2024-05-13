@@ -30,7 +30,7 @@ public:
     void SetSize(uint64_t MB);
 
     void AddEntry(const Move& best, uint64_t ZobristKey, Score Score, int Depth, int Turncount, int distanceFromRoot,
-        EntryType Cutoff);
+        SearchResultType Cutoff);
 
     void PreFetch(uint64_t key) const;
 

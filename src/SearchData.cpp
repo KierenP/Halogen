@@ -88,57 +88,39 @@ SearchSharedState::SearchSharedState(int threads)
 {
 }
 
-void SearchSharedState::report_search_result(
-    int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local, int depth, SearchResult result)
+void SearchSharedState::report_search_result(int thread_id, GameState& position, SearchStackState* ss,
+    SearchLocalState& local, int depth, SearchResult result, SearchResultType type)
 {
     std::scoped_lock lock(lock_);
 
-    auto& results = search_results_[thread_id][depth];
-    results.best_move = result.GetMove();
-    results.score = result.GetScore();
-    results.pv = ss->pv;
+    // Store the result in the table (potentially overwriting a previous lower/upper bound)
+    auto& result_data = search_results_[thread_id][depth];
+    result_data = {
+        depth,
+        result.GetMove(),
+        result.GetScore(),
+        ss->pv,
+        type,
+    };
 
-    PrintInfoDepthString(position, local, depth);
-}
-
-void SearchSharedState::report_aspiration_low_result(
-    GameState&, SearchStackState*, SearchLocalState&, int, SearchResult)
-{
-    /*std::scoped_lock lock(lock_);
-
-    auto elapsed_time = limits.ElapsedTime();
-    auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
-
-    if (depth == completed_depth + 1 && result.GetScore() < search_results_[depth].lowest_alpha)
+    // Update the best search result. We want to pick the highest depth result, and using the higher score for
+    // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
+    if ((result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
+        && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
+            || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
     {
-        if (elapsed_time > 5000)
-        {
-            PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::UPPER_BOUND);
-        }
-        search_results_[depth].lowest_alpha = result.GetScore();
-    }*/
-}
+        best_search_result_ = &result_data;
+    }
 
-void SearchSharedState::report_aspiration_high_result(
-    GameState&, SearchStackState*, SearchLocalState&, int, SearchResult)
-{
-    /*std::scoped_lock lock(lock_);
-
-    auto elapsed_time = limits.ElapsedTime();
-    auto completed_depth = highest_completed_depth_.load(std::memory_order_acquire);
-
-    if (depth == completed_depth + 1 && result.GetScore() > search_results_[depth].highest_beta)
+    // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
+    // of search to avoid printing too much output
+    if (thread_id == 0)
     {
-        if (elapsed_time > 5000)
+        if (type == SearchResultType::EXACT || limits.ElapsedTime() > 5000)
         {
-            PrintSearchInfo(position, ss, local, depth, result.GetScore(), SearchInfoType::LOWER_BOUND);
+            PrintSearchInfo(position, local, depth, result_data);
         }
-        search_results_[depth].highest_beta = result.GetScore();
-
-        // When we fail high, use set this as the best move for the next depth. This gains elo becuase more often than
-        // not a fail high move turns out to be the best.
-        search_results_[completed_depth + 1].best_move = result.GetMove();
-    }*/
+    }
 }
 
 void SearchSharedState::report_thread_wants_to_stop(int thread_id)
@@ -163,45 +145,16 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
     }
 }
 
-BasicMoveList SearchSharedState::get_multi_pv_excluded_moves()
+BasicMoveList SearchSharedState::get_multi_pv_excluded_moves() const
 {
     std::scoped_lock lock(lock_);
     return multi_PV_excluded_moves_;
 }
 
-const SearchSharedState::SearchDepthResults& SearchSharedState::get_best_search_result() const
+SearchSharedState::SearchResults SearchSharedState::get_best_search_result() const
 {
     std::scoped_lock lock(lock_);
-
-    // of each thread, we want the highest depth result. If multiple threads have reached the same depth, we pick the
-    // result with the highest score
-
-    const SearchDepthResults* best = nullptr;
-
-    for (int depth = MAX_DEPTH; depth >= 0; depth--)
-    {
-        for (int thread = 0; thread < get_thread_count(); thread++)
-        {
-            const auto& result = search_results_[thread][depth];
-            if (result.score == SCORE_UNDEFINED)
-            {
-                continue;
-            }
-
-            if (!best || best->score < result.score)
-            {
-                best = &result;
-            }
-        }
-
-        if (best)
-        {
-            return *best;
-        }
-    }
-
-    assert(false);
-    return search_results_[0][0];
+    return *best_search_result_;
 }
 
 uint64_t SearchSharedState::tb_hits() const
@@ -230,8 +183,7 @@ void SearchSharedState::ResetNewSearch()
 {
     search_results_.clear();
     search_results_.resize(get_thread_count());
-    best_result_ = nullptr;
-    highest_completed_depth_ = 0;
+    best_search_result_ = nullptr;
     multi_PV_excluded_moves_.clear();
 
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data.ResetNewSearch(); });
@@ -241,37 +193,14 @@ void SearchSharedState::ResetNewGame()
 {
     search_results_.clear();
     search_results_.resize(get_thread_count());
-    highest_completed_depth_ = 0;
+    best_search_result_ = nullptr;
     multi_PV_excluded_moves_.clear();
 
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data.ResetNewGame(); });
 }
 
-void SearchSharedState::PrintInfoDepthString(GameState& position, const SearchLocalState& local, int depth)
-{
-    // check if every thread has finished this depth: if so, print out the result with the highest score.
-    SearchDepthResults* best = nullptr;
-
-    for (int thread_id = 0; thread_id < get_thread_count(); thread_id++)
-    {
-        auto& result = search_results_[thread_id][depth];
-
-        if (result.score == SCORE_UNDEFINED)
-        {
-            return;
-        }
-
-        if (!best || best->score < result.score)
-        {
-            best = &result;
-        }
-    }
-
-    PrintSearchInfo(position, local, depth, *best, SearchInfoType::EXACT);
-}
-
-void SearchSharedState::PrintSearchInfo(GameState& position, const SearchLocalState& local, int depth,
-    const SearchDepthResults& data, SearchInfoType type) const
+void SearchSharedState::PrintSearchInfo(
+    GameState& position, const SearchLocalState& local, int depth, const SearchResults& data) const
 {
     /*
     Here we avoid excessive use of std::cout and instead append to a string in order
@@ -295,9 +224,9 @@ void SearchSharedState::PrintSearchInfo(GameState& position, const SearchLocalSt
         stream << " score cp " << data.score.value();
     }
 
-    if (type == SearchInfoType::UPPER_BOUND)
+    if (data.type == SearchResultType::UPPER_BOUND)
         stream << " upperbound";
-    if (type == SearchInfoType::LOWER_BOUND)
+    if (data.type == SearchResultType::LOWER_BOUND)
         stream << " lowerbound";
 
     auto elapsed_time = limits.ElapsedTime();
