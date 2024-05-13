@@ -101,24 +101,16 @@ public:
 // Search state that is shared between threads.
 class SearchSharedState
 {
-public:
-    enum class SearchInfoType
-    {
-        EMPTY,
-        EXACT,
-        LOWER_BOUND,
-        UPPER_BOUND,
-    };
-
     struct SearchResults
     {
         int depth = 0;
         Move best_move = Move::Uninitialized;
         Score score = SCORE_UNDEFINED;
         BasicMoveList pv = {};
-        SearchInfoType type = SearchInfoType::EMPTY;
+        SearchResultType type = SearchResultType::EMPTY;
     };
 
+public:
     SearchSharedState(int threads);
 
     // Below functions are not thread-safe and should not be called during search
@@ -131,7 +123,7 @@ public:
     // ------------------------------------
 
     void report_search_result(int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local,
-        int depth, SearchResult result, SearchInfoType type);
+        int depth, SearchResult result, SearchResultType type);
 
     BasicMoveList get_multi_pv_excluded_moves() const;
     SearchResults get_best_search_result() const;

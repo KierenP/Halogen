@@ -4,18 +4,11 @@
 #include <cstdint>
 #include <type_traits>
 
+#include "BitBoardDefine.h"
 #include "Move.h"
 #include "Score.h"
 
 constexpr unsigned int HALF_MOVE_MODULO = 16;
-
-enum class EntryType : char
-{
-    EMPTY_ENTRY,
-    EXACT,
-    LOWERBOUND,
-    UPPERBOUND
-};
 
 Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);
@@ -32,7 +25,7 @@ public:
     std::atomic<Move> move = Move::Uninitialized; // 2 bytes
     std::atomic<Score> score { 0 }; // 2 bytes
     std::atomic<int8_t> depth = 0; // 1 bytes
-    std::atomic<EntryType> cutoff = EntryType::EMPTY_ENTRY; // 1 bytes
+    std::atomic<SearchResultType> cutoff = SearchResultType::EMPTY; // 1 bytes
     // is stored as the move count at the ROOT of this current search modulo 16 plus 1
     std::atomic<int8_t> generation = 0; // 1 bytes
 };

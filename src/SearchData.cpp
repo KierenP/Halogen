@@ -89,10 +89,11 @@ SearchSharedState::SearchSharedState(int threads)
 }
 
 void SearchSharedState::report_search_result(int thread_id, GameState& position, SearchStackState* ss,
-    SearchLocalState& local, int depth, SearchResult result, SearchInfoType type)
+    SearchLocalState& local, int depth, SearchResult result, SearchResultType type)
 {
     std::scoped_lock lock(lock_);
 
+    // Store the result in the table (potentially overwriting a previous lower/upper bound)
     auto& result_data = search_results_[thread_id][depth];
     result_data = {
         depth,
@@ -104,17 +105,21 @@ void SearchSharedState::report_search_result(int thread_id, GameState& position,
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
-
-    if ((result_data.type == SearchInfoType::EXACT || result_data.type == SearchInfoType::LOWER_BOUND)
+    if ((result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
         && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
             || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
     {
         best_search_result_ = &result_data;
     }
 
+    // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
+    // of search to avoid printing too much output
     if (thread_id == 0)
     {
-        PrintSearchInfo(position, local, depth, result_data);
+        if (type == SearchResultType::EXACT || limits.ElapsedTime() > 5000)
+        {
+            PrintSearchInfo(position, local, depth, result_data);
+        }
     }
 }
 
@@ -219,9 +224,9 @@ void SearchSharedState::PrintSearchInfo(
         stream << " score cp " << data.score.value();
     }
 
-    if (data.type == SearchInfoType::UPPER_BOUND)
+    if (data.type == SearchResultType::UPPER_BOUND)
         stream << " upperbound";
-    if (data.type == SearchInfoType::LOWER_BOUND)
+    if (data.type == SearchResultType::LOWER_BOUND)
         stream << " lowerbound";
 
     auto elapsed_time = limits.ElapsedTime();
