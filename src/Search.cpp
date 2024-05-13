@@ -72,8 +72,8 @@ void UpdatePV(Move move, SearchStackState* ss);
 int Reduction(int depth, int i);
 
 void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id);
-SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, int depth, Score mid_score);
+SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
+    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score);
 
 bool should_abort_search(SearchLocalState& local, const SearchSharedState& shared);
 
@@ -167,7 +167,7 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
         // copy the MultiPV exclusion
         local.root_move_blacklist = shared.get_multi_pv_excluded_moves();
         local.search_depth = depth;
-        SearchResult result = AspirationWindowSearch(position, ss, local, shared, depth, mid_score);
+        SearchResult result = AspirationWindowSearch(thread_id, position, ss, local, shared, depth, mid_score);
         mid_score = result.GetScore();
 
         // Else, if we aborted then we should return
@@ -176,7 +176,8 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
             return;
         }
 
-        shared.report_search_result(thread_id, position, ss, local, depth, result);
+        shared.report_search_result(
+            thread_id, position, ss, local, depth, result, SearchSharedState::SearchInfoType::EXACT);
 
         if (shared.limits.HitMateLimit(result.GetScore()))
         {
@@ -185,8 +186,8 @@ void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int
     }
 }
 
-SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, int depth, Score mid_score)
+SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
+    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score)
 {
     Score delta = aspiration_window_mid_width;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
@@ -209,7 +210,8 @@ SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, S
 
         if (result.GetScore() <= alpha)
         {
-            shared.report_aspiration_low_result(position, ss, local, depth, result);
+            shared.report_search_result(
+                thread_id, position, ss, local, depth, result, SearchSharedState::SearchInfoType::UPPER_BOUND);
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
@@ -217,7 +219,8 @@ SearchResult AspirationWindowSearch(GameState& position, SearchStackState* ss, S
 
         if (result.GetScore() >= beta)
         {
-            shared.report_aspiration_high_result(position, ss, local, depth, result);
+            shared.report_search_result(
+                thread_id, position, ss, local, depth, result, SearchSharedState::SearchInfoType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 
