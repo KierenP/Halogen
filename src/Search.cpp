@@ -71,9 +71,9 @@ void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemai
 void UpdatePV(Move move, SearchStackState* ss);
 int Reduction(int depth, int i);
 
-void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id);
-SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
-    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score);
+void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared);
+SearchResult AspirationWindowSearch(
+    GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score);
 
 bool should_abort_search(SearchLocalState& local, const SearchSharedState& shared);
 
@@ -89,32 +89,26 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         root_move_whitelist = probe->root_move_whitelist;
     }
 
-    // Limit the MultiPV setting to be at most the number of legal moves
-    auto multi_pv = shared.multi_pv;
-    BasicMoveList moves;
-    moves.clear();
-    LegalMoves(position.Board(), moves);
-    shared.multi_pv = std::min<int>(shared.multi_pv, moves.size());
-
+    // TODO: move this into the shared state
     KeepSearching = true;
 
     // TODO: in single threaded search, we can avoid the latency hit of creating a new thread.
-
+    // TODO: fix behaviour of multi-pv when it is set higher than the number of legal moves. Also consider syzygy
+    // whitelist interactions
     std::vector<std::thread> threads;
 
-    for (int i = 0; i < shared.get_thread_count(); i++)
+    for (int i = 0; i < shared.get_threads_setting(); i++)
     {
-        shared.get_local_state(i).root_move_whitelist = root_move_whitelist;
-        threads.emplace_back(std::thread([position, &shared, i]() mutable { SearchPosition(position, shared, i); }));
+        auto& local = shared.get_local_state(i);
+        local.root_move_whitelist = root_move_whitelist;
+        threads.emplace_back(
+            std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
     }
 
     for (size_t i = 0; i < threads.size(); i++)
     {
         threads[i].join();
     }
-
-    // restore the MultiPV setting
-    shared.multi_pv = multi_pv;
 
     const auto& search_result = shared.get_best_search_result();
     PrintBestMove(search_result.best_move, position.Board(), shared.chess_960);
@@ -136,57 +130,65 @@ void PrintBestMove(Move Best, const BoardState& board, bool chess960)
     std::cout << std::endl;
 }
 
-void SearchPosition(GameState& position, SearchSharedState& shared, unsigned int thread_id)
+void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
-    auto& local = shared.get_local_state(thread_id);
     auto* ss = local.search_stack.root();
     Score mid_score = 0;
 
     for (int depth = 1; depth < MAX_DEPTH; depth++)
     {
-        if (shared.limits.HitDepthLimit(depth))
+        local.root_move_blacklist.clear();
+        local.curr_depth = depth;
+
+        for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
-            return;
-        }
+            local.curr_multi_pv = multi_pv;
 
-        if (shared.limits.HitNodeLimit(local.nodes.load(std::memory_order_relaxed)))
-        {
-            return;
-        }
+            if (shared.limits.HitDepthLimit(depth))
+            {
+                return;
+            }
 
-        if (!shared.limits.ShouldContinueSearch())
-        {
-            shared.report_thread_wants_to_stop(thread_id);
-        }
+            if (shared.limits.HitNodeLimit(local.nodes.load(std::memory_order_relaxed)))
+            {
+                return;
+            }
 
-        if (depth > 1 && shared.limits.HitTimeLimit())
-        {
-            return;
-        }
+            if (!shared.limits.ShouldContinueSearch())
+            {
+                shared.report_thread_wants_to_stop(local.thread_id);
+            }
 
-        // copy the MultiPV exclusion
-        local.root_move_blacklist = shared.get_multi_pv_excluded_moves();
-        local.search_depth = depth;
-        SearchResult result = AspirationWindowSearch(thread_id, position, ss, local, shared, depth, mid_score);
-        mid_score = result.GetScore();
+            if (depth > 1 && shared.limits.HitTimeLimit())
+            {
+                return;
+            }
 
-        // Else, if we aborted then we should return
-        if (local.aborting_search)
-        {
-            return;
-        }
+            SearchResult result = AspirationWindowSearch(position, ss, local, shared, mid_score);
+            local.root_move_blacklist.push_back(result.GetMove());
 
-        shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::EXACT);
+            if (multi_pv == 1)
+            {
+                mid_score = result.GetScore();
+            }
 
-        if (shared.limits.HitMateLimit(result.GetScore()))
-        {
-            return;
+            if (local.aborting_search)
+            {
+                return;
+            }
+
+            shared.report_search_result(position, ss, local, result, SearchResultType::EXACT);
+
+            if (shared.limits.HitMateLimit(result.GetScore()))
+            {
+                return;
+            }
         }
     }
 }
 
-SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position, SearchStackState* ss,
-    SearchLocalState& local, SearchSharedState& shared, int depth, Score mid_score)
+SearchResult AspirationWindowSearch(
+    GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score)
 {
     Score delta = aspiration_window_mid_width;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
@@ -195,7 +197,7 @@ SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position,
     while (true)
     {
         local.sel_septh = 0;
-        auto result = NegaScout<SearchType::ROOT>(position, ss, local, shared, depth, alpha, beta, false);
+        auto result = NegaScout<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta, false);
 
         if (local.aborting_search)
         {
@@ -210,7 +212,7 @@ SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position,
         if (result.GetScore() <= alpha)
         {
             result = { alpha, result.GetMove() };
-            shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::UPPER_BOUND);
+            shared.report_search_result(position, ss, local, result, SearchResultType::UPPER_BOUND);
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
@@ -219,7 +221,7 @@ SearchResult AspirationWindowSearch(unsigned int thread_id, GameState& position,
         if (result.GetScore() >= beta)
         {
             result = { beta, result.GetMove() };
-            shared.report_search_result(thread_id, position, ss, local, depth, result, SearchResultType::LOWER_BOUND);
+            shared.report_search_result(position, ss, local, result, SearchResultType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 
@@ -810,15 +812,14 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
 
     // See if we should abort the search. We get this signal if all threads have decided they want to stop, or we
     // receive a 'stop' command from the uci input
-    if (local.search_depth > 1 && !KeepSearching)
+    if (local.curr_depth > 1 && !KeepSearching)
     {
         local.aborting_search = true;
         return true;
     }
 
     // Check if we have breached the time limit.
-    if (local.search_depth > 1 && local.nodes.load(std::memory_order_relaxed) % 1024 == 0
-        && shared.limits.HitTimeLimit())
+    if (local.curr_depth > 1 && local.nodes.load(std::memory_order_relaxed) % 1024 == 0 && shared.limits.HitTimeLimit())
     {
         local.aborting_search = true;
         return true;

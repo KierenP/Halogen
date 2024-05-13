@@ -51,6 +51,7 @@ class SearchStack
     constexpr static size_t size = MAX_DEPTH + max_access - min_access;
 
 public:
+    const SearchStackState* root() const;
     SearchStackState* root();
     void reset();
 
@@ -68,15 +69,26 @@ private:
 struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
 public:
-    SearchStack search_stack;
+    SearchLocalState(int thread_id);
 
+    bool RootExcludeMove(Move move);
+    void ResetNewSearch();
+    void ResetNewGame();
+
+    const int thread_id;
+    SearchStack search_stack;
     EvalCacheTable eval_cache;
     History history;
-
+    int sel_septh = 0;
     std::atomic<uint64_t> tb_hits = 0;
     std::atomic<uint64_t> nodes = 0;
-    int sel_septh = 0;
-    int search_depth = 0;
+
+    // track the current depth + multi-pv of the search
+    int curr_depth = 0;
+    int curr_multi_pv = 0;
+
+    // Set to true when the search is unwinding and trying to return.
+    bool aborting_search = false;
 
     // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
@@ -84,18 +96,10 @@ public:
     // threads want to stop and if all threads do then we stop the search. TODO: could use a consensus model?
     std::atomic<bool> thread_wants_to_stop = false;
 
-    // Set to true when the search is unwinding and trying to return.
-    bool aborting_search = false;
-
     // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
     BasicMoveList root_move_whitelist;
     BasicMoveList root_move_blacklist;
-
-    bool RootExcludeMove(Move move);
-
-    void ResetNewSearch();
-    void ResetNewGame();
 };
 
 // Search state that is shared between threads.
@@ -104,6 +108,7 @@ class SearchSharedState
     struct SearchResults
     {
         int depth = 0;
+        int multi_pv = 0;
         Move best_move = Move::Uninitialized;
         Score score = SCORE_UNDEFINED;
         BasicMoveList pv = {};
@@ -118,49 +123,44 @@ public:
 
     void ResetNewSearch();
     void ResetNewGame();
+    void set_multi_pv(int multi_pv);
+    void set_threads(int threads);
 
     // Below functions are thread-safe and blocking
     // ------------------------------------
 
-    void report_search_result(int thread_id, GameState& position, SearchStackState* ss, SearchLocalState& local,
-        int depth, SearchResult result, SearchResultType type);
-
-    BasicMoveList get_multi_pv_excluded_moves() const;
     SearchResults get_best_search_result() const;
+
+    void report_search_result(GameState& position, const SearchStackState* ss, const SearchLocalState& local,
+        SearchResult result, SearchResultType type);
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
-    void report_thread_wants_to_stop(int thread_id);
-
     uint64_t tb_hits() const;
     uint64_t nodes() const;
+    int get_threads_setting() const;
+    int get_multi_pv_setting() const;
 
-    SearchLocalState& get_local_state(unsigned int thread_id);
+    SearchLocalState& get_local_state(int thread_id);
+    void report_thread_wants_to_stop(int thread_id);
 
-    int get_thread_count() const;
-
-    int multi_pv = 0;
     bool chess_960 = false;
-
     SearchLimits limits;
 
 private:
     mutable std::mutex lock_;
+    int multi_pv_setting = 1;
+    int threads_setting = 0;
 
-    void PrintSearchInfo(
-        GameState& position, const SearchLocalState& local, int depth, const SearchResults& data) const;
+    void PrintSearchInfo(GameState& position, const SearchLocalState& local, const SearchResults& data) const;
 
-    // TODO: fix MultiPV
-    std::vector<std::array<SearchResults, MAX_DEPTH + 1>> search_results_;
+    // [thread_id][multi_pv][depth]
+    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;
 
     SearchResults* best_search_result_ = nullptr;
 
     // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
-    // we start a search. search_local_states_.size() == number of threads. This vector is constructed once when the
-    // SearchSharedState is created. If the number of threads changes, we need to make a new SearchSharedState.
-    std::vector<SearchLocalState> search_local_states_;
-
-    // Moves that we ignore at the root for MultiPV mode
-    BasicMoveList multi_PV_excluded_moves_;
+    // we start a search.
+    std::vector<std::unique_ptr<SearchLocalState>> search_local_states_;
 };
