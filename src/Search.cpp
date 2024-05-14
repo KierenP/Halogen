@@ -81,13 +81,22 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 {
     shared.ResetNewSearch();
 
+    // Limit the MultiPV setting to be at most the number of legal moves
+    auto multi_pv = shared.get_multi_pv_setting();
+    BasicMoveList moves;
+    LegalMoves(position.Board(), moves);
+    multi_pv = std::min<int>(multi_pv, moves.size());
+
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position.Board());
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
         root_move_whitelist = probe->root_move_whitelist;
+        multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
     }
+
+    shared.set_multi_pv(multi_pv);
 
     // TODO: move this into the shared state
     KeepSearching = true;

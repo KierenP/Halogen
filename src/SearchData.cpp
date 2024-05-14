@@ -105,35 +105,45 @@ SearchSharedState::SearchSharedState(int threads)
 
 void SearchSharedState::ResetNewSearch()
 {
-    search_results_.clear();
-    search_results_.resize(threads_setting, decltype(search_results_)::value_type(multi_pv_setting));
+    for (auto& thread_results : search_results_)
+    {
+        for (auto& multi_pv_results : thread_results)
+        {
+            multi_pv_results = {};
+        }
+    }
+
     best_search_result_ = nullptr;
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
 }
 
 void SearchSharedState::ResetNewGame()
 {
-    search_results_.clear();
-    search_results_.resize(threads_setting, decltype(search_results_)::value_type(multi_pv_setting));
-    best_search_result_ = nullptr;
+    ResetNewSearch();
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewGame(); });
 }
 
 void SearchSharedState::set_multi_pv(int multi_pv)
 {
     multi_pv_setting = multi_pv;
-    ResetNewSearch();
+
+    for (auto& thread_results : search_results_)
+    {
+        thread_results.resize(multi_pv);
+    }
 }
 
 void SearchSharedState::set_threads(int threads)
 {
     threads_setting = threads;
+
     search_local_states_.clear();
     for (int i = 0; i < threads_setting; i++)
     {
         search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
     }
-    ResetNewSearch();
+
+    search_results_.resize(threads, decltype(search_results_)::value_type(multi_pv_setting));
 }
 
 SearchSharedState::SearchResults SearchSharedState::get_best_search_result() const
