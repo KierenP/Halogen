@@ -33,7 +33,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 10);
 
-string version = "11.17.0";
+string version = "11.18.0";
 
 int main(int argc, char* argv[])
 {
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 
     GameState position;
     thread searchThread;
-    std::unique_ptr<SearchSharedState> shared = std::make_unique<SearchSharedState>(1);
+    SearchSharedState shared(1);
 
     for (int i = 1; i < argc; i++) // read any command line input as a regular UCI instruction
     {
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
         {
             position.StartingPosition();
             tTable.ResetTable();
-            shared->ResetNewGame();
+            shared.ResetNewGame();
         }
 
         else if (token == "position")
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
             if (searchThread.joinable())
                 searchThread.join();
 
-            shared->limits = {};
+            shared.limits = {};
 
             // The amount of time we leave on the clock for safety
             constexpr static int BufferTime = 100;
@@ -155,33 +155,33 @@ int main(int argc, char* argv[])
                 {
                     int mate = 0;
                     iss >> mate;
-                    shared->limits.SetMateLimit(mate);
+                    shared.limits.SetMateLimit(mate);
                 }
 
                 else if (token == "depth")
                 {
                     int depth = 0;
                     iss >> depth;
-                    shared->limits.SetDepthLimit(depth);
+                    shared.limits.SetDepthLimit(depth);
                 }
 
                 else if (token == "infinite")
                 {
-                    shared->limits.SetInfinite();
+                    shared.limits.SetInfinite();
                 }
 
                 else if (token == "movetime")
                 {
                     int searchTime = 0;
                     iss >> searchTime;
-                    shared->limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
+                    shared.limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
                 }
 
                 else if (token == "nodes")
                 {
                     uint64_t nodes = 0;
                     iss >> nodes;
-                    shared->limits.SetNodeLimit(nodes);
+                    shared.limits.SetNodeLimit(nodes);
                 }
             }
 
@@ -196,8 +196,7 @@ int main(int argc, char* argv[])
 
                     // We divide the available time by the number of movestogo (which can be zero) and then adjust
                     // by 1.5x. This ensures we use more of the available time earlier.
-                    shared->limits.SetTimeLimits(
-                        (myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
+                    shared.limits.SetTimeLimits((myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
                 }
                 else if (myInc != 0)
                 {
@@ -205,7 +204,7 @@ int main(int argc, char* argv[])
 
                     // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
                     // use a higher proportion of the available time so that we get down to just using the increment
-                    shared->limits.SetTimeLimits(
+                    shared.limits.SetTimeLimits(
                         (myTime - BufferTime) * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
                             + myInc,
                         (myTime - BufferTime));
@@ -213,11 +212,11 @@ int main(int argc, char* argv[])
                 else
                 {
                     // Sudden death time control. We use 1/20th of the remaining time each turn
-                    shared->limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
+                    shared.limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
                 }
             }
 
-            searchThread = thread([position, &shared]() mutable { SearchThread(position, *shared); });
+            searchThread = thread([position, &shared]() mutable { SearchThread(position, shared); });
         }
 
         else if (token == "setoption")
@@ -233,7 +232,7 @@ int main(int argc, char* argv[])
                     tTable.ResetTable();
 
                     // We also reset the history tables, so the next search gives a fresh result.
-                    shared->ResetNewGame();
+                    shared.ResetNewGame();
                 }
             }
 
@@ -255,7 +254,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                shared = std::make_unique<SearchSharedState>(stoi(token));
+                shared.set_threads(stoi(token));
             }
 
             else if (token == "SyzygyPath")
@@ -269,7 +268,7 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                shared->multi_pv = stoi(token);
+                shared.set_multi_pv(stoi(token));
             }
 
             else if (token == "UCI_Chess960")
@@ -278,7 +277,7 @@ int main(int argc, char* argv[])
                 iss >> token;
                 std::transform(
                     token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
-                shared->chess_960 = (token == "true");
+                shared.chess_960 = (token == "true");
             }
 
             else if (token == "timeIncCoeffA")
@@ -299,7 +298,7 @@ int main(int argc, char* argv[])
         else if (token == "perft")
         {
             iss >> token;
-            PerftDivide(stoi(token), position, shared->chess_960, false);
+            PerftDivide(stoi(token), position, shared.chess_960, false);
         }
 
         else if (token == "test")
