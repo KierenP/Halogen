@@ -163,8 +163,7 @@ void SearchSharedState::report_search_result(GameState& position, const SearchSt
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
-    if (local.curr_multi_pv == 1
-        && (result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
+    if ((result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
         && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
             || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
     {
