@@ -229,9 +229,8 @@ uint64_t BoardState::GetEmptySquares() const
 void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
 {
     // check for the king or rook moving, or a rook being captured
-    // we must remember that the move has already been applied
 
-    if (move.GetTo() == GetKing(WHITE))
+    if (move.GetFrom() == GetKing(WHITE))
     {
         // get castle squares on white side
         uint64_t white_castle = castle_squares & RankBB[RANK_1];
@@ -242,11 +241,10 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
             zobrist.ToggleCastle(sq);
         }
 
-        // switch any set bits on first rank to 0
         castle_squares &= ~(RankBB[RANK_1]);
     }
 
-    if (move.GetTo() == GetKing(BLACK))
+    if (move.GetFrom() == GetKing(BLACK))
     {
         // get castle squares on black side
         uint64_t black_castle = castle_squares & RankBB[RANK_8];
@@ -257,7 +255,6 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
             zobrist.ToggleCastle(sq);
         }
 
-        // switch any set bits on first rank to 0
         castle_squares &= ~(RankBB[RANK_8]);
     }
 
@@ -301,6 +298,12 @@ void BoardState::Print() const
     }
 
     std::cout << std::endl;
+    std::cout << "en_passant: " << en_passant << "\n";
+    std::cout << "fifty_move_count: " << fifty_move_count << "\n";
+    std::cout << "half_turn_count: " << half_turn_count << "\n";
+    std::cout << "stm: " << stm << "\n";
+    std::cout << "castle_squares: " << castle_squares << "\n";
+    std::cout << std::endl;
 }
 
 void BoardState::ApplyMove(Move move, Network& net)
@@ -312,6 +315,9 @@ void BoardState::ApplyMove(Move move, Network& net)
         key.ToggleEnpassant(GetFile(en_passant));
 
     en_passant = N_SQUARES;
+
+    auto old_castle_squares = castle_squares;
+    UpdateCastleRights(move, key);
 
     switch (move.GetFlag())
     {
@@ -355,9 +361,9 @@ void BoardState::ApplyMove(Move move, Network& net)
     }
     case A_SIDE_CASTLE:
     {
-        Square king_start = GetKing(stm);
+        Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
-        Square rook_start = LSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = LSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
         ClearSquareAndUpdate(king_start, net);
@@ -369,9 +375,9 @@ void BoardState::ApplyMove(Move move, Network& net)
     }
     case H_SIDE_CASTLE:
     {
-        Square king_start = GetKing(stm);
+        Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
-        Square rook_start = MSB(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = MSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
         ClearSquareAndUpdate(king_start, net);
@@ -431,8 +437,6 @@ void BoardState::ApplyMove(Move move, Network& net)
         assert(0);
     }
 
-    UpdateCastleRights(move, key);
-
     if (move.IsCapture() || GetSquare(move.GetTo()) == Piece(PAWN, stm) || move.IsPromotion())
         fifty_move_count = 0;
     else
@@ -478,6 +482,33 @@ void BoardState::ClearSquareAndUpdate(Square square, Network& net)
 
 MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
 {
+    // Castling (normal chess)
+    if ((from == SQ_E1 && to == SQ_G1 && GetSquare(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_G8 && GetSquare(from) == BLACK_KING))
+    {
+        return H_SIDE_CASTLE;
+    }
+
+    if ((from == SQ_E1 && to == SQ_C1 && GetSquare(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_C8 && GetSquare(from) == BLACK_KING))
+    {
+        return A_SIDE_CASTLE;
+    }
+
+    // Castling (chess960). Needs to be handled before the 'capture' case
+    if ((GetSquare(from) == WHITE_KING && GetSquare(to) == WHITE_ROOK)
+        || (GetSquare(from) == BLACK_KING && GetSquare(to) == BLACK_ROOK))
+    {
+        if (from > to)
+        {
+            return A_SIDE_CASTLE;
+        }
+        else
+        {
+            return H_SIDE_CASTLE;
+        }
+    }
+
     // Captures
     if (IsOccupied(to))
     {
@@ -494,33 +525,6 @@ MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
     if (to == en_passant && (GetSquare(from) == WHITE_PAWN || GetSquare(from) == BLACK_PAWN))
     {
         return EN_PASSANT;
-    }
-
-    // Castling (normal chess)
-    if ((from == SQ_E1 && to == SQ_G1 && GetSquare(from) == WHITE_KING)
-        || (from == SQ_E8 && to == SQ_G8 && GetSquare(from) == BLACK_KING))
-    {
-        return H_SIDE_CASTLE;
-    }
-
-    if ((from == SQ_E1 && to == SQ_C1 && GetSquare(from) == WHITE_KING)
-        || (from == SQ_E8 && to == SQ_C8 && GetSquare(from) == BLACK_KING))
-    {
-        return A_SIDE_CASTLE;
-    }
-
-    // Castling (chess960)
-    if ((GetSquare(from) == WHITE_KING && GetSquare(to) == WHITE_ROOK)
-        || (GetSquare(from) == BLACK_KING && GetSquare(to) == BLACK_ROOK))
-    {
-        if (from > to)
-        {
-            return A_SIDE_CASTLE;
-        }
-        else
-        {
-            return H_SIDE_CASTLE;
-        }
     }
 
     return QUIET;
