@@ -1,10 +1,8 @@
 #include <chrono>
 #include <cmath>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <math.h>
-#include <mutex>
 #include <random>
 #include <string>
 #include <thread>

@@ -1,6 +1,6 @@
 #include "temporal_coherence.h"
 
-float prediction_quality(float p1, float p2)
+float prediction_quality(float s1, float s2)
 {
     auto f = [](float p1, float p2) -> float
     {
@@ -23,15 +23,15 @@ float prediction_quality(float p1, float p2)
         }
     };
 
-    if (p1 >= 0.5)
+    if (s1 >= 0.5)
     {
-        auto result = f(p1, p2);
+        auto result = f(s1, s2);
         assert(-1 <= result && result <= 1);
         return result;
     }
     else
     {
-        auto result = f(1 - p1, 1 - p2);
+        auto result = f(1 - s1, 1 - s2);
         assert(-1 <= result && result <= 1);
         return result;
     }

@@ -6,7 +6,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 decltype(HalogenNetwork::l1) HalogenNetwork::l1;
