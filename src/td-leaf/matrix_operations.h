@@ -14,7 +14,8 @@ template <typename OUT, typename IN, size_t SIZE>
 }
 
 template <typename OUT, typename IN, size_t SIZE>
-[[nodiscard]] OUT dot_product_halves(const std::array<IN, SIZE>& stm, const std::array<IN, SIZE>& other, const std::array<IN, SIZE * 2>& weights)
+[[nodiscard]] OUT dot_product_halves(
+    const std::array<IN, SIZE>& stm, const std::array<IN, SIZE>& other, const std::array<IN, SIZE * 2>& weights)
 {
     OUT result = 0;
     for (size_t i = 0; i < SIZE; i++)

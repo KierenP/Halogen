@@ -18,17 +18,21 @@
 
 // apply the adam gradients to the weight layer
 template <template <typename, size_t, size_t> class layer_t, typename T, size_t in, size_t out>
-void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_state, in, out>& adam, const layer_t<T, in, out>& gradient, int n_samples, uint64_t t);
+void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_state, in, out>& adam,
+    const layer_t<T, in, out>& gradient, int n_samples, uint64_t t);
 
 // given a loss gradient of layer l, and an activation for layer l-1, update the adam states in layer l
 template <typename T, size_t in, size_t out>
-void update_gradient(Layer<T, in, out>& gradient, const std::array<T, out>& loss_gradient, const std::array<T, in>& activation);
+void update_gradient(
+    Layer<T, in, out>& gradient, const std::array<T, out>& loss_gradient, const std::array<T, in>& activation);
 
 template <typename T, size_t in, size_t out>
-void update_gradient_sparse_half(TransposeLayer<T, in, out>& gradient, const std::array<T, out * 2>& loss_gradient, const std::vector<int>& sparse_stm, const std::vector<int>& sparse_other);
+void update_gradient_sparse_half(TransposeLayer<T, in, out>& gradient, const std::array<T, out * 2>& loss_gradient,
+    const std::vector<int>& sparse_stm, const std::vector<int>& sparse_other);
 
 template <typename T, size_t in, size_t out, typename Activation_prime>
-std::array<T, in> calculate_loss_gradient(Layer<T, in, out>& layer, const std::array<T, out>& gradient, const std::array<T, in>& activation, Activation_prime&& activation_prime);
+std::array<T, in> calculate_loss_gradient(Layer<T, in, out>& layer, const std::array<T, out>& gradient,
+    const std::array<T, in>& activation, Activation_prime&& activation_prime);
 
 decltype(TrainableNetwork::l1_adam) TrainableNetwork::l1_adam;
 decltype(TrainableNetwork::l2_adam) TrainableNetwork::l2_adam;
@@ -63,7 +67,7 @@ std::array<std::vector<int>, N_PLAYERS> TrainableNetwork::GetSparseInputs(const 
 
 void TrainableNetwork::InitializeWeightsRandomly(bool print_diagnostics)
 {
-    std::scoped_lock lock {l1_lock, l2_lock};
+    std::scoped_lock lock { l1_lock, l2_lock };
 
     std::mt19937 gen(0);
 
@@ -92,7 +96,7 @@ void TrainableNetwork::InitializeWeightsRandomly(bool print_diagnostics)
 
 void TrainableNetwork::SaveWeights(const std::string& filename, bool print_diagnostics)
 {
-    std::scoped_lock lock {l1_lock, l2_lock};
+    std::scoped_lock lock { l1_lock, l2_lock };
 
     if (print_diagnostics)
     {
@@ -105,7 +109,8 @@ void TrainableNetwork::SaveWeights(const std::string& filename, bool print_diagn
     {
         for (size_t i = 0; i < layer.bias.size(); i++)
         {
-            file.write(reinterpret_cast<const char*>(&layer.bias[i]), sizeof(typename std::decay_t<decltype(layer)>::value_type));
+            file.write(reinterpret_cast<const char*>(&layer.bias[i]),
+                sizeof(typename std::decay_t<decltype(layer)>::value_type));
         }
     };
 
@@ -115,7 +120,8 @@ void TrainableNetwork::SaveWeights(const std::string& filename, bool print_diagn
         {
             for (size_t j = 0; j < layer.in_count_v; j++)
             {
-                file.write(reinterpret_cast<const char*>(&layer.weight[i][j]), sizeof(typename std::decay_t<decltype(layer)>::value_type));
+                file.write(reinterpret_cast<const char*>(&layer.weight[i][j]),
+                    sizeof(typename std::decay_t<decltype(layer)>::value_type));
             }
         }
 
@@ -128,7 +134,8 @@ void TrainableNetwork::SaveWeights(const std::string& filename, bool print_diagn
         {
             for (size_t j = 0; j < layer.in_count_v; j++)
             {
-                file.write(reinterpret_cast<const char*>(&layer.weight[j][i]), sizeof(typename std::decay_t<decltype(layer)>::value_type));
+                file.write(reinterpret_cast<const char*>(&layer.weight[j][i]),
+                    sizeof(typename std::decay_t<decltype(layer)>::value_type));
             }
         }
 
@@ -139,12 +146,13 @@ void TrainableNetwork::SaveWeights(const std::string& filename, bool print_diagn
     save_layer(l2);
 }
 
-void TrainableNetwork::UpdateGradients(double loss_gradient, const std::array<std::vector<int>, N_PLAYERS>& sparse_inputs, Players stm)
+void TrainableNetwork::UpdateGradients(
+    double loss_gradient, const std::array<std::vector<int>, N_PLAYERS>& sparse_inputs, Players stm)
 {
     // do the forward pass and save the activations:
 
     std::array<float, architecture[1] * 2> l1_activation;
-    
+
     std::copy(l1.bias.begin(), l1.bias.end(), l1_activation.begin());
     std::copy(l1.bias.begin(), l1.bias.end(), l1_activation.begin() + architecture[1]);
 
@@ -168,8 +176,8 @@ void TrainableNetwork::UpdateGradients(double loss_gradient, const std::array<st
 
     // get loss gradients
     auto l2_loss_gradient = std::array { static_cast<float>(loss_gradient) };
-    auto l1_loss_gradient = calculate_loss_gradient(l2, l2_loss_gradient, l1_activation, [](float x)
-        { return x > 0.0f; });
+    auto l1_loss_gradient
+        = calculate_loss_gradient(l2, l2_loss_gradient, l1_activation, [](float x) { return x > 0.0f; });
 
     // gradient updates
     update_gradient_sparse_half(l1_gradient, l1_loss_gradient, sparse_inputs[stm], sparse_inputs[!stm]);
@@ -181,11 +189,11 @@ void TrainableNetwork::ApplyOptimizationStep(int n_samples)
     t++;
 
     {
-        std::scoped_lock lock {l1_lock};
+        std::scoped_lock lock { l1_lock };
         apply_gradient(l1, l1_adam, l1_gradient, n_samples, t);
     }
     {
-        std::scoped_lock lock {l2_lock};
+        std::scoped_lock lock { l2_lock };
         apply_gradient(l2, l2_adam, l2_gradient, n_samples, t);
     }
 
@@ -195,10 +203,12 @@ void TrainableNetwork::ApplyOptimizationStep(int n_samples)
 }
 
 template <template <typename, size_t, size_t> class layer_t, typename T, size_t in, size_t out>
-void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_state, in, out>& adam, const layer_t<T, in, out>& gradient, int n_samples, uint64_t t)
+void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_state, in, out>& adam,
+    const layer_t<T, in, out>& gradient, int n_samples, uint64_t t)
 {
     // bias adjustment
-    auto adj_alpha = lr_alpha * std::sqrt(1 - std::pow(TrainableNetwork::adam_state::beta_2, t)) / (1 - std::pow(TrainableNetwork::adam_state::beta_1, t));
+    auto adj_alpha = lr_alpha * std::sqrt(1 - std::pow(TrainableNetwork::adam_state::beta_2, t))
+        / (1 - std::pow(TrainableNetwork::adam_state::beta_1, t));
 
     for (size_t i = 0; i < layer.weight.size(); i++)
     {
@@ -208,11 +218,14 @@ void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_s
             double g = gradient.weight[i][j] / n_samples;
 
             // do the adam step
-            adam.weight[i][j].m = TrainableNetwork::adam_state::beta_1 * adam.weight[i][j].m + (1 - TrainableNetwork::adam_state::beta_1) * g;
-            adam.weight[i][j].v = TrainableNetwork::adam_state::beta_2 * adam.weight[i][j].v + (1 - TrainableNetwork::adam_state::beta_2) * g * g;
+            adam.weight[i][j].m = TrainableNetwork::adam_state::beta_1 * adam.weight[i][j].m
+                + (1 - TrainableNetwork::adam_state::beta_1) * g;
+            adam.weight[i][j].v = TrainableNetwork::adam_state::beta_2 * adam.weight[i][j].v
+                + (1 - TrainableNetwork::adam_state::beta_2) * g * g;
 
             // update the weights
-            layer.weight[i][j] += -adj_alpha * adam.weight[i][j].m / std::sqrt(adam.weight[i][j].v + TrainableNetwork::adam_state::epsilon);
+            layer.weight[i][j] += -adj_alpha * adam.weight[i][j].m
+                / std::sqrt(adam.weight[i][j].v + TrainableNetwork::adam_state::epsilon);
         }
     }
 
@@ -222,16 +235,20 @@ void apply_gradient(layer_t<T, in, out>& layer, layer_t<TrainableNetwork::adam_s
         double g = gradient.bias[i] / n_samples;
 
         // do the adam step
-        adam.bias[i].m = TrainableNetwork::adam_state::beta_1 * adam.bias[i].m + (1 - TrainableNetwork::adam_state::beta_1) * g;
-        adam.bias[i].v = TrainableNetwork::adam_state::beta_2 * adam.bias[i].v + (1 - TrainableNetwork::adam_state::beta_2) * g * g;
+        adam.bias[i].m
+            = TrainableNetwork::adam_state::beta_1 * adam.bias[i].m + (1 - TrainableNetwork::adam_state::beta_1) * g;
+        adam.bias[i].v = TrainableNetwork::adam_state::beta_2 * adam.bias[i].v
+            + (1 - TrainableNetwork::adam_state::beta_2) * g * g;
 
         // update the weights
-        layer.bias[i] += -adj_alpha * adam.bias[i].m / std::sqrt(adam.bias[i].v + TrainableNetwork::adam_state::epsilon);
+        layer.bias[i]
+            += -adj_alpha * adam.bias[i].m / std::sqrt(adam.bias[i].v + TrainableNetwork::adam_state::epsilon);
     }
 }
 
 template <typename T, size_t in, size_t out>
-void update_gradient(Layer<T, in, out>& gradient, const std::array<T, out>& loss_gradient, const std::array<T, in>& activation)
+void update_gradient(
+    Layer<T, in, out>& gradient, const std::array<T, out>& loss_gradient, const std::array<T, in>& activation)
 {
     for (size_t i = 0; i < gradient.weight.size(); i++)
     {
@@ -247,7 +264,8 @@ void update_gradient(Layer<T, in, out>& gradient, const std::array<T, out>& loss
 }
 
 template <typename T, size_t in, size_t out>
-void update_gradient_sparse_half(TransposeLayer<T, in, out>& gradient, const std::array<T, out * 2>& loss_gradient, const std::vector<int>& sparse_stm, const std::vector<int>& sparse_other)
+void update_gradient_sparse_half(TransposeLayer<T, in, out>& gradient, const std::array<T, out * 2>& loss_gradient,
+    const std::vector<int>& sparse_stm, const std::vector<int>& sparse_other)
 {
     for (size_t i = 0; i < gradient.weight.size(); i++)
     {
@@ -269,7 +287,8 @@ void update_gradient_sparse_half(TransposeLayer<T, in, out>& gradient, const std
 }
 
 template <typename T, size_t in, size_t out, typename Activation_prime>
-std::array<T, in> calculate_loss_gradient(Layer<T, in, out>& layer, const std::array<T, out>& gradient, const std::array<T, in>& activation, Activation_prime&& activation_prime)
+std::array<T, in> calculate_loss_gradient(Layer<T, in, out>& layer, const std::array<T, out>& gradient,
+    const std::array<T, in>& activation, Activation_prime&& activation_prime)
 {
     std::array<T, in> loss_gradient = {};
 
@@ -291,7 +310,7 @@ std::array<T, in> calculate_loss_gradient(Layer<T, in, out>& layer, const std::a
 
 void TrainableNetwork::PrintNetworkDiagnostics()
 {
-    std::scoped_lock lock {l1_lock, l2_lock};
+    std::scoped_lock lock { l1_lock, l2_lock };
 
     auto print_layer = [&](auto&& layer)
     {
@@ -323,13 +342,13 @@ void TrainableNetwork::PrintNetworkDiagnostics()
 bool TrainableNetwork::VerifyWeightReadWrite()
 {
     // Randomly initialize the weights, then write to a file, then read, and check we get back what we expected
-    
+
     InitializeWeightsRandomly();
 
     auto l1_copy = l1;
     auto l2_copy = l2;
 
-    SaveWeights("/tmp/verify_weights.nn");    
+    SaveWeights("/tmp/verify_weights.nn");
     InitializeWeightsRandomly();
     LoadWeights("/tmp/verify_weights.nn");
 
@@ -338,7 +357,7 @@ bool TrainableNetwork::VerifyWeightReadWrite()
         std::cout << "Verified reading/writing of network file\n";
         return true;
     }
-    else 
+    else
     {
         std::cout << "Error, verification of reading/writing network file failed\n";
         return false;

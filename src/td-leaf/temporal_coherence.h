@@ -7,7 +7,8 @@
 #include <iostream>
 #include <limits>
 
-// Based on Temporal Coherence and Prediction Decay in TD Learning (https://www.ijcai.org/Proceedings/99-1/Papers/081.pdf)
+// Based on Temporal Coherence and Prediction Decay in TD Learning
+// (https://www.ijcai.org/Proceedings/99-1/Papers/081.pdf)
 
 float prediction_quality(float p1, float p2);
 

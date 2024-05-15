@@ -2,23 +2,24 @@
 
 float prediction_quality(float p1, float p2)
 {
-    auto f = [](float p1, float p2) -> float{
+    auto f = [](float p1, float p2) -> float
+    {
         auto r = std::abs(p1 - p2);
 
         // find positive solution to (1+p)y^2+(2-2p-p^2)y-(1-p)^2=0.
-        auto a = (1+p1);
-        auto b = (2-2*p1-p1*p1);
-        auto c = -(1-p1)*(1-p1);
+        auto a = (1 + p1);
+        auto b = (2 - 2 * p1 - p1 * p1);
+        auto c = -(1 - p1) * (1 - p1);
 
-        auto y = (-b + std::sqrt(b*b - 4*a*c)) / (2*a);
-        
+        auto y = (-b + std::sqrt(b * b - 4 * a * c)) / (2 * a);
+
         if (r <= y)
         {
-            return 1-r/y;
+            return 1 - r / y;
         }
-        else 
+        else
         {
-            return -p1*(r-y)/(p1-y);
+            return -p1 * (r - y) / (p1 - y);
         }
     };
 
@@ -28,9 +29,9 @@ float prediction_quality(float p1, float p2)
         assert(-1 <= result && result <= 1);
         return result;
     }
-    else 
+    else
     {
-        auto result = f(1-p1, 1-p2);
+        auto result = f(1 - p1, 1 - p2);
         assert(-1 <= result && result <= 1);
         return result;
     }
@@ -62,7 +63,7 @@ float PredictionQualityRecord::fit_psi()
 
         for (int i = 0; i <= 10; i++)
         {
-            float x = a + ((b-a)/10.0) * i;
+            float x = a + ((b - a) / 10.0) * i;
             float error = mse(x);
 
             if (error < lowest_mse)
@@ -75,18 +76,18 @@ float PredictionQualityRecord::fit_psi()
         if (best_psi_index == 0)
         {
             // special case, new window is [a, a + ((b-a)/10.0)]
-            b = a + ((b-a)/10.0);
+            b = a + ((b - a) / 10.0);
         }
         else if (best_psi_index == 10)
         {
             // special case, new window is [b - ((b-a)/10.0), b]
-            a = b - ((b-a)/10.0);
+            a = b - ((b - a) / 10.0);
         }
-        else 
+        else
         {
             // window is [a + ((b-a)/10.0) * (best_psi_index - 1), a + ((b-a)/10.0) * (best_psi_index + 1)]
-            auto new_a = a + ((b-a)/10.0) * (best_psi_index - 1);
-            auto new_b = a + ((b-a)/10.0) * (best_psi_index + 1);
+            auto new_a = a + ((b - a) / 10.0) * (best_psi_index - 1);
+            auto new_b = a + ((b - a) / 10.0) * (best_psi_index + 1);
             a = new_a;
             b = new_b;
         }
@@ -105,7 +106,7 @@ float PredictionQualityRecord::mse(float psi)
         {
             continue;
         }
-        
+
         auto psi_bar = (q_d_sum[i].sum / (float)(q_d_sum[i].count));
         auto error = (psi_bar - std::pow(psi, i));
         mean_squared_error += (error * error) * q_d_sum[i].count;
@@ -123,7 +124,8 @@ void PredictionQualityRecord::debug_print()
 {
     for (unsigned int i = 0; i < q_d_sum.size(); i++)
     {
-        std::cout << "D: " << i << " Q_bar: " << q_d_sum[i].sum / (float)(q_d_sum[i].count) << " N: " << q_d_sum[i].count << "\n";
+        std::cout << "D: " << i << " Q_bar: " << q_d_sum[i].sum / (float)(q_d_sum[i].count)
+                  << " N: " << q_d_sum[i].count << "\n";
     }
 
     std::cout << "psi: " << fit_psi() << "\n";
