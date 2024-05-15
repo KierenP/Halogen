@@ -294,8 +294,12 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
         In theory for basic alpha-beta search these would be equal. That is not the case in practice due to
         search instability (transposition table etc) and search score adjustments (checkmate, draw randomness etc).
         */
-        results.push_back({ sigmoid(position.GetEvaluation().value()), position.Board().stm,
-            network.GetSparseInputs(position.Board()) });
+
+        // adjust the relative scores from the net into a score from white's perspective
+        auto pv_eval = position.GetEvaluation().value();
+        pv_eval = position.Board().stm == WHITE ? pv_eval : -pv_eval;
+
+        results.push_back({ sigmoid(pv_eval), position.Board().stm, network.GetSparseInputs(position.Board()) });
 
         for (size_t i = 0; i < pv.size(); i++)
         {
