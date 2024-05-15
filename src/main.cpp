@@ -35,7 +35,9 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 10);
 
-string version = "11.18.2_td_leaf_learn_3.6.0";
+string version = "11.18.2";
+// line break to avoid merge conflicts
+string td_leaf_version = "td_leaf_learn_3.6.0";
 
 int main(int argc, char* argv[])
 {
@@ -69,7 +71,7 @@ int main(int argc, char* argv[])
 
         if (token == "uci")
         {
-            cout << "id name Halogen " << version << endl;
+            cout << "id name Halogen " << version << " " << td_leaf_version << endl;
             cout << "id author Kieren Pearson" << endl;
             cout << "option name Clear Hash type button" << endl;
             cout << "option name Hash type spin default 32 min 1 max 262144" << endl;
@@ -381,7 +383,7 @@ int main(int argc, char* argv[])
 
 void PrintVersion()
 {
-    cout << "Halogen " << version;
+    cout << "Halogen " << version << " " << td_leaf_version;
 
 #if defined(_WIN64) or defined(__x86_64__)
     cout << " x64";
