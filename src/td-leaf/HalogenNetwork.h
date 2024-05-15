@@ -2,13 +2,10 @@
 
 #include "../BitBoardDefine.h"
 
+#include <string>
 #include <vector>
 
-constexpr std::array architecture = {
-    768,
-    512,
-    1
-};
+constexpr std::array architecture = { 768, 512, 1 };
 
 class BoardState;
 

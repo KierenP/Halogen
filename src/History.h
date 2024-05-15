@@ -4,6 +4,7 @@
 #include "GameState.h"
 
 #include <cstdint>
+#include <cstring>
 #include <tuple>
 
 struct SearchStackState;

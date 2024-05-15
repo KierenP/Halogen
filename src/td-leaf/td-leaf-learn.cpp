@@ -166,8 +166,6 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
     thread_local std::mt19937 gen(0);
 
     GameState position;
-    auto& searchData = data.get_local_state(0);
-
     std::vector<TD_game_result> results;
 
     const auto& opening = [&openings]() -> std::string
@@ -222,7 +220,8 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
         }
 
         SearchThread(position, data);
-        auto eval = data.get_best_score();
+        auto result = data.get_best_search_result();
+        auto eval = result.score;
 
         // check static eval is within set margin
         if (-opening_cutoff < eval && eval < opening_cutoff)
@@ -277,12 +276,13 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
 
         // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         SearchThread(position, data);
+        auto result = data.get_best_search_result();
         // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         // time_spend_in_search_ns += std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count();
-        depth_count += data.get_next_search_depth() - 1;
+        depth_count += result.depth;
         move_count++;
 
-        const auto& pv = searchData.search_stack.root()->pv;
+        const auto& pv = result.pv;
 
         for (size_t i = 0; i < pv.size(); i++)
         {
@@ -302,7 +302,7 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
             position.RevertMove();
         }
 
-        position.ApplyMove(data.get_best_move());
+        position.ApplyMove(result.best_move);
     }
 
     if (results.size() <= 1)
