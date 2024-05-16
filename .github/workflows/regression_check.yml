@@ -80,7 +80,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-12, clang++-15]
+        compiler: [g++-13, clang++-15]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -100,7 +100,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-12, clang++-15]
+        compiler: [g++-13, clang++-15]
         target: [sanitize-address, sanitize-undefined, sanitize-thread]
 
     steps:
@@ -135,7 +135,7 @@ jobs:
     strategy:
       matrix:
         # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
-        compiler: [g++-12]
+        compiler: [g++-13]
 
     steps:
       - uses: actions/checkout@v4.1.1
