@@ -260,11 +260,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     if (distance_from_root >= MAX_DEPTH)
         return 0; // Have we reached max depth?
 
-    if constexpr (pv_node)
-    {
-        ss->pv.clear();
-    }
-
+    ss->pv.clear();
     ss->multiple_extensions = (ss - 1)->multiple_extensions;
 
     if (DeadPosition(position.Board()))
@@ -725,10 +721,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     if (distance_from_root >= MAX_DEPTH)
         return 0; // Have we reached max depth?
 
-    if constexpr (pv_node)
-    {
-        ss->pv.clear();
-    }
+    ss->pv.clear();
 
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
