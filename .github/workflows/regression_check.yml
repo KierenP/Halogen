@@ -16,18 +16,6 @@ jobs:
         target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
 
     steps:
-      - name: check os version
-        id: check-os-version
-        uses: andry81-devops/gh-action--check-os-version@master
-        with:
-          gh-var-tags: runner-os
-          linux-files: /etc/os-release
-          linux-commands: |
-            echo "$ImageOS: $ImageVersion"
-            uname -r
-            lsb_release -a
-            hostnamectl
-
       - uses: actions/checkout@v4.1.1
         # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
         # This ensures we can extract the expected bench from the commit message.
