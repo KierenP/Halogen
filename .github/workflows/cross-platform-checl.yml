@@ -30,7 +30,7 @@ jobs:
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
 
       - name: Check bench matches commit message
         run: |
@@ -71,7 +71,7 @@ jobs:
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j4
 
       - name: Check bench matches commit message
         shell: msys2 {0}
@@ -95,7 +95,7 @@ jobs:
       - name: Create PGO compiles
         run: |
          cd src
-         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
