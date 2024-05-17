@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        target: [legacy, sse4, avx, avx2, avx2-pext, avx512, avx512-pext, avx512vnni, avx512vnni-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -47,7 +47,7 @@ jobs:
         config: 
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        target: [legacy, sse4, avx, avx2, avx2-pext, avx512, avx512-pext, avx512vnni, avx512vnni-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
-        compiler: [g++-12]
+        compiler: [g++-10]
 
     steps:
       - uses: actions/checkout@v4.1.1

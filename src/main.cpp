@@ -380,26 +380,25 @@ void PrintVersion()
 
 #if defined(_WIN64) or defined(__x86_64__)
     cout << " x64";
+#endif
 
-#if defined(USE_POPCNT) && !defined(USE_PEXT)
-    cout << " POPCNT";
+#if defined(USE_AVX512_VNNI)
+    cout << " AVX512_VNNI";
+#elif defined(USE_AVX512)
+    cout << " AVX512";
+#elif defined(USE_AVX2)
+    cout << " AVX2";
+#elif defined(USE_AVX)
+    cout << " AVX";
+#elif defined(USE_SSE4)
+    cout << " SSE4";
 #endif
 
 #if defined(USE_PEXT)
     cout << " PEXT";
 #endif
 
-#if defined(USE_AVX2)
-    cout << " AVX2";
-#endif
-
     cout << endl;
-
-#elif defined(_WIN32)
-    cout << " x86" << endl;
-#else
-    cout << " UNKNOWN COMPILATION" << endl;
-#endif
 }
 
 void PerftSuite(std::string path, int depth_reduce, bool check_legality)
