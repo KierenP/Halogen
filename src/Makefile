@@ -48,8 +48,8 @@ WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-opti
 AFLAGS = $(WFLAGS) -g -std=c++17 
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native 
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
-SFLAGS = -O1 $(AFLAGS) -fno-omit-frame-pointer
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
+SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
 
 POPCNTFLAGS = -DUSE_POPCNT -msse3 -mpopcnt

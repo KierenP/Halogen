@@ -254,6 +254,11 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.set_threads(stoi(token));
             }
 
@@ -268,6 +273,11 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.set_multi_pv(stoi(token));
             }
 
@@ -277,6 +287,11 @@ int main(int argc, char* argv[])
                 iss >> token;
                 std::transform(
                     token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.chess_960 = (token == "true");
             }
 
