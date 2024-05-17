@@ -285,11 +285,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Probe TB in search
     if (ss->singular_exclusion == Move::Uninitialized)
     {
-        auto probe = Syzygy::probe_wdl_search(position.Board());
+        auto probe = Syzygy::probe_wdl_search(position.Board(), distance_from_root);
         if (probe.has_value())
         {
             local.tb_hits.fetch_add(1, std::memory_order_relaxed);
-            const auto tb_score = probe->get_score(distance_from_root);
+            const auto tb_score = *probe;
 
             if (!root_node)
             {

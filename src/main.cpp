@@ -35,8 +35,8 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 10);
 
-string version = "11.18.2";
-// line break to avoid merge conflicts
+string version = "11.19.0";
+
 string td_leaf_version = "td_leaf_learn_3.6.0";
 
 int main(int argc, char* argv[])
@@ -256,6 +256,11 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.set_threads(stoi(token));
             }
 
@@ -270,6 +275,11 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.set_multi_pv(stoi(token));
             }
 
@@ -279,6 +289,11 @@ int main(int argc, char* argv[])
                 iss >> token;
                 std::transform(
                     token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
                 shared.chess_960 = (token == "true");
             }
 
@@ -386,26 +401,25 @@ void PrintVersion()
 
 #if defined(_WIN64) or defined(__x86_64__)
     cout << " x64";
+#endif
 
-#if defined(USE_POPCNT) && !defined(USE_PEXT)
-    cout << " POPCNT";
+#if defined(USE_AVX512_VNNI)
+    cout << " AVX512_VNNI";
+#elif defined(USE_AVX512)
+    cout << " AVX512";
+#elif defined(USE_AVX2)
+    cout << " AVX2";
+#elif defined(USE_AVX)
+    cout << " AVX";
+#elif defined(USE_SSE4)
+    cout << " SSE4";
 #endif
 
 #if defined(USE_PEXT)
     cout << " PEXT";
 #endif
 
-#if defined(USE_AVX2)
-    cout << " AVX2";
-#endif
-
     cout << endl;
-
-#elif defined(_WIN32)
-    cout << " x86" << endl;
-#else
-    cout << " UNKNOWN COMPILATION" << endl;
-#endif
 }
 
 void PerftSuite(std::string path, int depth_reduce, bool check_legality)
