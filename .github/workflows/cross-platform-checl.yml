@@ -17,7 +17,8 @@ jobs:
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        # runners only seem to support up to avx2-pext
+        target: [legacy, sse4, avx, avx2, avx2-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -29,7 +30,7 @@ jobs:
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
 
       - name: Check bench matches commit message
         run: |
@@ -47,7 +48,8 @@ jobs:
         config: 
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        # runners only seem to support up to avx2-pext
+        target: [legacy, sse4, avx, avx2, avx2-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -69,7 +71,7 @@ jobs:
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j4
 
       - name: Check bench matches commit message
         shell: msys2 {0}
@@ -85,7 +87,7 @@ jobs:
     strategy:
       matrix:
         # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
-        compiler: [g++-12]
+        compiler: [g++-10]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -93,7 +95,7 @@ jobs:
       - name: Create PGO compiles
         run: |
          cd src
-         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |

@@ -23,7 +23,7 @@ jobs:
       - name: Create sanitizer builds
         run: |
           cd src
-          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+          make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
           
       - name: Run
         run: |
