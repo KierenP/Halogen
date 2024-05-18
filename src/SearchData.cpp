@@ -1,9 +1,12 @@
 #include "SearchData.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <iostream>
+#include <mutex>
 #include <numeric>
+#include <ratio>
 #include <sstream>
 #include <stdlib.h>
 
@@ -85,6 +88,7 @@ void SearchLocalState::ResetNewSearch()
     aborting_search = false;
     root_move_blacklist = {};
     root_move_whitelist = {};
+    limit_check_counter = 0;
 }
 
 void SearchLocalState::ResetNewGame()
@@ -114,6 +118,7 @@ void SearchSharedState::ResetNewSearch()
     }
 
     best_search_result_ = nullptr;
+    search_timer.reset();
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
 }
 
@@ -174,7 +179,8 @@ void SearchSharedState::report_search_result(GameState& position, const SearchSt
     // of search to avoid printing too much output
     if (local.thread_id == 0)
     {
-        if (type == SearchResultType::EXACT || limits.ElapsedTime() > 5000)
+        using namespace std::chrono_literals;
+        if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
         {
             PrintSearchInfo(position, local, result_data);
         }
@@ -233,6 +239,8 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 void SearchSharedState::PrintSearchInfo(
     GameState& position, const SearchLocalState& local, const SearchResults& data) const
 {
+    std::scoped_lock lock(lock_);
+
     /*
     Here we avoid excessive use of std::cout and instead append to a string in order
     to output only once at the end. This causes a noticeable speedup for very fast
@@ -260,9 +268,9 @@ void SearchSharedState::PrintSearchInfo(
     if (data.type == SearchResultType::LOWER_BOUND)
         stream << " lowerbound";
 
-    auto elapsed_time = limits.ElapsedTime();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(search_timer.elapsed()).count();
     auto node_count = nodes();
-    auto nps = node_count / std::max(elapsed_time, 1) * 1000;
+    auto nps = node_count / std::max(elapsed_time, 1L) * 1000;
     auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
 
     stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
@@ -272,18 +280,8 @@ void SearchSharedState::PrintSearchInfo(
 
     for (const auto& move : data.pv)
     {
-        if (chess_960)
-        {
-            stream << move.to_string_960(position.Board().stm, position.Board().castle_squares);
-        }
-        else
-        {
-            stream << move.to_string();
-        }
-
-        // for chess960 positions to be printed correctly, we must have the correct board state at time of printing
+        move.Print();
         position.ApplyMove(move);
-
         stream << " ";
     }
 

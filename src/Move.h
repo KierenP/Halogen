@@ -45,9 +45,6 @@ public:
     std::string to_string() const;
     void Print() const;
 
-    std::string to_string_960(Players stm, uint64_t castle_sq) const;
-    void Print960(Players stm, uint64_t castle_sq) const;
-
     constexpr bool operator==(const Move& rhs) const
     {
         return (data == rhs.data);

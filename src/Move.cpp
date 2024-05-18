@@ -55,52 +55,6 @@ bool Move::IsCastle() const
     return GetFlag() == A_SIDE_CASTLE || GetFlag() == H_SIDE_CASTLE;
 }
 
-std::string Move::to_string_960(Players stm, uint64_t castle_sq) const
-{
-    Square from = GetFrom();
-    Square to = GetTo();
-
-    // in chess960, castle moves are encoded as king takes rook
-    if (GetFlag() == A_SIDE_CASTLE && stm == WHITE)
-    {
-        to = LSB(castle_sq & RankBB[RANK_1]);
-    }
-    if (GetFlag() == H_SIDE_CASTLE && stm == WHITE)
-    {
-        to = MSB(castle_sq & RankBB[RANK_1]);
-    }
-    if (GetFlag() == A_SIDE_CASTLE && stm == BLACK)
-    {
-        to = LSB(castle_sq & RankBB[RANK_8]);
-    }
-    if (GetFlag() == H_SIDE_CASTLE && stm == BLACK)
-    {
-        to = MSB(castle_sq & RankBB[RANK_8]);
-    }
-
-    std::string str;
-    str.reserve(5);
-
-    str += GetFile(from) + 'a';
-    str += GetRank(from) + '1';
-    str += GetFile(to) + 'a';
-    str += GetRank(to) + '1';
-
-    if (IsPromotion())
-    {
-        if (GetFlag() == KNIGHT_PROMOTION || GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-            str += "n";
-        if (GetFlag() == BISHOP_PROMOTION || GetFlag() == BISHOP_PROMOTION_CAPTURE)
-            str += "b";
-        if (GetFlag() == QUEEN_PROMOTION || GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            str += "q";
-        if (GetFlag() == ROOK_PROMOTION || GetFlag() == ROOK_PROMOTION_CAPTURE)
-            str += "r";
-    }
-
-    return str;
-}
-
 std::string Move::to_string() const
 {
     Square from = GetFrom();
@@ -127,11 +81,6 @@ std::string Move::to_string() const
     }
 
     return str;
-}
-
-void Move::Print960(Players stm, uint64_t castle_sq) const
-{
-    std::cout << to_string_960(stm, castle_sq);
 }
 
 void Move::Print() const

@@ -22,14 +22,14 @@
 #include "Search.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
-#include "TimeManage.h"
+#include "TimeManager.h"
 #include "TranspositionTable.h"
 
 using namespace ::std;
 
 void PerftSuite(std::string path, int depth_reduce, bool check_legality);
 void PrintVersion();
-uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality);
+uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legality);
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
 void Bench(int depth = 10);
 
@@ -55,8 +55,8 @@ int main(int argc, char* argv[])
 
     /*Tuneable search constants*/
 
-    double timeIncCoeffA = 40.0;
-    double timeIncCoeffB = 30.0;
+    const int timeIncCoeffA = 40;
+    const int timeIncCoeffB = 1200;
 
     //---------------------------
 
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
             shared.limits = {};
 
             // The amount of time we leave on the clock for safety
-            constexpr static int BufferTime = 100;
+            constexpr static auto BufferTime = 100ms;
 
             int wtime = 0;
             int btime = 0;
@@ -140,7 +140,12 @@ int main(int argc, char* argv[])
 
             while (iss >> token)
             {
-                if (token == "wtime")
+                if (token == "infinite")
+                {
+                    // no limits set
+                }
+
+                else if (token == "wtime")
                     iss >> wtime;
                 else if (token == "btime")
                     iss >> btime;
@@ -155,64 +160,65 @@ int main(int argc, char* argv[])
                 {
                     int mate = 0;
                     iss >> mate;
-                    shared.limits.SetMateLimit(mate);
+                    shared.limits.mate = mate;
                 }
 
                 else if (token == "depth")
                 {
                     int depth = 0;
                     iss >> depth;
-                    shared.limits.SetDepthLimit(depth);
-                }
-
-                else if (token == "infinite")
-                {
-                    shared.limits.SetInfinite();
+                    shared.limits.depth = depth;
                 }
 
                 else if (token == "movetime")
                 {
                     int searchTime = 0;
                     iss >> searchTime;
-                    shared.limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
+                    auto hard_limit = (searchTime) * 1ms - BufferTime;
+                    shared.limits.time = SearchTimeManager(hard_limit, hard_limit);
                 }
 
                 else if (token == "nodes")
                 {
                     uint64_t nodes = 0;
                     iss >> nodes;
-                    shared.limits.SetNodeLimit(nodes);
+                    shared.limits.nodes = nodes;
                 }
             }
 
-            int myTime = position.Board().stm ? wtime : btime;
-            int myInc = position.Board().stm ? winc : binc;
+            auto myTime = (position.Board().stm ? wtime : btime) * 1ms;
+            auto myInc = (position.Board().stm ? winc : binc) * 1ms;
 
-            if (myTime != 0)
+            if (myTime != 0ms)
             {
+                auto hard_limit = myTime - BufferTime;
+
                 if (movestogo != 0)
                 {
                     // repeating time control
 
                     // We divide the available time by the number of movestogo (which can be zero) and then adjust
                     // by 1.5x. This ensures we use more of the available time earlier.
-                    shared.limits.SetTimeLimits((myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
+                    auto soft_limit = (myTime - BufferTime) / (movestogo + 1) * 3 / 2;
+                    shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
                 }
-                else if (myInc != 0)
+                else if (myInc != 0ms)
                 {
                     // increment time control
 
                     // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
                     // use a higher proportion of the available time so that we get down to just using the increment
-                    shared.limits.SetTimeLimits(
-                        (myTime - BufferTime) * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
-                            + myInc,
-                        (myTime - BufferTime));
+
+                    auto soft_limit
+                        = (myTime - BufferTime) * (timeIncCoeffA + position.Board().half_turn_count) / timeIncCoeffB
+                        + myInc;
+                    shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
                 }
                 else
                 {
                     // Sudden death time control. We use 1/20th of the remaining time each turn
-                    shared.limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
+                    auto soft_limit = (myTime - BufferTime) / 20;
+                    shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
                 }
             }
 
@@ -294,26 +300,12 @@ int main(int argc, char* argv[])
 
                 shared.chess_960 = (token == "true");
             }
-
-            else if (token == "timeIncCoeffA")
-            {
-                iss >> token; //'value'
-                iss >> token;
-                timeIncCoeffA = stod(token);
-            }
-
-            else if (token == "timeIncCoeffB")
-            {
-                iss >> token; //'value'
-                iss >> token;
-                timeIncCoeffB = stod(token);
-            }
         }
 
         else if (token == "perft")
         {
             iss >> token;
-            PerftDivide(stoi(token), position, shared.chess_960, false);
+            PerftDivide(stoi(token), position, false);
         }
 
         else if (token == "test")
@@ -455,7 +447,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
     std::cout << std::endl;
 }
 
-uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality)
+uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legality)
 {
     auto before = std::chrono::steady_clock::now();
 
@@ -468,16 +460,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, boo
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();
-
-        if (chess960)
-        {
-            moves[i].Print960(position.Board().stm, position.Board().castle_squares);
-        }
-        else
-        {
-            moves[i].Print();
-        }
-
+        moves[i].Print();
         cout << ": " << ChildNodeCount << endl;
         nodeCount += ChildNodeCount;
     }
@@ -540,7 +523,7 @@ void Bench(int depth)
     uint64_t nodeCount = 0;
     GameState position;
     SearchSharedState data(1);
-    data.limits.SetDepthLimit(depth);
+    data.limits.depth = depth;
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -550,10 +533,11 @@ void Bench(int depth)
             break;
         }
 
-        data.limits.ResetTimer();
+        data.limits.time.reset();
         SearchThread(position, data);
         nodeCount += data.nodes();
     }
 
-    cout << nodeCount << " nodes " << int(nodeCount / max(timer.ElapsedMs(), 1) * 1000) << " nps" << endl;
+    int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer.elapsed()).count();
+    cout << nodeCount << " nodes " << nodeCount / max(elapsed_time, 1) * 1000 << " nps" << endl;
 }

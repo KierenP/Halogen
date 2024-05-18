@@ -19,7 +19,7 @@ SRCS := \
 	SearchData.cpp \
 	SearchLimits.cpp \
 	StagedMoveGenerator.cpp \
-	TimeManage.cpp \
+	TimeManager.cpp \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \

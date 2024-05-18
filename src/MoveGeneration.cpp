@@ -476,11 +476,11 @@ void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pin
 
         if (king_sq > rook_sq && CheckCastleMove<STM>(board, king_sq, SQ_C1, rook_sq, SQ_D1))
         {
-            moves.emplace_back(king_sq, SQ_C1, A_SIDE_CASTLE);
+            moves.emplace_back(king_sq, rook_sq, A_SIDE_CASTLE);
         }
         if (king_sq < rook_sq && CheckCastleMove<STM>(board, king_sq, SQ_G1, rook_sq, SQ_F1))
         {
-            moves.emplace_back(king_sq, SQ_G1, H_SIDE_CASTLE);
+            moves.emplace_back(king_sq, rook_sq, H_SIDE_CASTLE);
         }
     }
 
@@ -493,11 +493,11 @@ void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pin
 
         if (king_sq > rook_sq && CheckCastleMove<STM>(board, king_sq, SQ_C8, rook_sq, SQ_D8))
         {
-            moves.emplace_back(king_sq, SQ_C8, A_SIDE_CASTLE);
+            moves.emplace_back(king_sq, rook_sq, A_SIDE_CASTLE);
         }
         if (king_sq < rook_sq && CheckCastleMove<STM>(board, king_sq, SQ_G8, rook_sq, SQ_F8))
         {
-            moves.emplace_back(king_sq, SQ_G8, H_SIDE_CASTLE);
+            moves.emplace_back(king_sq, rook_sq, H_SIDE_CASTLE);
         }
     }
 }
