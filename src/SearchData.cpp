@@ -270,7 +270,7 @@ void SearchSharedState::PrintSearchInfo(
 
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(search_timer.elapsed()).count();
     auto node_count = nodes();
-    auto nps = node_count / std::max(elapsed_time, 1L) * 1000;
+    auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
     auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
 
     stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
