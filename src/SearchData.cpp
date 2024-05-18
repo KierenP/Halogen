@@ -237,7 +237,7 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 }
 
 void SearchSharedState::PrintSearchInfo(
-    GameState& position, const SearchLocalState& local, const SearchResults& data) const
+    const GameState& position, const SearchLocalState& local, const SearchResults& data) const
 {
     std::scoped_lock lock(lock_);
 
@@ -280,14 +280,7 @@ void SearchSharedState::PrintSearchInfo(
 
     for (const auto& move : data.pv)
     {
-        move.Print();
-        position.ApplyMove(move);
-        stream << " ";
-    }
-
-    for (size_t i = 0; i < data.pv.size(); i++)
-    {
-        position.RevertMove();
+        stream << move << ' ';
     }
 
     std::cout << stream.str() << std::endl;

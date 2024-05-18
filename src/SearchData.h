@@ -138,7 +138,7 @@ public:
     void report_search_result(GameState& position, const SearchStackState* ss, const SearchLocalState& local,
         SearchResult result, SearchResultType type);
 
-    void PrintSearchInfo(GameState& position, const SearchLocalState& local, const SearchResults& data) const;
+    void PrintSearchInfo(const GameState& position, const SearchLocalState& local, const SearchResults& data) const;
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------

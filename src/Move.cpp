@@ -55,37 +55,29 @@ bool Move::IsCastle() const
     return GetFlag() == A_SIDE_CASTLE || GetFlag() == H_SIDE_CASTLE;
 }
 
-std::string Move::to_string() const
+std::ostream& operator<<(std::ostream& os, Move m)
 {
-    Square from = GetFrom();
-    Square to = GetTo();
+    Square from = m.GetFrom();
+    Square to = m.GetTo();
 
-    std::string str;
-    str.reserve(5);
+    os << char('a' + GetFile(from));
+    os << char('1' + GetRank(from));
+    os << char('a' + GetFile(to));
+    os << char('1' + GetRank(to));
 
-    str += GetFile(from) + 'a';
-    str += GetRank(from) + '1';
-    str += GetFile(to) + 'a';
-    str += GetRank(to) + '1';
-
-    if (IsPromotion())
+    if (m.IsPromotion())
     {
-        if (GetFlag() == KNIGHT_PROMOTION || GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-            str += "n";
-        if (GetFlag() == BISHOP_PROMOTION || GetFlag() == BISHOP_PROMOTION_CAPTURE)
-            str += "b";
-        if (GetFlag() == QUEEN_PROMOTION || GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            str += "q";
-        if (GetFlag() == ROOK_PROMOTION || GetFlag() == ROOK_PROMOTION_CAPTURE)
-            str += "r";
+        if (m.GetFlag() == KNIGHT_PROMOTION || m.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+            os << 'n';
+        if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+            os << 'b';
+        if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            os << 'q';
+        if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
+            os << 'r';
     }
 
-    return str;
-}
-
-void Move::Print() const
-{
-    std::cout << to_string();
+    return os;
 }
 
 void Move::SetFrom(Square from)

@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
 
         // Non uci commands
         else if (token == "print")
-            position.Board().Print();
+            cout << position.Board();
         else
             cout << "Unknown command" << endl;
 
@@ -460,8 +460,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();
-        moves[i].Print();
-        cout << ": " << ChildNodeCount << endl;
+        cout << moves[i] << ": " << ChildNodeCount << endl;
         nodeCount += ChildNodeCount;
     }
 
@@ -493,8 +492,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
             if (present != legal)
             {
-                position.Board().Print();
-                move.Print();
+                std::cout << position.Board() << move;
                 std::cout << std::endl;
                 std::cout << present << " " << legal << std::endl;
                 std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;

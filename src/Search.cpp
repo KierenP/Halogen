@@ -57,7 +57,6 @@ template <SearchType search_type>
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta);
 
-void PrintBestMove(Move Best);
 bool UseTransposition(Score tt_score, SearchResultType cutoff, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
 bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
@@ -121,14 +120,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     const auto& search_result = shared.get_best_search_result();
     shared.PrintSearchInfo(position, shared.get_local_state(0), search_result);
-    PrintBestMove(search_result.best_move);
-}
-
-void PrintBestMove(Move Best)
-{
-    std::cout << "bestmove ";
-    Best.Print();
-    std::cout << std::endl;
+    std::cout << "bestmove " << search_result.best_move << std::endl;
 }
 
 void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
