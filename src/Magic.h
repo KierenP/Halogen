@@ -66,7 +66,7 @@ public:
 private:
     constexpr uint64_t& AttackMask(Square sq, uint64_t occupied)
     {
-        return table[sq].attacks[AttackIndexConstexpr(sq, occupied)];
+        return table[sq].attacks[AttackIndex(sq, occupied)];
     }
 
     constexpr size_t AttackIndex(Square sq, uint64_t occupied) const
@@ -76,32 +76,6 @@ private:
         return _pext_u64(occupied, table[sq].mask);
 #else
         // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
-        return ((occupied & table[sq].mask) * table[sq].magic) >> table[sq].shift;
-#endif
-    }
-
-    constexpr size_t AttackIndexConstexpr(Square sq, uint64_t occupied) const
-    {
-        // _pext_u64 is not constexpr, so we need to use this during compile time. With C++20, i'd use
-        // std::is_constant_evaluated
-#ifdef USE_PEXT
-        // from https://www.felixcloutier.com/x86/pext
-        auto TEMP = occupied;
-        auto MASK = table[sq].mask;
-        auto DEST = 0;
-        auto k = 0;
-        while (MASK)
-        {
-            auto LSB = MASK & -MASK;
-            if (TEMP & LSB)
-            {
-                DEST |= SquareBB[k];
-            }
-            MASK &= MASK - 1;
-            k = k + 1;
-        }
-        return DEST;
-#else
         return ((occupied & table[sq].mask) * table[sq].magic) >> table[sq].shift;
 #endif
     }
@@ -188,5 +162,5 @@ struct RookTable : public MagicTable<RookTable, 0x19000, Shift::N, Shift::S, Shi
 };
 }
 
-constexpr inline detail::BishopTable bishopTable;
-constexpr inline detail::RookTable rookTable;
+const inline detail::BishopTable bishopTable;
+const inline detail::RookTable rookTable;
