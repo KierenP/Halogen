@@ -26,7 +26,6 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
-	Magic.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
