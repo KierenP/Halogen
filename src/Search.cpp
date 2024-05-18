@@ -820,8 +820,8 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
         return true;
     }
 
-    // Reset the limit_check_counter to 1024, or 1/128 the remaining node limit if smaller
+    // Reset the limit_check_counter to 1024, or 1/2 the remaining node limit if smaller
     local.limit_check_counter
-        = shared.limits.nodes ? std::clamp<int64_t>((*shared.limits.nodes - nodes) / 128, 0, 1024) : 1024;
+        = shared.limits.nodes ? std::clamp<int64_t>((*shared.limits.nodes - nodes) / 2, 0, 1024) : 1024;
     return false;
 }
