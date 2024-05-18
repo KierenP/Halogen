@@ -1,4 +1,8 @@
-name: Regression Check
+name: Cross-platform Check
+
+# Test that we get a deterministic 'bench' result across a variety of compilers and platforms. We try to use a older 
+# compiler here, to ensure we maintain a reasonable level of compatibility, and make it easy for people to build 
+# Halogen
 
 on: 
   push:
@@ -8,12 +12,13 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
         compiler: [g++-10, clang++-13]
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        # runners only seem to support up to avx2-pext
+        target: [legacy, sse4, avx, avx2, avx2-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -25,7 +30,7 @@ jobs:
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
 
       - name: Check bench matches commit message
         run: |
@@ -36,14 +41,15 @@ jobs:
           
 
   Windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     strategy:
       matrix:
         config: 
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
-        target: [native, nopopcnt, popcnt, pext, popcnt-avx2, pext-avx2]
+        # runners only seem to support up to avx2-pext
+        target: [legacy, sse4, avx, avx2, avx2-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -65,7 +71,7 @@ jobs:
         shell: msys2 {0}
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j2
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j4
 
       - name: Check bench matches commit message
         shell: msys2 {0}
@@ -74,49 +80,24 @@ jobs:
           commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
-         
-  Debug:
-    runs-on: ubuntu-latest
+
+  PGO:
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-13]
+        # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
+        compiler: [g++-10]
 
     steps:
       - uses: actions/checkout@v4.1.1
 
-      - name: Create debug compiles
+      - name: Create PGO compiles
         run: |
          cd src
-         make debug CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
+         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
          cd bin
-         ./Halogen bench 4
-
-  Sanitizer:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        compiler: [g++-10, clang++-13]
-
-    steps:
-      - uses: actions/checkout@v4.1.1
-
-      - name: Create sanitizer builds
-        run: |
-          cd src
-          make sanitize CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j2
-          
-      - name: Run
-        run: |
-          cd bin
-          ./Halogen bench 4
-          ./Halogen go depth 4
-          ./Halogen go nodes 10000
-          ./Halogen go movetime 2500
-          ./Halogen go wtime 1000 btime 1000 winc 1000 binc 1000
-          ./Halogen go wtime 1000 btime 1000 movestogo 20
-          ./Halogen go wtime 1000 btime 1000
+         ./Halogen bench

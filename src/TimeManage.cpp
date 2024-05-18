@@ -1,7 +1,5 @@
 #include "TimeManage.h"
 
-#include <algorithm>
-
 int Timer::ElapsedMs() const
 {
     return (get_time_point() - Begin);
@@ -30,5 +28,5 @@ bool SearchTimeManage::ContinueSearch() const
 bool SearchTimeManage::AbortSearch() const
 {
     auto elapsed_ms = timer.ElapsedMs();
-    return (elapsed_ms > soft_limit_ && elapsed_ms > hard_limit_);
+    return (elapsed_ms >= soft_limit_ || elapsed_ms >= hard_limit_);
 }

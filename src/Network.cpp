@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 #include <iostream>
+#include <limits>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -64,7 +64,7 @@ void Network::Init()
     float l2_bias_max = std::numeric_limits<float>::min();
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-    {    
+    {
         for (size_t j = 0; j < INPUT_NEURONS; j++)
         {
             auto val = *Data++;
@@ -204,8 +204,5 @@ Score Network::Eval(Players stm) const
     DotProductHalves(
         ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
     output /= L1_SCALE * L2_SCALE;
-
-    // 'half' or 'relative' nets return a score relative to the side to move
-    // but Halogen expects a score relative to white
-    return stm == WHITE ? output : -output;
+    return output;
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "GameState.h"
 #include "Move.h"
 #include "Score.h"
@@ -10,10 +8,10 @@ class SearchSharedState;
 
 /*Tuneable search constants*/
 
-constexpr double LMR_constant = -0.76;
-constexpr double LMR_depth_coeff = 0.39;
-constexpr double LMR_move_coeff = 0.12;
-constexpr double LMR_depth_move_coeff = 0.67;
+constexpr double LMR_constant = 1.05;
+constexpr double LMR_depth_coeff = -2.06;
+constexpr double LMR_move_coeff = 0.20;
+constexpr double LMR_depth_move_coeff = 1.17;
 
 constexpr int Null_constant = 4;
 constexpr int Null_depth_quotent = 6;

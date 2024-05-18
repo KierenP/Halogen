@@ -13,12 +13,12 @@
 
 #include "Benchmark.h"
 #include "BitBoardDefine.h"
+#include "EGTB.h"
 #include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
-#include "Pyrrhic/tbprobe.h"
 #include "Search.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
@@ -31,14 +31,13 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality);
 void PrintVersion();
 uint64_t PerftDivide(unsigned int depth, GameState& position, bool chess960, bool check_legality);
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality);
-void Bench(int depth = 14);
+void Bench(int depth = 10);
 
-string version = "11.7.0";
+string version = "11.19.0";
 
 int main(int argc, char* argv[])
 {
     PrintVersion();
-    tb_init("<empty>");
 
     Network::Init();
 
@@ -46,7 +45,7 @@ int main(int argc, char* argv[])
 
     GameState position;
     thread searchThread;
-    std::unique_ptr<SearchSharedState> shared = std::make_unique<SearchSharedState>(1);
+    SearchSharedState shared(1);
 
     for (int i = 1; i < argc; i++) // read any command line input as a regular UCI instruction
     {
@@ -88,7 +87,7 @@ int main(int argc, char* argv[])
         {
             position.StartingPosition();
             tTable.ResetTable();
-            shared->ResetNewGame();
+            shared.ResetNewGame();
         }
 
         else if (token == "position")
@@ -125,7 +124,10 @@ int main(int argc, char* argv[])
 
         else if (token == "go")
         {
-            shared->limits = {};
+            if (searchThread.joinable())
+                searchThread.join();
+
+            shared.limits = {};
 
             // The amount of time we leave on the clock for safety
             constexpr static int BufferTime = 100;
@@ -153,33 +155,33 @@ int main(int argc, char* argv[])
                 {
                     int mate = 0;
                     iss >> mate;
-                    shared->limits.SetMateLimit(mate);
+                    shared.limits.SetMateLimit(mate);
                 }
 
                 else if (token == "depth")
                 {
                     int depth = 0;
                     iss >> depth;
-                    shared->limits.SetDepthLimit(depth);
+                    shared.limits.SetDepthLimit(depth);
                 }
 
                 else if (token == "infinite")
                 {
-                    shared->limits.SetInfinite();
+                    shared.limits.SetInfinite();
                 }
 
                 else if (token == "movetime")
                 {
                     int searchTime = 0;
                     iss >> searchTime;
-                    shared->limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
+                    shared.limits.SetTimeLimits(searchTime - BufferTime, searchTime - BufferTime);
                 }
 
                 else if (token == "nodes")
                 {
                     uint64_t nodes = 0;
                     iss >> nodes;
-                    shared->limits.SetNodeLimit(nodes);
+                    shared.limits.SetNodeLimit(nodes);
                 }
             }
 
@@ -194,8 +196,7 @@ int main(int argc, char* argv[])
 
                     // We divide the available time by the number of movestogo (which can be zero) and then adjust
                     // by 1.5x. This ensures we use more of the available time earlier.
-                    shared->limits.SetTimeLimits(
-                        (myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
+                    shared.limits.SetTimeLimits((myTime - BufferTime) / (movestogo + 1) * 3 / 2, (myTime - BufferTime));
                 }
                 else if (myInc != 0)
                 {
@@ -203,7 +204,7 @@ int main(int argc, char* argv[])
 
                     // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
                     // use a higher proportion of the available time so that we get down to just using the increment
-                    shared->limits.SetTimeLimits(
+                    shared.limits.SetTimeLimits(
                         (myTime - BufferTime) * (1 + position.Board().half_turn_count / timeIncCoeffA) / timeIncCoeffB
                             + myInc,
                         (myTime - BufferTime));
@@ -211,14 +212,11 @@ int main(int argc, char* argv[])
                 else
                 {
                     // Sudden death time control. We use 1/20th of the remaining time each turn
-                    shared->limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
+                    shared.limits.SetTimeLimits((myTime - BufferTime) / 20, (myTime - BufferTime));
                 }
             }
 
-            if (searchThread.joinable())
-                searchThread.join();
-
-            searchThread = thread([position, &shared]() mutable { SearchThread(position, *shared); });
+            searchThread = thread([position, &shared]() mutable { SearchThread(position, shared); });
         }
 
         else if (token == "setoption")
@@ -234,7 +232,7 @@ int main(int argc, char* argv[])
                     tTable.ResetTable();
 
                     // We also reset the history tables, so the next search gives a fresh result.
-                    shared->ResetNewGame();
+                    shared.ResetNewGame();
                 }
             }
 
@@ -256,22 +254,31 @@ int main(int argc, char* argv[])
             {
                 iss >> token; //'value'
                 iss >> token;
-                shared = std::make_unique<SearchSharedState>(stoi(token));
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
+                shared.set_threads(stoi(token));
             }
 
             else if (token == "SyzygyPath")
             {
                 iss >> token; //'value'
                 iss >> token;
-
-                tb_init(token.c_str());
+                Syzygy::init(token.c_str());
             }
 
             else if (token == "MultiPV")
             {
                 iss >> token; //'value'
                 iss >> token;
-                shared->multi_pv = stoi(token);
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
+                shared.set_multi_pv(stoi(token));
             }
 
             else if (token == "UCI_Chess960")
@@ -280,7 +287,12 @@ int main(int argc, char* argv[])
                 iss >> token;
                 std::transform(
                     token.begin(), token.end(), token.begin(), [](unsigned char c) { return std::tolower(c); });
-                shared->chess_960 = (token == "true");
+
+                // fix thread sanitize data race
+                if (searchThread.joinable())
+                    searchThread.join();
+
+                shared.chess_960 = (token == "true");
             }
 
             else if (token == "timeIncCoeffA")
@@ -301,7 +313,7 @@ int main(int argc, char* argv[])
         else if (token == "perft")
         {
             iss >> token;
-            PerftDivide(stoi(token), position, shared->chess_960, false);
+            PerftDivide(stoi(token), position, shared.chess_960, false);
         }
 
         else if (token == "test")
@@ -368,26 +380,25 @@ void PrintVersion()
 
 #if defined(_WIN64) or defined(__x86_64__)
     cout << " x64";
+#endif
 
-#if defined(USE_POPCNT) && !defined(USE_PEXT)
-    cout << " POPCNT";
+#if defined(USE_AVX512_VNNI)
+    cout << " AVX512_VNNI";
+#elif defined(USE_AVX512)
+    cout << " AVX512";
+#elif defined(USE_AVX2)
+    cout << " AVX2";
+#elif defined(USE_AVX)
+    cout << " AVX";
+#elif defined(USE_SSE4)
+    cout << " SSE4";
 #endif
 
 #if defined(USE_PEXT)
     cout << " PEXT";
 #endif
 
-#if defined(USE_AVX2)
-    cout << " AVX2";
-#endif
-
     cout << endl;
-
-#elif defined(_WIN32)
-    cout << " x86" << endl;
-#else
-    cout << " UNKNOWN COMPILATION" << endl;
-#endif
 }
 
 void PerftSuite(std::string path, int depth_reduce, bool check_legality)
@@ -539,8 +550,6 @@ void Bench(int depth)
             break;
         }
 
-        tTable.ResetTable();
-        data.ResetNewGame();
         data.limits.ResetTimer();
         SearchThread(position, data);
         nodeCount += data.nodes();

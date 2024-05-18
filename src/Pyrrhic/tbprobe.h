@@ -45,11 +45,11 @@
 #define TB_CURSED_WIN               3       /* WIN but 50-move draw  */
 #define TB_WIN                      4       /* WIN  */
 
-#define TB_PROMOTES_NONE            0
-#define TB_PROMOTES_QUEEN           1
-#define TB_PROMOTES_ROOK            2
-#define TB_PROMOTES_BISHOP          3
-#define TB_PROMOTES_KNIGHT          4
+#define PYRRHIC_PROMOTES_NONE       0
+#define PYRRHIC_PROMOTES_QUEEN      1
+#define PYRRHIC_PROMOTES_ROOK       2
+#define PYRRHIC_PROMOTES_BISHOP     3
+#define PYRRHIC_PROMOTES_KNIGHT     4
 
 #define TB_RESULT_WDL_MASK          0x0000000F
 #define TB_RESULT_TO_MASK           0x000003F0
@@ -104,6 +104,9 @@
  * The tablebase can be probed for any position where #pieces <= TB_LARGEST.
  */
 extern int TB_LARGEST;
+extern int TB_NUM_WDL;
+extern int TB_NUM_DTM;
+extern int TB_NUM_DTZ;
 
 /*
  * Initialize the tablebase.

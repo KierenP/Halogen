@@ -3,12 +3,22 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <iterator>
-#include <optional>
+#include <memory>
+
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
 
 #include "BitBoardDefine.h"
 #include "TTEntry.h"
+
+TranspositionTable ::~TranspositionTable()
+{
+    Deallocate();
+}
 
 uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 {
@@ -16,79 +26,70 @@ uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
 }
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
-    int distanceFromRoot, EntryType Cutoff)
+    int distanceFromRoot, SearchResultType Cutoff)
 {
     size_t hash = HashFunction(ZobristKey);
-
-    // checkmate node or TB win/loss
-    // TODO: check for boundary conditions
-    if (score > Score::Limits::EVAL_MAX)
-        score += distanceFromRoot;
-    if (score < Score::Limits::EVAL_MIN)
-        score -= distanceFromRoot;
-
-    for (auto& entry : table[hash].entry)
-    {
-        if (entry.GetKey() == EMPTY || entry.GetKey() == ZobristKey)
-        {
-            entry = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
-            return;
-        }
-    }
+    score = convert_to_tt_score(score, distanceFromRoot);
 
     // Keep in mind age from each generation goes up so lower (generally) means older
-    int8_t currentAge = TTEntry::CalculateAge(Turncount, distanceFromRoot);
-    std::array<int8_t, TTBucket::SIZE> scores = {};
+    int8_t current_generation = get_generation(Turncount, distanceFromRoot);
+    std::array<int8_t, TTBucket::size> scores = {};
+    auto& bucket = table[hash];
 
-    for (size_t i = 0; i < TTBucket::SIZE; i++)
+    const auto write_to_entry = [&](auto& entry)
     {
-        int8_t age_diff = currentAge - table[hash].entry[i].GetAge();
-        scores[i] = table[hash].entry[i].GetDepth() - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        entry.move = best;
+        entry.key = ZobristKey;
+        entry.score = score;
+        entry.depth = Depth;
+        entry.cutoff = Cutoff;
+        entry.generation = current_generation;
+    };
+
+    for (size_t i = 0; i < TTBucket::size; i++)
+    {
+        // each bucket fills from the first entry, and only once all entries are full do we use the replacement scheme
+        if (bucket[i].key == EMPTY)
+        {
+            write_to_entry(bucket[i]);
+            return;
+        }
+
+        // avoid having multiple entries in a bucket for the same position.
+        if (bucket[i].key == ZobristKey)
+        {
+            // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
+            // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
+            if (Cutoff == SearchResultType::EXACT || Depth >= bucket[i].depth - 3)
+            {
+                write_to_entry(bucket[i]);
+            }
+            return;
+        }
+
+        int8_t age_diff = current_generation - bucket[i].generation;
+        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
     }
 
-    table[hash].entry[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]
-        = TTEntry(best, ZobristKey, score, Depth, Turncount, distanceFromRoot, Cutoff);
+    write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
 }
 
-std::optional<TTEntry> TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
+TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
     size_t index = HashFunction(key);
 
     // we return by copy here because other threads are reading/writing to this same table.
-    for (auto& entry : table[index].entry)
+    for (auto& entry : table[index])
     {
-        if (entry.GetKey() == key)
+        if (entry.key == key)
         {
             // reset the age of this entry to mark it as not old
-            entry.SetHalfMove(half_turn_count, distanceFromRoot);
-            auto copy = entry;
-            copy.MateScoreAdjustment(distanceFromRoot);
-            return copy;
+            entry.generation = get_generation(half_turn_count, distanceFromRoot);
+            return &entry;
         }
     }
 
-    return std::nullopt;
-}
-
-std::optional<TTEntry> TranspositionTable::GetEntryMinDepth(
-    uint64_t key, int min_depth, int distanceFromRoot, int half_turn_count)
-{
-    size_t index = HashFunction(key);
-
-    // we return by copy here because other threads are reading/writing to this same table.
-    for (auto& entry : table[index].entry)
-    {
-        if (entry.GetKey() == key && entry.GetDepth() >= min_depth)
-        {
-            // reset the age of this entry to mark it as not old
-            entry.SetHalfMove(half_turn_count, distanceFromRoot);
-            auto copy = entry;
-            copy.MateScoreAdjustment(distanceFromRoot);
-            return copy;
-        }
-    }
-
-    return std::nullopt;
+    return nullptr;
 }
 
 int TranspositionTable::GetCapacity(int halfmove) const
@@ -97,7 +98,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
     for (int i = 0; i < 1000; i++) // 1000 chosen specifically, because result needs to be 'per mill'
     {
-        if (table[i / TTBucket::SIZE].entry[i % TTBucket::SIZE].GetAge() == TTEntry::CalculateAge(halfmove, 0))
+        if (table[i / TTBucket::size][i % TTBucket::size].generation == get_generation(halfmove, 0))
             count++;
     }
 
@@ -106,21 +107,48 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    std::fill(table.get(), table.get() + size_, TTBucket {});
+    Reallocate();
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-    Reallocate(CalculateEntryCount(MB));
+    size_ = CalculateEntryCount(MB);
+    hash_mask_ = size_ - 1;
+    Reallocate();
+
+    // size should be a power of two
+    assert(GetBitCount(size_) == 1);
 }
 
-void TranspositionTable::Reallocate(size_t size)
+void TranspositionTable::Reallocate()
 {
-    // size should be a power of two
-    assert(GetBitCount(size) == 1);
-    size_ = size;
-    hash_mask_ = size - 1;
-    table.reset(new TTBucket[size]);
+    Deallocate();
+
+#ifdef __linux__
+    constexpr static size_t huge_page_size = 2 * 1024 * 1024;
+    const size_t bytes = size_ * sizeof(TTBucket);
+    table = static_cast<TTBucket*>(std::aligned_alloc(huge_page_size, bytes));
+    madvise(table, bytes, MADV_HUGEPAGE);
+    std::uninitialized_default_construct_n(table, size_);
+#else
+    table = new TTBucket[size_];
+#endif
+}
+
+void TranspositionTable::Deallocate()
+{
+#ifdef __linux__
+    if (table)
+    {
+        std::destroy_n(table, size_);
+        std::free(table);
+    }
+#else
+    if (table)
+    {
+        delete[] table;
+    }
+#endif
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const

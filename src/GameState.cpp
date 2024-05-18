@@ -2,12 +2,8 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 
-#include <algorithm>
-#include <array>
 #include <assert.h>
 #include <ctype.h>
-#include <iostream>
-#include <memory>
 #include <sstream>
 
 #include "Move.h"
@@ -29,83 +25,24 @@ void GameState::ApplyMove(Move move)
 
 void GameState::ApplyMove(const std::string& strmove)
 {
-    Square prev = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
-    Square next = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
-    MoveFlag flag = QUIET;
-
-    // Captures
-    if (Board().IsOccupied(next))
-        flag = CAPTURE;
-
-    // Double pawn moves
-    if (AbsRankDiff(prev, next) == 2)
-        if (Board().GetSquare(prev) == WHITE_PAWN || Board().GetSquare(prev) == BLACK_PAWN)
-            flag = PAWN_DOUBLE_MOVE;
-
-    // En passant
-    if (next == Board().en_passant)
-        if (Board().GetSquare(prev) == WHITE_PAWN || Board().GetSquare(prev) == BLACK_PAWN)
-            flag = EN_PASSANT;
-
-    // Castling (normal chess)
-    if (prev == SQ_E1 && next == SQ_G1 && Board().GetSquare(prev) == WHITE_KING)
-        flag = H_SIDE_CASTLE;
-
-    if (prev == SQ_E1 && next == SQ_C1 && Board().GetSquare(prev) == WHITE_KING)
-        flag = A_SIDE_CASTLE;
-
-    if (prev == SQ_E8 && next == SQ_G8 && Board().GetSquare(prev) == BLACK_KING)
-        flag = H_SIDE_CASTLE;
-
-    if (prev == SQ_E8 && next == SQ_C8 && Board().GetSquare(prev) == BLACK_KING)
-        flag = A_SIDE_CASTLE;
+    Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
+    Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
+    MoveFlag flag = Board().GetMoveFlag(from, to);
 
     // Promotion
     if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
     {
         if (tolower(strmove[4]) == 'n')
-            flag = KNIGHT_PROMOTION;
+            flag = (flag == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
         if (tolower(strmove[4]) == 'r')
-            flag = ROOK_PROMOTION;
+            flag = (flag == CAPTURE ? ROOK_PROMOTION_CAPTURE : ROOK_PROMOTION);
         if (tolower(strmove[4]) == 'q')
-            flag = QUEEN_PROMOTION;
+            flag = (flag == CAPTURE ? QUEEN_PROMOTION_CAPTURE : QUEEN_PROMOTION);
         if (tolower(strmove[4]) == 'b')
-            flag = BISHOP_PROMOTION;
-
-        if (Board().IsOccupied(next)) // if it's a capture we need to shift the flag up 4
-            flag = static_cast<MoveFlag>(flag + CAPTURE);
+            flag = (flag == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
     }
 
-    // Castling (chess960)
-    if (Board().GetSquare(prev) == WHITE_KING && Board().GetSquare(next) == WHITE_ROOK)
-    {
-        if (prev > next)
-        {
-            flag = A_SIDE_CASTLE;
-            next = SQ_C1;
-        }
-        else
-        {
-            flag = H_SIDE_CASTLE;
-            next = SQ_G1;
-        }
-    }
-
-    if (Board().GetSquare(prev) == BLACK_KING && Board().GetSquare(next) == BLACK_ROOK)
-    {
-        if (prev > next)
-        {
-            flag = A_SIDE_CASTLE;
-            next = SQ_C8;
-        }
-        else
-        {
-            flag = H_SIDE_CASTLE;
-            next = SQ_G8;
-        }
-    }
-
-    ApplyMove(Move(prev, next, flag));
+    ApplyMove(Move(from, to, flag));
     net.Recalculate(Board());
 }
 
