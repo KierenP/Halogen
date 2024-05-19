@@ -271,16 +271,16 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
     }
 }
 
-void BoardState::Print() const
+std::ostream& operator<<(std::ostream& os, const BoardState& b)
 {
-    std::cout << "\n  A B C D E F G H";
+    os << "  A B C D E F G H";
 
     char Letter[N_SQUARES];
 
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
     {
         constexpr static char PieceChar[13] = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
-        Letter[i] = PieceChar[GetSquare(i)];
+        Letter[i] = PieceChar[b.GetSquare(i)];
     }
 
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
@@ -289,21 +289,23 @@ void BoardState::Print() const
 
         if (GetFile(square) == FILE_A)
         {
-            std::cout << std::endl; // Go to a new line
-            std::cout << 8 - GetRank(i); // Count down from 8
+            os << std::endl; // Go to a new line
+            os << 8 - GetRank(i); // Count down from 8
         }
 
-        std::cout << " ";
-        std::cout << Letter[square];
+        os << " ";
+        os << Letter[square];
     }
 
-    std::cout << std::endl;
-    std::cout << "en_passant: " << en_passant << "\n";
-    std::cout << "fifty_move_count: " << fifty_move_count << "\n";
-    std::cout << "half_turn_count: " << half_turn_count << "\n";
-    std::cout << "stm: " << stm << "\n";
-    std::cout << "castle_squares: " << castle_squares << "\n";
-    std::cout << std::endl;
+    os << "\n";
+    os << "en_passant: " << b.en_passant << "\n";
+    os << "fifty_move_count: " << b.fifty_move_count << "\n";
+    os << "half_turn_count: " << b.half_turn_count << "\n";
+    os << "stm: " << b.stm << "\n";
+    os << "castle_squares: " << b.castle_squares << "\n";
+    os << "\n";
+
+    return os;
 }
 
 void BoardState::ApplyMove(Move move, Network& net)

@@ -19,14 +19,13 @@ SRCS := \
 	SearchData.cpp \
 	SearchLimits.cpp \
 	StagedMoveGenerator.cpp \
-	TimeManage.cpp \
+	TimeManager.cpp \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
-	Magic.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
