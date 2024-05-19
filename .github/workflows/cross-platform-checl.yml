@@ -81,23 +81,28 @@ jobs:
           actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
 
+  # On OpenBench some workers use g++ 9.3.1, so we must maintain compatibility with that
   PGO:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        # TODO: clang PGO builds require different compiler flags, and also appear to produce slower compiles
-        compiler: [g++-10]
+        compiler: [g++-9]
 
     steps:
       - uses: actions/checkout@v4.1.1
 
+      - name: Install g++
+      - run: |
+          sudo apt update
+          sudo apt install g++-9
+
       - name: Create PGO compiles
         run: |
-         cd src
-         make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+          cd src
+          make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
-         cd bin
-         ./Halogen bench
+          cd bin
+          ./Halogen bench
