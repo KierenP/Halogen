@@ -199,8 +199,7 @@ SearchResult AspirationWindowSearch(
         if (result.GetScore() <= alpha)
         {
             result = { alpha, result.GetMove() };
-            shared.report_search_result(position, ss, local, result, SearchResultType::UPPER_BOUND);
-            // Bring down beta on a fail low
+            //  Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
         }
@@ -208,7 +207,6 @@ SearchResult AspirationWindowSearch(
         if (result.GetScore() >= beta)
         {
             result = { beta, result.GetMove() };
-            shared.report_search_result(position, ss, local, result, SearchResultType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 

@@ -24,7 +24,7 @@ inline PredictionQualityRecord prediction_quality_record;
 // discount rate of future rewards
 inline constexpr double GAMMA = 1;
 
-inline constexpr int training_nodes = 2000;
+inline constexpr int training_nodes = 4000;
 inline constexpr double sigmoid_coeff = 2.5 / 400.0;
 
 inline constexpr double training_time_hours = 16;
