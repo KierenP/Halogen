@@ -35,7 +35,7 @@ void learn_thread(const std::vector<std::string>& openings)
     TrainableNetwork network;
     SearchSharedState data(1);
     data.silent_mode = true;
-    data.limits.SetNodeLimit(training_nodes);
+    data.limits.nodes = training_nodes;
 
     while (!stop_signal)
     {
