@@ -2,7 +2,7 @@ BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
 EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
-EVALFILE = d7d569e5.nn
+EVALFILE = $(BUILD_DIR)/d7d569e5.nn
 
 SRCS := \
 	BitBoardDefine.cpp \
@@ -19,7 +19,7 @@ SRCS := \
 	SearchData.cpp \
 	SearchLimits.cpp \
 	StagedMoveGenerator.cpp \
-	TimeManage.cpp \
+	TimeManager.cpp \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
@@ -36,7 +36,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # Define compiler flags and instruction sets
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/$(EVALFILE)\"
+AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
@@ -243,17 +243,17 @@ release:
 #----------------------------------------------------------------------------------------------------------------------
 
 # Copied from the Stockfish makefile
-$(BUILD_DIR)/$(EVALFILE):
+$(EVALFILE):
 	@ mkdir -p $(dir $@)
 	@echo "net: $(EVALFILE)"
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	@if test -f "$(BUILD_DIR)/$(EVALFILE)"; then \
+	@if test -f "$(EVALFILE)"; then \
         echo "Already available."; \
 	else \
 		if [ "x$(curl_or_wget)" = "x" ]; then \
 			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
 		else \
-			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) >$(BUILD_DIR)/$(EVALFILE);\
+			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
 			echo "Download complete."; \
 		fi; \
 	fi;
@@ -267,7 +267,7 @@ binary: $(OBJS)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.o: % $(BUILD_DIR)/$(EVALFILE) FORCE
+$(BUILD_DIR)/%.o: % $(EVALFILE) FORCE
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

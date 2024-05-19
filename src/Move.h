@@ -42,12 +42,6 @@ public:
     bool IsCapture() const;
     bool IsCastle() const;
 
-    std::string to_string() const;
-    void Print() const;
-
-    std::string to_string_960(Players stm, uint64_t castle_sq) const;
-    void Print960(Players stm, uint64_t castle_sq) const;
-
     constexpr bool operator==(const Move& rhs) const
     {
         return (data == rhs.data);
@@ -59,6 +53,8 @@ public:
     }
 
     static const Move Uninitialized;
+
+    friend std::ostream& operator<<(std::ostream& os, Move m);
 
 private:
     void SetFrom(Square from);
