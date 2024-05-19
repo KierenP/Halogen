@@ -15,14 +15,13 @@ SRCS := \
 	SearchData.cpp \
 	SearchLimits.cpp \
 	StagedMoveGenerator.cpp \
-	TimeManage.cpp \
+	TimeManager.cpp \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
-	Magic.cpp \
 	Pyrrhic/tbprobe.c \
 	td-leaf/HalogenNetwork.cpp \
 	td-leaf/td-leaf-learn.cpp \

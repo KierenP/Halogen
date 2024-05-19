@@ -75,8 +75,6 @@ public:
 
     uint64_t GetZobristKey() const;
 
-    void Print() const;
-
     void SetSquare(Square square, Pieces piece);
     void ClearSquare(Square square);
 
@@ -89,6 +87,8 @@ public:
 
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
     MoveFlag GetMoveFlag(Square from, Square to) const;
+
+    friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
     void SetSquareAndUpdate(Square square, Pieces piece, HalogenNetwork& net);

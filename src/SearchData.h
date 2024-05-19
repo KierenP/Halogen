@@ -13,6 +13,7 @@
 #include "Score.h"
 #include "Search.h"
 #include "SearchLimits.h"
+#include "TimeManager.h"
 #include "TranspositionTable.h"
 
 #ifdef __cpp_lib_hardware_interference_size
@@ -100,6 +101,9 @@ public:
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
     BasicMoveList root_move_whitelist;
     BasicMoveList root_move_blacklist;
+
+    // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
+    int limit_check_counter = 0;
 };
 
 // Search state that is shared between threads.
@@ -134,6 +138,8 @@ public:
     void report_search_result(GameState& position, const SearchStackState* ss, const SearchLocalState& local,
         SearchResult result, SearchResultType type);
 
+    void PrintSearchInfo(const GameState& position, const SearchLocalState& local, const SearchResults& data) const;
+
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
@@ -148,13 +154,12 @@ public:
     bool chess_960 = false;
     bool silent_mode = false;
     SearchLimits limits;
+    Timer search_timer;
 
 private:
-    mutable std::mutex lock_;
+    mutable std::recursive_mutex lock_;
     int multi_pv_setting = 1;
     int threads_setting = 0;
-
-    void PrintSearchInfo(GameState& position, const SearchLocalState& local, const SearchResults& data) const;
 
     // [thread_id][multi_pv][depth]
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;

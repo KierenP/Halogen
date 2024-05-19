@@ -21,7 +21,7 @@
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
 #include "TTEntry.h"
-#include "TimeManage.h"
+#include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
@@ -57,7 +57,6 @@ template <SearchType search_type>
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta);
 
-void PrintBestMove(Move Best, const BoardState& board, bool chess960);
 bool UseTransposition(Score tt_score, SearchResultType cutoff, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
 bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
@@ -122,24 +121,9 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     if (!shared.silent_mode)
     {
         const auto& search_result = shared.get_best_search_result();
-        PrintBestMove(search_result.best_move, position.Board(), shared.chess_960);
+        shared.PrintSearchInfo(position, shared.get_local_state(0), search_result);
+        std::cout << "bestmove " << search_result.best_move << std::endl;
     }
-}
-
-void PrintBestMove(Move Best, const BoardState& board, bool chess960)
-{
-    std::cout << "bestmove ";
-
-    if (chess960)
-    {
-        Best.Print960(board.stm, board.castle_squares);
-    }
-    else
-    {
-        Best.Print();
-    }
-
-    std::cout << std::endl;
 }
 
 void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
@@ -156,42 +140,33 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
         {
             local.curr_multi_pv = multi_pv;
 
-            if (shared.limits.HitDepthLimit(depth))
+            if (shared.limits.depth && depth > shared.limits.depth)
             {
                 return;
             }
 
-            if (shared.limits.HitNodeLimit(local.nodes.load(std::memory_order_relaxed)))
-            {
-                return;
-            }
-
-            if (!shared.limits.ShouldContinueSearch())
+            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch())
             {
                 shared.report_thread_wants_to_stop(local.thread_id);
             }
 
-            if (depth > 1 && shared.limits.HitTimeLimit())
-            {
-                return;
-            }
-
             SearchResult result = AspirationWindowSearch(position, ss, local, shared, mid_score);
             local.root_move_blacklist.push_back(result.GetMove());
-
-            if (multi_pv == 1)
-            {
-                mid_score = result.GetScore();
-            }
 
             if (local.aborting_search)
             {
                 return;
             }
 
+            if (multi_pv == 1)
+            {
+                mid_score = result.GetScore();
+            }
+
             shared.report_search_result(position, ss, local, result, SearchResultType::EXACT);
 
-            if (shared.limits.HitMateLimit(result.GetScore()))
+            if (shared.limits.mate
+                && Score::Limits::MATE - abs(result.GetScore().value()) <= shared.limits.mate.value() * 2)
             {
                 return;
             }
@@ -815,20 +790,41 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
         return true;
     }
 
-    // See if we should abort the search. We get this signal if all threads have decided they want to stop, or we
-    // receive a 'stop' command from the uci input
-    if (local.curr_depth > 1 && !KeepSearching)
+    // Avoid checking the limits too often
+    if (local.limit_check_counter > 0)
+    {
+        local.limit_check_counter--;
+        return false;
+    }
+
+    // No matter what, we always complete a depth 1 search.
+    if (local.curr_depth <= 1)
+    {
+        return false;
+    }
+
+    // A signal that we recieved a UCI stop command, or the threads voted to stop searching
+    if (!KeepSearching)
     {
         local.aborting_search = true;
         return true;
     }
 
-    // Check if we have breached the time limit.
-    if (local.curr_depth > 1 && local.nodes.load(std::memory_order_relaxed) % 1024 == 0 && shared.limits.HitTimeLimit())
+    if (shared.limits.time && shared.limits.time->ShouldAbortSearch())
     {
         local.aborting_search = true;
         return true;
     }
 
+    auto nodes = local.nodes.load(std::memory_order_relaxed);
+    if (shared.limits.nodes && nodes >= shared.limits.nodes)
+    {
+        local.aborting_search = true;
+        return true;
+    }
+
+    // Reset the limit_check_counter to 1024, or 1/2 the remaining node limit if smaller
+    local.limit_check_counter
+        = shared.limits.nodes ? std::clamp<int64_t>((*shared.limits.nodes - nodes) / 2, 0, 1024) : 1024;
     return false;
 }
