@@ -35,7 +35,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 #----------------------------------------------------------------------------------------------------------------------
 # Define compiler flags and instruction sets
 
-WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
+WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
 AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto
@@ -83,6 +83,7 @@ endif
 ifeq ($(findstring clang++, $(CXX)),)
 	PGOGEN = -fprofile-generate
 	PGOUSE = -fprofile-use
+	CXXFLAGS += -Wno-interference-size
   	$(info detected compiler is [g++])
 else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
