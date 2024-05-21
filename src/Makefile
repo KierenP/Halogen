@@ -1,3 +1,5 @@
+LLVM_PROFDATA := llvm-profdata
+
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
@@ -87,7 +89,7 @@ ifeq ($(findstring clang++, $(CXX)),)
   	$(info detected compiler is [g++])
 else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
-	PGOMERGE = llvm-profdata merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw
+	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw
 	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
   	$(info detected compiler is [clang++])
 endif

@@ -116,6 +116,7 @@ jobs:
       matrix:
         compiler: [clang++-10]
         llvm: [llvm-10]
+        profdata: [llvm-profdata-10]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -128,7 +129,7 @@ jobs:
       - name: Create PGO compiles
         run: |
           cd src
-          make CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+          make CXX=${{ matrix.compiler }} LLVM_PROFDATA=${{ matrix.profdata }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
