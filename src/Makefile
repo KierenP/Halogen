@@ -80,11 +80,14 @@ ifeq ($(detected_OS),Windows)
 endif
 
 # Detect if CXX is g++ or clang++, in this order.
-ifeq '' '$(findstring clang++,$(CXX))'
-  	CXXFLAGS += -fconstexpr-ops-limit=1000000000
+ifeq ($(findstring clang++, $(CXX)),)
+	PGOGEN = -fprofile-generate
+	PGOUSE = -fprofile-use
   	$(info detected compiler is [g++])
 else
-  	CXXFLAGS += -fconstexpr-steps=100000000
+	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
+	PGOMERGE = llvm-profdata merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw
+	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
   	$(info detected compiler is [clang++])
 endif
 
@@ -127,15 +130,16 @@ pgo:
 	$(MAKE) pgo-compile
 
 .PHONY: pgo-instrumented
-pgo-instrumented: CXXFLAGS += $(CFLAGS) -fno-lto -fprofile-generate
-pgo-instrumented: LDFLAGS += -fno-lto -fprofile-generate
+pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
+pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
 pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented.exe
 pgo-instrumented: binary
 	./$(EXE) bench
+	$(PGOMERGE)
 
 .PHONY: pgo-compile
-pgo-compile: CXXFLAGS += $(CFLAGS) -fprofile-use
-pgo-compile: LDFLAGS += -flto=auto -fprofile-use
+pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
+pgo-compile: LDFLAGS += -flto=auto $(PGOUSE)
 pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo.exe
 pgo-compile: binary
 
