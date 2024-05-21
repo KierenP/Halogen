@@ -18,7 +18,7 @@ jobs:
       matrix:
         compiler: [g++-10, clang++-13]
         # runners only seem to support up to avx2-pext
-        target: [legacy, sse4, avx, avx2, avx2-pext]
+        target: [legacy, sse4, avx, avx2, avx2-pext, pgo]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -49,7 +49,7 @@ jobs:
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
         # runners only seem to support up to avx2-pext
-        target: [legacy, sse4, avx, avx2, avx2-pext]
+        target: [legacy, sse4, avx, avx2, avx2-pext, pgo]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -82,7 +82,7 @@ jobs:
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
 
   # On OpenBench some workers use g++ 9.3.1, so we must maintain compatibility with that
-  PGO:
+  OpenBench:
     runs-on: ubuntu-20.04
 
     strategy:
@@ -92,15 +92,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
 
+      # gcc 9 needs to be installed on demand
       - name: Install g++
         run: |
           sudo apt update
-          sudo apt install g++-9
+          sudo apt install ${{ matrix.compiler }}
 
       - name: Create PGO compiles
         run: |
           cd src
-          make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+          make CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
