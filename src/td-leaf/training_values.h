@@ -27,7 +27,7 @@ inline constexpr double GAMMA = 1;
 inline constexpr int training_nodes = 4000;
 inline constexpr double sigmoid_coeff = 2.5 / 400.0;
 
-inline constexpr double training_time_hours = 28;
+inline constexpr double training_time_hours = 24;
 
 inline constexpr int max_threads = 20;
 
