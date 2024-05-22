@@ -24,10 +24,10 @@ inline PredictionQualityRecord prediction_quality_record;
 // discount rate of future rewards
 inline constexpr double GAMMA = 1;
 
-inline constexpr int training_nodes = 40000;
+inline constexpr int training_nodes = 4000;
 inline constexpr double sigmoid_coeff = 2.5 / 400.0;
 
-inline constexpr double training_time_hours = 32;
+inline constexpr double training_time_hours = 28;
 
 inline constexpr int max_threads = 20;
 
@@ -35,3 +35,6 @@ inline constexpr int max_threads = 20;
 inline constexpr float opening_book_usage_pct = 0.05;
 
 inline constexpr Score opening_cutoff = 500;
+
+// batch size in no. of games
+inline constexpr size_t batch_size = 128;

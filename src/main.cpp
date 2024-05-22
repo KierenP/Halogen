@@ -37,7 +37,7 @@ void Bench(int depth = 10);
 
 string version = "11.20.0";
 
-string td_leaf_version = "td_leaf_learn_3.6.0";
+string td_leaf_version = "td_leaf_learn_3.7.0";
 
 int main(int argc, char* argv[])
 {

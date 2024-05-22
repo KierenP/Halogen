@@ -162,6 +162,8 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
     // uint64_t time_spend_in_search_ns = 0;
 
     thread_local std::mt19937 gen(0);
+    thread_local size_t minibatch_games = 0;
+    thread_local size_t minibatch_positions = 0;
 
     GameState position;
     std::vector<TD_game_result> results;
@@ -345,8 +347,15 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
         network.UpdateGradients(loss_gradient, results[t].sparseInputs, results[t].stm);
     }
 
-    network.ApplyOptimizationStep(results.size());
+    minibatch_games++;
+    minibatch_positions += results.size();
 
+    if (minibatch_games >= batch_size)
+    {
+        network.ApplyOptimizationStep(results.size());
+        minibatch_games = 0;
+        minibatch_positions = 0;
+    }
     // std::cout << "Game result: " << results.back().score << " turns: " << turns << std::endl;
 
     // std::chrono::steady_clock::time_point fn_end = std::chrono::steady_clock::now();
