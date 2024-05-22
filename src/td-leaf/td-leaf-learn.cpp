@@ -352,7 +352,7 @@ void SelfPlayGame(TrainableNetwork& network, SearchSharedState& data, const std:
 
     if (minibatch_games >= batch_size)
     {
-        network.ApplyOptimizationStep(results.size());
+        network.ApplyOptimizationStep(minibatch_positions);
         minibatch_games = 0;
         minibatch_positions = 0;
     }
