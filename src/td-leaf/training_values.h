@@ -6,11 +6,11 @@
 #include <cmath>
 
 // t ranges from 0 at the begining to 1 at the end
-inline float learning_rate_schedule(float t)
+inline float learning_rate_schedule(float)
 {
     // cosine annealing
-    static constexpr float initial_lr = 0.001;
-    return initial_lr * (cos(t * M_PI) + 1.0) / 2.0;
+    static constexpr float initial_lr = 0.01;
+    return initial_lr; // * (cos(t * M_PI) + 1.0) / 2.0;
 }
 
 // The current adjusted learning rate.
