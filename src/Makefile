@@ -1,3 +1,5 @@
+LLVM_PROFDATA := llvm-profdata
+
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
@@ -35,10 +37,10 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 #----------------------------------------------------------------------------------------------------------------------
 # Define compiler flags and instruction sets
 
-WFLAGS = -Wall -Wextra -Wshadow -Wno-interference-size -Wno-unknown-warning-option -Wno-deprecated
+WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
 AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
-CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto -march=native
-RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto=auto
+CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
+RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
 SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
@@ -80,11 +82,15 @@ ifeq ($(detected_OS),Windows)
 endif
 
 # Detect if CXX is g++ or clang++, in this order.
-ifeq '' '$(findstring clang++,$(CXX))'
-  	CXXFLAGS += -fconstexpr-ops-limit=1000000000
+ifeq ($(findstring clang++, $(CXX)),)
+	PGOGEN = -fprofile-generate
+	PGOUSE = -fprofile-use
+	CXXFLAGS += -Wno-interference-size
   	$(info detected compiler is [g++])
 else
-  	CXXFLAGS += -fconstexpr-steps=100000000
+	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
+	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw
+	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
   	$(info detected compiler is [clang++])
 endif
 
@@ -127,21 +133,22 @@ pgo:
 	$(MAKE) pgo-compile
 
 .PHONY: pgo-instrumented
-pgo-instrumented: CXXFLAGS += $(CFLAGS) -fno-lto -fprofile-generate
-pgo-instrumented: LDFLAGS += -fno-lto -fprofile-generate
+pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
+pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
 pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented.exe
 pgo-instrumented: binary
 	./$(EXE) bench
+	$(PGOMERGE)
 
 .PHONY: pgo-compile
-pgo-compile: CXXFLAGS += $(CFLAGS) -fprofile-use
-pgo-compile: LDFLAGS += -flto=auto -fprofile-use
+pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
+pgo-compile: LDFLAGS += -flto $(PGOUSE)
 pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo.exe
 pgo-compile: binary
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS)
-native: LDFLAGS += -flto=auto
+native: LDFLAGS += -flto
 native: EXE = $(BINARY_DIR)/Halogen-native.exe
 native: binary
 
@@ -176,37 +183,37 @@ sanitize-thread: binary
 
 .PHONY: legacy
 legacy: CXXFLAGS += $(RFLAGS)
-legacy: LDFLAGS += -flto=auto -static 
+legacy: LDFLAGS += -flto -static 
 legacy: EXE = $(BINARY_DIR)/Halogen-legacy.exe
 legacy: binary
 
 .PHONY: sse4
 sse4: CXXFLAGS += $(RFLAGS) $(SSE4FLAGS)
-sse4: LDFLAGS += -flto=auto -static 
+sse4: LDFLAGS += -flto -static 
 sse4: EXE = $(BINARY_DIR)/Halogen-sse4.exe
 sse4: binary
 
 .PHONY: avx
 avx: CXXFLAGS += $(RFLAGS) $(AVXFLAGS)
-avx: LDFLAGS += -flto=auto -static 
+avx: LDFLAGS += -flto -static 
 avx: EXE = $(BINARY_DIR)/Halogen-avx.exe
 avx: binary
 
 .PHONY: avx2
 avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
-avx2: LDFLAGS += -flto=auto -static 
+avx2: LDFLAGS += -flto -static 
 avx2: EXE = $(BINARY_DIR)/Halogen-avx2.exe
 avx2: binary
 
 .PHONY: avx2-pext
 avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
-avx2-pext: LDFLAGS += -flto=auto -static 
+avx2-pext: LDFLAGS += -flto -static 
 avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext.exe
 avx2-pext: binary
 
 .PHONY: avx512
 avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS)
-avx512: LDFLAGS += -flto=auto -static 
+avx512: LDFLAGS += -flto -static 
 avx512: EXE = $(BINARY_DIR)/Halogen-avx512.exe
 avx512: binary
 
@@ -218,13 +225,13 @@ avx512-pext: binary
 
 .PHONY: avx512vnni
 avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS)
-avx512vnni: LDFLAGS += -flto=auto -static 
+avx512vnni: LDFLAGS += -flto -static 
 avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni.exe
 avx512vnni: binary
 
 .PHONY: avx512vnni-pext
 avx512vnni-pext: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
-avx512vnni-pext: LDFLAGS += -flto=auto -static 
+avx512vnni-pext: LDFLAGS += -flto -static 
 avx512vnni-pext: EXE = $(BINARY_DIR)/Halogen-avx512vnni-pext.exe
 avx512vnni-pext: binary
 
