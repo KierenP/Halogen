@@ -439,7 +439,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 6 && tt_entry
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 5 && tt_entry
             && tt_depth + 2 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
         {
             Score sbeta = tt_score - depth * 2;
