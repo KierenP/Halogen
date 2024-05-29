@@ -12,13 +12,14 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
+    Move tt_move, bool Quiescence, bool InCheck)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
     , TTmove(tt_move)
+    , in_check(InCheck)
 {
     if (quiescence)
         stage = Stage::GEN_LOUD;
@@ -43,7 +44,14 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.Board(), loudMoves);
+        if (in_check)
+        {
+            LoudMovesInCheck(position.Board(), loudMoves);
+        }
+        else
+        {
+            LoudMoves(position.Board(), loudMoves);
+        }
         OrderMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
@@ -109,7 +117,14 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
+        if (in_check)
+        {
+            QuietMovesInCheck(position.Board(), quietMoves);
+        }
+        else
+        {
+            QuietMoves(position.Board(), quietMoves);
+        }
         OrderMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;

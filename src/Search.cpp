@@ -63,7 +63,6 @@ bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
 bool IsEndGame(const BoardState& board);
 void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
     int distanceFromRoot, Score beta, Move bestMove);
-Score TerminalScore(const BoardState& board, int distanceFromRoot);
 int extension(const BoardState& board);
 void AddKiller(Move move, std::array<Move, 2>& KillerMoves);
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining);
@@ -394,7 +393,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     bool FutileNode = depth < Futility_depth && staticScore + Futility_constant + Futility_coeff * depth < alpha;
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false, InCheck);
     Move move;
 
     while (gen.Next(move))
@@ -575,7 +574,14 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Checkmate or stalemate
     if (noLegalMoves)
     {
-        return TerminalScore(position.Board(), distance_from_root);
+        if (InCheck)
+        {
+            return Score::mated_in(distance_from_root);
+        }
+        else
+        {
+            return (Score::draw());
+        }
     }
 
     score = std::clamp(score, min_score, max_score);
@@ -663,18 +669,6 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
             SearchResultType::EXACT);
 }
 
-Score TerminalScore(const BoardState& board, int distanceFromRoot)
-{
-    if (IsInCheck(board))
-    {
-        return Score::mated_in(distanceFromRoot);
-    }
-    else
-    {
-        return (Score::draw());
-    }
-}
-
 template <SearchType search_type>
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta)
@@ -710,7 +704,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     Move bestmove = Move::Uninitialized;
     auto score = staticScore;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
+    bool InCheck = IsInCheck(position.Board());
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true, InCheck);
     Move move;
 
     while (gen.Next(move))
@@ -757,6 +752,18 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
                     break;
                 }
             }
+        }
+    }
+
+    if (InCheck && gen.loud_moves().size() == 0)
+    {
+        // The in check move generator for quiet moves is very quick, and can be used to detect a checkmate in
+        // quiescence search
+        BasicMoveList quiet_moves;
+        QuietMovesInCheck(position.Board(), quiet_moves);
+        if (quiet_moves.size() == 0)
+        {
+            return Score::mated_in(distance_from_root);
         }
     }
 
