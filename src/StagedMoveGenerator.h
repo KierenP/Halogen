@@ -17,9 +17,11 @@ enum class Stage
     GIVE_KILLER_1,
     GEN_KILLER_2,
     GIVE_KILLER_2,
+    GEN_QUIET_CHECKS,
+    GIVE_QUIET_CHECKS,
     GIVE_BAD_LOUD,
-    GEN_QUIET,
-    GIVE_QUIET
+    GEN_QUIET_NON_CHECKS,
+    GIVE_QUIET_NON_CHECKS
 };
 
 // Encapsulation of staged move generation. To loop through moves:
@@ -70,11 +72,14 @@ private:
     const SearchStackState* ss;
     const bool quiescence;
     ExtendedMoveList loudMoves;
-    ExtendedMoveList quietMoves;
+    ExtendedMoveList quiet_checks;
+    ExtendedMoveList quiet_non_checks;
 
     // Data uses for keeping track of internal values
     Stage stage;
-    ExtendedMoveList::iterator current;
+    ExtendedMoveList::iterator loud_current;
+    ExtendedMoveList::iterator quiet_checks_current;
+    ExtendedMoveList::iterator quiet_non_checks_current;
 
     // We use SEE for ordering the moves, but SEE is also used in QS.
     // See the body of GetSEE for usage.

@@ -46,17 +46,17 @@ bool StagedMoveGenerator::Next(Move& move)
         GenerateMoves<MOVES_LOUD_CHECKS>(position.Board(), loudMoves);
         GenerateMoves<MOVES_LOUD_NON_CHECKS>(position.Board(), loudMoves);
         OrderMoves(loudMoves);
-        current = loudMoves.begin();
+        loud_current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
     }
 
     if (stage == Stage::GIVE_GOOD_LOUD)
     {
-        if (current != loudMoves.end() && current->SEE >= 0)
+        if (loud_current != loudMoves.end() && loud_current->SEE >= 0)
         {
-            move = current->move;
-            moveSEE = current->SEE;
-            ++current;
+            move = loud_current->move;
+            moveSEE = loud_current->SEE;
+            ++loud_current;
             return true;
         }
 
@@ -81,7 +81,7 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GIVE_KILLER_2)
     {
         Killer2 = ss->killers[1];
-        stage = Stage::GIVE_BAD_LOUD;
+        stage = Stage::GEN_QUIET_CHECKS;
 
         if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
         {
@@ -90,40 +90,59 @@ bool StagedMoveGenerator::Next(Move& move)
         }
     }
 
+    if (stage == Stage::GEN_QUIET_CHECKS)
+    {
+        GenerateMoves<MOVES_QUIET_CHECKS>(position.Board(), quiet_checks);
+        OrderMoves(quiet_checks);
+        quiet_checks_current = quiet_checks.begin();
+        stage = Stage::GIVE_QUIET_CHECKS;
+    }
+
+    if (stage == Stage::GIVE_QUIET_CHECKS)
+    {
+        if (quiet_checks_current != quiet_checks.end())
+        {
+            move = quiet_checks_current->move;
+            ++quiet_checks_current;
+            return true;
+        }
+
+        stage = Stage::GIVE_BAD_LOUD;
+    }
+
     if (stage == Stage::GIVE_BAD_LOUD)
     {
-        if (current != loudMoves.end())
+        if (loud_current != loudMoves.end())
         {
-            move = current->move;
-            moveSEE = current->SEE;
-            ++current;
+            move = loud_current->move;
+            moveSEE = loud_current->SEE;
+            ++loud_current;
             return true;
         }
         else
         {
-            stage = Stage::GEN_QUIET;
+            stage = Stage::GEN_QUIET_NON_CHECKS;
         }
     }
 
     if (skipQuiets)
         return false;
 
-    if (stage == Stage::GEN_QUIET)
+    if (stage == Stage::GEN_QUIET_NON_CHECKS)
     {
-        GenerateMoves<MOVES_QUIET_CHECKS>(position.Board(), quietMoves);
-        GenerateMoves<MOVES_QUIET_NON_CHECKS>(position.Board(), quietMoves);
-        OrderMoves(quietMoves);
-        current = quietMoves.begin();
-        stage = Stage::GIVE_QUIET;
+        GenerateMoves<MOVES_QUIET_NON_CHECKS>(position.Board(), quiet_non_checks);
+        OrderMoves(quiet_non_checks);
+        quiet_non_checks_current = quiet_non_checks.begin();
+        stage = Stage::GIVE_QUIET_NON_CHECKS;
     }
 
-    if (stage == Stage::GIVE_QUIET)
+    if (stage == Stage::GIVE_QUIET_NON_CHECKS)
     {
-        if (current != quietMoves.end())
+        if (quiet_non_checks_current != quiet_non_checks.end())
         {
-            move = current->move;
-            moveSEE = current->SEE;
-            ++current;
+            move = quiet_non_checks_current->move;
+            moveSEE = quiet_non_checks_current->SEE;
+            ++quiet_non_checks_current;
             return true;
         }
     }
@@ -135,7 +154,18 @@ void StagedMoveGenerator::AdjustHistory(const Move& move, int positive_adjustmen
 {
     local.history.add(position, ss, move, positive_adjustment);
 
-    for (auto const& m : quietMoves)
+    // if a quiet non check move fails high, it might be wrong to give a negative history adjustment to quiet checks
+    // that were forced to be generated earlier?
+
+    for (auto const& m : quiet_checks)
+    {
+        if (m.move == move)
+            break;
+
+        local.history.add(position, ss, m.move, negative_adjustment);
+    }
+
+    for (auto const& m : quiet_non_checks)
     {
         if (m.move == move)
             break;
