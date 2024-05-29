@@ -378,7 +378,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
-    beta = std::min(Score::mate_in(distance_from_root), beta);
+    beta = std::min(Score::mate_in(distance_from_root + 1), beta);
     if (alpha >= beta)
         return alpha;
 
