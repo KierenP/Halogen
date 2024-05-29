@@ -440,7 +440,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 6 && tt_entry
-            && tt_depth + 2 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
+            && tt_depth + 3 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
         {
             Score sbeta = tt_score - depth * 2;
             int sdepth = depth / 2;
