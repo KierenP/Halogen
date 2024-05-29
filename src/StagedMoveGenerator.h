@@ -42,7 +42,7 @@ public:
     // Get the static exchange evaluation of the given move
     // Optimized to return the SEE without calculation if it
     // was already calculated and used in move ordering
-    int16_t GetSEE(Move move) const;
+    int16_t GetSEE() const;
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
     void AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
@@ -77,8 +77,7 @@ private:
     ExtendedMoveList::iterator current;
 
     // We use SEE for ordering the moves, but SEE is also used in QS.
-    // See the body of GetSEE for usage.
-    std::optional<int16_t> moveSEE;
+    int16_t moveSEE;
 
     const Move TTmove = Move::Uninitialized;
     Move Killer1 = Move::Uninitialized;

@@ -28,8 +28,6 @@ StagedMoveGenerator::StagedMoveGenerator(
 
 bool StagedMoveGenerator::Next(Move& move)
 {
-    moveSEE = std::nullopt;
-
     if (stage == Stage::TT_MOVE)
     {
         stage = Stage::GEN_LOUD;
@@ -37,6 +35,7 @@ bool StagedMoveGenerator::Next(Move& move)
         if (MoveIsLegal(position.Board(), TTmove))
         {
             move = TTmove;
+            moveSEE = 0;
             return true;
         }
     }
@@ -60,9 +59,6 @@ bool StagedMoveGenerator::Next(Move& move)
             return true;
         }
 
-        if (quiescence)
-            return false;
-
         stage = Stage::GIVE_KILLER_1;
     }
 
@@ -74,6 +70,7 @@ bool StagedMoveGenerator::Next(Move& move)
         if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
         {
             move = Killer1;
+            moveSEE = 0;
             return true;
         }
     }
@@ -86,8 +83,12 @@ bool StagedMoveGenerator::Next(Move& move)
         if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
         {
             move = Killer2;
+            moveSEE = 0;
             return true;
         }
+
+        if (quiescence)
+            return false;
     }
 
     if (stage == Stage::GIVE_BAD_LOUD)
@@ -229,12 +230,9 @@ int see(const BoardState& board, Move move)
     return scores[0];
 }
 
-int16_t StagedMoveGenerator::GetSEE(Move move) const
+int16_t StagedMoveGenerator::GetSEE() const
 {
-    if (moveSEE)
-        return *moveSEE;
-    else
-        return see(position.Board(), move);
+    return moveSEE;
 }
 
 void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)

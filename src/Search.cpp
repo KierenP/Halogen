@@ -715,7 +715,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        int SEE = gen.GetSEE(move);
+        int SEE = gen.GetSEE();
 
         if (staticScore + SEE + Delta_margin < alpha) // delta pruning
             break;
