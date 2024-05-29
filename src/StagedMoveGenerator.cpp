@@ -43,7 +43,8 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.Board(), loudMoves);
+        GenerateMoves<MOVES_LOUD_CHECKS>(position.Board(), loudMoves);
+        GenerateMoves<MOVES_LOUD_NON_CHECKS>(position.Board(), loudMoves);
         OrderMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
@@ -109,7 +110,8 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
+        GenerateMoves<MOVES_QUIET_CHECKS>(position.Board(), quietMoves);
+        GenerateMoves<MOVES_QUIET_NON_CHECKS>(position.Board(), quietMoves);
         OrderMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;

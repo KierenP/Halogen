@@ -7,16 +7,22 @@
 class Move;
 class BoardState;
 
-template <typename T>
-void LegalMoves(const BoardState& board, T& moves);
-template <typename T>
-void QuiescenceMoves(const BoardState& board, T& moves);
-template <typename T>
-void QuietMoves(const BoardState& board, T& moves);
+// For simplicity, the 'checks' generators only generate regular checks (no discovered checks) and skip pawn moves. Pawn
+// and discovered checks are instead included in the 'non-checks' generator.
+enum Generator
+{
+    MOVES_LEGAL,
+    MOVES_LOUD_NON_CHECKS,
+    MOVES_LOUD_CHECKS,
+    MOVES_QUIET_NON_CHECKS,
+    MOVES_QUIET_CHECKS,
+};
+
+template <Generator type, typename T>
+void GenerateMoves(const BoardState& board, T& moves);
 
 bool IsInCheck(const BoardState& board, Players colour);
 bool IsInCheck(const BoardState& board);
-
 bool MoveIsLegal(const BoardState& board, const Move& move);
 
 // Returns the attack bitboard for a piece of piecetype on square sq

@@ -83,7 +83,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    GenerateMoves<MOVES_LEGAL>(position.Board(), moves);
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root

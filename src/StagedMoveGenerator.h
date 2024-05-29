@@ -68,7 +68,7 @@ private:
     const GameState& position;
     SearchLocalState& local;
     const SearchStackState* ss;
-    bool quiescence;
+    const bool quiescence;
     ExtendedMoveList loudMoves;
     ExtendedMoveList quietMoves;
 
