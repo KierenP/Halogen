@@ -442,7 +442,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 6 && tt_entry
             && tt_depth + 2 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
         {
-            Score sbeta = tt_score - depth * 2;
+            Score sbeta = tt_score - depth;
             int sdepth = depth / 2;
 
             ss->singular_exclusion = move;
