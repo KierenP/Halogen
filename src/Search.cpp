@@ -361,18 +361,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         if (null_move_score >= beta)
         {
-            if (beta < Score::mated_in(MAX_DEPTH) || depth >= 10) // TODO: I'm not sure about this first condition
-            {
-                // Do verification search for high depths
-                SearchResult result = NegaScout<SearchType::ZW>(
-                    position, ss, local, shared, depth - reduction - 1, beta - 1, beta, false);
-                if (result.GetScore() >= beta)
-                    return result;
-            }
-            else
-            {
-                return beta;
-            }
+            return beta;
         }
     }
 
