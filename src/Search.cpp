@@ -378,6 +378,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             // disable NMP for a portion of the remaining search tree. Disabling NMP is costly, and 3/4 was found to be
             // optimal
 
+            if (depth < 10)
+            {
+                return beta;
+            }
+
             ss->nmp_verification_depth = distance_from_root + 3 * (depth - reduction - 1) / 4;
             ss->nmp_verification_root = true;
             auto verification
