@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -271,8 +272,6 @@ void Uci::handle_setoption_hash(int value)
 
 void Uci::handle_setoption_threads(int value)
 {
-    // fix thread sanitize data race
-    join_search_thread();
     shared.set_threads(value);
 }
 
@@ -283,28 +282,22 @@ void Uci::handle_setoption_syzygy_path(std::string_view value)
 
 void Uci::handle_setoption_multipv(int value)
 {
-    // fix thread sanitize data race
-    join_search_thread();
     shared.set_multi_pv(value);
 }
 
 void Uci::handle_setoption_chess960(std::string_view token)
 {
-    // fix thread sanitize data race
-    join_search_thread();
     shared.chess_960 = (token == "true");
 }
 
 void Uci::handle_stop()
 {
     KeepSearching = false;
-    join_search_thread();
 }
 
 void Uci::handle_quit()
 {
     KeepSearching = false;
-    join_search_thread();
     quit = true;
 }
 
@@ -317,6 +310,25 @@ void Uci::join_search_thread()
 void Uci::process_input(std::string_view command)
 {
     auto original = command;
+
+    // We first try to handle the UCI commands that we expect to get during the search. If we cannot, then we join the
+    // search thread to avoid race conditions.
+
+    // clang-format off
+    auto during_search_processor = sequence {
+    one_of { 
+        consume { "stop", invoke { [this] { handle_stop(); } } },
+        consume { "quit", invoke { [this] { handle_quit(); } } } },
+    end_command{}
+    };
+    // clang-format on
+
+    if (during_search_processor.handle(command))
+    {
+        return;
+    }
+
+    join_search_thread();
 
     // clang-format off
     auto uci_processor = sequence { 
@@ -334,7 +346,7 @@ void Uci::process_input(std::string_view command)
                     consume { "moves", repeat { process { [this](std::string_view move){ position.ApplyMove(std::string(move)); } } } },
                     end_command{} } } } } },
         consume { "go", with_context { go_ctx{}, sequence {
-            invoke { [this](auto&){ join_search_thread(); shared.limits = {}; } },
+            invoke { [this](auto&){ shared.limits = {}; } },
             repeat { one_of {
                 consume { "infinite", invoke { [](auto&){} } },
                 consume { "wtime", process { [](std::string_view str, auto& ctx){ ctx.wtime = std::stoi(std::string(str)); } } },
@@ -353,8 +365,6 @@ void Uci::process_input(std::string_view command)
         consume { "setoption name SyzygyPath value", process { [this](std::string_view str) { handle_setoption_syzygy_path(str); } } },
         consume { "setoption name MultiPV value", process { [this](std::string_view str) { handle_setoption_multipv(std::stoi(std::string(str))); } } },
         consume { "setoption name UCI_Chess960 value", process { [this](std::string_view str) { handle_setoption_chess960(std::string(str)); } } },
-        consume { "stop", invoke {[this] { handle_stop(); }} },
-        consume { "quit", invoke {[this] { handle_quit(); }} },
 
         // extensions
         consume { "perft", process { [this](std::string_view str) { Perft(std::stoi(std::string(str)), position, false); } } },
@@ -367,7 +377,7 @@ void Uci::process_input(std::string_view command)
             sequence { end_command{}, invoke {[]{ Bench(10); } } },
             process { [](std::string_view str){ Bench(std::stoi(std::string(str))); } }
         }},
-        consume { "print", invoke {[this](){std::cout << position.Board() << std::endl; }} }},
+        consume { "print", invoke { [this](){ std::cout << position.Board() << std::endl; } } } },
     end_command{}
     };
     // clang-format on
