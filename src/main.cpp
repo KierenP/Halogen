@@ -35,8 +35,8 @@ void PrintVersion()
 
 int main(int argc, char* argv[])
 {
-    Uci uci { version };
     Network::Init();
+    Uci uci { version };
 
     PrintVersion();
     std::string line;
@@ -53,10 +53,9 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    while (getline(std::cin, line))
+    while (!uci.quit && getline(std::cin, line))
     {
         uci.process_input(line);
-        line.clear();
     }
 
     return 0;

@@ -14,6 +14,8 @@ public:
 
     void process_input(std::string_view command);
 
+    bool quit = false;
+
 private:
     struct go_ctx
     {

@@ -211,7 +211,12 @@ void Uci::handle_go(go_ctx& ctx)
     auto myTime = (position.Board().stm ? ctx.wtime : ctx.btime) * 1ms;
     auto myInc = (position.Board().stm ? ctx.winc : ctx.binc) * 1ms;
 
-    if (myTime != 0ms)
+    if (ctx.movetime != 0)
+    {
+        auto hard_limit = (ctx.movetime) * 1ms - BufferTime;
+        shared.limits.time = SearchTimeManager(hard_limit, hard_limit);
+    }
+    else if (myTime != 0ms)
     {
         auto hard_limit = myTime - BufferTime;
 
@@ -300,8 +305,7 @@ void Uci::handle_quit()
 {
     KeepSearching = false;
     join_search_thread();
-
-    // TODO: signal to exit
+    quit = true;
 }
 
 void Uci::join_search_thread()
@@ -312,6 +316,8 @@ void Uci::join_search_thread()
 
 void Uci::process_input(std::string_view command)
 {
+    auto original = command;
+
     // clang-format off
     auto uci_processor = sequence { 
     one_of { 
@@ -368,6 +374,6 @@ void Uci::process_input(std::string_view command)
 
     if (!uci_processor.handle(command))
     {
-        std::cout << "info string unable to handle command " << command << std::endl;
+        std::cout << "info string unable to handle command " << std::quoted(original) << std::endl;
     }
 }
