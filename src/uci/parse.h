@@ -1,6 +1,8 @@
 #pragma once
 
+#include <charconv>
 #include <string_view>
+#include <utility>
 
 constexpr inline char uci_delimiter = ' ';
 
@@ -13,6 +15,22 @@ struct end_command
         return command.size() == 0;
     }
 };
+
+// This lets us compose handlers, but have the base object be a callable lambda
+template <typename T, typename... Args>
+bool handle_callback(T&& t, Args&&... args)
+{
+    if constexpr (std::is_invocable_v<T, Args...>)
+    {
+        // some lambdas are void, later we will handle bool returns
+        std::forward<T>(t)(std::forward<Args>(args)...);
+        return true;
+    }
+    else
+    {
+        return std::forward<T>(t).handle(std::forward<Args>(args)...);
+    }
+}
 
 // Invokes a callback. Does nothing with the command
 template <typename T>
@@ -33,11 +51,65 @@ struct invoke
     T callback_;
 };
 
+// Invokes a callback, converting the token to a int
+template <typename T>
+struct to_int
+{
+    to_int(T&& callback)
+        : callback_(std::forward<T>(callback))
+    {
+    }
+
+    template <typename... Ctx>
+    bool handle(std::string_view& token, Ctx&&... ctx)
+    {
+        int result {};
+        auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
+
+        if (ptr != token.end())
+        {
+            return false;
+        }
+
+        callback_(result, std::forward<Ctx>(ctx)...);
+        return true;
+    }
+
+    T callback_;
+};
+
+// Invokes a callback, converting the token to a float
+template <typename T>
+struct to_float
+{
+    to_float(T&& callback)
+        : callback_(std::forward<T>(callback))
+    {
+    }
+
+    template <typename... Ctx>
+    bool handle(std::string_view& token, Ctx&&... ctx)
+    {
+        float result {};
+        auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
+
+        if (ptr != token.end())
+        {
+            return false;
+        }
+
+        callback_(result, std::forward<Ctx>(ctx)...);
+        return true;
+    }
+
+    T callback_;
+};
+
 // Reads the next token and passes to the callback
 template <typename T>
-struct process
+struct next_token
 {
-    process(T&& callback)
+    next_token(T&& callback)
         : callback_(std::forward<T>(callback))
     {
     }
@@ -52,14 +124,14 @@ struct process
             // process all remaining
             auto token = command;
             command = "";
-            callback_(token, std::forward<Ctx>(ctx)...);
+            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
         else
         {
             // process up to the delimiter, and then update command to be the remaining tokens
             auto token = command.substr(0, pos);
             command = command.substr(std::min(command.size(), pos + 1));
-            callback_(token, std::forward<Ctx>(ctx)...);
+            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
 
         return true;
@@ -70,9 +142,9 @@ struct process
 
 // Reads until the first occurance of the token and passes the substr to the callback
 template <typename T>
-struct process_until
+struct tokens_until
 {
-    process_until(std::string_view delimiter, T&& callback)
+    tokens_until(std::string_view delimiter, T&& callback)
         : delimiter_(delimiter)
         , callback_(std::forward<T>(callback))
     {
@@ -88,13 +160,13 @@ struct process_until
             // process all remaining
             auto token = command;
             command = "";
-            callback_(token, std::forward<Ctx>(ctx)...);
+            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
         else
         {
             auto token = command.substr(0, std::max(0, (int)pos - 1));
             command = command.substr(std::min(command.size(), pos + 1 + delimiter_.size()));
-            callback_(token, std::forward<Ctx>(ctx)...);
+            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
 
         return true;

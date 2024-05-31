@@ -338,36 +338,36 @@ void Uci::process_input(std::string_view command)
         consume { "isready", invoke { [this]{ handle_isready(); } } },
         consume { "position", one_of { 
             consume { "fen", sequence {
-                process_until {"moves", [this](auto fen){ position.InitialiseFromFen(std::string(fen)); } },
-                repeat { process { [this](auto move){ position.ApplyMove(std::string(move)); } } } } },
+                tokens_until {"moves", [this](auto fen){ position.InitialiseFromFen(fen); } },
+                repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } } },
             consume { "startpos", sequence { 
                 invoke { [this] { position.StartingPosition(); } }, 
                 one_of {
-                    consume { "moves", repeat { process { [this](auto move){ position.ApplyMove(std::string(move)); } } } },
+                    consume { "moves", repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } },
                     end_command{} } } } } },
         consume { "go", with_context { go_ctx{}, sequence {
             invoke { [this](auto&){ shared.limits = {}; } },
             repeat { one_of {
                 consume { "infinite", invoke { [](auto&){} } },
-                consume { "wtime", process { [](auto str, auto& ctx){ ctx.wtime = std::stoi(std::string(str)); } } },
-                consume { "btime", process { [](auto str, auto& ctx){ ctx.btime = std::stoi(std::string(str)); } } },
-                consume { "winc", process { [](auto str, auto& ctx){ ctx.winc = std::stoi(std::string(str)); } } },
-                consume { "binc", process { [](auto str, auto& ctx){ ctx.binc = std::stoi(std::string(str)); } } },
-                consume { "movestogo", process { [](auto str, auto& ctx){ ctx.movestogo = std::stoi(std::string(str)); } } },
-                consume { "movetime", process { [](auto str, auto& ctx){ ctx.movetime = std::stoi(std::string(str)); } } },
-                consume { "mate", process { [&](auto str, auto&){ shared.limits.mate = std::stoi(std::string(str)); } } },
-                consume { "depth", process { [&](auto str, auto&){ shared.limits.depth = std::stoi(std::string(str)); } } },
-                consume { "nodes", process { [&](auto str, auto&){ shared.limits.nodes = std::stoi(std::string(str));} } } } },
+                consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value; } } } },
+                consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value; } } } },
+                consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value; } } } },
+                consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value; } } } },
+                consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
+                consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value; } } } },
+                consume { "mate", next_token { to_int { [&](auto value, auto&){ shared.limits.mate = value; } } } },
+                consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
+                consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
             invoke { [this](auto& ctx) { handle_go(ctx); } } } } },
         consume { "setoption name Clear Hash", invoke { [this]{ handle_setoption_clear_hash(); } } },
-        consume { "setoption name Hash value", process { [this](auto str) { handle_setoption_hash(std::stoi(std::string(str))); } } },
-        consume { "setoption name Threads value", process { [this](auto str) { handle_setoption_threads(std::stoi(std::string(str))); } } },
-        consume { "setoption name SyzygyPath value", process { [this](auto str) { handle_setoption_syzygy_path(str); } } },
-        consume { "setoption name MultiPV value", process { [this](auto str) { handle_setoption_multipv(std::stoi(std::string(str))); } } },
-        consume { "setoption name UCI_Chess960 value", process { [this](auto str) { handle_setoption_chess960(std::string(str)); } } },
+        consume { "setoption name Hash value", next_token { to_int { [this](auto value) { handle_setoption_hash(value); } } } },
+        consume { "setoption name Threads value", next_token { to_int { [this](auto value) { handle_setoption_threads(value); }  } } },
+        consume { "setoption name SyzygyPath value", next_token { [this](auto str) { handle_setoption_syzygy_path(str); } } },
+        consume { "setoption name MultiPV value", next_token { to_int { [this](auto value) { handle_setoption_multipv(value); } } } },
+        consume { "setoption name UCI_Chess960 value", next_token { [this](auto str) { handle_setoption_chess960(str); } } },
 
         // extensions
-        consume { "perft", process { [this](auto str) { Perft(std::stoi(std::string(str)), position, false); } } },
+        consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
         consume { "test", one_of { 
             consume { "perft", invoke {[] { PerftSuite("test/perftsuite.txt", 0, false); } } },
             consume { "perft960", invoke {[] { PerftSuite("test/perft960.txt", 0, false); } } },
@@ -375,7 +375,7 @@ void Uci::process_input(std::string_view command)
             consume { "perft960_legality", invoke {[] { PerftSuite("test/perft960.txt", 3, true); } } } } },
         consume { "bench", one_of  { 
             sequence { end_command{}, invoke {[]{ Bench(10); } } },
-            process { [](auto str){ Bench(std::stoi(std::string(str))); } }
+            next_token { to_int { [](auto value){ Bench(value); } } }
         }},
         consume { "print", invoke { [this](){ std::cout << position.Board() << std::endl; } } } },
     end_command{}
