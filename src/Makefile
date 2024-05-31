@@ -28,6 +28,7 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
+	uci/uci.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
