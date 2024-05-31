@@ -32,7 +32,7 @@ private:
     void handle_ucinewgame();
     void handle_go(go_ctx& ctx);
     void handle_setoption_clear_hash();
-    void handle_setoption_hash(int value);
+    bool handle_setoption_hash(int value);
     void handle_setoption_threads(int value);
     void handle_setoption_syzygy_path(std::string_view value);
     void handle_setoption_multipv(int value);

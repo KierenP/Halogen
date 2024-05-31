@@ -259,15 +259,16 @@ void Uci::handle_setoption_clear_hash()
     shared.ResetNewGame();
 }
 
-void Uci::handle_setoption_hash(int value)
+bool Uci::handle_setoption_hash(int value)
 {
     if (GetBitCount(value) != 1)
     {
-        std::cout << "Error: transposition table size must be a power of two" << std::endl;
-        return;
+        std::cout << "info error transposition table size must be a power of two" << std::endl;
+        return false;
     }
 
     tTable.SetSize(value);
+    return true;
 }
 
 void Uci::handle_setoption_threads(int value)
@@ -338,29 +339,30 @@ void Uci::process_input(std::string_view command)
         consume { "isready", invoke { [this]{ handle_isready(); } } },
         consume { "position", one_of { 
             consume { "fen", sequence {
-                tokens_until {"moves", [this](auto fen){ position.InitialiseFromFen(fen); } },
+                tokens_until {"moves", [this](auto fen){ return position.InitialiseFromFen(fen); } },
                 repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } } },
             consume { "startpos", sequence { 
                 invoke { [this] { position.StartingPosition(); } }, 
                 one_of {
                     consume { "moves", repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } },
                     end_command{} } } } } },
-        consume { "go", with_context { go_ctx{}, sequence {
-            invoke { [this](auto&){ shared.limits = {}; } },
-            repeat { one_of {
-                consume { "infinite", invoke { [](auto&){} } },
-                consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value; } } } },
-                consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value; } } } },
-                consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value; } } } },
-                consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value; } } } },
-                consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
-                consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value; } } } },
-                consume { "mate", next_token { to_int { [&](auto value, auto&){ shared.limits.mate = value; } } } },
-                consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
-                consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
-            invoke { [this](auto& ctx) { handle_go(ctx); } } } } },
+        consume { "go", sequence {
+            invoke { [this]{ shared.limits = {}; } },
+            with_context { go_ctx{}, sequence {
+                repeat { one_of {
+                    consume { "infinite", invoke { [](auto&){} } },
+                    consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value; } } } },
+                    consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value; } } } },
+                    consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value; } } } },
+                    consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value; } } } },
+                    consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
+                    consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value; } } } },
+                    consume { "mate", next_token { to_int { [&](auto value, auto&){ shared.limits.mate = value; } } } },
+                    consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
+                    consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
+                invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
         consume { "setoption name Clear Hash", invoke { [this]{ handle_setoption_clear_hash(); } } },
-        consume { "setoption name Hash value", next_token { to_int { [this](auto value) { handle_setoption_hash(value); } } } },
+        consume { "setoption name Hash value", next_token { to_int { [this](auto value) { return handle_setoption_hash(value); } } } },
         consume { "setoption name Threads value", next_token { to_int { [this](auto value) { handle_setoption_threads(value); }  } } },
         consume { "setoption name SyzygyPath value", next_token { [this](auto str) { handle_setoption_syzygy_path(str); } } },
         consume { "setoption name MultiPV value", next_token { to_int { [this](auto value) { handle_setoption_multipv(value); } } } },
@@ -369,14 +371,13 @@ void Uci::process_input(std::string_view command)
         // extensions
         consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
         consume { "test", one_of { 
-            consume { "perft", invoke {[] { PerftSuite("test/perftsuite.txt", 0, false); } } },
-            consume { "perft960", invoke {[] { PerftSuite("test/perft960.txt", 0, false); } } },
-            consume { "perft_legality", invoke {[] { PerftSuite("test/perftsuite.txt", 2, true); } } },
-            consume { "perft960_legality", invoke {[] { PerftSuite("test/perft960.txt", 3, true); } } } } },
+            consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
+            consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
+            consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
+            consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
         consume { "bench", one_of  { 
-            sequence { end_command{}, invoke {[]{ Bench(10); } } },
-            next_token { to_int { [](auto value){ Bench(value); } } }
-        }},
+            sequence { end_command{}, invoke { []{ Bench(10); } } },
+            next_token { to_int { [](auto value){ Bench(value); } } } } },
         consume { "print", invoke { [this](){ std::cout << position.Board() << std::endl; } } } },
     end_command{}
     };

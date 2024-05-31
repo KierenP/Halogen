@@ -20,12 +20,18 @@ struct end_command
 template <typename T, typename... Args>
 bool handle_callback(T&& t, Args&&... args)
 {
-    if constexpr (std::is_invocable_v<T, Args...>)
+    // lambda with bool return, used for validation
+    if constexpr (std::is_invocable_r_v<bool, T, Args...>)
     {
-        // some lambdas are void, later we will handle bool returns
+        return std::forward<T>(t)(std::forward<Args>(args)...);
+    }
+    // lambda without validation, always return true
+    else if constexpr (std::is_invocable_v<T, Args...>)
+    {
         std::forward<T>(t)(std::forward<Args>(args)...);
         return true;
     }
+    // delegate to the sub-handler
     else
     {
         return std::forward<T>(t).handle(std::forward<Args>(args)...);
@@ -160,16 +166,14 @@ struct tokens_until
             // process all remaining
             auto token = command;
             command = "";
-            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
         else
         {
             auto token = command.substr(0, std::max(0, (int)pos - 1));
             command = command.substr(std::min(command.size(), pos + 1 + delimiter_.size()));
-            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
         }
-
-        return true;
     }
 
     std::string_view delimiter_;
