@@ -30,7 +30,7 @@ void PrintVersion()
     std::cout << " PEXT";
 #endif
 
-    std::cout << "\n";
+    std::cout << std::endl;
 }
 
 int main(int argc, char* argv[])

@@ -5,6 +5,7 @@
 #include "../GameState.h"
 #include "../MoveGeneration.h"
 #include "../SearchData.h"
+#include "options.h"
 #include "parse.h"
 
 #include <chrono>
@@ -159,9 +160,22 @@ void Uci::handle_bench(int depth)
     std::cout << nodeCount << " nodes " << nodeCount / std::max(elapsed_time, 1) * 1000 << " nps" << std::endl;
 }
 
+auto Uci::options_handler()
+{
+    return uci_options {
+        button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
+        check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
+        spin_option { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
+        spin_option { "Threads", 1, 1, 256, [this](auto value) { handle_setoption_threads(value); } },
+        spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
+        string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
+    };
+}
+
 Uci::Uci(std::string_view version)
     : version_(version)
 {
+    options_handler().set_defaults();
 }
 
 Uci::~Uci()
@@ -173,13 +187,8 @@ void Uci::handle_uci()
 {
     std::cout << "id name Halogen " << version_ << "\n";
     std::cout << "id author Kieren Pearson\n";
-    std::cout << "option name Clear Hash type button\n";
-    std::cout << "option name Hash type spin default 32 min 1 max 262144\n";
-    std::cout << "option name Threads type spin default 1 min 1 max 256\n";
-    std::cout << "option name SyzygyPath type string default <empty>\n";
-    std::cout << "option name MultiPV type spin default 1 min 1 max 500\n";
-    std::cout << "option name UCI_Chess960 type check default false\n";
-    std::cout << "uciok\n";
+    std::cout << options_handler();
+    std::cout << "uciok" << std::endl;
 }
 
 void Uci::handle_isready()
@@ -283,9 +292,9 @@ void Uci::handle_setoption_multipv(int value)
     shared.set_multi_pv(value);
 }
 
-void Uci::handle_setoption_chess960(std::string_view token)
+void Uci::handle_setoption_chess960(bool value)
 {
-    shared.chess_960 = (token == "true");
+    shared.chess_960 = value;
 }
 
 void Uci::handle_stop()
@@ -358,12 +367,7 @@ void Uci::process_input(std::string_view command)
                     consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
                     consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
                 invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
-        consume { "setoption name Clear Hash", invoke { [this]{ handle_setoption_clear_hash(); } } },
-        consume { "setoption name Hash value", next_token { to_int { [this](auto value) { return handle_setoption_hash(value); } } } },
-        consume { "setoption name Threads value", next_token { to_int { [this](auto value) { handle_setoption_threads(value); }  } } },
-        consume { "setoption name SyzygyPath value", next_token { [this](auto str) { handle_setoption_syzygy_path(str); } } },
-        consume { "setoption name MultiPV value", next_token { to_int { [this](auto value) { handle_setoption_multipv(value); } } } },
-        consume { "setoption name UCI_Chess960 value", next_token { [this](auto str) { handle_setoption_chess960(str); } } },
+        consume { "setoption", options_handler().build_handler() },
 
         // extensions
         consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },

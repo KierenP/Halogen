@@ -91,15 +91,9 @@ void SearchLocalState::ResetNewGame()
     history.reset();
 }
 
-SearchSharedState::SearchSharedState(int threads, Uci& uci)
+SearchSharedState::SearchSharedState(Uci& uci)
     : uci_handler(uci)
-    , threads_setting(threads)
-    , search_results_(threads)
 {
-    for (int i = 0; i < threads_setting; i++)
-    {
-        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
-    }
 }
 
 void SearchSharedState::ResetNewSearch()

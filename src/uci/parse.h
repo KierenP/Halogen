@@ -106,6 +106,26 @@ struct to_float
     T callback_;
 };
 
+// Invokes a callback, converting the token to a boolean
+template <typename T>
+struct to_bool
+{
+    to_bool(T&& callback)
+        : callback_(std::forward<T>(callback))
+    {
+    }
+
+    template <typename... Ctx>
+    bool handle(std::string_view& token, Ctx&&... ctx)
+    {
+        bool result = token == "true";
+        callback_(result, std::forward<Ctx>(ctx)...);
+        return true;
+    }
+
+    T callback_;
+};
+
 // Reads the next token and passes to the callback
 template <typename T>
 struct next_token

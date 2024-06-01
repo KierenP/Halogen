@@ -122,7 +122,7 @@ struct SearchResults
 class SearchSharedState
 {
 public:
-    SearchSharedState(int threads, Uci& uci);
+    SearchSharedState(Uci& uci);
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -151,15 +151,15 @@ public:
     SearchLocalState& get_local_state(int thread_id);
     void report_thread_wants_to_stop(int thread_id);
 
-    bool chess_960 = false;
+    bool chess_960 {};
     SearchLimits limits;
     Timer search_timer;
     Uci& uci_handler;
 
 private:
     mutable std::recursive_mutex lock_;
-    int multi_pv_setting = 1;
-    int threads_setting = 0;
+    int multi_pv_setting {};
+    int threads_setting {};
 
     // [thread_id][multi_pv][depth]
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;

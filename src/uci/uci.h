@@ -39,7 +39,7 @@ private:
     void handle_setoption_threads(int value);
     void handle_setoption_syzygy_path(std::string_view value);
     void handle_setoption_multipv(int value);
-    void handle_setoption_chess960(std::string_view token);
+    void handle_setoption_chess960(bool value);
     void handle_stop();
     void handle_quit();
     void handle_bench(int depth);
@@ -48,6 +48,8 @@ private:
 
     GameState position;
     std::thread searchThread;
-    SearchSharedState shared { 1, *this };
+    SearchSharedState shared { *this };
     const std::string_view version_;
+
+    auto options_handler();
 };
