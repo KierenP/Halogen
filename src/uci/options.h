@@ -150,7 +150,7 @@ class uci_options
 {
 public:
     uci_options(T&&... opts)
-        : options(std::forward<T>(opts)...)
+        : options(std::move(opts)...)
     {
     }
 

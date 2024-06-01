@@ -44,7 +44,7 @@ template <typename T>
 struct invoke
 {
     invoke(T&& callback)
-        : callback_(std::forward<T>(callback))
+        : callback_(std::move(callback))
     {
     }
 
@@ -63,7 +63,7 @@ template <typename T>
 struct to_int
 {
     to_int(T&& callback)
-        : callback_(std::forward<T>(callback))
+        : callback_(std::move(callback))
     {
     }
 
@@ -90,7 +90,7 @@ template <typename T>
 struct to_float
 {
     to_float(T&& callback)
-        : callback_(std::forward<T>(callback))
+        : callback_(std::move(callback))
     {
     }
 
@@ -111,7 +111,7 @@ template <typename T>
 struct to_bool
 {
     to_bool(T&& callback)
-        : callback_(std::forward<T>(callback))
+        : callback_(std::move(callback))
     {
     }
 
@@ -131,7 +131,7 @@ template <typename T>
 struct next_token
 {
     next_token(T&& callback)
-        : callback_(std::forward<T>(callback))
+        : callback_(std::move(callback))
     {
     }
 
@@ -167,7 +167,7 @@ struct tokens_until
 {
     tokens_until(std::string_view delimiter, T&& callback)
         : delimiter_(delimiter)
-        , callback_(std::forward<T>(callback))
+        , callback_(std::move(callback))
     {
     }
 
@@ -191,7 +191,7 @@ struct tokens_until
         }
     }
 
-    std::string_view delimiter_;
+    const std::string_view delimiter_;
     T callback_;
 };
 
@@ -200,7 +200,7 @@ template <typename T>
 struct consume
 {
     consume(std::string_view token, T&& handler)
-        : handler_(std::forward<T>(handler))
+        : handler_(std::move(handler))
         , token_(token)
     {
     }
@@ -220,7 +220,7 @@ struct consume
     }
 
     T handler_;
-    std::string_view token_;
+    const std::string_view token_;
 };
 
 // Executes a series of handlers in order
@@ -228,7 +228,7 @@ template <typename... T>
 struct sequence
 {
     sequence(T&&... handlers)
-        : handlers_(std::forward<T>(handlers)...)
+        : handlers_(std::move(handlers)...)
     {
     }
 
@@ -263,7 +263,7 @@ template <typename... T>
 struct one_of
 {
     one_of(T&&... handlers)
-        : handlers_(std::forward<T>(handlers)...)
+        : handlers_(std::move(handlers)...)
     {
     }
 
@@ -298,7 +298,7 @@ template <typename T>
 struct repeat
 {
     repeat(T&& handler)
-        : handler_(std::forward<T>(handler))
+        : handler_(std::move(handler))
     {
     }
 
