@@ -182,6 +182,9 @@ auto Uci::options_handler()
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
     };
+
+#undef tuneable_int
+#undef tuneable_float
 }
 
 Uci::Uci(std::string_view version)
