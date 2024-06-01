@@ -386,49 +386,41 @@ void Uci::process_input(std::string_view command)
 
 void Uci::print_search_info(const SearchResults& data)
 {
-    /*
-    Here we avoid excessive use of std::cout and instead append to a string in order
-    to output only once at the end. This causes a noticeable speedup for very fast
-    time controls.
-    */
-
-    std::stringstream stream;
-
-    stream << "info depth " << data.depth << " seldepth " << data.sel_septh;
+    std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
 
     if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
     {
         if (data.score > 0)
-            stream << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+            std::cout << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
         else
-            stream << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+            std::cout << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
     }
     else
     {
-        stream << " score cp " << data.score.value();
+        std::cout << " score cp " << data.score.value();
     }
 
     if (data.type == SearchResultType::UPPER_BOUND)
-        stream << " upperbound";
+        std::cout << " upperbound";
     if (data.type == SearchResultType::LOWER_BOUND)
-        stream << " lowerbound";
+        std::cout << " lowerbound";
 
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
     auto node_count = shared.nodes();
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
     auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
 
-    stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
-           << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
+    std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
+              << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
 
-    stream << " pv "; // the current best line found
+    std::cout << " pv "; // the current best line found
 
     for (const auto& move : data.pv)
     {
-        stream << move << ' ';
+        std::cout << move << ' ';
     }
 
-    std::cout << stream.str() << "\n";
+    std::cout << "\n";
 }
 
 void Uci::print_bestmove(Move move)
