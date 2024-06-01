@@ -4,6 +4,7 @@
 #include "../EGTB.h"
 #include "../GameState.h"
 #include "../MoveGeneration.h"
+#include "../SearchConstants.h"
 #include "../SearchData.h"
 #include "options.h"
 #include "parse.h"
