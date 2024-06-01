@@ -51,7 +51,7 @@ const std::array<std::array<int, 64>, 64> LMR_reduction = []
 
 template <SearchType search_type>
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta, bool allowedNull);
+    int depth, Score alpha, Score beta);
 
 template <SearchType search_type>
 SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
@@ -59,7 +59,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
 bool UseTransposition(Score tt_score, SearchResultType cutoff, Score alpha, Score beta);
 bool CheckForRep(const GameState& position, int distanceFromRoot);
-bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck);
+bool AllowedNull(const BoardState& board, bool InCheck);
 bool IsEndGame(const BoardState& board);
 void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
     int distanceFromRoot, Score beta, Move bestMove);
@@ -181,7 +181,7 @@ SearchResult AspirationWindowSearch(
     while (true)
     {
         local.sel_septh = 0;
-        auto result = NegaScout<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta, false);
+        auto result = NegaScout<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta);
 
         if (local.aborting_search)
         {
@@ -215,7 +215,7 @@ SearchResult AspirationWindowSearch(
 
 template <SearchType search_type>
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta, bool allowedNull)
+    int depth, Score alpha, Score beta)
 {
     assert((search_type != SearchType::ROOT) || (ss->distance_from_root == 0));
     assert((search_type != SearchType::ZW) || (beta == alpha + 1));
@@ -237,6 +237,11 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     ss->pv.clear();
     ss->multiple_extensions = (ss - 1)->multiple_extensions;
+
+    if (!ss->nmp_verification_root)
+    {
+        ss->nmp_verification_depth = (ss - 1)->nmp_verification_depth;
+    }
 
     if (DeadPosition(position.Board()))
         return 0; // Is this position a dead draw?
@@ -346,30 +351,47 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return beta;
 
     // Null move pruning
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && AllowedNull(allowedNull, position.Board(), InCheck)
+    //
+    // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
+    // fail high assuming there is at least one move in the current position that would allow us to improve. This
+    // heruistic fails in zugzwang positions, so we have a verification search.
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
+        && distance_from_root >= ss->nmp_verification_depth && AllowedNull(position.Board(), InCheck)
         && (staticScore > beta))
     {
-        unsigned int reduction = Null_constant + depth / Null_depth_quotent
+        const int reduction = Null_constant + depth / Null_depth_quotent
             + std::min(3, (staticScore.value() - beta.value()) / Null_beta_quotent);
 
         ss->move = Move::Uninitialized;
         position.ApplyNullMove();
-        auto null_move_score = -NegaScout<SearchType::ZW>(
-            position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false)
-                                    .GetScore();
+        auto null_move_score
+            = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1)
+                   .GetScore();
         position.RevertNullMove();
 
         if (null_move_score >= beta)
         {
-            if (beta < Score::mated_in(MAX_DEPTH) || depth >= 10) // TODO: I'm not sure about this first condition
+            // As per: https://github.com/official-stockfish/Stockfish/pull/1338
+            // Enhanced null move verification search. In order to detect zugzwang, traditional approaches will do a
+            // reduced depth search on the current position disallowing null move pruning. This works, but does nothing
+            // to avoid it's reaching a later similar zugzwang position during verification. To get around this, we
+            // disable NMP for a portion of the remaining search tree. Disabling NMP is costly, and 3/4 was found to be
+            // optimal
+
+            if (depth < 10)
             {
-                // Do verification search for high depths
-                SearchResult result = NegaScout<SearchType::ZW>(
-                    position, ss, local, shared, depth - reduction - 1, beta - 1, beta, false);
-                if (result.GetScore() >= beta)
-                    return result;
+                return beta;
             }
-            else
+
+            ss->nmp_verification_depth = distance_from_root + 3 * (depth - reduction - 1) / 4;
+            ss->nmp_verification_root = true;
+            auto verification
+                = NegaScout<SearchType::ZW>(position, ss, local, shared, depth - reduction - 1, beta - 1, beta)
+                      .GetScore();
+            ss->nmp_verification_root = false;
+            ss->nmp_verification_depth = 0;
+
+            if (verification >= beta)
             {
                 return beta;
             }
@@ -447,7 +469,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
             ss->singular_exclusion = move;
 
-            auto result = NegaScout<SearchType::ZW>(position, ss, local, shared, sdepth, sbeta - 1, sbeta, true);
+            auto result = NegaScout<SearchType::ZW>(position, ss, local, shared, sdepth, sbeta - 1, sbeta);
 
             ss->singular_exclusion = Move::Uninitialized;
 
@@ -517,7 +539,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         if (reduction > 0)
         {
             search_score = -NegaScout<SearchType::ZW>(
-                position, ss + 1, local, shared, new_depth - reduction, -(alpha + 1), -alpha, true)
+                position, ss + 1, local, shared, new_depth - reduction, -(alpha + 1), -alpha)
                                 .GetScore();
 
             if (search_score <= alpha)
@@ -529,16 +551,15 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // If the reduced depth search was skipped or failed high, we do a full depth zero width search
         if (full_search && (!pv_node || seen_moves > 1))
         {
-            search_score
-                = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, new_depth, -(alpha + 1), -alpha, true)
-                       .GetScore();
+            search_score = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, new_depth, -(alpha + 1), -alpha)
+                                .GetScore();
         }
 
         // If the ZW search was skipped or failed high, we do a full depth full width search
         if (full_search && pv_node && (seen_moves == 1 || (search_score > alpha && search_score < beta)))
         {
-            search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha, true)
-                                .GetScore();
+            search_score
+                = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha).GetScore();
         }
 
         position.RevertMove();
@@ -636,11 +657,11 @@ int extension(const BoardState& board)
     return extension;
 }
 
-bool AllowedNull(bool allowedNull, const BoardState& board, bool InCheck)
+bool AllowedNull(const BoardState& board, bool InCheck)
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
-    return allowedNull && !InCheck && !IsEndGame(board) && GetBitCount(board.GetAllPieces()) >= 5;
+    return !InCheck && !IsEndGame(board) && GetBitCount(board.GetAllPieces()) >= 5;
 }
 
 bool IsEndGame(const BoardState& board)
