@@ -337,6 +337,9 @@ void Uci::process_input(std::string_view command)
 
     join_search_thread();
 
+    // need to define this here so the lifetime extends beyond the uci_processor initialization
+    auto options_handler_model = options_handler();
+
     // clang-format off
     auto uci_processor = sequence {
     one_of {
@@ -367,7 +370,7 @@ void Uci::process_input(std::string_view command)
                     consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
                     consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
                 invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
-        consume { "setoption", options_handler().build_handler() },
+        consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
         consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
