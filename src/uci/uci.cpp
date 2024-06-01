@@ -133,14 +133,12 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     return nodeCount;
 }
 
-void Bench(int depth)
+void Uci::handle_bench(int depth)
 {
     Timer timer;
 
     uint64_t nodeCount = 0;
-    GameState position;
-    SearchSharedState data(1);
-    data.limits.depth = depth;
+    shared.limits.depth = depth;
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -150,9 +148,9 @@ void Bench(int depth)
             break;
         }
 
-        data.limits.time.reset();
-        SearchThread(position, data);
-        nodeCount += data.nodes();
+        shared.limits.time.reset();
+        SearchThread(position, shared);
+        nodeCount += shared.nodes();
     }
 
     int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer.elapsed()).count();
@@ -373,8 +371,8 @@ void Uci::process_input(std::string_view command)
             consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
             consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
         consume { "bench", one_of  {
-            sequence { end_command{}, invoke { []{ Bench(10); } } },
-            next_token { to_int { [](auto value){ Bench(value); } } } } },
+            sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
+            next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
         consume { "print", invoke { [this](){ std::cout << position.Board(); } } } },
     end_command{}
     };
@@ -384,4 +382,56 @@ void Uci::process_input(std::string_view command)
     {
         std::cout << "info string unable to handle command " << std::quoted(original) << "\n";
     }
+}
+
+void Uci::print_search_info(const SearchResults& data)
+{
+    /*
+    Here we avoid excessive use of std::cout and instead append to a string in order
+    to output only once at the end. This causes a noticeable speedup for very fast
+    time controls.
+    */
+
+    std::stringstream stream;
+
+    stream << "info depth " << data.depth << " seldepth " << data.sel_septh;
+
+    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
+    {
+        if (data.score > 0)
+            stream << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+        else
+            stream << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+    }
+    else
+    {
+        stream << " score cp " << data.score.value();
+    }
+
+    if (data.type == SearchResultType::UPPER_BOUND)
+        stream << " upperbound";
+    if (data.type == SearchResultType::LOWER_BOUND)
+        stream << " lowerbound";
+
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
+    auto node_count = shared.nodes();
+    auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
+    auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
+
+    stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
+           << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
+
+    stream << " pv "; // the current best line found
+
+    for (const auto& move : data.pv)
+    {
+        stream << move << ' ';
+    }
+
+    std::cout << stream.str() << "\n";
+}
+
+void Uci::print_bestmove(Move move)
+{
+    std::cout << "bestmove " << move << std::endl;
 }

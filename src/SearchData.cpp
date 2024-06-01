@@ -1,22 +1,16 @@
 #include "SearchData.h"
 
 #include <atomic>
-#include <chrono>
 #include <cstdint>
-#include <iostream>
 #include <mutex>
 #include <numeric>
-#include <ratio>
-#include <sstream>
-#include <stdlib.h>
 
 #include "BitBoardDefine.h"
-#include "GameState.h"
 #include "Move.h"
 #include "MoveList.h"
 #include "Score.h"
 #include "Search.h"
-#include "Zobrist.h"
+#include "uci/uci.h"
 
 TranspositionTable tTable;
 
@@ -97,8 +91,9 @@ void SearchLocalState::ResetNewGame()
     history.reset();
 }
 
-SearchSharedState::SearchSharedState(int threads)
-    : threads_setting(threads)
+SearchSharedState::SearchSharedState(int threads, Uci& uci)
+    : uci_handler(uci)
+    , threads_setting(threads)
     , search_results_(threads)
 {
     for (int i = 0; i < threads_setting; i++)
@@ -151,20 +146,21 @@ void SearchSharedState::set_threads(int threads)
     search_results_.resize(threads, decltype(search_results_)::value_type(multi_pv_setting));
 }
 
-SearchSharedState::SearchResults SearchSharedState::get_best_search_result() const
+SearchResults SearchSharedState::get_best_search_result() const
 {
     std::scoped_lock lock(lock_);
     return *best_search_result_;
 }
 
-void SearchSharedState::report_search_result(GameState& position, const SearchStackState* ss,
-    const SearchLocalState& local, SearchResult result, SearchResultType type)
+void SearchSharedState::report_search_result(
+    const SearchStackState* ss, const SearchLocalState& local, SearchResult result, SearchResultType type)
 {
     std::scoped_lock lock(lock_);
 
     // Store the result in the table (potentially overwriting a previous lower/upper bound)
     auto& result_data = search_results_[local.thread_id][local.curr_multi_pv - 1][local.curr_depth];
-    result_data = { local.curr_depth, local.curr_multi_pv, result.GetMove(), result.GetScore(), ss->pv, type };
+    result_data
+        = { local.curr_depth, local.sel_septh, local.curr_multi_pv, result.GetMove(), result.GetScore(), ss->pv, type };
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
@@ -182,7 +178,7 @@ void SearchSharedState::report_search_result(GameState& position, const SearchSt
         using namespace std::chrono_literals;
         if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
         {
-            PrintSearchInfo(position, local, result_data);
+            uci_handler.print_search_info(result_data);
         }
     }
 }
@@ -234,54 +230,4 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
     {
         KeepSearching = false;
     }
-}
-
-void SearchSharedState::PrintSearchInfo(
-    const GameState& position, const SearchLocalState& local, const SearchResults& data) const
-{
-    std::scoped_lock lock(lock_);
-
-    /*
-    Here we avoid excessive use of std::cout and instead append to a string in order
-    to output only once at the end. This causes a noticeable speedup for very fast
-    time controls.
-    */
-
-    std::stringstream stream;
-
-    stream << "info depth " << data.depth << " seldepth " << local.sel_septh;
-
-    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
-    {
-        if (data.score > 0)
-            stream << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
-        else
-            stream << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
-    }
-    else
-    {
-        stream << " score cp " << data.score.value();
-    }
-
-    if (data.type == SearchResultType::UPPER_BOUND)
-        stream << " upperbound";
-    if (data.type == SearchResultType::LOWER_BOUND)
-        stream << " lowerbound";
-
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(search_timer.elapsed()).count();
-    auto node_count = nodes();
-    auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
-
-    stream << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
-           << " tbhits " << tb_hits() << " multipv " << data.multi_pv;
-
-    stream << " pv "; // the current best line found
-
-    for (const auto& move : data.pv)
-    {
-        stream << move << ' ';
-    }
-
-    std::cout << stream.str() << "\n";
 }

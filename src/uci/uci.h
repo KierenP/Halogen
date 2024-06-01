@@ -14,6 +14,9 @@ public:
 
     void process_input(std::string_view command);
 
+    void print_search_info(const SearchResults& data);
+    void print_bestmove(Move move);
+
     bool quit = false;
 
 private:
@@ -39,11 +42,12 @@ private:
     void handle_setoption_chess960(std::string_view token);
     void handle_stop();
     void handle_quit();
+    void handle_bench(int depth);
 
     void join_search_thread();
 
     GameState position;
     std::thread searchThread;
-    SearchSharedState shared { 1 };
+    SearchSharedState shared { 1, *this };
     const std::string_view version_;
 };
