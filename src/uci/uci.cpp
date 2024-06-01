@@ -332,17 +332,17 @@ void Uci::process_input(std::string_view command)
     join_search_thread();
 
     // clang-format off
-    auto uci_processor = sequence { 
-    one_of { 
+    auto uci_processor = sequence {
+    one_of {
         consume { "ucinewgame", invoke { [this]{ handle_ucinewgame(); } } },
         consume { "uci", invoke { [this]{ handle_uci(); } } },
         consume { "isready", invoke { [this]{ handle_isready(); } } },
-        consume { "position", one_of { 
+        consume { "position", one_of {
             consume { "fen", sequence {
                 tokens_until {"moves", [this](auto fen){ return position.InitialiseFromFen(fen); } },
                 repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } } },
-            consume { "startpos", sequence { 
-                invoke { [this] { position.StartingPosition(); } }, 
+            consume { "startpos", sequence {
+                invoke { [this] { position.StartingPosition(); } },
                 one_of {
                     consume { "moves", repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } },
                     end_command{} } } } } },
@@ -370,12 +370,12 @@ void Uci::process_input(std::string_view command)
 
         // extensions
         consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
-        consume { "test", one_of { 
+        consume { "test", one_of {
             consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
             consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
             consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
             consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
-        consume { "bench", one_of  { 
+        consume { "bench", one_of  {
             sequence { end_command{}, invoke { []{ Bench(10); } } },
             next_token { to_int { [](auto value){ Bench(value); } } } } },
         consume { "print", invoke { [this](){ std::cout << position.Board() << std::endl; } } } },

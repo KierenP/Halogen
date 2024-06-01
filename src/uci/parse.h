@@ -1,6 +1,7 @@
 #pragma once
 
 #include <charconv>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -96,14 +97,8 @@ struct to_float
     template <typename... Ctx>
     bool handle(std::string_view& token, Ctx&&... ctx)
     {
-        float result {};
-        auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
-
-        if (ptr != token.end())
-        {
-            return false;
-        }
-
+        // from_chars(float) only supported in GCC 11+
+        float result = std::stof(std::string(token));
         callback_(result, std::forward<Ctx>(ctx)...);
         return true;
     }
