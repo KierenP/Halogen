@@ -316,7 +316,7 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     os << "half_turn_count: " << b.half_turn_count << "\n";
     os << "stm: " << b.stm << "\n";
     os << "castle_squares: " << b.castle_squares << "\n";
-    os << "\n";
+    os << std::endl;
 
     return os;
 }

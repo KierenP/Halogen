@@ -47,7 +47,7 @@ void Syzygy::init(std::string_view path)
 {
     tb_init(path.data());
     std::cout << "info string Found " << TB_NUM_WDL << " WDL, " << TB_NUM_DTM << " DTM and " << TB_NUM_DTZ
-              << " DTZ tablebase files. Largest " << TB_LARGEST << "-men\n";
+              << " DTZ tablebase files. Largest " << TB_LARGEST << "-men" << std::endl;
 }
 
 std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int distance_from_root)
