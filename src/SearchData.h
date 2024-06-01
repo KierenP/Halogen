@@ -28,6 +28,7 @@ constexpr std::size_t hardware_destructive_interference_size = 64;
 extern TranspositionTable tTable;
 
 class GameState;
+class Uci;
 
 // Holds information about the search state for a particular recursion depth.
 struct SearchStackState
@@ -108,21 +109,22 @@ public:
     int limit_check_counter = 0;
 };
 
+struct SearchResults
+{
+    int depth = 0;
+    int sel_septh = 0;
+    int multi_pv = 0;
+    Move best_move = Move::Uninitialized;
+    Score score = SCORE_UNDEFINED;
+    BasicMoveList pv = {};
+    SearchResultType type = SearchResultType::EMPTY;
+};
+
 // Search state that is shared between threads.
 class SearchSharedState
 {
-    struct SearchResults
-    {
-        int depth = 0;
-        int multi_pv = 0;
-        Move best_move = Move::Uninitialized;
-        Score score = SCORE_UNDEFINED;
-        BasicMoveList pv = {};
-        SearchResultType type = SearchResultType::EMPTY;
-    };
-
 public:
-    SearchSharedState(int threads);
+    SearchSharedState(Uci& uci);
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -137,10 +139,8 @@ public:
 
     SearchResults get_best_search_result() const;
 
-    void report_search_result(GameState& position, const SearchStackState* ss, const SearchLocalState& local,
-        SearchResult result, SearchResultType type);
-
-    void PrintSearchInfo(const GameState& position, const SearchLocalState& local, const SearchResults& data) const;
+    void report_search_result(
+        const SearchStackState* ss, const SearchLocalState& local, SearchResult result, SearchResultType type);
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
@@ -153,14 +153,15 @@ public:
     SearchLocalState& get_local_state(int thread_id);
     void report_thread_wants_to_stop(int thread_id);
 
-    bool chess_960 = false;
+    bool chess_960 {};
     SearchLimits limits;
     Timer search_timer;
+    Uci& uci_handler;
 
 private:
     mutable std::recursive_mutex lock_;
-    int multi_pv_setting = 1;
-    int threads_setting = 0;
+    int multi_pv_setting {};
+    int threads_setting {};
 
     // [thread_id][multi_pv][depth]
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;

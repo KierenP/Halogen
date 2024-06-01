@@ -6,7 +6,6 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
-#include <iostream>
 #include <limits>
 #include <thread>
 #include <vector>
@@ -24,6 +23,7 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
+#include "uci/uci.h"
 
 enum class SearchType
 {
@@ -119,8 +119,8 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     }
 
     const auto& search_result = shared.get_best_search_result();
-    shared.PrintSearchInfo(position, shared.get_local_state(0), search_result);
-    std::cout << "bestmove " << search_result.best_move << std::endl;
+    shared.uci_handler.print_search_info(search_result);
+    shared.uci_handler.print_bestmove(search_result.best_move);
 }
 
 void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
@@ -160,7 +160,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
                 mid_score = result.GetScore();
             }
 
-            shared.report_search_result(position, ss, local, result, SearchResultType::EXACT);
+            shared.report_search_result(ss, local, result, SearchResultType::EXACT);
 
             if (shared.limits.mate
                 && Score::Limits::MATE - abs(result.GetScore().value()) <= shared.limits.mate.value() * 2)
@@ -196,7 +196,7 @@ SearchResult AspirationWindowSearch(
         if (result.GetScore() <= alpha)
         {
             result = { alpha, result.GetMove() };
-            shared.report_search_result(position, ss, local, result, SearchResultType::UPPER_BOUND);
+            shared.report_search_result(ss, local, result, SearchResultType::UPPER_BOUND);
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
@@ -205,7 +205,7 @@ SearchResult AspirationWindowSearch(
         if (result.GetScore() >= beta)
         {
             result = { beta, result.GetMove() };
-            shared.report_search_result(position, ss, local, result, SearchResultType::LOWER_BOUND);
+            shared.report_search_result(ss, local, result, SearchResultType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
         }
 

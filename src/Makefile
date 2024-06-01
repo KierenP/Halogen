@@ -28,6 +28,7 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
+	uci/uci.cpp \
 	Pyrrhic/tbprobe.c
 
 # String substitution for every C/C++ file.
@@ -42,7 +43,7 @@ AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
-SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
+SFLAGS = -O0 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
