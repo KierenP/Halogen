@@ -6,6 +6,7 @@
 #include "Network.h"
 #include "Zobrist.h"
 
+#include <charconv>
 #include <iostream>
 
 BoardState::BoardState()
@@ -28,7 +29,7 @@ void BoardState::Reset()
     key.Recalculate(*this);
 }
 
-bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
+bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 {
     Reset();
 
@@ -121,8 +122,20 @@ bool BoardState::InitialiseFromFen(const std::vector<std::string>& fen)
         en_passant = static_cast<Square>((fen[3][0] - 'a') + (fen[3][1] - '1') * 8);
     };
 
-    fifty_move_count = std::stoi(fen[4]);
-    half_turn_count = std::stoi(fen[5]) * 2 - (stm == WHITE); // convert full move count to half move count
+    auto [ptr1, ec1] = std::from_chars(fen[4].begin(), fen[4].end(), fifty_move_count);
+    if (ptr1 != fen[4].end())
+    {
+        return false;
+    }
+
+    int full_move_count = 0;
+    auto [ptr2, ec2] = std::from_chars(fen[5].begin(), fen[5].end(), full_move_count);
+    if (ptr2 != fen[5].end())
+    {
+        return false;
+    }
+
+    half_turn_count = full_move_count * 2 - (stm == WHITE); // convert full move count to half move count
 
     RecalculateWhiteBlackBoards();
     key.Recalculate(*this);
@@ -289,8 +302,8 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
 
         if (GetFile(square) == FILE_A)
         {
-            os << std::endl; // Go to a new line
-            os << 8 - GetRank(i); // Count down from 8
+            os << "\n";
+            os << 8 - GetRank(i);
         }
 
         os << " ";
@@ -303,7 +316,7 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     os << "half_turn_count: " << b.half_turn_count << "\n";
     os << "stm: " << b.stm << "\n";
     os << "castle_squares: " << b.castle_squares << "\n";
-    os << "\n";
+    os << std::endl;
 
     return os;
 }
