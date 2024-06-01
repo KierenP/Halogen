@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parse.h"
+#include "validate_callback.h"
 
 #include <cassert>
 #include <ostream>
@@ -25,7 +26,8 @@ struct check_option
 
     auto handler()
     {
-        return consume { name, consume { "value", next_token { to_bool { [this](auto val) { on_change(val); } } } } };
+        auto action = [this](auto val) { return invoke_with_optional_validation(on_change, val); };
+        return consume { name, consume { "value", next_token { to_bool { std::move(action) } } } };
     }
 
     void set_default()
@@ -67,8 +69,7 @@ struct spin_option
             }
             else
             {
-                on_change(val);
-                return true;
+                return invoke_with_optional_validation(on_change, val);
             }
         };
 
@@ -103,7 +104,7 @@ struct button_option
 
     auto handler()
     {
-        return consume { name, invoke { [this]() { on_change(); } } };
+        return consume { name, invoke { [this]() { return invoke_with_optional_validation(on_change); } } };
     }
 
     void set_default()
@@ -132,7 +133,8 @@ struct string_option
 
     auto handler()
     {
-        return consume { name, next_token { [this](auto str) { on_change(str); } } };
+        auto action = [this](auto val) { return invoke_with_optional_validation(on_change, val); };
+        return consume { name, consume { "value", next_token { std::move(action) } } };
     }
 
     void set_default()

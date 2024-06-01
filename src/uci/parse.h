@@ -1,5 +1,7 @@
 #pragma once
 
+#include "validate_callback.h"
+
 #include <charconv>
 #include <string>
 #include <string_view>
@@ -11,33 +13,11 @@ constexpr inline char uci_delimiter = ' ';
 struct end_command
 {
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&...)
+    bool operator()(std::string_view& command, Ctx&&...)
     {
         return command.size() == 0;
     }
 };
-
-// This lets us compose handlers, but have the base object be a callable lambda
-template <typename T, typename... Args>
-bool handle_callback(T&& t, Args&&... args)
-{
-    // lambda with bool return, used for validation
-    if constexpr (std::is_invocable_r_v<bool, T, Args...>)
-    {
-        return std::forward<T>(t)(std::forward<Args>(args)...);
-    }
-    // lambda without validation, always return true
-    else if constexpr (std::is_invocable_v<T, Args...>)
-    {
-        std::forward<T>(t)(std::forward<Args>(args)...);
-        return true;
-    }
-    // delegate to the sub-handler
-    else
-    {
-        return std::forward<T>(t).handle(std::forward<Args>(args)...);
-    }
-}
 
 // Invokes a callback. Does nothing with the command
 template <typename T>
@@ -49,10 +29,9 @@ struct invoke
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view&, Ctx&&... ctx)
+    bool operator()(std::string_view&, Ctx&&... ctx)
     {
-        callback_(std::forward<Ctx>(ctx)...);
-        return true;
+        return invoke_with_optional_validation(callback_, std::forward<Ctx>(ctx)...);
     }
 
     T callback_;
@@ -68,7 +47,7 @@ struct to_int
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& token, Ctx&&... ctx)
+    bool operator()(std::string_view& token, Ctx&&... ctx)
     {
         int result {};
         auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
@@ -78,8 +57,7 @@ struct to_int
             return false;
         }
 
-        callback_(result, std::forward<Ctx>(ctx)...);
-        return true;
+        return invoke_with_optional_validation(callback_, result, std::forward<Ctx>(ctx)...);
     }
 
     T callback_;
@@ -95,12 +73,11 @@ struct to_float
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& token, Ctx&&... ctx)
+    bool operator()(std::string_view& token, Ctx&&... ctx)
     {
         // from_chars(float) only supported in GCC 11+
         float result = std::stof(std::string(token));
-        callback_(result, std::forward<Ctx>(ctx)...);
-        return true;
+        return invoke_with_optional_validation(callback_, result, std::forward<Ctx>(ctx)...);
     }
 
     T callback_;
@@ -116,11 +93,20 @@ struct to_bool
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& token, Ctx&&... ctx)
+    bool operator()(std::string_view& token, Ctx&&... ctx)
     {
-        bool result = token == "true";
-        callback_(result, std::forward<Ctx>(ctx)...);
-        return true;
+        if (token == "true")
+        {
+            return invoke_with_optional_validation(callback_, true, std::forward<Ctx>(ctx)...);
+        }
+        else if (token == "false")
+        {
+            return invoke_with_optional_validation(callback_, false, std::forward<Ctx>(ctx)...);
+        }
+        else
+        {
+            return false;
+        }
     }
 
     T callback_;
@@ -136,7 +122,7 @@ struct next_token
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         auto pos = command.find(uci_delimiter);
 
@@ -145,17 +131,15 @@ struct next_token
             // process all remaining
             auto token = command;
             command = "";
-            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return invoke_with_optional_validation(callback_, token, std::forward<Ctx>(ctx)...);
         }
         else
         {
             // process up to the delimiter, and then update command to be the remaining tokens
             auto token = command.substr(0, pos);
             command = command.substr(std::min(command.size(), pos + 1));
-            handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return invoke_with_optional_validation(callback_, token, std::forward<Ctx>(ctx)...);
         }
-
-        return true;
     }
 
     T callback_;
@@ -172,7 +156,7 @@ struct tokens_until
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         auto pos = command.find(delimiter_);
 
@@ -181,13 +165,13 @@ struct tokens_until
             // process all remaining
             auto token = command;
             command = "";
-            return handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return invoke_with_optional_validation(callback_, token, std::forward<Ctx>(ctx)...);
         }
         else
         {
             auto token = command.substr(0, std::max(0, (int)pos - 1));
             command = command.substr(std::min(command.size(), pos + 1 + delimiter_.size()));
-            return handle_callback(callback_, token, std::forward<Ctx>(ctx)...);
+            return invoke_with_optional_validation(callback_, token, std::forward<Ctx>(ctx)...);
         }
     }
 
@@ -206,12 +190,12 @@ struct consume
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         if (command.substr(0, token_.size()) == token_)
         {
             command = command.substr(std::min(command.size(), token_.size() + 1));
-            return handler_.handle(command, std::forward<Ctx>(ctx)...);
+            return invoke_with_optional_validation(handler_, command, std::forward<Ctx>(ctx)...);
         }
         else
         {
@@ -233,7 +217,7 @@ struct sequence
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         return handle<0>(command, std::forward<Ctx>(ctx)...);
     }
@@ -245,7 +229,7 @@ struct sequence
         {
             return true;
         }
-        else if (!std::get<I>(handlers_).handle(command, std::forward<Ctx>(ctx)...))
+        else if (!invoke_with_optional_validation(std::get<I>(handlers_), command, std::forward<Ctx>(ctx)...))
         {
             return false;
         }
@@ -268,7 +252,7 @@ struct one_of
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         return handle<0>(command, std::forward<Ctx>(ctx)...);
     }
@@ -280,7 +264,7 @@ struct one_of
         {
             return false;
         }
-        else if (std::get<I>(handlers_).handle(command, std::forward<Ctx>(ctx)...))
+        else if (invoke_with_optional_validation(std::get<I>(handlers_), command, std::forward<Ctx>(ctx)...))
         {
             return true;
         }
@@ -303,11 +287,11 @@ struct repeat
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
         while (!command.empty())
         {
-            if (!handler_.handle(command, std::forward<Ctx>(ctx)...))
+            if (!invoke_with_optional_validation(handler_, command, std::forward<Ctx>(ctx)...))
             {
                 return false;
             }
@@ -331,9 +315,9 @@ struct with_context
     }
 
     template <typename... Ctx>
-    bool handle(std::string_view& command, Ctx&&... ctx)
+    bool operator()(std::string_view& command, Ctx&&... ctx)
     {
-        return handler_.handle(command, std::forward<Ctx>(ctx)..., context_);
+        return invoke_with_optional_validation(handler_, command, std::forward<Ctx>(ctx)..., context_);
     }
 
     new_Ctx context_;
