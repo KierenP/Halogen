@@ -33,10 +33,9 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
             if (present != legal)
             {
-                std::cout << position.Board() << move;
-                std::cout << std::endl;
-                std::cout << present << " " << legal << std::endl;
-                std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;
+                std::cout << position.Board() << move << "\n"
+                          << present << " " << legal << "\n"
+                          << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << "\n";
                 return 0; // cause perft answer to be incorrect
             }
         }
@@ -89,14 +88,12 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
         uint64_t correct = stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce)));
         if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce))))
         {
-            std::cout << "CORRECT   (" << nodes << " == " << correct << ") [" << fen << "] depth: " << depth
-                      << std::endl;
+            std::cout << "CORRECT   (" << nodes << " == " << correct << ") [" << fen << "] depth: " << depth << "\n";
             Correct++;
         }
         else
         {
-            std::cout << "INCORRECT (" << nodes << " != " << correct << ") [" << fen << "] depth: " << depth
-                      << std::endl;
+            std::cout << "INCORRECT (" << nodes << " != " << correct << ") [" << fen << "] depth: " << depth << "\n";
         }
 
         Totalnodes += nodes;
@@ -108,7 +105,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
     std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
     std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
     std::cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
-    std::cout << std::endl;
+    std::cout << "\n";
 }
 
 uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legality)
@@ -124,7 +121,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();
-        std::cout << moves[i] << ": " << ChildNodeCount << std::endl;
+        std::cout << moves[i] << ": " << ChildNodeCount << "\n";
         nodeCount += ChildNodeCount;
     }
 
@@ -132,7 +129,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     auto duration = std::chrono::duration<double>(after - before).count();
 
     std::cout << "\nNodes searched: " << (nodeCount) << " in " << duration << " seconds ";
-    std::cout << "(" << static_cast<unsigned int>(nodeCount / duration) << " nps)" << std::endl;
+    std::cout << "(" << static_cast<unsigned int>(nodeCount / duration) << " nps)\n";
     return nodeCount;
 }
 
@@ -149,7 +146,7 @@ void Bench(int depth)
     {
         if (!position.InitialiseFromFen(benchMarkPositions[i]))
         {
-            std::cout << "BAD FEN!" << std::endl;
+            std::cout << "BAD FEN!\n";
             break;
         }
 
@@ -159,7 +156,7 @@ void Bench(int depth)
     }
 
     int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer.elapsed()).count();
-    std::cout << nodeCount << " nodes " << nodeCount / std::max(elapsed_time, 1) * 1000 << " nps" << std::endl;
+    std::cout << nodeCount << " nodes " << nodeCount / std::max(elapsed_time, 1) * 1000 << " nps\n";
 }
 
 Uci::Uci(std::string_view version)
@@ -263,7 +260,7 @@ bool Uci::handle_setoption_hash(int value)
 {
     if (GetBitCount(value) != 1)
     {
-        std::cout << "info error transposition table size must be a power of two" << std::endl;
+        std::cout << "info error transposition table size must be a power of two\n";
         return false;
     }
 
@@ -378,13 +375,13 @@ void Uci::process_input(std::string_view command)
         consume { "bench", one_of  {
             sequence { end_command{}, invoke { []{ Bench(10); } } },
             next_token { to_int { [](auto value){ Bench(value); } } } } },
-        consume { "print", invoke { [this](){ std::cout << position.Board() << std::endl; } } } },
+        consume { "print", invoke { [this](){ std::cout << position.Board(); } } } },
     end_command{}
     };
     // clang-format on
 
     if (!uci_processor.handle(command))
     {
-        std::cout << "info string unable to handle command " << std::quoted(original) << std::endl;
+        std::cout << "info string unable to handle command " << std::quoted(original) << "\n";
     }
 }

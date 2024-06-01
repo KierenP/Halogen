@@ -302,8 +302,8 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
 
         if (GetFile(square) == FILE_A)
         {
-            os << std::endl; // Go to a new line
-            os << 8 - GetRank(i); // Count down from 8
+            os << "\n";
+            os << 8 - GetRank(i);
         }
 
         os << " ";
