@@ -88,6 +88,55 @@ struct spin_option
     T on_change;
 };
 
+// UCI extension: a float parameter that pretends to be 'string'. Useful for automated tuning
+template <typename T>
+struct float_option
+{
+    float_option(std::string_view name_, float default_value_, float min_value_, float max_value_, T&& on_change_)
+        : name(name_)
+        , default_value(default_value_)
+        , min_value(min_value_)
+        , max_value(max_value_)
+        , on_change(std::move(on_change_))
+    {
+        assert(min_value <= default_value && default_value <= max_value);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const float_option<T>& opt)
+    {
+        return os << "option name " << opt.name << " type string default " << opt.default_value << " min "
+                  << opt.min_value << " max " << opt.max_value << "\n";
+    }
+
+    auto handler()
+    {
+        auto with_validation = [this](auto val)
+        {
+            if (val < min_value || val > max_value)
+            {
+                return false;
+            }
+            else
+            {
+                return invoke_with_optional_validation(on_change, val);
+            }
+        };
+
+        return consume { name, consume { "value", next_token { to_float { std::move(with_validation) } } } };
+    }
+
+    void set_default()
+    {
+        on_change(default_value);
+    }
+
+    const std::string_view name;
+    const float default_value;
+    const float min_value;
+    const float max_value;
+    T on_change;
+};
+
 template <typename T>
 struct button_option
 {

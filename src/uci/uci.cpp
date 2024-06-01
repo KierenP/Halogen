@@ -162,6 +162,18 @@ void Uci::handle_bench(int depth)
 
 auto Uci::options_handler()
 {
+#define tuneable_int(name, default_, min_, max_)                                                                       \
+    spin_option                                                                                                        \
+    {                                                                                                                  \
+        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+    }
+
+#define tuneable_float(name, default_, min_, max_)                                                                     \
+    float_option                                                                                                       \
+    {                                                                                                                  \
+        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+    }
+
     return uci_options {
         button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
         check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
