@@ -400,7 +400,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Rebel style IID. Don't ask why this helps but it does.
     if (!tt_entry && depth > 3)
-        depth--;
+        depth -= 2;
 
     bool FutileNode = depth < Futility_depth && staticScore + Futility_constant + Futility_coeff * depth < alpha;
 
