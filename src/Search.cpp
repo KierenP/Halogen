@@ -402,7 +402,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     if (!tt_entry && depth > 3)
         depth--;
 
-    bool FutileNode = depth < Futility_depth && staticScore + Futility_constant + Futility_coeff * depth < alpha;
+    bool FutileNode = depth < Futility_depth
+        && staticScore + Futility_constant + Futility_linear * depth + Futility_quad * depth * depth < alpha;
 
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
