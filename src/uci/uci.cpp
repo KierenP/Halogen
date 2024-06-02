@@ -4,6 +4,7 @@
 #include "../EGTB.h"
 #include "../GameState.h"
 #include "../MoveGeneration.h"
+#include "../SearchConstants.h"
 #include "../SearchData.h"
 #include "options.h"
 #include "parse.h"
@@ -162,6 +163,18 @@ void Uci::handle_bench(int depth)
 
 auto Uci::options_handler()
 {
+#define tuneable_int(name, default_, min_, max_)                                                                       \
+    spin_option                                                                                                        \
+    {                                                                                                                  \
+        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+    }
+
+#define tuneable_float(name, default_, min_, max_)                                                                     \
+    float_option                                                                                                       \
+    {                                                                                                                  \
+        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+    }
+
     return uci_options {
         button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
         check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
@@ -170,6 +183,9 @@ auto Uci::options_handler()
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
     };
+
+#undef tuneable_int
+#undef tuneable_float
 }
 
 Uci::Uci(std::string_view version)

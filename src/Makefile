@@ -179,6 +179,12 @@ sanitize-thread: LDFLAGS += -fsanitize=thread
 sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread.exe
 sanitize-thread: binary
 
+.PHONY: tune
+tune: CXXFLAGS += $(CFLAGS) -DTUNE
+tune: LDFLAGS += -flto
+tune: EXE = $(BINARY_DIR)/Halogen-tune.exe
+tune: binary
+
 #----------------------------------------------------------------------------------------------------------------------
 # Release builds that are statically linked and target specific instruction sets
 
