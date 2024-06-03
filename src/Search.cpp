@@ -429,16 +429,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             gen.SkipQuiets();
         }
 
-        // futility pruning
-        if (!pv_node && FutileNode && !InCheck && score > Score::tb_loss_in(MAX_DEPTH))
-        {
-            gen.SkipQuiets();
-            if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
-            {
-                break;
-            }
-        }
-
         int extensions = 0;
 
         // Singular extensions.
