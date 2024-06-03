@@ -20,10 +20,10 @@ TUNEABLE_CONSTANT int Null_constant = 4;
 TUNEABLE_CONSTANT int Null_depth_quotent = 6;
 TUNEABLE_CONSTANT int Null_beta_quotent = 250;
 
-TUNEABLE_CONSTANT int Futility_constant = 69;
-TUNEABLE_CONSTANT int Futility_linear = 20;
-TUNEABLE_CONSTANT int Futility_quad = 7;
-TUNEABLE_CONSTANT int Futility_depth = 10;
+TUNEABLE_CONSTANT int Futility_constant = 27;
+TUNEABLE_CONSTANT int Futility_linear = 13;
+TUNEABLE_CONSTANT int Futility_quad = 16;
+TUNEABLE_CONSTANT int Futility_depth = 8;
 
 TUNEABLE_CONSTANT Score aspiration_window_mid_width = 15;
 
