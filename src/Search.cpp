@@ -735,7 +735,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 15 && staticScore + 20 + 82 * depth < alpha
+        if (!pv_node && !InCheck && depth < 8 && staticScore + 27 + 13 * depth + 16 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
