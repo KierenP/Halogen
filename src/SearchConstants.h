@@ -16,26 +16,6 @@ TUNEABLE_CONSTANT double LMR_depth_coeff = -2.06;
 TUNEABLE_CONSTANT double LMR_move_coeff = 0.20;
 TUNEABLE_CONSTANT double LMR_depth_move_coeff = 1.17;
 
-TUNEABLE_CONSTANT int Null_constant = 4;
-TUNEABLE_CONSTANT int Null_depth_quotent = 6;
-TUNEABLE_CONSTANT int Null_beta_quotent = 250;
-
-TUNEABLE_CONSTANT int Futility_constant = 27;
-TUNEABLE_CONSTANT int Futility_linear = 13;
-TUNEABLE_CONSTANT int Futility_quad = 16;
-TUNEABLE_CONSTANT int Futility_depth = 8;
-
-TUNEABLE_CONSTANT Score aspiration_window_mid_width = 15;
-
-TUNEABLE_CONSTANT int Delta_margin = 200;
-
-TUNEABLE_CONSTANT int SNMP_coeff = 119;
-TUNEABLE_CONSTANT int SNMP_depth = 8;
-
-TUNEABLE_CONSTANT int LMP_constant = 11;
-TUNEABLE_CONSTANT int LMP_coeff = 7;
-TUNEABLE_CONSTANT int LMP_depth = 6;
-
 inline auto Initialise_LMR_reduction()
 {
     std::array<std::array<int, 64>, 64> ret = {};
