@@ -652,6 +652,8 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
             }
         }();
 
+        ss->static_eval = static_eval;
+
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
             && (tt_cutoff == SearchResultType::EXACT
@@ -670,8 +672,15 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         const auto static_eval = Evaluate(position.Board(), ss, local.net);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
+        ss->static_eval = static_eval;
         return { static_eval, static_eval };
     }
+}
+
+Score futility_margin(int depth, const bool improving)
+{
+    depth = std::max(0, depth - improving);
+    return 38 + 19 * depth + 11 * depth * depth;
 }
 
 template <SearchType search_type>
@@ -729,6 +738,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const bool improving = ss->static_eval > (ss - 2)->static_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -802,7 +812,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < 10 && eval + futility_margin(depth, improving) < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
