@@ -35,6 +35,11 @@ struct check_option
         on_change(default_value);
     }
 
+    void spsa_input_print(std::ostream&)
+    {
+        // do nothing
+    }
+
     const std::string_view name;
     const bool default_value;
     T on_change;
@@ -79,6 +84,14 @@ struct spin_option
     void set_default()
     {
         on_change(default_value);
+    }
+
+    void spsa_input_print(std::ostream& os)
+    {
+        os << name << ", "
+           << "int"
+           << ", " << default_value << ", " << min_value << ", " << max_value << ", "
+           << float(max_value - min_value) / 20 << ", " << 0.002 << "\n";
     }
 
     const std::string_view name;
@@ -130,6 +143,14 @@ struct float_option
         on_change(default_value);
     }
 
+    void spsa_input_print(std::ostream& os)
+    {
+        os << name << ", "
+           << "float"
+           << ", " << default_value << ", " << min_value << ", " << max_value << ", " << (max_value - min_value) / 20
+           << ", " << 0.002 << "\n";
+    }
+
     const std::string_view name;
     const float default_value;
     const float min_value;
@@ -157,6 +178,11 @@ struct button_option
     }
 
     void set_default()
+    {
+        // do nothing
+    }
+
+    void spsa_input_print(std::ostream&)
     {
         // do nothing
     }
@@ -191,6 +217,11 @@ struct string_option
         on_change(default_value);
     }
 
+    void spsa_input_print(std::ostream&)
+    {
+        // do nothing
+    }
+
     const std::string_view name;
     const std::string_view default_value;
     T on_change;
@@ -218,6 +249,11 @@ public:
     void set_defaults()
     {
         std::apply([&](auto&... opts) { (opts.set_default(), ...); }, options);
+    }
+
+    void spsa_input_print(std::ostream& os)
+    {
+        std::apply([&](auto&... opts) { (opts.spsa_input_print(os), ...); }, options);
     }
 
 private:

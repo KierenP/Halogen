@@ -43,6 +43,7 @@ private:
     void handle_stop();
     void handle_quit();
     void handle_bench(int depth);
+    void handle_spsa();
 
     void join_search_thread();
 
