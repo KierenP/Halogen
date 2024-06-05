@@ -608,6 +608,12 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
             SearchResultType::EXACT);
 }
 
+Score futility_margin(int depth, const bool improving)
+{
+    depth = std::max(0, depth - improving);
+    return 27 + 13 * depth + 16 * depth * depth;
+}
+
 template <SearchType search_type>
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta)
@@ -662,6 +668,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     const auto staticScore = EvaluatePositionNet(position, local.eval_cache);
+    ss->static_eval = staticScore;
+    const bool improving = ss->static_eval > (ss - 2)->static_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -735,7 +743,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 8 && staticScore + 27 + 13 * depth + 16 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < 8 && staticScore + futility_margin(depth, improving) < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
