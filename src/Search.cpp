@@ -608,10 +608,10 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
             SearchResultType::EXACT);
 }
 
-Score futility_margin(int depth, const bool improving)
+int lmp_moves(int depth, const int improving)
 {
     depth = std::max(0, depth - improving);
-    return 27 + 13 * depth + 16 * depth * depth;
+    return 11 + 7 * depth;
 }
 
 template <SearchType search_type>
@@ -735,7 +735,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= 11 + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < 6 && seen_moves >= lmp_moves(depth, improving) && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }
@@ -743,7 +743,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 8 && staticScore + futility_margin(depth, improving) < alpha
+        if (!pv_node && !InCheck && depth < 8 && staticScore + 27 + 13 * depth + 16 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
