@@ -16,5 +16,3 @@ jobs:
         clang-format-version: '18'
         check-path: 'src'
         exclude-regex: 'incbin|Pyrrhic|test'
-      run: |
-          clang-format-18 --version
