@@ -88,9 +88,7 @@ struct spin_option
 
     void spsa_input_print(std::ostream& os)
     {
-        os << name << ", "
-           << "int"
-           << ", " << default_value << ", " << min_value << ", " << max_value << ", "
+        os << name << ", int, " << default_value << ", " << min_value << ", " << max_value << ", "
            << float(max_value - min_value) / 20 << ", " << 0.002 << "\n";
     }
 
@@ -145,10 +143,8 @@ struct float_option
 
     void spsa_input_print(std::ostream& os)
     {
-        os << name << ", "
-           << "float"
-           << ", " << default_value << ", " << min_value << ", " << max_value << ", " << (max_value - min_value) / 20
-           << ", " << 0.002 << "\n";
+        os << name << ", float, " << default_value << ", " << min_value << ", " << max_value << ", "
+           << (max_value - min_value) / 20 << ", " << 0.002 << "\n";
     }
 
     const std::string_view name;
