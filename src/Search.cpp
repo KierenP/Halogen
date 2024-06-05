@@ -149,7 +149,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
 SearchResult AspirationWindowSearch(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score)
 {
-    Score delta = 15;
+    Score delta = aspiration_width;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
     Score beta = std::min<Score>(Score::Limits::MATE, mid_score + delta);
 
@@ -389,7 +389,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / 250);
+    const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / nmp_score_quotent);
 
     ss->move = Move::Uninitialized;
     position.ApplyNullMove();
@@ -445,7 +445,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // forced lines we limit the number of multiple_extensions down one line. We focus on non_pv nodes becuase
     // in particular we want to verify cut nodes which rest on a single good move and ensure we haven't
     // overlooked a potential non-pv line.
-    if (!pv_node && result.GetScore() < sbeta - 16 && ss->multiple_extensions < 8)
+    if (!pv_node && result.GetScore() < sbeta - se_double_margin && ss->multiple_extensions < 8)
     {
         extensions += 2;
         ss->multiple_extensions++;
@@ -488,7 +488,7 @@ int reduction(int depth, int seen_moves, int history)
     if constexpr (pv_node)
         r--;
 
-    r -= history / 4096;
+    r -= history / lmr_history;
 
     return std::max(0, r);
 }
@@ -667,7 +667,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     //
     // If the static score is far above beta we fail high.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8
-        && staticScore - 119 * depth >= beta)
+        && staticScore - snmp_margin * depth >= beta)
     {
         return beta;
     }
@@ -727,7 +727,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= 11 + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < 6 && seen_moves >= lmp_constant + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }
@@ -735,7 +735,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 8 && staticScore + 27 + 13 * depth + 16 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < 8
+            && staticScore + futility_const + futility_linear * depth + futility_quad * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
@@ -847,7 +848,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         int SEE = gen.GetSEE(move);
 
         // delta pruning
-        if (staticScore + SEE + 200 < alpha)
+        if (staticScore + SEE + delta_margin < alpha)
         {
             break;
         }

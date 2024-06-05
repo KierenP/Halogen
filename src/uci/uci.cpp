@@ -182,6 +182,20 @@ auto Uci::options_handler()
         spin_option { "Threads", 1, 1, 256, [this](auto value) { handle_setoption_threads(value); } },
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
+        tuneable_int(aspiration_width, 15, 10, 20),
+        tuneable_int(nmp_score_quotent, 250, 100, 500),
+        tuneable_int(se_double_margin, 16, -10, 40),
+        tuneable_int(lmr_history, 4096, 2048, 8196),
+        tuneable_int(snmp_margin, 119, 50, 150),
+        tuneable_int(lmp_constant, 11, 0, 20),
+        tuneable_int(futility_const, 27, 0, 50),
+        tuneable_int(futility_linear, 13, 0, 30),
+        tuneable_int(futility_quad, 16, 0, 30),
+        tuneable_int(delta_margin, 200, 0, 400),
+        tuneable_float(LMR_constant, 1.05, -2, 3),
+        tuneable_float(LMR_depth_coeff, -2.06, -5, 3),
+        tuneable_float(LMR_move_coeff, 0.20, -2, 3),
+        tuneable_float(LMR_depth_move_coeff, 1.17, 0, 3),
     };
 
 #undef tuneable_int

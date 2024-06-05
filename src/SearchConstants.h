@@ -11,6 +11,24 @@
 #define TUNEABLE_CONSTANT const inline
 #endif
 
+TUNEABLE_CONSTANT Score aspiration_width = 15;
+
+TUNEABLE_CONSTANT int nmp_score_quotent = 250;
+
+TUNEABLE_CONSTANT Score se_double_margin = 16;
+
+TUNEABLE_CONSTANT int lmr_history = 4096;
+
+TUNEABLE_CONSTANT Score snmp_margin = 119;
+
+TUNEABLE_CONSTANT int lmp_constant = 11;
+
+TUNEABLE_CONSTANT Score futility_const = 27;
+TUNEABLE_CONSTANT int futility_linear = 13;
+TUNEABLE_CONSTANT int futility_quad = 16;
+
+TUNEABLE_CONSTANT Score delta_margin = 200;
+
 TUNEABLE_CONSTANT double LMR_constant = 1.05;
 TUNEABLE_CONSTANT double LMR_depth_coeff = -2.06;
 TUNEABLE_CONSTANT double LMR_move_coeff = 0.20;
