@@ -29,10 +29,10 @@ TUNEABLE_CONSTANT int futility_quad = 16;
 
 TUNEABLE_CONSTANT Score delta_margin = 200;
 
-TUNEABLE_CONSTANT double LMR_constant = 1.05;
-TUNEABLE_CONSTANT double LMR_depth_coeff = -2.06;
-TUNEABLE_CONSTANT double LMR_move_coeff = 0.20;
-TUNEABLE_CONSTANT double LMR_depth_move_coeff = 1.17;
+TUNEABLE_CONSTANT double LMR_constant = 1.18;
+TUNEABLE_CONSTANT double LMR_depth_coeff = -1.57;
+TUNEABLE_CONSTANT double LMR_move_coeff = 1.05;
+TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.53;
 
 inline auto Initialise_LMR_reduction()
 {
