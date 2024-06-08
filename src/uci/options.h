@@ -88,8 +88,10 @@ struct spin_option
 
     void spsa_input_print(std::ostream& os)
     {
-        os << name << ", int, " << default_value << ", " << min_value << ", " << max_value << ", "
-           << float(max_value - min_value) / 20 << ", " << 0.002 << "\n";
+        auto c_end = float(max_value - min_value) / 20;
+        auto r_end = 0.002 / (std::min(0.5f, c_end) / 0.5);
+        os << name << ", int, " << default_value << ", " << min_value << ", " << max_value << ", " << c_end << ", "
+           << r_end << "\n";
     }
 
     const std::string_view name;
