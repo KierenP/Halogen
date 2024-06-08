@@ -728,7 +728,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < lmp_depth_limit && seen_moves >= lmp_constant + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < lmp_depth_limit && seen_moves >= lmp_constant + lmp_depth_coeff * depth
+            && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }

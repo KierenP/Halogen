@@ -11,41 +11,41 @@
 #define TUNEABLE_CONSTANT const inline
 #endif
 
-TUNEABLE_CONSTANT Score aspiration_width = 14;
+TUNEABLE_CONSTANT Score aspiration_width = 0;
 
-TUNEABLE_CONSTANT int nmp_constant = 4;
-TUNEABLE_CONSTANT int nmp_depth_quotent = 6;
-TUNEABLE_CONSTANT int nmp_score_max = 3;
-TUNEABLE_CONSTANT int nmp_score_quotent = 252;
+TUNEABLE_CONSTANT int nmp_constant {};
+TUNEABLE_CONSTANT int nmp_depth_quotent {};
+TUNEABLE_CONSTANT int nmp_score_max {};
+TUNEABLE_CONSTANT int nmp_score_quotent {};
 
-TUNEABLE_CONSTANT int se_sbeta_depth = 64;
-TUNEABLE_CONSTANT Score se_double_margin = 10;
-TUNEABLE_CONSTANT int se_multi_extend = 8;
-TUNEABLE_CONSTANT int se_depth_limit = 6;
-TUNEABLE_CONSTANT int se_tt_depth = 2;
+TUNEABLE_CONSTANT int se_sbeta_depth {};
+TUNEABLE_CONSTANT Score se_double_margin = 0;
+TUNEABLE_CONSTANT int se_multi_extend {};
+TUNEABLE_CONSTANT int se_depth_limit {};
+TUNEABLE_CONSTANT int se_tt_depth {};
 
-TUNEABLE_CONSTANT int lmr_history = 3913;
+TUNEABLE_CONSTANT int lmr_history {};
 
-TUNEABLE_CONSTANT Score snmp_margin = 112;
-TUNEABLE_CONSTANT int snmp_depth = 8;
+TUNEABLE_CONSTANT Score snmp_margin = 0;
+TUNEABLE_CONSTANT int snmp_depth {};
 
-TUNEABLE_CONSTANT int iid_depth = 3;
+TUNEABLE_CONSTANT int iid_depth {};
 
-TUNEABLE_CONSTANT int lmp_constant = 7;
-TUNEABLE_CONSTANT int lmp_depth_coeff = 7;
-TUNEABLE_CONSTANT int lmp_depth_limit = 6;
+TUNEABLE_CONSTANT int lmp_constant {};
+TUNEABLE_CONSTANT int lmp_depth_coeff {};
+TUNEABLE_CONSTANT int lmp_depth_limit {};
 
-TUNEABLE_CONSTANT Score futility_const = 31;
-TUNEABLE_CONSTANT int futility_linear = 13;
-TUNEABLE_CONSTANT int futility_quad = 14;
-TUNEABLE_CONSTANT int futility_depth_limit = 8;
+TUNEABLE_CONSTANT Score futility_const = 0;
+TUNEABLE_CONSTANT int futility_linear {};
+TUNEABLE_CONSTANT int futility_quad {};
+TUNEABLE_CONSTANT int futility_depth_limit {};
 
-TUNEABLE_CONSTANT Score delta_margin = 222;
+TUNEABLE_CONSTANT Score delta_margin = 0;
 
-TUNEABLE_CONSTANT double LMR_constant = 1.18;
-TUNEABLE_CONSTANT double LMR_depth_coeff = -1.57;
-TUNEABLE_CONSTANT double LMR_move_coeff = 1.05;
-TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.53;
+TUNEABLE_CONSTANT double LMR_constant {};
+TUNEABLE_CONSTANT double LMR_depth_coeff {};
+TUNEABLE_CONSTANT double LMR_move_coeff {};
+TUNEABLE_CONSTANT double LMR_depth_move_coeff {};
 
 inline auto Initialise_LMR_reduction()
 {
