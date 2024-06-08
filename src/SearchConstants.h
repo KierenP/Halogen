@@ -11,23 +11,36 @@
 #define TUNEABLE_CONSTANT const inline
 #endif
 
-TUNEABLE_CONSTANT Score aspiration_width = 15;
+TUNEABLE_CONSTANT Score aspiration_width = 14;
 
-TUNEABLE_CONSTANT int nmp_score_quotent = 250;
+TUNEABLE_CONSTANT int nmp_constant = 4;
+TUNEABLE_CONSTANT int nmp_depth_quotent = 6;
+TUNEABLE_CONSTANT int nmp_score_max = 3;
+TUNEABLE_CONSTANT int nmp_score_quotent = 252;
 
-TUNEABLE_CONSTANT Score se_double_margin = 16;
+TUNEABLE_CONSTANT int se_sbeta_depth = 64;
+TUNEABLE_CONSTANT Score se_double_margin = 10;
+TUNEABLE_CONSTANT int se_multi_extend = 8;
+TUNEABLE_CONSTANT int se_depth_limit = 6;
+TUNEABLE_CONSTANT int se_tt_depth = 2;
 
-TUNEABLE_CONSTANT int lmr_history = 4096;
+TUNEABLE_CONSTANT int lmr_history = 3913;
 
-TUNEABLE_CONSTANT Score snmp_margin = 119;
+TUNEABLE_CONSTANT Score snmp_margin = 112;
+TUNEABLE_CONSTANT int snmp_depth = 8;
 
-TUNEABLE_CONSTANT int lmp_constant = 11;
+TUNEABLE_CONSTANT int iid_depth = 3;
 
-TUNEABLE_CONSTANT Score futility_const = 27;
+TUNEABLE_CONSTANT int lmp_constant = 7;
+TUNEABLE_CONSTANT int lmp_depth_coeff = 7;
+TUNEABLE_CONSTANT int lmp_depth_limit = 6;
+
+TUNEABLE_CONSTANT Score futility_const = 31;
 TUNEABLE_CONSTANT int futility_linear = 13;
-TUNEABLE_CONSTANT int futility_quad = 16;
+TUNEABLE_CONSTANT int futility_quad = 14;
+TUNEABLE_CONSTANT int futility_depth_limit = 8;
 
-TUNEABLE_CONSTANT Score delta_margin = 200;
+TUNEABLE_CONSTANT Score delta_margin = 222;
 
 TUNEABLE_CONSTANT double LMR_constant = 1.18;
 TUNEABLE_CONSTANT double LMR_depth_coeff = -1.57;

@@ -389,7 +389,8 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / nmp_score_quotent);
+    const int reduction = nmp_constant + depth / nmp_depth_quotent
+        + std::min(nmp_score_max, (static_score - beta).value() / nmp_score_quotent);
 
     ss->move = Move::Uninitialized;
     position.ApplyNullMove();
@@ -432,7 +433,7 @@ template <bool pv_node>
 std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, SearchLocalState& local,
     SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move, const Score beta, int& extensions)
 {
-    Score sbeta = tt_score - depth;
+    Score sbeta = tt_score - se_sbeta_depth * depth / 64;
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
@@ -445,7 +446,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // forced lines we limit the number of multiple_extensions down one line. We focus on non_pv nodes becuase
     // in particular we want to verify cut nodes which rest on a single good move and ensure we haven't
     // overlooked a potential non-pv line.
-    if (!pv_node && result.GetScore() < sbeta - se_double_margin && ss->multiple_extensions < 8)
+    if (!pv_node && result.GetScore() < sbeta - se_double_margin && ss->multiple_extensions < se_multi_extend)
     {
         extensions += 2;
         ss->multiple_extensions++;
@@ -666,7 +667,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8
+    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < snmp_depth
         && staticScore - snmp_margin * depth >= beta)
     {
         return beta;
@@ -703,7 +704,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
     // new nodes in the tree at high depths
-    if (!tt_entry && depth > 3)
+    if (!tt_entry && depth > iid_depth)
     {
         depth--;
     }
@@ -727,7 +728,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= lmp_constant + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < lmp_depth_limit && seen_moves >= lmp_constant + 7 * depth && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }
@@ -735,7 +736,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 8
+        if (!pv_node && !InCheck && depth < futility_depth_limit
             && staticScore + futility_const + futility_linear * depth + futility_quad * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
@@ -756,8 +757,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 6 && tt_entry
-            && tt_depth + 2 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= se_depth_limit && tt_entry
+            && tt_depth + se_tt_depth >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
         {
             if (auto value
                 = singular_extensions<pv_node>(position, ss, local, shared, depth, tt_score, tt_move, beta, extensions))
