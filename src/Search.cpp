@@ -281,9 +281,23 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     return std::nullopt;
 }
 
+void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
+    int distanceFromRoot, Score beta, Move bestMove)
+{
+    if (score <= alphaOriginal)
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
+            SearchResultType::UPPER_BOUND); // mate score adjustent is done inside this function
+    else if (score >= beta)
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
+            SearchResultType::LOWER_BOUND);
+    else
+        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
+            SearchResultType::EXACT);
+}
+
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchLocalState& local,
-    Score& alpha, const Score beta, Score& min_score, Score& max_score)
+    Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(position.Board(), distance_from_root);
     if (probe.has_value())
@@ -293,15 +307,32 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
 
         if (!root_node)
         {
-            if (tb_score == 0)
+            const auto bound = [tb_score]()
+            {
+                if (tb_score == Score::draw())
+                {
+                    return SearchResultType::EXACT;
+                }
+                else if (tb_score >= Score::tb_win_in(MAX_DEPTH))
+                {
+                    return SearchResultType::LOWER_BOUND;
+                }
+                else
+                {
+                    return SearchResultType::UPPER_BOUND;
+                }
+            }();
+
+            if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
+                || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
+            {
+                AddScoreToTable(
+                    tb_score, alpha, position.Board(), depth, distance_from_root, beta, Move::Uninitialized);
                 return tb_score;
-            if (tb_score >= Score::tb_win_in(MAX_DEPTH) && tb_score >= beta)
-                return tb_score;
-            if (tb_score <= Score::tb_loss_in(MAX_DEPTH) && tb_score <= alpha)
-                return tb_score;
+            }
         }
 
-        // Why update score ?
+        // Why update score?
         // Because in a PV node we want the returned score to be accurate and reflect the TB score.
         // As such, we either set a cap for the score or raise the score to a minimum which can be further improved.
         // Remember, static evals will never reach these impossible tb-win/loss scores
@@ -331,6 +362,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             else
             {
                 max_score = tb_score;
+                beta = std::min(beta, tb_score);
             }
         }
     }
@@ -594,20 +626,6 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
     }
 }
 
-void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
-    int distanceFromRoot, Score beta, Move bestMove)
-{
-    if (score <= alphaOriginal)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::UPPER_BOUND); // mate score adjustent is done inside this function
-    else if (score >= beta)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::LOWER_BOUND);
-    else
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::EXACT);
-}
-
 template <SearchType search_type>
 SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta)
@@ -630,23 +648,23 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // If we are in a singular move search, we don't want to do any early pruning
 
-    // Step 2: Probe syzygy EGTB
-    if (ss->singular_exclusion == Move::Uninitialized)
+    // Step 2: Probe transposition table
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move] = probe_tt(position, distance_from_root);
+
+    // Step 3: Check if we can use the TT entry to return early
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_entry && tt_depth >= depth)
     {
-        if (auto value
-            = probe_egtb<root_node, pv_node>(position, distance_from_root, local, alpha, beta, min_score, max_score))
+        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
         {
             return *value;
         }
     }
 
-    // Step 3: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move] = probe_tt(position, distance_from_root);
-
-    // Step 4: Check if we can use the TT entry to return early
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_entry && tt_depth >= depth)
+    // Step 4: Probe syzygy EGTB
+    if (ss->singular_exclusion == Move::Uninitialized)
     {
-        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
+        if (auto value = probe_egtb<root_node, pv_node>(
+                position, distance_from_root, local, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
