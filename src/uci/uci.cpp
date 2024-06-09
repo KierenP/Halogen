@@ -398,7 +398,8 @@ void Uci::process_input(std::string_view command)
         consume { "bench", one_of  {
             sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
             next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
-        consume { "print", invoke { [this](){ std::cout << position.Board(); } } } },
+        consume { "print", invoke { [this] { std::cout << position.Board(); } } },
+        consume { "spsa", invoke { [this] { handle_spsa(); } } } },
     end_command{}
     };
     // clang-format on
@@ -451,4 +452,9 @@ void Uci::print_search_info(const SearchResults& data)
 void Uci::print_bestmove(Move move)
 {
     std::cout << "bestmove " << move << std::endl;
+}
+
+void Uci::handle_spsa()
+{
+    options_handler().spsa_input_print(std::cout);
 }
