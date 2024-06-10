@@ -9,9 +9,9 @@
 
 enum class OutputLevel
 {
-    NONE,
-    MINIMAL,
-    DEFAULT,
+    None,
+    Minimal,
+    Default,
 
     ENUM_END
 };

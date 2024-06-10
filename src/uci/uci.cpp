@@ -21,12 +21,12 @@ std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {
     switch (level)
     {
-    case OutputLevel::NONE:
-        return os << "NONE";
-    case OutputLevel::MINIMAL:
-        return os << "MINIMAL";
-    case OutputLevel::DEFAULT:
-        return os << "DEFAULT";
+    case OutputLevel::None:
+        return os << "None";
+    case OutputLevel::Minimal:
+        return os << "Minimal";
+    case OutputLevel::Default:
+        return os << "Default";
     case OutputLevel::ENUM_END:
         return os;
     }
@@ -38,17 +38,17 @@ std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 template <>
 std::optional<OutputLevel> to_enum<OutputLevel>(std::string_view str)
 {
-    if (str == "NONE")
+    if (str == "None")
     {
-        return OutputLevel::NONE;
+        return OutputLevel::None;
     }
-    else if (str == "MINIMAL")
+    else if (str == "Minimal")
     {
-        return OutputLevel::MINIMAL;
+        return OutputLevel::Minimal;
     }
-    else if (str == "DEFAULT")
+    else if (str == "Default")
     {
-        return OutputLevel::DEFAULT;
+        return OutputLevel::Default;
     }
     else
     {
@@ -224,7 +224,7 @@ auto Uci::options_handler()
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         combo_option {
-            "OutputLevel", OutputLevel::DEFAULT, [this](auto value) { handle_setoption_output_level(value); } },
+            "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
     };
 
 #undef tuneable_int
@@ -363,7 +363,7 @@ void Uci::handle_setoption_threads(int value)
 
 void Uci::handle_setoption_syzygy_path(std::string_view value)
 {
-    Syzygy::init(value, output_level > OutputLevel::NONE && finished_startup);
+    Syzygy::init(value, output_level > OutputLevel::None && finished_startup);
 }
 
 void Uci::handle_setoption_multipv(int value)
@@ -493,7 +493,7 @@ void Uci::process_input(std::string_view command)
 
 void Uci::print_search_info(const SearchResults& data, bool final)
 {
-    if (output_level == OutputLevel::NONE || (output_level == OutputLevel::MINIMAL && !final))
+    if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
     {
         return;
     }
@@ -537,7 +537,7 @@ void Uci::print_search_info(const SearchResults& data, bool final)
 
 void Uci::print_bestmove(Move move)
 {
-    if (output_level > OutputLevel::NONE)
+    if (output_level > OutputLevel::None)
     {
         std::cout << "bestmove " << move << std::endl;
     }
