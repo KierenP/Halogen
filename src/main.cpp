@@ -1,10 +1,9 @@
 #include <iostream>
-#include <string>
 
 #include "Network.h"
 #include "uci/uci.h"
 
-constexpr std::string_view version = "11.23.3";
+constexpr std::string_view version = "11.24.0";
 
 void PrintVersion()
 {
