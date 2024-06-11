@@ -1,8 +1,17 @@
 #include "uci.h"
 
-#include <algorithm>
-#include <array>
-#include <cassert>
+#include "../Benchmark.h"
+#include "../EGTB.h"
+#include "../GameState.h"
+#include "../MoveGeneration.h"
+#include "../SearchConstants.h"
+#include "../SearchData.h"
+#include "../datagen/datagen.h"
+#include "../datagen/filter.h"
+#include "../datagen/syzygy_rescore.h"
+#include "options.h"
+#include "parse.h"
+
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -493,7 +502,22 @@ void Uci::process_input(std::string_view command)
         Consume { "print", Invoke { [this] { handle_print(); } } },
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
-        Consume { "probe", Invoke { [this] { handle_probe(); } } } },
+        Consume { "probe", Invoke { [this] { handle_probe(); } } },
+        Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
+             Repeat { OneOf {
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
+                Consume { "duration", NextToken { ToInt{[](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } },
+        Consume { "syzygy_rescore", WithContext { file_io_ctx{}, Sequence {
+             Repeat { OneOf {
+                Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            Invoke { [this](auto& ctx) { handle_syzygy_rescore(ctx); } } } } },
+        Consume { "filter", WithContext { file_io_ctx{}, Sequence {
+             Repeat { OneOf {
+                Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            Invoke { [this](auto& ctx) { handle_filter(ctx); } } } } } },
     EndCommand{}
     };
     // clang-format on
@@ -611,6 +635,21 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
+void Uci::handle_datagen(const datagen_ctx& ctx)
+{
+    datagen(*this, ctx.output_path, ctx.duration);
+}
+
+void Uci::handle_syzygy_rescore(const file_io_ctx& ctx)
+{
+    syzygy_rescore(ctx.input_path, ctx.output_path);
+}
+
+void Uci::handle_filter(const file_io_ctx& ctx)
+{
+    filter(ctx.input_path, ctx.output_path);
 }
 
 }

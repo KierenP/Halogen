@@ -3,9 +3,6 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/4ed21ecb/4ed21ecb.nn
-EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
-
 SRCS := \
 	main.cpp \
 	chessboard/board_state.cpp \
@@ -27,7 +24,9 @@ SRCS := \
 	search/transposition/entry.cpp \
 	test/static_exchange_evaluation_test.cpp \
 	third-party/Pyrrhic/tbprobe.cpp \
-	uci/uci.cpp
+	uci/uci.cpp \
+	datagen/datagen.cpp \
+	datagen/encode.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -36,8 +35,8 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 #----------------------------------------------------------------------------------------------------------------------
 # Define compiler flags and instruction sets
 
-WFLAGS = -Wall -Wextra -Wshadow
-AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
+WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
+AFLAGS = $(WFLAGS) -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler

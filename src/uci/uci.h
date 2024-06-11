@@ -55,6 +55,18 @@ public:
         std::optional<int> nodes;
     };
 
+    struct file_io_ctx
+    {
+        std::string input_path;
+        std::string output_path;
+    };
+
+    struct datagen_ctx
+    {
+        std::string output_path;
+        std::chrono::seconds duration;
+    };
+
     void handle_uci();
     void handle_isready();
     void handle_ucinewgame();
@@ -76,8 +88,11 @@ public:
     void handle_print();
     void handle_eval();
     void handle_probe();
+    void handle_datagen(const datagen_ctx& ctx);
+    void handle_syzygy_rescore(const file_io_ctx& ctx);
+    void handle_filter(const file_io_ctx& ctx);
 
-private:
+    // private:
     void join_search_thread();
 
     GameState position = GameState::starting_position();
