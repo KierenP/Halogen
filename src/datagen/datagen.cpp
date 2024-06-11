@@ -98,7 +98,8 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
 {
     auto& position = uci.position;
     auto& data = uci.shared;
-    thread_local std::mt19937 gen(0);
+    thread_local std::random_device rd;
+    thread_local std::mt19937 gen(rd());
 
     const auto& opening = []() -> std::string
     {
