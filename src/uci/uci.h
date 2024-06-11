@@ -62,8 +62,9 @@ public:
     void handle_print();
     void handle_eval();
     void handle_probe();
+    void handle_datagen(std::string_view path);
 
-private:
+    // private:
     void join_search_thread();
 
     GameState position;

@@ -47,12 +47,11 @@ void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 
 void Network::Init()
 {
-    // Koi nets must skip 8 bytes
-    auto Data = reinterpret_cast<const float*>(gNetData + 8);
+    auto Data = reinterpret_cast<const float*>(gNetData);
 
-    for (size_t i = 0; i < INPUT_NEURONS; i++)
-        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = (int16_t)round(*Data++ * L1_SCALE);
+    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+        for (size_t j = 0; j < INPUT_NEURONS; j++)
+            hiddenWeights[j][i] = (int16_t)round(*Data++ * L1_SCALE);
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
         hiddenBias[i] = (int16_t)round(*Data++ * L1_SCALE);

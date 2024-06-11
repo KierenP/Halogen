@@ -29,7 +29,9 @@ SRCS := \
 	EGTB.cpp \
 	History.cpp \
 	uci/uci.cpp \
-	Pyrrhic/tbprobe.c
+	Pyrrhic/tbprobe.c \
+	datagen/datagen.cpp \
+	datagen/encode.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o

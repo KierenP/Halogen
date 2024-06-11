@@ -6,6 +6,7 @@
 #include "../MoveGeneration.h"
 #include "../SearchConstants.h"
 #include "../SearchData.h"
+#include "../datagen/datagen.h"
 #include "options.h"
 #include "parse.h"
 
@@ -480,7 +481,8 @@ void Uci::process_input(std::string_view command)
         consume { "print", invoke { [this] { handle_print(); } } },
         consume { "spsa", invoke { [this] { handle_spsa(); } } },
         consume { "eval", invoke { [this] { handle_eval(); } } },
-        consume { "probe", invoke { [this] { handle_probe(); } } } },
+        consume { "probe", invoke { [this] { handle_probe(); } } },
+        consume { "datagen", next_token { [this](auto path){ handle_datagen(path); } } } },
     end_command{}
     };
     // clang-format on
@@ -580,4 +582,9 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
+void Uci::handle_datagen(std::string_view path)
+{
+    datagen(*this, path);
 }
