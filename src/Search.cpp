@@ -66,10 +66,21 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
-        root_move_whitelist = probe->root_move_whitelist;
+        // filter out the results which preserve the tbRank
+        for (const auto& [move, _, tb_rank] : probe->root_moves)
+        {
+            if (tb_rank != probe->root_moves[0].tb_rank)
+            {
+                break;
+            }
+
+            root_move_whitelist.emplace_back(move);
+        }
+
         multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
     }
 
+    auto old_multi_pv = shared.get_multi_pv_setting();
     shared.set_multi_pv(multi_pv);
 
     // TODO: move this into the shared state
@@ -94,8 +105,9 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     }
 
     const auto& search_result = shared.get_best_search_result();
-    shared.uci_handler.print_search_info(search_result);
+    shared.uci_handler.print_search_info(search_result, true);
     shared.uci_handler.print_bestmove(search_result.best_move);
+    shared.set_multi_pv(old_multi_pv);
 }
 
 void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
