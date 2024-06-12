@@ -213,8 +213,10 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         // -----------------------------
 
         SearchThread(position, data);
-        auto search_result = data.get_best_search_result();
-        datapoints.emplace_back(position.Board(), search_result.score.value(), search_result.best_move);
+        const auto search_result = data.get_best_search_result();
+        const auto best_move = search_result.best_move;
+        const auto white_relative_score = (position.Board().stm == WHITE ? 1 : -1) * search_result.score.value();
+        datapoints.emplace_back(position.Board(), white_relative_score, best_move);
         position.ApplyMove(search_result.best_move);
     }
 

@@ -22,6 +22,6 @@ struct training_data
 static_assert(sizeof(training_data) == 32);
 static_assert(std::is_standard_layout_v<training_data>);
 
-/// - Score is stm relative, in Centipawns.
+/// - Score is White relative, in Centipawns.
 /// - Result is 0.0 for Black Win, 0.5 for Draw, 1.0 for White Win
 training_data convert(BoardState board, int16_t score, float result, Move best_move);

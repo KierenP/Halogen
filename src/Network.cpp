@@ -81,14 +81,9 @@ void Network::Recalculate(const BoardState& board)
     }
 }
 
-Square MirrorVertically(Square sq)
-{
-    return static_cast<Square>(sq ^ 56);
-}
-
 int Network::index(Square square, Pieces piece, Players view)
 {
-    Square sq = view == WHITE ? square : MirrorVertically(square);
+    Square sq = view == WHITE ? square : flip_square(square);
     Pieces relativeColor = static_cast<Pieces>(view == ColourOfPiece(piece));
     PieceTypes pieceType = GetPieceType(piece);
 

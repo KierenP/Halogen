@@ -203,6 +203,16 @@ constexpr int GetBitCount(uint64_t bb)
 #endif
 }
 
+constexpr Square flip_square(Square sq)
+{
+    return static_cast<Square>(sq ^ 56);
+}
+
+constexpr uint64_t flip_bb(uint64_t bb)
+{
+    return __builtin_bswap64(bb);
+}
+
 constexpr Players ColourOfPiece(Pieces piece)
 {
     assert(piece < N_PIECES);
