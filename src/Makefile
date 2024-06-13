@@ -3,9 +3,6 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/6f6b5ec1436bf19212fa1667c1962871d51a7fb0/d7d569e5.nn?raw=true
-EVALFILE = $(BUILD_DIR)/d7d569e5.nn
-
 SRCS := \
 	BitBoardDefine.cpp \
 	BoardState.cpp \
@@ -255,24 +252,6 @@ release:
 	$(MAKE) avx512-pext
 	$(MAKE) avx512vnni
 	$(MAKE) avx512vnni-pext
-
-#----------------------------------------------------------------------------------------------------------------------
-
-# Copied from the Stockfish makefile
-$(EVALFILE):
-	@ mkdir -p $(dir $@)
-	@echo "net: $(EVALFILE)"
-	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	@if test -f "$(EVALFILE)"; then \
-        echo "Already available."; \
-	else \
-		if [ "x$(curl_or_wget)" = "x" ]; then \
-			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
-		else \
-			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
-			echo "Download complete."; \
-		fi; \
-	fi;
 
 #----------------------------------------------------------------------------------------------------------------------
 

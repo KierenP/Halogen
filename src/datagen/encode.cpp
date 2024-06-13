@@ -52,7 +52,7 @@ training_data convert(BoardState board, int16_t score, float result, Move best_m
     }
 
     data.score = score;
-    data.result = result;
+    data.result = 2 * result;
     data.ksq = LSB(us & king);
     data.opp_ksq = flip_square(LSB(them & king));
     data.best_move = best_move;
