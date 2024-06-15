@@ -1,10 +1,9 @@
 #include <iostream>
-#include <string>
 
 #include "Network.h"
 #include "uci/uci.h"
 
-constexpr std::string_view version = "11.23.0";
+constexpr std::string_view version = "11.24.0";
 
 void PrintVersion()
 {
@@ -35,29 +34,22 @@ void PrintVersion()
 
 int main(int argc, char* argv[])
 {
+    PrintVersion();
     std::ios::sync_with_stdio(false);
     Network::Init();
     Uci uci { version };
 
-    PrintVersion();
-    std::string line;
-
-    for (int i = 1; i < argc; i++) // read any command line input as a regular UCI instruction
+    // read any command line input as a regular UCI instruction
+    for (int i = 1; i < argc; i++)
     {
-        line += argv[i];
-        line += " ";
+        uci.process_input(argv[i]);
     }
 
-    if (!line.empty())
+    if (argc != 1)
     {
-        uci.process_input(line);
         return 0;
     }
 
-    while (!uci.quit && getline(std::cin, line))
-    {
-        uci.process_input(line);
-    }
-
+    uci.process_input_stream(std::cin);
     return 0;
 }

@@ -4,9 +4,11 @@
 #include "validate_callback.h"
 
 #include <cassert>
+#include <optional>
 #include <ostream>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 
 template <typename T>
 struct check_option
@@ -222,6 +224,66 @@ struct string_option
 
     const std::string_view name;
     const std::string_view default_value;
+    T on_change;
+};
+
+// In order to define a combo option on an enum, there needs to be a valid specialization of to_enum, a valid overload
+// of operator<<, and the enum must start from 0, end with ENUM_END, and be dense (no gaps).
+template <typename T>
+std::optional<T> to_enum(std::string_view str);
+
+template <typename Enum, typename T>
+struct combo_option
+{
+    combo_option(std::string_view name_, Enum default_value_, T&& on_change_)
+        : name(name_)
+        , default_value(default_value_)
+        , on_change(std::move(on_change_))
+    {
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const combo_option<Enum, T>& opt)
+    {
+        os << "option name " << opt.name << " type combo default " << opt.default_value;
+        using U = std::underlying_type_t<Enum>;
+
+        for (U i = 0; i != static_cast<U>(Enum::ENUM_END); i++)
+        {
+            os << " var " << static_cast<Enum>(i);
+        }
+
+        return os << "\n";
+    }
+
+    auto handler()
+    {
+        auto action = [this](auto str)
+        {
+            if (auto converted = to_enum<Enum>(str); converted.has_value())
+            {
+                return invoke_with_optional_validation(on_change, *converted);
+            }
+            else
+            {
+                return false;
+            }
+        };
+
+        return consume { name, consume { "value", next_token { std::move(action) } } };
+    }
+
+    void set_default()
+    {
+        on_change(default_value);
+    }
+
+    void spsa_input_print(std::ostream&)
+    {
+        // do nothing
+    }
+
+    const std::string_view name;
+    const Enum default_value;
     T on_change;
 };
 

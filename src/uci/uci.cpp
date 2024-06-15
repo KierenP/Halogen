@@ -13,7 +13,48 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <string_view>
+
+std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
+{
+    switch (level)
+    {
+    case OutputLevel::None:
+        return os << "None";
+    case OutputLevel::Minimal:
+        return os << "Minimal";
+    case OutputLevel::Default:
+        return os << "Default";
+    case OutputLevel::ENUM_END:
+        return os;
+    }
+
+    assert(false);
+    __builtin_unreachable();
+}
+
+template <>
+std::optional<OutputLevel> to_enum<OutputLevel>(std::string_view str)
+{
+    if (str == "None")
+    {
+        return OutputLevel::None;
+    }
+    else if (str == "Minimal")
+    {
+        return OutputLevel::Minimal;
+    }
+    else if (str == "Default")
+    {
+        return OutputLevel::Default;
+    }
+    else
+    {
+        return std::nullopt;
+    }
+}
 
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 {
@@ -182,28 +223,30 @@ auto Uci::options_handler()
         spin_option { "Threads", 1, 1, 256, [this](auto value) { handle_setoption_threads(value); } },
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
-        tuneable_int(aspiration_width, 14, 10, 20),
-        tuneable_int(nmp_constant, 4, 2, 6),
-        tuneable_int(nmp_depth_quotent, 6, 4, 8),
-        tuneable_int(nmp_score_max, 3, 2, 4),
-        tuneable_int(nmp_score_quotent, 252, 100, 500),
-        tuneable_int(se_sbeta_depth, 64, 32, 128),
-        tuneable_int(se_double_margin, 10, 0, 16),
+        combo_option {
+            "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
+        tuneable_int(aspiration_width, 13, 10, 20),
+        tuneable_int(nmp_constant, 4, 1, 7),
+        tuneable_int(nmp_depth_quotent, 6, 1, 10),
+        tuneable_int(nmp_score_max, 3, 0, 6),
+        tuneable_int(nmp_score_quotent, 231, 100, 500),
+        tuneable_int(se_sbeta_depth, 58, 32, 128),
+        tuneable_int(se_double_margin, 11, 0, 20),
         tuneable_int(se_multi_extend, 8, 4, 12),
         tuneable_int(se_depth_limit, 6, 3, 9),
         tuneable_int(se_tt_depth, 2, 1, 4),
-        tuneable_int(lmr_history, 3913, 2048, 8196),
-        tuneable_int(snmp_margin, 112, 50, 150),
+        tuneable_int(lmr_history, 3902, 2048, 8196),
+        tuneable_int(snmp_margin, 104, 50, 150),
         tuneable_int(snmp_depth, 8, 4, 12),
         tuneable_int(iid_depth, 3, 1, 7),
-        tuneable_int(lmp_constant, 7, 0, 11),
-        tuneable_int(lmp_depth_coeff, 7, 3, 12),
+        tuneable_int(lmp_constant, 4, 0, 11),
+        tuneable_int(lmp_depth_coeff, 4, 3, 12),
         tuneable_int(lmp_depth_limit, 6, 3, 12),
-        tuneable_int(futility_const, 31, 0, 50),
-        tuneable_int(futility_linear, 13, 0, 30),
-        tuneable_int(futility_quad, 14, 0, 30),
+        tuneable_int(futility_const, 34, 0, 50),
+        tuneable_int(futility_linear, 15, 0, 30),
+        tuneable_int(futility_quad, 13, 0, 30),
         tuneable_int(futility_depth_limit, 8, 4, 12),
-        tuneable_int(delta_margin, 222, 0, 400),
+        tuneable_int(delta_margin, 225, 0, 400),
         tuneable_float(LMR_constant, 1.18, -2, 3),
         tuneable_float(LMR_depth_coeff, -1.57, -5, 3),
         tuneable_float(LMR_move_coeff, 1.05, -2, 3),
@@ -218,6 +261,7 @@ Uci::Uci(std::string_view version)
     : version_(version)
 {
     options_handler().set_defaults();
+    finished_startup = true;
 }
 
 Uci::~Uci()
@@ -245,40 +289,59 @@ void Uci::handle_ucinewgame()
     shared.ResetNewGame();
 }
 
+bool Uci::handle_position_fen(std::string_view fen)
+{
+    return position.InitialiseFromFen(fen);
+}
+
+void Uci::handle_moves(std::string_view move)
+{
+    position.ApplyMove(move);
+}
+
+void Uci::handle_position_startpos()
+{
+    position.StartingPosition();
+}
+
 void Uci::handle_go(go_ctx& ctx)
 {
+    shared.limits.mate = ctx.mate;
+    shared.limits.depth = ctx.depth;
+    shared.limits.nodes = ctx.nodes;
+    shared.limits.time = {};
+
     using namespace std::chrono_literals;
 
     // The amount of time we leave on the clock for safety
     constexpr static auto BufferTime = 100ms;
 
     // Tuneable time constants
-
     constexpr static int timeIncCoeffA = 40;
     constexpr static int timeIncCoeffB = 1200;
 
-    auto myTime = (position.Board().stm ? ctx.wtime : ctx.btime) * 1ms;
-    auto myInc = (position.Board().stm ? ctx.winc : ctx.binc) * 1ms;
+    const auto& myTime = position.Board().stm ? ctx.wtime : ctx.btime;
+    const auto& myInc = position.Board().stm ? ctx.winc : ctx.binc;
 
-    if (ctx.movetime != 0)
+    if (ctx.movetime)
     {
-        auto hard_limit = (ctx.movetime) * 1ms - BufferTime;
+        auto hard_limit = *ctx.movetime - BufferTime;
         shared.limits.time = SearchTimeManager(hard_limit, hard_limit);
     }
-    else if (myTime != 0ms)
+    else if (myTime)
     {
-        auto hard_limit = myTime - BufferTime;
+        auto hard_limit = *myTime - BufferTime;
 
-        if (ctx.movestogo != 0)
+        if (ctx.movestogo)
         {
             // repeating time control
 
             // We divide the available time by the number of movestogo (which can be zero) and then adjust
             // by 1.5x. This ensures we use more of the available time earlier.
-            auto soft_limit = (myTime - BufferTime) / (ctx.movestogo + 1) * 3 / 2;
+            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * 3 / 2;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
-        else if (myInc != 0ms)
+        else if (myInc)
         {
             // increment time control
 
@@ -286,13 +349,13 @@ void Uci::handle_go(go_ctx& ctx)
             // use a higher proportion of the available time so that we get down to just using the increment
 
             auto soft_limit
-                = (myTime - BufferTime) * (timeIncCoeffA + position.Board().half_turn_count) / timeIncCoeffB + myInc;
+                = (*myTime - BufferTime) * (timeIncCoeffA + position.Board().half_turn_count) / timeIncCoeffB + *myInc;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
         {
             // Sudden death time control. We use 1/20th of the remaining time each turn
-            auto soft_limit = (myTime - BufferTime) / 20;
+            auto soft_limit = (*myTime - BufferTime) / 20;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
     }
@@ -326,7 +389,7 @@ void Uci::handle_setoption_threads(int value)
 
 void Uci::handle_setoption_syzygy_path(std::string_view value)
 {
-    Syzygy::init(value);
+    Syzygy::init(value, output_level > OutputLevel::None && finished_startup);
 }
 
 void Uci::handle_setoption_multipv(int value)
@@ -337,6 +400,11 @@ void Uci::handle_setoption_multipv(int value)
 void Uci::handle_setoption_chess960(bool value)
 {
     shared.chess_960 = value;
+}
+
+void Uci::handle_setoption_output_level(OutputLevel level)
+{
+    output_level = level;
 }
 
 void Uci::handle_stop()
@@ -354,6 +422,15 @@ void Uci::join_search_thread()
 {
     if (searchThread.joinable())
         searchThread.join();
+}
+
+void Uci::process_input_stream(std::istream& is)
+{
+    std::string line;
+    while (!quit && getline(is, line))
+    {
+        process_input(line);
+    }
 }
 
 void Uci::process_input(std::string_view command)
@@ -382,6 +459,8 @@ void Uci::process_input(std::string_view command)
     // need to define this here so the lifetime extends beyond the uci_processor initialization
     auto options_handler_model = options_handler();
 
+    using namespace std::chrono_literals;
+
     // clang-format off
     auto uci_processor = sequence {
     one_of {
@@ -390,27 +469,27 @@ void Uci::process_input(std::string_view command)
         consume { "isready", invoke { [this]{ handle_isready(); } } },
         consume { "position", one_of {
             consume { "fen", sequence {
-                tokens_until {"moves", [this](auto fen){ return position.InitialiseFromFen(fen); } },
-                repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } } },
+                tokens_until {"moves", [this](auto fen){ return handle_position_fen(fen); } },
+                repeat { next_token { [this](auto move){ handle_moves(move); } } } } },
             consume { "startpos", sequence {
-                invoke { [this] { position.StartingPosition(); } },
+                invoke { [this] { handle_position_startpos(); } },
                 one_of {
-                    consume { "moves", repeat { next_token { [this](auto move){ position.ApplyMove(move); } } } },
+                    consume { "moves", repeat { next_token { [this](auto move){ handle_moves(move); } } } },
                     end_command{} } } } } },
         consume { "go", sequence {
             invoke { [this]{ shared.limits = {}; } },
             with_context { go_ctx{}, sequence {
                 repeat { one_of {
                     consume { "infinite", invoke { [](auto&){} } },
-                    consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value; } } } },
-                    consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value; } } } },
-                    consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value; } } } },
-                    consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value; } } } },
+                    consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
+                    consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
+                    consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
+                    consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
                     consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
-                    consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value; } } } },
-                    consume { "mate", next_token { to_int { [&](auto value, auto&){ shared.limits.mate = value; } } } },
-                    consume { "depth", next_token { to_int { [&](auto value, auto&){ shared.limits.depth = value; } } } },
-                    consume { "nodes", next_token { to_int { [&](auto value, auto&){ shared.limits.nodes = value; } } } } } },
+                    consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
+                    consume { "mate", next_token { to_int { [](auto value, auto& ctx){ ctx.mate = value; } } } },
+                    consume { "depth", next_token { to_int { [](auto value, auto& ctx){ ctx.depth = value; } } } },
+                    consume { "nodes", next_token { to_int { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
                 invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
         consume { "setoption", options_handler_model.build_handler() },
 
@@ -424,8 +503,10 @@ void Uci::process_input(std::string_view command)
         consume { "bench", one_of  {
             sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
             next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
-        consume { "print", invoke { [this] { std::cout << position.Board(); } } },
-        consume { "spsa", invoke { [this] { handle_spsa(); } } } },
+        consume { "print", invoke { [this] { handle_print(); } } },
+        consume { "spsa", invoke { [this] { handle_spsa(); } } },
+        consume { "eval", invoke { [this] { handle_eval(); } } },
+        consume { "probe", invoke { [this] { handle_probe(); } } } },
     end_command{}
     };
     // clang-format on
@@ -436,8 +517,13 @@ void Uci::process_input(std::string_view command)
     }
 }
 
-void Uci::print_search_info(const SearchResults& data)
+void Uci::print_search_info(const SearchResults& data, bool final)
 {
+    if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
+    {
+        return;
+    }
+
     std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
 
     if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
@@ -477,10 +563,47 @@ void Uci::print_search_info(const SearchResults& data)
 
 void Uci::print_bestmove(Move move)
 {
-    std::cout << "bestmove " << move << std::endl;
+    if (output_level > OutputLevel::None)
+    {
+        std::cout << "bestmove " << move << std::endl;
+    }
+}
+
+void Uci::handle_print()
+{
+    std::cout << position.Board() << std::endl;
 }
 
 void Uci::handle_spsa()
 {
     options_handler().spsa_input_print(std::cout);
+}
+
+void Uci::handle_eval()
+{
+    std::cout << position.Board() << std::endl;
+    std::cout << "Eval: " << position.GetEvaluation() << std::endl;
+}
+
+void Uci::handle_probe()
+{
+    std::cout << position.Board() << std::endl;
+    auto probe = Syzygy::probe_dtz_root(position.Board());
+
+    if (!probe)
+    {
+        std::cout << "Failed probe" << std::endl;
+        return;
+    }
+
+    std::cout << " move |   score   |   rank\n";
+    std::cout << "------+-----------+---------\n";
+
+    for (const auto& [move, tb_score, tb_rank] : probe->root_moves)
+    {
+        std::cout << std::setw(5) << move << " | " << std::setw(6) << tb_score << "  | " << std::setw(7) << tb_rank
+                  << "\n";
+    }
+
+    std::cout << std::endl;
 }

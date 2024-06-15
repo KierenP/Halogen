@@ -43,11 +43,15 @@ Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
     return Move(from, to, flag);
 }
 
-void Syzygy::init(std::string_view path)
+void Syzygy::init(std::string_view path, bool print)
 {
     tb_init(path.data());
-    std::cout << "info string Found " << TB_NUM_WDL << " WDL, " << TB_NUM_DTM << " DTM and " << TB_NUM_DTZ
-              << " DTZ tablebase files. Largest " << TB_LARGEST << "-men" << std::endl;
+
+    if (print)
+    {
+        std::cout << "info string Found " << TB_NUM_WDL << " WDL, " << TB_NUM_DTM << " DTM and " << TB_NUM_DTZ
+                  << " DTZ tablebase files. Largest " << TB_LARGEST << "-men" << std::endl;
+    }
 }
 
 std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int distance_from_root)
@@ -141,15 +145,10 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
 
     RootProbeResult result;
 
-    // filter out the results which preserve the tbRank
     for (unsigned int i = 0; i < root_moves.size; i++)
     {
-        if (root_moves.moves[0].tbRank != root_moves.moves[i].tbRank)
-        {
-            break;
-        }
-
-        result.root_move_whitelist.emplace_back(extract_pyrrhic_move(board, root_moves.moves[i].move));
+        result.root_moves.emplace_back(extract_pyrrhic_move(board, root_moves.moves[i].move),
+            root_moves.moves[i].tbScore, root_moves.moves[i].tbRank);
     }
 
     return result;
