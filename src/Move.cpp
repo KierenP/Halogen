@@ -57,27 +57,28 @@ bool Move::IsCastle() const
 
 std::ostream& operator<<(std::ostream& os, Move m)
 {
+    char buffer[6] = {};
     Square from = m.GetFrom();
     Square to = m.GetTo();
 
-    os << char('a' + GetFile(from));
-    os << char('1' + GetRank(from));
-    os << char('a' + GetFile(to));
-    os << char('1' + GetRank(to));
+    buffer[0] = 'a' + GetFile(from);
+    buffer[1] = '1' + GetRank(from);
+    buffer[2] = 'a' + GetFile(to);
+    buffer[3] = '1' + GetRank(to);
 
     if (m.IsPromotion())
     {
         if (m.GetFlag() == KNIGHT_PROMOTION || m.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
-            os << 'n';
-        if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
-            os << 'b';
-        if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            os << 'q';
-        if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
-            os << 'r';
+            buffer[4] = 'n';
+        else if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+            buffer[4] = 'b';
+        else if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            buffer[4] = 'q';
+        else if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
+            buffer[4] = 'r';
     }
 
-    return os;
+    return os << buffer;
 }
 
 void Move::SetFrom(Square from)

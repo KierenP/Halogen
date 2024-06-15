@@ -10,11 +10,6 @@ class Move;
 class TranspositionTable
 {
 public:
-    TranspositionTable()
-    {
-        SetSize(32); // 32MB default
-    }
-
     ~TranspositionTable();
 
     size_t GetSize() const

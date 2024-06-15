@@ -23,7 +23,7 @@ void GameState::ApplyMove(Move move)
     MutableBoard().ApplyMove(move, net);
 }
 
-void GameState::ApplyMove(const std::string& strmove)
+void GameState::ApplyMove(std::string_view strmove)
 {
     Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
     Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
@@ -70,61 +70,45 @@ void GameState::RevertNullMove()
 
 void GameState::StartingPosition()
 {
-    InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "w", "KQkq", "-", "0", "1");
+    InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
-bool GameState::InitialiseFromFen(std::vector<std::string> fen)
+bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
 {
     Reset();
-
-    if (fen.size() == 4)
-    {
-        fen.push_back("0");
-        fen.push_back("1");
-    }
-
-    if (fen.size() < 6)
-        return false; // bad fen
-
     bool ret = MutableBoard().InitialiseFromFen(fen);
     net.Recalculate(Board());
     return ret;
 }
 
-bool GameState::InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle,
-    const std::string& ep, const std::string& fiftyMove, const std::string& turnCount)
+bool GameState::InitialiseFromFen(std::string_view fen)
 {
-    std::vector<std::string> splitFen;
-    splitFen.push_back(board);
-    splitFen.push_back(turn);
-    splitFen.push_back(castle);
-    splitFen.push_back(ep);
-    splitFen.push_back(fiftyMove);
-    splitFen.push_back(turnCount);
+    // Split the line into an array of strings seperated by each space
+    std::array<std::string_view, 6> splitFen = {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",
+        "w",
+        "-",
+        "-",
+        "0",
+        "1",
+    };
 
-    return InitialiseFromFen(splitFen);
-}
+    size_t idx = 0;
+    size_t str_idx = 0;
 
-bool GameState::InitialiseFromFen(std::string fen)
-{
-    std::vector<std::string> splitFen; // Split the line into an array of strings seperated by each space
-    std::istringstream iss(fen);
-    splitFen.push_back("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-    splitFen.push_back("w");
-    splitFen.push_back("-");
-    splitFen.push_back("-");
-    splitFen.push_back("0");
-    splitFen.push_back("1");
-
-    for (int i = 0; i < 6 && iss; i++)
+    while (str_idx < fen.size() && idx < 6)
     {
-        std::string stub;
-        iss >> stub;
-        if (!stub.empty())
-            splitFen[i] = (stub);
+        auto next = fen.find(" ", str_idx);
+        if (next == fen.npos)
+        {
+            next = fen.size();
+        }
+        splitFen[idx] = fen.substr(str_idx, next - str_idx);
+        str_idx = next + 1;
+        idx++;
     }
 
-    return InitialiseFromFen(splitFen[0], splitFen[1], splitFen[2], splitFen[3], splitFen[4], splitFen[5]);
+    return InitialiseFromFen(splitFen);
 }
 
 void GameState::Reset()

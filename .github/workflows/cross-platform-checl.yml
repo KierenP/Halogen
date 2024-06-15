@@ -12,11 +12,11 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-13]
+        compiler: [g++-10, clang++-10]
         # runners only seem to support up to avx2-pext
         target: [legacy, sse4, avx, avx2, avx2-pext]
 
@@ -82,7 +82,7 @@ jobs:
           if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
 
   # On OpenBench some workers use g++ 9.3.1, so we must maintain compatibility with that
-  PGO:
+  gcc-PGO:
     runs-on: ubuntu-20.04
 
     strategy:
@@ -92,15 +92,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
 
+      # gcc 9 needs to be installed on demand
       - name: Install g++
         run: |
           sudo apt update
-          sudo apt install g++-9
+          sudo apt install ${{ matrix.compiler }}
 
       - name: Create PGO compiles
         run: |
           cd src
-          make pgo CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+          make CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+         
+      - name: Run bench
+        run: |
+          cd bin
+          ./Halogen bench
+
+  # clang-PGO requires llvm-profdata being installed
+  clang-PGO:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        compiler: [clang++-10]
+        llvm: [llvm-10]
+        profdata: [llvm-profdata-10]
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - name: Install llvm-profdata
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.llvm }}
+
+      - name: Create PGO compiles
+        run: |
+          cd src
+          make CXX=${{ matrix.compiler }} LLVM_PROFDATA=${{ matrix.profdata }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |

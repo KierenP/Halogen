@@ -78,7 +78,7 @@ public:
     void ClearSquare(Square square);
 
     void Reset();
-    bool InitialiseFromFen(const std::vector<std::string>& fen);
+    bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
     void UpdateCastleRights(Move move, Zobrist& zobrist_key);
 
     void ApplyMove(Move move, Network& net);
