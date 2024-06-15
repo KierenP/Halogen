@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -15,9 +16,9 @@ alignas(32) std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 alignas(32) std::array<int16_t, HIDDEN_NEURONS * 2> Network::outputWeights = {};
 alignas(32) int16_t Network::outputBias = {};
 
-constexpr int16_t L1_SCALE = 128;
-constexpr int16_t L2_SCALE = 128;
-constexpr double SCALE_FACTOR = 1; // Found empirically to maximize elo
+constexpr int16_t L1_SCALE = 255;
+constexpr int16_t L2_SCALE = 64;
+constexpr double SCALE_FACTOR = 400; // Found empirically to maximize elo
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
@@ -26,6 +27,17 @@ template <typename T, size_t SIZE>
 
     for (size_t i = 0; i < SIZE; i++)
         ret[i] = std::max(T(0), source[i]);
+
+    return ret;
+}
+
+template <typename T, size_t SIZE>
+[[nodiscard]] std::array<T, SIZE> CReLU(const std::array<T, SIZE>& source)
+{
+    std::array<T, SIZE> ret;
+
+    for (size_t i = 0; i < SIZE; i++)
+        ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
 
     return ret;
 }
@@ -47,21 +59,22 @@ void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 
 void Network::Init()
 {
-    // Koi nets must skip 8 bytes
-    auto Data = reinterpret_cast<const float*>(gNetData + 8);
+    auto Data = reinterpret_cast<const int16_t*>(gNetData);
 
     for (size_t i = 0; i < INPUT_NEURONS; i++)
         for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = (int16_t)round(*Data++ * L1_SCALE);
+            hiddenWeights[i][j] = *Data++;
 
     for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        hiddenBias[i] = (int16_t)round(*Data++ * L1_SCALE);
+        hiddenBias[i] = *Data++;
 
     for (size_t i = 0; i < HIDDEN_NEURONS * 2; i++)
-        outputWeights[i] = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+        outputWeights[i] = *Data++;
 
-    outputBias = (int16_t)round(*Data++ * SCALE_FACTOR * L2_SCALE);
+    outputBias = *Data++;
 
+    // bullet trainer pads to a multiple of 64 bytes
+    Data += (64 - ((reinterpret_cast<const unsigned char*>(Data) - gNetData) % 64)) / sizeof(int16_t);
     assert(reinterpret_cast<const unsigned char*>(Data) == gNetData + gNetSize);
 }
 
@@ -90,7 +103,7 @@ Square MirrorVertically(Square sq)
 int Network::index(Square square, Pieces piece, Players view)
 {
     Square sq = view == WHITE ? square : MirrorVertically(square);
-    Pieces relativeColor = static_cast<Pieces>(view == ColourOfPiece(piece));
+    Players relativeColor = static_cast<Players>(view != ColourOfPiece(piece));
     PieceTypes pieceType = GetPieceType(piece);
 
     return sq + pieceType * 64 + relativeColor * 64 * 6;
@@ -158,9 +171,10 @@ void Network::RemoveInput(Square square, Pieces piece)
 
 Score Network::Eval(Players stm) const
 {
-    int32_t output = outputBias * L1_SCALE;
+    int32_t output = outputBias;
     DotProductHalves(
-        ReLU(AccumulatorStack.back().side[stm]), ReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+        CReLU(AccumulatorStack.back().side[stm]), CReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+    output *= SCALE_FACTOR;
     output /= L1_SCALE * L2_SCALE;
     return output;
 }
