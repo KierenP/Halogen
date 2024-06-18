@@ -693,7 +693,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     const auto staticScore = EvaluatePositionNet(position, local.eval_cache);
 
-    if (staticScore < alpha - 500 - 300 * depth * depth)
+    if (!InCheck && staticScore < alpha - 500 - 300 * depth * depth)
     {
         auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha - 1, alpha).GetScore();
         if (q_score < alpha)
