@@ -691,13 +691,22 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto staticScore = EvaluatePositionNet(position, local.eval_cache);
+    Score eval = SCORE_UNDEFINED;
+
+    if (tt_entry)
+    {
+        eval = tt_score;
+    }
+    else
+    {
+        eval = EvaluatePositionNet(position, local.eval_cache);
+    }
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8
-        && staticScore - 104 * depth >= beta)
+        && eval - 104 * depth >= beta)
     {
         return beta;
     }
@@ -708,9 +717,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && staticScore > beta)
+        && distance_from_root >= ss->nmp_verification_depth && eval > beta)
     {
-        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, staticScore, beta))
+        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, eval, beta))
         {
             return *value;
         }
@@ -765,7 +774,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 8 && staticScore + 34 + 15 * depth + 13 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < 8 && eval + 34 + 15 * depth + 13 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
