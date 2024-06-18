@@ -695,7 +695,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     if (tt_entry)
     {
-        eval = tt_score;
+        eval = EvaluatePositionNet(position, local.eval_cache);
+
+        if (tt_cutoff == SearchResultType::EXACT || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= eval)
+            || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= eval))
+        {
+            eval = tt_score;
+        }
     }
     else
     {
