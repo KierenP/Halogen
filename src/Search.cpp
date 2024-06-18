@@ -730,6 +730,15 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
+    if (staticScore < alpha - 500 - 300 * depth * depth)
+    {
+        auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha - 1, alpha).GetScore();
+        if (q_score < alpha)
+        {
+            return q_score;
+        }
+    }
+
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
