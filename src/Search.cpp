@@ -708,7 +708,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && staticScore > beta)
+        && distance_from_root >= ss->nmp_verification_depth && staticScore > beta
+        && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
         if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, staticScore, beta))
         {
