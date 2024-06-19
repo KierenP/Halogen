@@ -691,21 +691,16 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    Score eval = SCORE_UNDEFINED;
+    Score static_eval = EvaluatePositionNet(position, local.eval_cache);
+    Score eval = static_eval;
 
     if (tt_entry)
     {
-        eval = EvaluatePositionNet(position, local.eval_cache);
-
         if (tt_cutoff == SearchResultType::EXACT || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= eval)
             || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= eval))
         {
             eval = tt_score;
         }
-    }
-    else
-    {
-        eval = EvaluatePositionNet(position, local.eval_cache);
     }
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
@@ -723,9 +718,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && eval > beta)
+        && distance_from_root >= ss->nmp_verification_depth && static_eval > beta)
     {
-        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, eval, beta))
+        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, static_eval, beta))
         {
             return *value;
         }
