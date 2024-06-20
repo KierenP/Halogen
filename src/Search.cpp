@@ -876,6 +876,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     Move bestmove = Move::Uninitialized;
     bool no_legal_moves = true;
+    int seen_moves = 0;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, !in_check);
     Move move;
@@ -883,10 +884,11 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     while (gen.Next(move))
     {
         no_legal_moves = false;
+        seen_moves++;
         int SEE = gen.GetSEE(move);
 
         // delta pruning
-        if (static_score + SEE + 225 < alpha)
+        if ((seen_moves > 1 || !in_check) && static_score + SEE + 225 < alpha)
         {
             break;
         }
