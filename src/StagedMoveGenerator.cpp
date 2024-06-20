@@ -7,6 +7,7 @@
 
 #include "BitBoardDefine.h"
 #include "GameState.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "SearchData.h"
 #include "TranspositionTable.h"
@@ -231,8 +232,10 @@ int16_t StagedMoveGenerator::GetSEE(Move move) const
 {
     if (moveSEE)
         return *moveSEE;
-    else
+    else if (move.IsCapture() && !move.IsPromotion() && move.GetFlag() != EN_PASSANT)
         return see(position.Board(), move);
+    else
+        return 0;
 }
 
 void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
