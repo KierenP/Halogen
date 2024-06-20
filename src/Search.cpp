@@ -885,20 +885,16 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         no_legal_moves = false;
         int SEE = gen.GetSEE(move);
 
-        // Step 3: Prune captures that fall far below alpha and underpromotions
-        if (!in_check)
+        // delta pruning
+        if (static_score + SEE + 225 < alpha)
         {
-            // delta pruning
-            if (static_score + SEE + 225 < alpha)
-            {
-                break;
-            }
+            break;
+        }
 
-            // prune underpromotions
-            if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
-            {
-                break;
-            }
+        // prune underpromotions
+        if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
+        {
+            break;
         }
 
         ss->move = move;
