@@ -860,18 +860,14 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     const bool in_check = IsInCheck(position.Board());
     const auto static_score = EvaluatePositionNet(position, local.eval_cache);
-    auto score = std::numeric_limits<Score>::min();
 
     // Step 2: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the
     // static score
-    if (!in_check)
+    auto score = static_score;
+    alpha = std::max(alpha, score);
+    if (alpha >= beta)
     {
-        score = static_score;
-        alpha = std::max(alpha, score);
-        if (alpha >= beta)
-        {
-            return alpha;
-        }
+        return alpha;
     }
 
     Move bestmove = Move::Uninitialized;
