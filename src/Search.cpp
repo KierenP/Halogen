@@ -247,7 +247,6 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
     return false;
 }
 
-template <bool is_qsearch = false>
 std::optional<Score> init_search_node(const GameState& position, const int distance_from_root, SearchStackState* ss,
     SearchLocalState& local, const SearchSharedState& shared)
 {
@@ -269,11 +268,6 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     if (DeadPosition(position.Board()))
     {
         return 0;
-    }
-
-    if constexpr (is_qsearch)
-    {
-        return std::nullopt;
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with
@@ -560,34 +554,42 @@ void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemai
     gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
 }
 
-template <bool pv_node>
+template <bool pv_node, bool update_history>
 bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const int depth, const Score search_score,
     const Move search_move, Score& best_score, Move& best_move, Score& alpha, const Score beta)
 {
-    if (search_score > best_score)
+    if (search_score <= best_score)
     {
-        best_move = search_move;
-        best_score = search_score;
-
-        if (best_score > alpha)
-        {
-            alpha = best_score;
-
-            if constexpr (pv_node)
-            {
-                UpdatePV(search_move, ss);
-            }
-
-            if (alpha >= beta)
-            {
-                AddKiller(search_move, ss->killers);
-                AddHistory(gen, search_move, depth);
-                return true;
-            }
-        }
+        return false;
     }
 
-    return false;
+    best_move = search_move;
+    best_score = search_score;
+
+    if (best_score <= alpha)
+    {
+        return false;
+    }
+
+    alpha = best_score;
+
+    if constexpr (pv_node)
+    {
+        UpdatePV(search_move, ss);
+    }
+
+    if (alpha < beta)
+    {
+        return false;
+    }
+
+    if constexpr (update_history)
+    {
+        AddKiller(search_move, ss->killers);
+        AddHistory(gen, search_move, depth);
+    }
+
+    return true;
 }
 
 template <bool pv_node>
@@ -820,7 +822,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         // Step 16: Update history/killer move tables and check for fail-high
-        if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
+        if (update_search_stats<pv_node, true>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
@@ -853,7 +855,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     const auto distance_from_root = ss->distance_from_root;
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
-    if (auto value = init_search_node<true>(position, distance_from_root, ss, local, shared))
+    if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
     }
@@ -901,7 +903,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
 
         // Step 3: Update best score and check for fail-high
-        if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
+        if (update_search_stats<pv_node, false>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
         {
             break;
         }
