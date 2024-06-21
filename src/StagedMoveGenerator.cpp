@@ -60,9 +60,13 @@ bool StagedMoveGenerator::Next(Move& move)
         }
 
         if (quiescence)
-            return false;
-
-        stage = Stage::GIVE_KILLER_1;
+        {
+            stage = Stage::GIVE_BAD_LOUD;
+        }
+        else
+        {
+            stage = Stage::GIVE_KILLER_1;
+        }
     }
 
     if (stage == Stage::GIVE_KILLER_1)
@@ -97,6 +101,11 @@ bool StagedMoveGenerator::Next(Move& move)
             moveSEE = current->SEE;
             ++current;
             return true;
+        }
+
+        if (quiescence)
+        {
+            return false;
         }
         else
         {
