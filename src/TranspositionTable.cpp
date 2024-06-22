@@ -67,8 +67,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
             return;
         }
 
-        int8_t age_diff = current_generation - bucket[i].get_meta().generation;
-        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        int8_t age_diff = (int8_t)current_generation - (int8_t)bucket[i].get_meta().generation;
+        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
