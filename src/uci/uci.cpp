@@ -344,16 +344,9 @@ void Uci::handle_setoption_clear_hash()
     shared.ResetNewGame();
 }
 
-bool Uci::handle_setoption_hash(int value)
+void Uci::handle_setoption_hash(int value)
 {
-    if (GetBitCount(value) != 1)
-    {
-        std::cout << "info error transposition table size must be a power of two" << std::endl;
-        return false;
-    }
-
     tTable.SetSize(value);
-    return true;
 }
 
 void Uci::handle_setoption_threads(int value)

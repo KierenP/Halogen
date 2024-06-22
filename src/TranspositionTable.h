@@ -33,20 +33,11 @@ public:
     TTEntry* GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
 
 private:
-    uint64_t HashFunction(const uint64_t& key) const;
     void Reallocate();
     void Deallocate();
-
-    static constexpr uint64_t CalculateEntryCount(uint64_t MB)
-    {
-        return MB * 1024 * 1024 / sizeof(TTBucket);
-    }
+    TTBucket& GetBucket(uint64_t key) const;
 
     // raw array and memset allocates quicker than std::vector
     TTBucket* table;
     size_t size_;
-    uint64_t hash_mask_;
 };
-
-bool CheckEntry(const TTEntry& entry, uint64_t key, int depth);
-bool CheckEntry(const TTEntry& entry, uint64_t key);

@@ -20,21 +20,15 @@ TranspositionTable ::~TranspositionTable()
     Deallocate();
 }
 
-uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
-{
-    return key & hash_mask_;
-}
-
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
     int distanceFromRoot, SearchResultType Cutoff)
 {
-    size_t hash = HashFunction(ZobristKey);
     score = convert_to_tt_score(score, distanceFromRoot);
 
     // Keep in mind age from each generation goes up so lower (generally) means older
     int8_t current_generation = get_generation(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::size> scores = {};
-    auto& bucket = table[hash];
+    auto& bucket = GetBucket(ZobristKey);
 
     const auto write_to_entry = [&](auto& entry)
     {
@@ -76,10 +70,10 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 
 TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
-    size_t index = HashFunction(key);
+    auto& bucket = GetBucket(key);
 
     // we return by copy here because other threads are reading/writing to this same table.
-    for (auto& entry : table[index])
+    for (auto& entry : bucket)
     {
         if (entry.key == key)
         {
@@ -112,12 +106,8 @@ void TranspositionTable::ResetTable()
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-    size_ = CalculateEntryCount(MB);
-    hash_mask_ = size_ - 1;
+    size_ = MB * 1024 * 1024 / sizeof(TTBucket);
     Reallocate();
-
-    // size should be a power of two
-    assert(GetBitCount(size_) == 1);
 }
 
 void TranspositionTable::Reallocate()
@@ -153,5 +143,28 @@ void TranspositionTable::Deallocate()
 
 void TranspositionTable::PreFetch(uint64_t key) const
 {
-    __builtin_prefetch(&table[HashFunction(key)]);
+    __builtin_prefetch(&GetBucket(key));
+}
+
+size_t tt_index(uint64_t key, size_t tt_size)
+{
+    // multiply the key by tt_size and extract out the highest order 64 bits. This gives a uniform distribution where
+    // the index is determined by the higher order bits of key, for any tt_size
+
+#if defined(__GNUC__) && defined(__x86_64__)
+    __extension__ using uint128 = unsigned __int128;
+    return (uint128(key) * uint128(tt_size)) >> 64;
+#else
+    uint64_t aL = uint32_t(key), aH = key >> 32;
+    uint64_t bL = uint32_t(tt_size), bH = tt_size >> 32;
+    uint64_t c1 = (aL * bL) >> 32;
+    uint64_t c2 = aH * bL + c1;
+    uint64_t c3 = aL * bH + uint32_t(c2);
+    return aH * bH + (c2 >> 32) + (c3 >> 32);
+#endif
+}
+
+TTBucket& TranspositionTable::GetBucket(uint64_t key) const
+{
+    return table[tt_index(key, size_)];
 }
