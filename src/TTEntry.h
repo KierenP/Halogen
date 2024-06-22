@@ -14,6 +14,14 @@ Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);
 uint8_t get_generation(int currentTurnCount, int distanceFromRoot);
 
+constexpr static int GENERATION_MAX = 1 << 6;
+
+struct TTMeta
+{
+    SearchResultType type : 2;
+    uint8_t generation : 6;
+};
+
 // 16 bytes
 class TTEntry
 {
@@ -25,11 +33,14 @@ public:
     std::atomic<Score> score { 0 }; // 2 bytes
     std::atomic<Score> static_eval { 0 }; // 2 bytes
     std::atomic<int8_t> depth = 0; // 1 bytes
-    std::atomic<SearchResultType> cutoff = SearchResultType::EMPTY; // 1 bytes
-    // is stored as the move count at the ROOT of this current search modulo 16 plus 1
-    std::atomic<int8_t> generation = 0; // 1 bytes
+    std::atomic<TTMeta> meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
 
-    char unused[5];
+    TTMeta get_meta()
+    {
+        return meta.load(std::memory_order_relaxed);
+    }
+
+    char unused[6];
 };
 
 struct alignas(64) TTBucket : public std::array<TTEntry, 4>
