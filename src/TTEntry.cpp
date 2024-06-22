@@ -22,5 +22,5 @@ Score convert_from_tt_score(Score val, int distance_from_root)
 
 uint8_t get_generation(int currentTurnCount, int distanceFromRoot)
 {
-    return (currentTurnCount - distanceFromRoot) % (HALF_MOVE_MODULO) + 1;
+    return (currentTurnCount - distanceFromRoot) % GENERATION_MAX;
 }
