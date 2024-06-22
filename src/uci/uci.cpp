@@ -219,7 +219,7 @@ auto Uci::options_handler()
     return uci_options {
         button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
         check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
-        spin_option { "Hash", 32, 1, 262144, [this](auto value) { return handle_setoption_hash(value); } },
+        spin_option { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
         spin_option { "Threads", 1, 1, 256, [this](auto value) { handle_setoption_threads(value); } },
         spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
