@@ -20,14 +20,16 @@ class TTEntry
 public:
     TTEntry() = default;
 
-    /*Arranged to minimize padding*/
-    std::atomic<uint64_t> key = 0; // 8 bytes
+    std::atomic<uint16_t> key = 0; // 2 bytes
     std::atomic<Move> move = Move::Uninitialized; // 2 bytes
     std::atomic<Score> score { 0 }; // 2 bytes
+    std::atomic<Score> static_eval { 0 }; // 2 bytes
     std::atomic<int8_t> depth = 0; // 1 bytes
     std::atomic<SearchResultType> cutoff = SearchResultType::EMPTY; // 1 bytes
     // is stored as the move count at the ROOT of this current search modulo 16 plus 1
     std::atomic<int8_t> generation = 0; // 1 bytes
+
+    char unused[5];
 };
 
 struct alignas(64) TTBucket : public std::array<TTEntry, 4>
