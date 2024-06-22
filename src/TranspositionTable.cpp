@@ -38,7 +38,10 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 
     const auto write_to_entry = [&](auto& entry)
     {
-        entry.move = best;
+        if (best != Move::Uninitialized)
+        {
+            entry.move = best;
+        }
         entry.key = ZobristKey;
         entry.score = score;
         entry.depth = Depth;
