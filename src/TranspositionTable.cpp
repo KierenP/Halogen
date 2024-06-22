@@ -25,7 +25,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 {
     score = convert_to_tt_score(score, distanceFromRoot);
     auto key16 = uint16_t(ZobristKey);
-    int8_t current_generation = get_generation(Turncount, distanceFromRoot);
+    auto current_generation = get_generation(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::size> scores = {};
     auto& bucket = GetBucket(ZobristKey);
 
@@ -40,8 +40,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         entry.key = key16;
         entry.score = score;
         entry.depth = Depth;
-        entry.cutoff = Cutoff;
-        entry.generation = current_generation;
+        entry.meta = TTMeta { Cutoff, current_generation };
     };
 
     for (size_t i = 0; i < TTBucket::size; i++)
@@ -65,8 +64,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
             return;
         }
 
-        int8_t age_diff = current_generation - bucket[i].generation;
-        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        int8_t age_diff = (int8_t)current_generation - (int8_t)bucket[i].get_meta().generation;
+        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
@@ -83,7 +82,8 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
         if (entry.key == key16)
         {
             // reset the age of this entry to mark it as not old
-            entry.generation = get_generation(half_turn_count, distanceFromRoot);
+            auto meta = entry.get_meta();
+            entry.meta = TTMeta { meta.type, get_generation(half_turn_count, distanceFromRoot) };
             return &entry;
         }
     }
@@ -100,7 +100,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
     for (int i = 0; i < 1000; i++)
     {
         auto& entry = table[i / TTBucket::size][i % TTBucket::size];
-        if (entry.key != EMPTY && entry.generation == current_generation)
+        if (entry.key != EMPTY && entry.get_meta().generation == current_generation)
         {
             count++;
         }

@@ -392,7 +392,7 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move> probe_tt(
         ? convert_from_tt_score(tt_entry->score.load(std::memory_order_relaxed), distance_from_root)
         : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth.load(std::memory_order_relaxed) : 0;
-    const auto tt_cutoff = tt_entry ? tt_entry->cutoff.load(std::memory_order_relaxed) : SearchResultType::EMPTY;
+    const auto tt_cutoff = tt_entry ? tt_entry->get_meta().type : SearchResultType::EMPTY;
     const auto tt_move = tt_entry ? tt_entry->move.load(std::memory_order_relaxed) : Move::Uninitialized;
 
     return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move };
