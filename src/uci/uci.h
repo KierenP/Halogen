@@ -49,7 +49,7 @@ public:
     void handle_position_startpos();
     void handle_go(go_ctx& ctx);
     void handle_setoption_clear_hash();
-    bool handle_setoption_hash(int value);
+    void handle_setoption_hash(int value);
     void handle_setoption_threads(int value);
     void handle_setoption_syzygy_path(std::string_view value);
     void handle_setoption_multipv(int value);
