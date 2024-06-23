@@ -15,7 +15,7 @@
 #include "BitBoardDefine.h"
 #include "TTEntry.h"
 
-TranspositionTable ::~TranspositionTable()
+TranspositionTable::~TranspositionTable()
 {
     Deallocate();
 }
@@ -24,20 +24,23 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     int distanceFromRoot, SearchResultType Cutoff)
 {
     score = convert_to_tt_score(score, distanceFromRoot);
-
-    // Keep in mind age from each generation goes up so lower (generally) means older
-    int8_t current_generation = get_generation(Turncount, distanceFromRoot);
+    auto key16 = uint16_t(ZobristKey);
+    auto current_generation = get_generation(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::size> scores = {};
     auto& bucket = GetBucket(ZobristKey);
 
     const auto write_to_entry = [&](auto& entry)
     {
-        entry.move = best;
-        entry.key = ZobristKey;
+        // in q-search we want to avoid overwriting the best move if we don't have one
+        if (best != Move::Uninitialized || entry.key != key16)
+        {
+            entry.move = best;
+        }
+
+        entry.key = key16;
         entry.score = score;
         entry.depth = Depth;
-        entry.cutoff = Cutoff;
-        entry.generation = current_generation;
+        entry.meta = TTMeta { Cutoff, current_generation };
     };
 
     for (size_t i = 0; i < TTBucket::size; i++)
@@ -50,7 +53,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         }
 
         // avoid having multiple entries in a bucket for the same position.
-        if (bucket[i].key == ZobristKey)
+        if (bucket[i].key == key16)
         {
             // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
             // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
@@ -61,8 +64,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
             return;
         }
 
-        int8_t age_diff = current_generation - bucket[i].generation;
-        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        int8_t age_diff = (int8_t)current_generation - (int8_t)bucket[i].get_meta().generation;
+        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
@@ -71,14 +74,16 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
     auto& bucket = GetBucket(key);
+    auto key16 = uint16_t(key);
 
     // we return by copy here because other threads are reading/writing to this same table.
     for (auto& entry : bucket)
     {
-        if (entry.key == key)
+        if (entry.key == key16)
         {
             // reset the age of this entry to mark it as not old
-            entry.generation = get_generation(half_turn_count, distanceFromRoot);
+            auto meta = entry.get_meta();
+            entry.meta = TTMeta { meta.type, get_generation(half_turn_count, distanceFromRoot) };
             return &entry;
         }
     }
@@ -89,11 +94,16 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
 int TranspositionTable::GetCapacity(int halfmove) const
 {
     int count = 0;
+    int8_t current_generation = get_generation(halfmove, 0);
 
-    for (int i = 0; i < 1000; i++) // 1000 chosen specifically, because result needs to be 'per mill'
+    // 1000 chosen specifically, because result needs to be 'per mill'
+    for (int i = 0; i < 1000; i++)
     {
-        if (table[i / TTBucket::size][i % TTBucket::size].generation == get_generation(halfmove, 0))
+        auto& entry = table[i / TTBucket::size][i % TTBucket::size];
+        if (entry.key != EMPTY && entry.get_meta().generation == current_generation)
+        {
             count++;
+        }
     }
 
     return count;
