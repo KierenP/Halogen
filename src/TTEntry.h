@@ -44,8 +44,8 @@ struct alignas(32) TTBucket : public std::array<TTEntry, 3>
     constexpr static auto size = 3;
 };
 
-static_assert(sizeof(TTEntry) == 10, "TTEntry is not 16 bytes");
-static_assert(sizeof(TTBucket) == 32, "TTBucket is not 32 bytes");
-static_assert(alignof(TTBucket) == 32, "TTBucket alignment is not 32 bytes");
+static_assert(sizeof(TTEntry) == 10);
+static_assert(sizeof(TTBucket) == 32);
+static_assert(alignof(TTBucket) == 32);
 static_assert(std::is_trivially_copyable_v<TTBucket>);
 static_assert(std::is_trivially_destructible_v<TTBucket>);
