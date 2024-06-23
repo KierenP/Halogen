@@ -388,12 +388,10 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move> probe_tt(
     // copy the values out of the table that we want, to avoid race conditions
     auto* tt_entry
         = tTable.GetEntry(position.Board().GetZobristKey(), distance_from_root, position.Board().half_turn_count);
-    const auto tt_score = tt_entry
-        ? convert_from_tt_score(tt_entry->score.load(std::memory_order_relaxed), distance_from_root)
-        : SCORE_UNDEFINED;
-    const auto tt_depth = tt_entry ? tt_entry->depth.load(std::memory_order_relaxed) : 0;
-    const auto tt_cutoff = tt_entry ? tt_entry->get_meta().type : SearchResultType::EMPTY;
-    const auto tt_move = tt_entry ? tt_entry->move.load(std::memory_order_relaxed) : Move::Uninitialized;
+    const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
+    const auto tt_depth = tt_entry ? tt_entry->depth : 0;
+    const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
+    const auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
 
     return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move };
 }

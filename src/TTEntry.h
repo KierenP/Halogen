@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <atomic>
 #include <cstdint>
 #include <type_traits>
 
@@ -26,17 +25,12 @@ class TTEntry
 public:
     TTEntry() = default;
 
-    std::atomic<uint16_t> key = 0; // 2 bytes
-    std::atomic<Move> move = Move::Uninitialized; // 2 bytes
-    std::atomic<Score> score { 0 }; // 2 bytes
-    std::atomic<Score> static_eval { 0 }; // 2 bytes
-    std::atomic<int8_t> depth = 0; // 1 bytes
-    std::atomic<TTMeta> meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
-
-    TTMeta get_meta()
-    {
-        return meta.load(std::memory_order_relaxed);
-    }
+    uint16_t key = 0; // 2 bytes
+    Move move = Move::Uninitialized; // 2 bytes
+    Score score { 0 }; // 2 bytes
+    Score static_eval { 0 }; // 2 bytes
+    int8_t depth = 0; // 1 bytes
+    TTMeta meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
 };
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>
