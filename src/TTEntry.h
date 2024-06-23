@@ -41,7 +41,7 @@ public:
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>
 {
-    constexpr static auto size = 4;
+    constexpr static auto size = 3;
 };
 
 static_assert(sizeof(TTEntry) == 10, "TTEntry is not 16 bytes");
