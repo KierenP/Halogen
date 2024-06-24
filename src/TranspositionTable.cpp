@@ -64,7 +64,8 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
             return;
         }
 
-        int8_t age_diff = (int8_t)current_generation - (int8_t)bucket[i].get_meta().generation;
+        TTMeta meta = bucket[i].meta;
+        int8_t age_diff = (int8_t)current_generation - (int8_t)meta.generation;
         scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
 
@@ -82,7 +83,7 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
         if (entry.key == key16)
         {
             // reset the age of this entry to mark it as not old
-            auto meta = entry.get_meta();
+            TTMeta meta = entry.meta;
             entry.meta = TTMeta { meta.type, get_generation(half_turn_count, distanceFromRoot) };
             return &entry;
         }
@@ -100,7 +101,8 @@ int TranspositionTable::GetCapacity(int halfmove) const
     for (int i = 0; i < 1000; i++)
     {
         auto& entry = table[i / TTBucket::size][i % TTBucket::size];
-        if (entry.key != EMPTY && entry.get_meta().generation == current_generation)
+        TTMeta meta = entry.meta;
+        if (entry.key != EMPTY && meta.generation == current_generation)
         {
             count++;
         }

@@ -376,12 +376,12 @@ void Uci::handle_setoption_output_level(OutputLevel level)
 
 void Uci::handle_stop()
 {
-    KeepSearching = false;
+    shared.stop_searching = true;
 }
 
 void Uci::handle_quit()
 {
-    KeepSearching = false;
+    shared.stop_searching = true;
     quit = true;
 }
 
