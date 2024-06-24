@@ -10,13 +10,13 @@ public:
 
     T operator=(T desired) noexcept
     {
-        this->template store(desired, std::memory_order_relaxed);
+        this->store(desired, std::memory_order_relaxed);
         return desired;
     }
 
     operator T() const noexcept
     {
-        return this->template load(std::memory_order_relaxed);
+        return this->load(std::memory_order_relaxed);
     }
 };
 
@@ -28,12 +28,12 @@ public:
 
     T operator=(T desired) noexcept
     {
-        this->template store(desired, std::memory_order_release);
+        this->store(desired, std::memory_order_release);
         return desired;
     }
 
     operator T() const noexcept
     {
-        return this->template load(std::memory_order_acquire);
+        return this->load(std::memory_order_acquire);
     }
 };
