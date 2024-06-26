@@ -180,13 +180,13 @@ void SearchSharedState::report_search_result(
 uint64_t SearchSharedState::tb_hits() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
-        [](const auto& val, const auto& state) { return val + state->tb_hits.load(std::memory_order_relaxed); });
+        [](const auto& val, const auto& state) { return val + state->tb_hits; });
 }
 
 uint64_t SearchSharedState::nodes() const
 {
     return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
-        [](const auto& val, const auto& state) { return val + state->nodes.load(std::memory_order_relaxed); });
+        [](const auto& val, const auto& state) { return val + state->nodes; });
 }
 
 int SearchSharedState::get_threads_setting() const
@@ -222,6 +222,6 @@ void SearchSharedState::report_thread_wants_to_stop(int thread_id)
 
     if (abort_votes * 2 >= threads_setting)
     {
-        KeepSearching = false;
+        stop_searching = true;
     }
 }
