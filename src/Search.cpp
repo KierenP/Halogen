@@ -854,7 +854,19 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         return *value;
     }
 
-    // Step 2: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
+    // Step 2: Probe transposition table
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move] = probe_tt(position, distance_from_root);
+
+    // Step 3: Check if we can use the TT entry to return early
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_entry && tt_depth >= depth)
+    {
+        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
+        {
+            return *value;
+        }
+    }
+
+    // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
     auto staticScore = EvaluatePositionNet(position, local.eval_cache);
     alpha = std::max(alpha, staticScore);
@@ -865,6 +877,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     Move bestmove = Move::Uninitialized;
     auto score = staticScore;
+    auto original_alpha = alpha;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
     Move move;
@@ -896,11 +909,17 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
             return SCORE_UNDEFINED;
         }
 
-        // Step 3: Update best score and check for fail-high
+        // Step 5: Update best score and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
         {
             break;
         }
+    }
+
+    // Step 6: Update transposition table
+    if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
+    {
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove);
     }
 
     return SearchResult(score, bestmove);
