@@ -18,7 +18,7 @@ alignas(32) int16_t Network::outputBias = {};
 
 constexpr int16_t L1_SCALE = 255;
 constexpr int16_t L2_SCALE = 64;
-constexpr double SCALE_FACTOR = 400; // Found empirically to maximize elo
+constexpr double SCALE_FACTOR = 160; // Found empirically to maximize elo
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
