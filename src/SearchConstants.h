@@ -11,10 +11,10 @@
 #define TUNEABLE_CONSTANT const inline
 #endif
 
-TUNEABLE_CONSTANT double LMR_constant = 1.21;
-TUNEABLE_CONSTANT double LMR_depth_coeff = -1.32;
-TUNEABLE_CONSTANT double LMR_move_coeff = 1.49;
-TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.23;
+TUNEABLE_CONSTANT double LMR_constant = 1.19;
+TUNEABLE_CONSTANT double LMR_depth_coeff = -1.48;
+TUNEABLE_CONSTANT double LMR_move_coeff = 1.91;
+TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.12;
 
 inline auto Initialise_LMR_reduction()
 {
