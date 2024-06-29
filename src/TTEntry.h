@@ -1,12 +1,12 @@
 #pragma once
 #include <array>
-#include <atomic>
 #include <cstdint>
 #include <type_traits>
 
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "Score.h"
+#include "atomic.h"
 
 Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);
@@ -26,17 +26,12 @@ class TTEntry
 public:
     TTEntry() = default;
 
-    std::atomic<uint16_t> key = 0; // 2 bytes
-    std::atomic<Move> move = Move::Uninitialized; // 2 bytes
-    std::atomic<Score> score { 0 }; // 2 bytes
-    std::atomic<Score> static_eval { 0 }; // 2 bytes
-    std::atomic<int8_t> depth = 0; // 1 bytes
-    std::atomic<TTMeta> meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
-
-    TTMeta get_meta()
-    {
-        return meta.load(std::memory_order_relaxed);
-    }
+    atomic_relaxed<uint16_t> key = 0; // 2 bytes
+    atomic_relaxed<Move> move = Move::Uninitialized; // 2 bytes
+    atomic_relaxed<Score> score { 0 }; // 2 bytes
+    atomic_relaxed<Score> static_eval { 0 }; // 2 bytes
+    atomic_relaxed<int8_t> depth = 0; // 1 bytes
+    atomic_relaxed<TTMeta> meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
 };
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>

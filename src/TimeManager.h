@@ -5,9 +5,6 @@
 
 using chess_clock_t = std::chrono::high_resolution_clock;
 
-// TODO: move this into SearchSharedState
-inline std::atomic<bool> KeepSearching;
-
 class Timer
 {
 public:
