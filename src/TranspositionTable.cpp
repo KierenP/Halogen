@@ -21,7 +21,7 @@ TranspositionTable::~TranspositionTable()
 }
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
-    int distanceFromRoot, SearchResultType Cutoff)
+    int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
 {
     score = convert_to_tt_score(score, distanceFromRoot);
     auto key16 = uint16_t(ZobristKey);
@@ -39,6 +39,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 
         entry.key = key16;
         entry.score = score;
+        entry.static_eval = static_eval;
         entry.depth = Depth;
         entry.meta = TTMeta { Cutoff, current_generation };
     };
