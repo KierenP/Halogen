@@ -28,10 +28,10 @@ public:
 
     atomic_relaxed<uint16_t> key = 0; // 2 bytes
     atomic_relaxed<Move> move = Move::Uninitialized; // 2 bytes
-    atomic_relaxed<Score> score { 0 }; // 2 bytes
-    atomic_relaxed<Score> static_eval { 0 }; // 2 bytes
+    atomic_relaxed<Score> score = SCORE_UNDEFINED; // 2 bytes
+    atomic_relaxed<Score> static_eval = SCORE_UNDEFINED; // 2 bytes
     atomic_relaxed<int8_t> depth = 0; // 1 bytes
-    atomic_relaxed<TTMeta> meta { TTMeta { SearchResultType::EMPTY, 0 } }; // 1 byte
+    atomic_relaxed<TTMeta> meta = TTMeta { SearchResultType::EMPTY, 0 }; // 1 byte
 };
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>
