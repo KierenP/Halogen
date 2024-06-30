@@ -634,7 +634,8 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
     }
 }
 
-Score get_search_eval(const GameState& position, const Score tt_eval, TTEntry* const tt_entry, int distance_from_root)
+Score get_search_eval(
+    const GameState& position, const Score tt_eval, TTEntry* const tt_entry, int depth, int distance_from_root)
 {
     if (tt_eval != SCORE_UNDEFINED)
     {
@@ -649,7 +650,7 @@ Score get_search_eval(const GameState& position, const Score tt_eval, TTEntry* c
     }
     else
     {
-        tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, 0,
+        tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_score);
     }
 
@@ -712,7 +713,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, distance_from_root);
+    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -895,7 +896,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, distance_from_root);
+    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, depth, distance_from_root);
     alpha = std::max(alpha, staticScore);
     if (alpha >= beta)
     {
