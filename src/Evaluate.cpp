@@ -1,8 +1,7 @@
-#include "EvalNet.h"
+#include "Evaluate.h"
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-#include "EvalCache.h"
 #include "GameState.h"
 #include "Score.h"
 
@@ -10,11 +9,10 @@
 
 void TempoAdjustment(Score& eval);
 
-Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
+Score Evaluate(const GameState& position)
 {
-    Score eval = 0;
-    eval = position.GetEvaluation();
-    TempoAdjustment(eval);
+    constexpr static int TEMPO = 10;
+    Score eval = position.GetEvaluation() + TEMPO;
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
