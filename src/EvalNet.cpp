@@ -13,16 +13,8 @@ void TempoAdjustment(Score& eval);
 Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
 {
     Score eval = 0;
-
-    if (!evalTable.GetEntry(position.Board().GetZobristKey(), eval))
-    {
-        eval = position.GetEvaluation();
-
-        TempoAdjustment(eval);
-
-        evalTable.AddEntry(position.Board().GetZobristKey(), eval);
-    }
-
+    eval = position.GetEvaluation();
+    TempoAdjustment(eval);
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
