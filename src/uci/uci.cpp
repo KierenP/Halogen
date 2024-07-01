@@ -7,6 +7,7 @@
 #include "../SearchConstants.h"
 #include "../SearchData.h"
 #include "../datagen/datagen.h"
+#include "../datagen/syzygy_rescore.h"
 #include "options.h"
 #include "parse.h"
 
@@ -482,7 +483,12 @@ void Uci::process_input(std::string_view command)
         consume { "spsa", invoke { [this] { handle_spsa(); } } },
         consume { "eval", invoke { [this] { handle_eval(); } } },
         consume { "probe", invoke { [this] { handle_probe(); } } },
-        consume { "datagen", next_token { [this](auto path){ handle_datagen(path); } } } },
+        consume { "datagen", next_token { [this](auto path){ handle_datagen(path); } } },
+        consume { "syzygy_rescore", with_context { syzygy_rescore_ctx{}, sequence {
+             repeat { one_of {
+                consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            invoke { [this](auto& ctx) { handle_syzygy_rescore(ctx); } } } } } },
     end_command{}
     };
     // clang-format on
@@ -587,4 +593,9 @@ void Uci::handle_probe()
 void Uci::handle_datagen(std::string_view path)
 {
     datagen(*this, path);
+}
+
+void Uci::handle_syzygy_rescore(const syzygy_rescore_ctx& ctx)
+{
+    syzygy_rescore(ctx.input_path, ctx.output_path);
 }

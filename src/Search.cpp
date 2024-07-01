@@ -86,24 +86,9 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     // TODO: move this into the shared state
     KeepSearching = true;
 
-    // TODO: in single threaded search, we can avoid the latency hit of creating a new thread.
-    // TODO: fix behaviour of multi-pv when it is set higher than the number of legal moves. Also consider syzygy
-    // whitelist interactions
-    /*std::vector<std::thread> threads;
-
-    for (int i = 0; i < shared.get_threads_setting(); i++)
-    {
-        auto& local = shared.get_local_state(i);
-        local.root_move_whitelist = root_move_whitelist;
-        threads.emplace_back(
-            std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
-    }
-
-    for (size_t i = 0; i < threads.size(); i++)
-    {
-        threads[i].join();
-    }*/
-    SearchPosition(position, shared.get_local_state(0), shared);
+    auto& local = shared.get_local_state(0);
+    local.root_move_whitelist = root_move_whitelist;
+    SearchPosition(position, local, shared);
 
     const auto& search_result = shared.get_best_search_result();
     shared.uci_handler.print_search_info(search_result, true);

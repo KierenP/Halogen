@@ -41,6 +41,12 @@ public:
         std::optional<int> nodes;
     };
 
+    struct syzygy_rescore_ctx
+    {
+        std::string input_path;
+        std::string output_path;
+    };
+
     void handle_uci();
     void handle_isready();
     void handle_ucinewgame();
@@ -63,6 +69,7 @@ public:
     void handle_eval();
     void handle_probe();
     void handle_datagen(std::string_view path);
+    void handle_syzygy_rescore(const syzygy_rescore_ctx& ctx);
 
     // private:
     void join_search_thread();
