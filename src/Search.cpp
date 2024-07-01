@@ -685,14 +685,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Step 3: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
-        if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
-            && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+    {
+        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
         {
-            if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
-            {
-                return *value;
-            }
+            return *value;
         }
+    }
 
     // Step 4: Probe syzygy EGTB
     if (ss->singular_exclusion == Move::Uninitialized)
