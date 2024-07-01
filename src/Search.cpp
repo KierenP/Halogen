@@ -13,7 +13,7 @@
 
 #include "BitBoardDefine.h"
 #include "EGTB.h"
-#include "EvalNet.h"
+#include "Evaluate.h"
 #include "GameState.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
@@ -688,7 +688,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto staticScore = EvaluatePositionNet(position, local.eval_cache);
+    const auto staticScore = Evaluate(position);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -870,7 +870,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    auto staticScore = EvaluatePositionNet(position, local.eval_cache);
+    auto staticScore = Evaluate(position);
     alpha = std::max(alpha, staticScore);
     if (alpha >= beta)
     {
