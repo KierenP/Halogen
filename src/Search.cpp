@@ -660,7 +660,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move] = probe_tt(position, distance_from_root);
 
     // Step 3: Check if we can use the TT entry to return early
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_entry && tt_depth >= depth)
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
         {
@@ -782,8 +783,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7 && tt_entry
-            && tt_depth + 3 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move)
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7 && tt_depth + 3 >= depth
+            && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED)
         {
             if (auto value
                 = singular_extensions<pv_node>(position, ss, local, shared, depth, tt_score, tt_move, beta, extensions))
@@ -858,7 +859,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move] = probe_tt(position, distance_from_root);
 
     // Step 3: Check if we can use the TT entry to return early
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_entry && tt_depth >= depth)
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
         {
