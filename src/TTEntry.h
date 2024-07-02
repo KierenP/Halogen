@@ -20,7 +20,7 @@ struct TTMeta
     uint8_t generation : 6;
 };
 
-// 16 bytes
+// 10 bytes
 class TTEntry
 {
 public:
