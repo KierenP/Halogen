@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
-#include "EvalCache.h"
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
@@ -82,7 +81,6 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    EvalCacheTable eval_cache;
     History history;
     int sel_septh = 0;
     atomic_relaxed<uint64_t> tb_hits = 0;

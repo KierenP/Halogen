@@ -9,8 +9,7 @@ EVALFILE = $(BUILD_DIR)/d7d569e5.nn
 SRCS := \
 	BitBoardDefine.cpp \
 	BoardState.cpp \
-	EvalCache.cpp \
-	EvalNet.cpp \
+	Evaluate.cpp \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
