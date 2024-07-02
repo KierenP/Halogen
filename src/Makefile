@@ -6,8 +6,7 @@ BINARY_DIR := ../bin
 SRCS := \
 	BitBoardDefine.cpp \
 	BoardState.cpp \
-	EvalCache.cpp \
-	EvalNet.cpp \
+	Evaluate.cpp \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \

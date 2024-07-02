@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
-#include "EvalCache.h"
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
@@ -15,6 +14,7 @@
 #include "SearchLimits.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
+#include "atomic.h"
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
@@ -81,11 +81,10 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    EvalCacheTable eval_cache;
     History history;
     int sel_septh = 0;
-    std::atomic<uint64_t> tb_hits = 0;
-    std::atomic<uint64_t> nodes = 0;
+    atomic_relaxed<uint64_t> tb_hits = 0;
+    atomic_relaxed<uint64_t> nodes = 0;
 
     // track the current depth + multi-pv of the search
     int curr_depth = 0;
@@ -98,7 +97,7 @@ public:
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
     // the threads stopping early if other threads are continuing. This signal lets the SearchSharedData check which
     // threads want to stop and if all threads do then we stop the search. TODO: could use a consensus model?
-    std::atomic<bool> thread_wants_to_stop = false;
+    atomic_rel_acq<bool> thread_wants_to_stop = false;
 
     // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
@@ -157,6 +156,8 @@ public:
     SearchLimits limits;
     Timer search_timer;
     Uci& uci_handler;
+
+    atomic_relaxed<bool> stop_searching = false;
 
 private:
     mutable std::recursive_mutex lock_;
