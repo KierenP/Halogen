@@ -1,6 +1,6 @@
 #include "datagen.h"
 
-#include "../EvalNet.h"
+#include "../Evaluate.h"
 #include "../MoveGeneration.h"
 #include "../Search.h"
 #include "../SearchData.h"
