@@ -28,7 +28,7 @@ jobs:
       - name: Run
         run: |
           cd bin
-          TSAN_OPTIONS="suppressions=../test/tsan.supp" ./Halogen <<EOF
+          TSAN_OPTIONS="suppressions=../src/test/tsan.supp" ./Halogen <<EOF
           setoption name Threads value 2
           setoption name MultiPV value 8
           ucinewgame
