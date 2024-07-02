@@ -387,10 +387,10 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     auto* tt_entry
         = tTable.GetEntry(position.Board().GetZobristKey(), distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
-    const auto tt_depth = tt_entry ? int(tt_entry->depth) : 0;
-    const auto tt_cutoff = tt_entry ? TTMeta(tt_entry->meta).type : SearchResultType::EMPTY;
-    const auto tt_move = tt_entry ? Move(tt_entry->move) : Move::Uninitialized;
-    const auto tt_eval = tt_entry ? Score(tt_entry->static_eval) : SCORE_UNDEFINED;
+    const auto tt_depth = tt_entry ? tt_entry->depth : 0;
+    const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
+    const auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
+    const auto tt_eval = tt_entry ? tt_entry->static_eval : SCORE_UNDEFINED;
     return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval };
 }
 
