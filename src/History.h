@@ -4,6 +4,7 @@
 #include "GameState.h"
 
 #include <cstdint>
+#include <limits>
 #include <tuple>
 
 struct SearchStackState;
@@ -59,4 +60,24 @@ public:
 
 private:
     std::tuple<ButterflyHistory, CountermoveHistory> tables_;
+};
+
+// A special type of history not used for move ordering, but tracks a EWA of the difference between static eval and
+// search score
+struct CorrectionHistory
+{
+    // must be a power of 2, for fast hash lookup
+    static constexpr size_t pawn_hash_table_size = 16384;
+    static constexpr Score correction_max = 32;
+    static constexpr int eval_scale = 512;
+    static constexpr int ewa_weight_scale = 256;
+    static_assert(correction_max.value() * eval_scale < std::numeric_limits<int16_t>::max());
+
+    int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
+
+    int16_t* get(const GameState& position);
+    void add(const GameState& position, int depth, int eval_diff);
+    void reset();
+
+    Score get_correction_score(const GameState& position);
 };

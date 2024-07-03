@@ -45,3 +45,30 @@ void History::add(const GameState& position, const SearchStackState* ss, Move mo
 {
     std::apply([&](auto&... table) { (table.add(position, ss, move, change), ...); }, tables_);
 }
+
+int16_t* CorrectionHistory::get(const GameState& position)
+{
+    const auto& stm = position.Board().stm;
+    const auto pawn_hash = position.Board().GetPawnKey();
+    return &table[stm][pawn_hash % pawn_hash_table_size];
+}
+
+void CorrectionHistory::add(const GameState& position, int depth, int eval_diff)
+{
+    auto* entry = get(position);
+    // give a higher weight to high depth observations
+    auto ewa_weight = std::clamp(depth, 1, 16);
+    // calculate the EWA, clamping to the min/max accordingly
+    *entry = std::clamp<int>(*entry * (ewa_weight_scale - ewa_weight) + eval_diff * eval_scale * ewa_weight,
+        -correction_max.value() * eval_scale, correction_max.value() * eval_scale);
+}
+
+void CorrectionHistory::reset()
+{
+    memset(table, 0, sizeof(table));
+}
+
+Score CorrectionHistory::get_correction_score(const GameState& position)
+{
+    return *get(position) / eval_scale;
+}

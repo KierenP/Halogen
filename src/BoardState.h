@@ -73,6 +73,7 @@ public:
     }
 
     uint64_t GetZobristKey() const;
+    uint64_t GetPawnKey() const;
 
     void SetSquare(Square square, Pieces piece);
     void ClearSquare(Square square);
@@ -100,6 +101,7 @@ private:
     uint64_t BlackPieces;
 
     Zobrist key;
+    PawnKey pawn_key;
 
     std::array<uint64_t, N_PIECES> board = {};
 };
