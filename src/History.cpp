@@ -53,11 +53,11 @@ int16_t* CorrectionHistory::get(const GameState& position)
     return &table[stm][pawn_hash % pawn_hash_table_size];
 }
 
-void CorrectionHistory::add(const GameState& position, int, int eval_diff)
+void CorrectionHistory::add(const GameState& position, int depth, int eval_diff)
 {
     auto* entry = get(position);
     // give a higher weight to high depth observations
-    auto ewa_weight = 1;
+    auto ewa_weight = std::clamp(depth, 1, 16);
     // calculate the EWA, clamping to the min/max accordingly
     auto new_value
         = (*entry * (ewa_weight_scale - ewa_weight) + eval_diff * eval_scale * ewa_weight) / ewa_weight_scale;
