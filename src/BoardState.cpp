@@ -27,6 +27,7 @@ void BoardState::Reset()
 
     RecalculateWhiteBlackBoards();
     key.Recalculate(*this);
+    pawn_key.recalculate(*this);
 }
 
 bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
@@ -139,6 +140,7 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 
     RecalculateWhiteBlackBoards();
     key.Recalculate(*this);
+    pawn_key.recalculate(*this);
     return true;
 }
 
@@ -161,6 +163,11 @@ uint64_t BoardState::GetPiecesColour(Players colour) const
 uint64_t BoardState::GetZobristKey() const
 {
     return key.Key();
+}
+
+uint64_t BoardState::GetPawnKey() const
+{
+    return pawn_key;
 }
 
 void BoardState::SetSquare(Square square, Pieces piece)
@@ -483,6 +490,10 @@ void BoardState::SetSquareAndUpdate(Square square, Pieces piece, Network& net)
 {
     net.AddInput(square, piece);
     key.TogglePieceSquare(piece, square);
+    if (piece == WHITE_PAWN || piece == BLACK_PAWN)
+    {
+        pawn_key.toggle_piece_square(piece, square);
+    }
     SetSquare(square, piece);
 }
 
@@ -491,6 +502,10 @@ void BoardState::ClearSquareAndUpdate(Square square, Network& net)
     Pieces piece = GetSquare(square);
     net.RemoveInput(square, piece);
     key.TogglePieceSquare(piece, square);
+    if (piece == WHITE_PAWN || piece == BLACK_PAWN)
+    {
+        pawn_key.toggle_piece_square(piece, square);
+    }
     ClearSquare(square);
 }
 

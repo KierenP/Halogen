@@ -89,6 +89,7 @@ void SearchLocalState::ResetNewGame()
 {
     ResetNewSearch();
     history.reset();
+    correction_history.reset();
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)
