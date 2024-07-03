@@ -20,18 +20,18 @@ struct TTMeta
     uint8_t generation : 6;
 };
 
-// 16 bytes
+// 10 bytes
 class TTEntry
 {
 public:
     TTEntry() = default;
 
-    atomic_relaxed<uint16_t> key = 0; // 2 bytes
-    atomic_relaxed<Move> move = Move::Uninitialized; // 2 bytes
-    atomic_relaxed<Score> score = SCORE_UNDEFINED; // 2 bytes
-    atomic_relaxed<Score> static_eval = SCORE_UNDEFINED; // 2 bytes
-    atomic_relaxed<int8_t> depth = 0; // 1 bytes
-    atomic_relaxed<TTMeta> meta = TTMeta { SearchResultType::EMPTY, 0 }; // 1 byte
+    uint16_t key = 0; // 2 bytes
+    Move move = Move::Uninitialized; // 2 bytes
+    Score score = SCORE_UNDEFINED; // 2 bytes
+    Score static_eval = SCORE_UNDEFINED; // 2 bytes
+    int8_t depth = 0; // 1 bytes
+    TTMeta meta = TTMeta { SearchResultType::EMPTY, 0 }; // 1 byte
 };
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>
