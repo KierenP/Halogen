@@ -880,8 +880,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Step 20: Adjust eval correction history
     if (!InCheck && (bestMove != Move::Uninitialized || (!bestMove.IsCapture() && !bestMove.IsPromotion()))
-        && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
-        && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
+        && !(bound == SearchResultType::LOWER_BOUND && score <= eval)
+        && !(bound == SearchResultType::UPPER_BOUND && score >= eval))
     {
         local.correction_history.add(position, depth, score.value() - eval.value());
     }
