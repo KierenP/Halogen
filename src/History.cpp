@@ -59,8 +59,9 @@ void CorrectionHistory::add(const GameState& position, int depth, int eval_diff)
     // give a higher weight to high depth observations
     auto ewa_weight = std::clamp(depth, 1, 16);
     // calculate the EWA, clamping to the min/max accordingly
-    *entry = std::clamp<int>(*entry * (ewa_weight_scale - ewa_weight) + eval_diff * eval_scale * ewa_weight,
-        -correction_max.value() * eval_scale, correction_max.value() * eval_scale);
+    auto new_value
+        = (*entry * (ewa_weight_scale - ewa_weight) + eval_diff * eval_scale * ewa_weight) / ewa_weight_scale;
+    *entry = std::clamp<int>(new_value, -correction_max.value() * eval_scale, correction_max.value() * eval_scale);
 }
 
 void CorrectionHistory::reset()
