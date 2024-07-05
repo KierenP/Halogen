@@ -70,7 +70,7 @@ struct CorrectionHistory
     static constexpr size_t pawn_hash_table_size = 16384;
     static constexpr Score correction_max = 16;
     static constexpr int eval_scale = 512;
-    static constexpr int ewa_weight_scale = 256;
+    static constexpr int ewa_weight_scale = 512;
     static_assert(correction_max.value() * eval_scale < std::numeric_limits<int16_t>::max());
 
     int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
