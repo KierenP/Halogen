@@ -387,10 +387,10 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     auto* tt_entry
         = tTable.GetEntry(position.Board().GetZobristKey(), distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
-    const auto tt_depth = tt_entry ? int(tt_entry->depth) : 0;
-    const auto tt_cutoff = tt_entry ? TTMeta(tt_entry->meta).type : SearchResultType::EMPTY;
-    const auto tt_move = tt_entry ? Move(tt_entry->move) : Move::Uninitialized;
-    const auto tt_eval = tt_entry ? Score(tt_entry->static_eval) : SCORE_UNDEFINED;
+    const auto tt_depth = tt_entry ? tt_entry->depth : 0;
+    const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
+    const auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
+    const auto tt_eval = tt_entry ? tt_entry->static_eval : SCORE_UNDEFINED;
     return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval };
 }
 
@@ -634,27 +634,44 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
     }
 }
 
-Score get_search_eval(
-    const GameState& position, const Score tt_eval, TTEntry* const tt_entry, int depth, int distance_from_root)
+Score get_search_eval(const GameState& position, TTEntry* const tt_entry, const Score tt_eval, const Score tt_score,
+    const SearchResultType tt_cutoff, int depth, int distance_from_root)
 {
-    if (tt_eval != SCORE_UNDEFINED)
-    {
-        return tt_eval;
-    }
-
-    const auto static_score = Evaluate(position);
-
     if (tt_entry)
     {
-        tt_entry->static_eval = static_score;
+        const auto static_eval = [&]
+        {
+            if (tt_eval != SCORE_UNDEFINED)
+            {
+                return tt_eval;
+            }
+            {
+                const auto eval = Evaluate(position);
+                tt_entry->static_eval = eval;
+                return eval;
+            }
+        }();
+
+        // use the tt_score to improve the static eval if possible
+        if (tt_score != SCORE_UNDEFINED
+            && (tt_cutoff == SearchResultType::EXACT
+                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= static_eval)
+                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= static_eval)))
+        {
+            return tt_score;
+        }
+        else
+        {
+            return static_eval;
+        }
     }
     else
     {
+        const auto static_eval = Evaluate(position);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
-            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_score);
+            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
+        return static_eval;
     }
-
-    return static_score;
 }
 
 template <SearchType search_type>
@@ -711,7 +728,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, depth, distance_from_root);
+    const auto staticScore
+        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -894,7 +912,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    const auto staticScore = get_search_eval(position, tt_eval, tt_entry, depth, distance_from_root);
+    const auto staticScore
+        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
     alpha = std::max(alpha, staticScore);
     if (alpha >= beta)
     {
