@@ -137,7 +137,7 @@ pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
 pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
 pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented.exe
 pgo-instrumented: binary
-	./$(EXE) bench
+	$(EXE) bench
 	$(PGOMERGE)
 
 .PHONY: pgo-compile
