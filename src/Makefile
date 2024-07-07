@@ -135,21 +135,21 @@ pgo:
 .PHONY: pgo-instrumented
 pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
 pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
-pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented.exe
+pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented
 pgo-instrumented: binary
-	./$(EXE) bench
+	$(EXE) bench
 	$(PGOMERGE)
 
 .PHONY: pgo-compile
 pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
 pgo-compile: LDFLAGS += -flto $(PGOUSE)
-pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo.exe
+pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo
 pgo-compile: binary
 
 .PHONY: native
 native: CXXFLAGS += $(CFLAGS)
 native: LDFLAGS += -flto
-native: EXE = $(BINARY_DIR)/Halogen-native.exe
+native: EXE = $(BINARY_DIR)/Halogen-native
 native: binary
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -157,31 +157,31 @@ native: binary
 
 .PHONY: debug
 debug: CXXFLAGS += $(DFLAGS)
-debug: EXE = $(BINARY_DIR)/Halogen-debug.exe
+debug: EXE = $(BINARY_DIR)/Halogen-debug
 debug: binary
 
 .PHONY: sanitize-address
 sanitize-address: CXXFLAGS += $(SFLAGS) -fsanitize=address
 sanitize-address: LDFLAGS += -fsanitize=address
-sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address.exe
+sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address
 sanitize-address: binary
 
 .PHONY: sanitize-undefined
 sanitize-undefined: CXXFLAGS += $(SFLAGS) -fsanitize=undefined
 sanitize-undefined: LDFLAGS += -fsanitize=undefined
-sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined.exe
+sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined
 sanitize-undefined: binary
 
 .PHONY: sanitize-thread
 sanitize-thread: CXXFLAGS += $(SFLAGS) -fsanitize=thread
 sanitize-thread: LDFLAGS += -fsanitize=thread
-sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread.exe
+sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread
 sanitize-thread: binary
 
 .PHONY: tune
 tune: CXXFLAGS += $(CFLAGS) -DTUNE
 tune: LDFLAGS += -flto
-tune: EXE = $(BINARY_DIR)/Halogen-tune.exe
+tune: EXE = $(BINARY_DIR)/Halogen-tune
 tune: binary
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -190,55 +190,55 @@ tune: binary
 .PHONY: legacy
 legacy: CXXFLAGS += $(RFLAGS)
 legacy: LDFLAGS += -flto -static 
-legacy: EXE = $(BINARY_DIR)/Halogen-legacy.exe
+legacy: EXE = $(BINARY_DIR)/Halogen-legacy
 legacy: binary
 
 .PHONY: sse4
 sse4: CXXFLAGS += $(RFLAGS) $(SSE4FLAGS)
 sse4: LDFLAGS += -flto -static 
-sse4: EXE = $(BINARY_DIR)/Halogen-sse4.exe
+sse4: EXE = $(BINARY_DIR)/Halogen-sse4
 sse4: binary
 
 .PHONY: avx
 avx: CXXFLAGS += $(RFLAGS) $(AVXFLAGS)
 avx: LDFLAGS += -flto -static 
-avx: EXE = $(BINARY_DIR)/Halogen-avx.exe
+avx: EXE = $(BINARY_DIR)/Halogen-avx
 avx: binary
 
 .PHONY: avx2
 avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
 avx2: LDFLAGS += -flto -static 
-avx2: EXE = $(BINARY_DIR)/Halogen-avx2.exe
+avx2: EXE = $(BINARY_DIR)/Halogen-avx2
 avx2: binary
 
 .PHONY: avx2-pext
 avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 avx2-pext: LDFLAGS += -flto -static 
-avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext.exe
+avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
 avx2-pext: binary
 
 .PHONY: avx512
 avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS)
 avx512: LDFLAGS += -flto -static 
-avx512: EXE = $(BINARY_DIR)/Halogen-avx512.exe
+avx512: EXE = $(BINARY_DIR)/Halogen-avx512
 avx512: binary
 
 .PHONY: avx512-pext
 avx512-pext: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
 avx512-pext: LDFLAGS += -flto -static 
-avx512-pext: EXE = $(BINARY_DIR)/Halogen-avx512-pext.exe
+avx512-pext: EXE = $(BINARY_DIR)/Halogen-avx512-pext
 avx512-pext: binary
 
 .PHONY: avx512vnni
 avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS)
 avx512vnni: LDFLAGS += -flto -static 
-avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni.exe
+avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni
 avx512vnni: binary
 
 .PHONY: avx512vnni-pext
 avx512vnni-pext: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
 avx512vnni-pext: LDFLAGS += -flto -static 
-avx512vnni-pext: EXE = $(BINARY_DIR)/Halogen-avx512vnni-pext.exe
+avx512vnni-pext: EXE = $(BINARY_DIR)/Halogen-avx512vnni-pext
 avx512vnni-pext: binary
 
 .PHONY: release
