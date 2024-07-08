@@ -638,41 +638,44 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 std::tuple<Score, Score> get_search_eval(const GameState& position, TTEntry* const tt_entry, const Score tt_eval,
     const Score tt_score, const SearchResultType tt_cutoff, int depth, int distance_from_root)
 {
+    Score raw_eval = SCORE_UNDEFINED;
+    Score adj_eval = SCORE_UNDEFINED;
+
     if (tt_entry)
     {
-        const auto static_eval = [&]
+        // use the stored tt_eval when possible
+        if (tt_eval != SCORE_UNDEFINED)
         {
-            if (tt_eval != SCORE_UNDEFINED)
-            {
-                return tt_eval;
-            }
-            {
-                const auto eval = Evaluate(position);
-                tt_entry->static_eval = eval;
-                return eval;
-            }
-        }();
+            raw_eval = tt_eval;
+        }
+        else
+        {
+            raw_eval = tt_entry->static_eval = Evaluate(position);
+        }
+
+        // adjust eval based on the 50 move rule
+        adj_eval = raw_eval.value() * (128 - position.Board().fifty_move_count) / 128;
 
         // use the tt_score to improve the static eval if possible
         if (tt_score != SCORE_UNDEFINED
             && (tt_cutoff == SearchResultType::EXACT
-                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= static_eval)
-                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= static_eval)))
+                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adj_eval)
+                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adj_eval)))
         {
-            return { static_eval, tt_score };
-        }
-        else
-        {
-            return { static_eval, static_eval };
+            adj_eval = tt_score;
         }
     }
     else
     {
-        const auto static_eval = Evaluate(position);
+        // evaluate the position and store raw eval in the TT
+        raw_eval = adj_eval = Evaluate(position);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
-            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
-        return { static_eval, static_eval };
+            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
+        // adjust eval based on the 50 move rule
+        adj_eval = raw_eval.value() * (128 - position.Board().fifty_move_count) / 128;
     }
+
+    return { raw_eval, adj_eval };
 }
 
 template <SearchType search_type>
