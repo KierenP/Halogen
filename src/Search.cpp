@@ -634,8 +634,9 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
     }
 }
 
-Score get_search_eval(const GameState& position, TTEntry* const tt_entry, const Score tt_eval, const Score tt_score,
-    const SearchResultType tt_cutoff, int depth, int distance_from_root)
+// { raw, adjusted }
+std::tuple<Score, Score> get_search_eval(const GameState& position, TTEntry* const tt_entry, const Score tt_eval,
+    const Score tt_score, const SearchResultType tt_cutoff, int depth, int distance_from_root)
 {
     if (tt_entry)
     {
@@ -658,11 +659,11 @@ Score get_search_eval(const GameState& position, TTEntry* const tt_entry, const 
                 || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= static_eval)
                 || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= static_eval)))
         {
-            return tt_score;
+            return { static_eval, tt_score };
         }
         else
         {
-            return static_eval;
+            return { static_eval, static_eval };
         }
     }
     else
@@ -670,7 +671,7 @@ Score get_search_eval(const GameState& position, TTEntry* const tt_entry, const 
         const auto static_eval = Evaluate(position);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
-        return static_eval;
+        return { static_eval, static_eval };
     }
 }
 
@@ -728,14 +729,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto staticScore
+    const auto [raw_eval, eval]
         = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8
-        && staticScore - 93 * depth >= beta)
+    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8 && eval - 93 * depth >= beta)
     {
         return beta;
     }
@@ -746,10 +746,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && staticScore > beta
+        && distance_from_root >= ss->nmp_verification_depth && eval > beta
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
-        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, staticScore, beta))
+        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, eval, beta))
         {
             return *value;
         }
@@ -804,7 +804,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 10 && staticScore + 31 + 13 * depth + 11 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
@@ -875,8 +875,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Step 18: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(
-            score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, staticScore);
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
     }
 
     return SearchResult(score, bestMove);
@@ -910,18 +909,19 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
     }
 
+    const auto [raw_eval, eval]
+        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    const auto staticScore
-        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
-    alpha = std::max(alpha, staticScore);
+    alpha = std::max(alpha, eval);
     if (alpha >= beta)
     {
         return alpha;
     }
 
     Move bestmove = Move::Uninitialized;
-    auto score = staticScore;
+    auto score = eval;
     auto original_alpha = alpha;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
@@ -932,7 +932,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         int SEE = gen.GetSEE(move);
 
         // delta pruning
-        if (staticScore + SEE + 280 < alpha)
+        if (eval + SEE + 280 < alpha)
         {
             break;
         }
@@ -964,8 +964,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     // Step 6: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(
-            score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, staticScore);
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
     }
 
     return SearchResult(score, bestmove);
