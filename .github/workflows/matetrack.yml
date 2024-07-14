@@ -1,0 +1,40 @@
+# This workflow will run matetrack on the PR
+
+name: Matetrack
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  Matetrack:
+    name: Matetrack
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Halogen repo 
+        uses: actions/checkout@v4.1.1
+        with:
+          path: Halogen
+
+      - name: Build Halogen
+        working-directory: Halogen/src
+        run: make
+
+      - name: Checkout matetrack repo
+        uses: actions/checkout@v4
+        with:
+          repository: KierenP/matetrack
+          path: matetrack
+          ref: 3445e4a10371c58ac8a5e508a5d69a3cce16aee4
+
+      - name: matetrack install deps
+        working-directory: matetrack
+        run: pip install -r requirements.txt
+
+      - name: Run matetrack
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine $GITHUB_WORKSPACE/Halogen/bin/halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
+          ! grep "issues were detected" matecheckout.out > /dev/null
