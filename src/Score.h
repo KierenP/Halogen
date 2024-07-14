@@ -175,4 +175,9 @@ public:
         return Score(30000);
     };
 };
+
+inline Score abs(Score val)
+{
+    return std::abs(val.value());
+}
 }
