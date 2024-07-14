@@ -20,7 +20,7 @@ jobs:
 
       - name: Build Halogen
         working-directory: Halogen/src
-        run: make
+        run: make -j4
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4
@@ -36,5 +36,5 @@ jobs:
       - name: Run matetrack
         working-directory: matetrack
         run: |
-          python matecheck.py --engine $GITHUB_WORKSPACE/Halogen/bin/halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
+          python matecheck.py --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
