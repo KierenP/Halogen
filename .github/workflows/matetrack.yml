@@ -27,7 +27,7 @@ jobs:
         with:
           repository: KierenP/matetrack
           path: matetrack
-          ref: 3445e4a10371c58ac8a5e508a5d69a3cce16aee4
+          ref: be0f7843b2b174609598a9a5dd65104b7354b622
 
       - name: matetrack install deps
         working-directory: matetrack
