@@ -16,7 +16,7 @@ alignas(32) std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
 alignas(32) std::array<int16_t, HIDDEN_NEURONS * 2> Network::outputWeights = {};
 alignas(32) int16_t Network::outputBias = {};
 
-constexpr int16_t L1_SCALE = 255;
+constexpr int16_t L1_SCALE = 181;
 constexpr int16_t L2_SCALE = 64;
 constexpr double SCALE_FACTOR = 160; // Found empirically to maximize elo
 
@@ -38,6 +38,20 @@ template <typename T, size_t SIZE>
 
     for (size_t i = 0; i < SIZE; i++)
         ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
+
+    return ret;
+}
+
+template <typename T, size_t SIZE>
+[[nodiscard]] std::array<T, SIZE> SCReLU(const std::array<T, SIZE>& source)
+{
+    std::array<T, SIZE> ret;
+
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
+        ret[i] = ret[i] * ret[i] / L1_SCALE;
+    }
 
     return ret;
 }
@@ -173,7 +187,7 @@ Score Network::Eval(Players stm) const
 {
     int32_t output = outputBias;
     DotProductHalves(
-        CReLU(AccumulatorStack.back().side[stm]), CReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+        SCReLU(AccumulatorStack.back().side[stm]), SCReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
     output *= SCALE_FACTOR;
     output /= L1_SCALE * L2_SCALE;
     return output;
