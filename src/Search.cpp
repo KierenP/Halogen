@@ -635,6 +635,7 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 }
 
 // { raw, adjusted }
+template <bool is_qsearch>
 std::tuple<Score, Score> get_search_eval(const GameState& position, TTEntry* const tt_entry, const Score tt_eval,
     const Score tt_score, const SearchResultType tt_cutoff, int depth, int distance_from_root)
 {
@@ -653,8 +654,8 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, TTEntry* con
             }
         }();
 
-        // use the tt_score to improve the static eval if possible
-        if (tt_score != SCORE_UNDEFINED
+        // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
+        if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
             && (tt_cutoff == SearchResultType::EXACT
                 || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= static_eval)
                 || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= static_eval)))
@@ -730,7 +731,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     const auto [raw_eval, eval]
-        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+        = get_search_eval<false>(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -910,7 +911,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     }
 
     const auto [raw_eval, eval]
-        = get_search_eval(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+        = get_search_eval<true>(position, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
