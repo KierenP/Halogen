@@ -11,8 +11,7 @@ void TempoAdjustment(Score& eval);
 
 Score Evaluate(const GameState& position)
 {
-    constexpr static int TEMPO = 10;
-    Score eval = position.GetEvaluation() + TEMPO;
+    Score eval = position.GetEvaluation();
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
