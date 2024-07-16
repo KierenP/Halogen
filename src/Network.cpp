@@ -171,7 +171,7 @@ void Network::RemoveInput(Square square, Pieces piece)
 
 int calculate_output_bucket(int pieces)
 {
-    return (pieces - 2) / 8;
+    return (pieces - 2) / 4;
 }
 
 Score Network::Eval(const BoardState& board) const
