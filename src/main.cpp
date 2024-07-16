@@ -36,7 +36,6 @@ int main(int argc, char* argv[])
 {
     PrintVersion();
     std::ios::sync_with_stdio(false);
-    Network::Init();
     Uci uci { version };
 
     // read any command line input as a regular UCI instruction

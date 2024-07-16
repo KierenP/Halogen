@@ -119,7 +119,7 @@ void GameState::Reset()
 
 Score GameState::GetEvaluation() const
 {
-    return net.Eval(Board().stm);
+    return net.Eval(Board());
 }
 
 bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
