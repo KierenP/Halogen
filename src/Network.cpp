@@ -1,9 +1,7 @@
 #include "Network.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
-#include <iostream>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -11,14 +9,23 @@
 
 INCBIN(Net, EVALFILE);
 
-alignas(32) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> Network::hiddenWeights = {};
-alignas(32) std::array<int16_t, HIDDEN_NEURONS> Network::hiddenBias = {};
-alignas(32) std::array<int16_t, HIDDEN_NEURONS * 2> Network::outputWeights = {};
-alignas(32) int16_t Network::outputBias = {};
+struct alignas(64) network
+{
+    std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights = {};
+    std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
+    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, 8> outputWeights = {};
+    std::array<int16_t, 8> outputBias = {};
+} const& net = reinterpret_cast<const network&>(*gNetData);
+
+[[maybe_unused]] auto verify_network_size = []
+{
+    assert(sizeof(network) == gNetSize);
+    return true;
+}();
 
 constexpr int16_t L1_SCALE = 181;
 constexpr int16_t L2_SCALE = 64;
-constexpr double SCALE_FACTOR = 160; // Found empirically to maximize elo
+constexpr double SCALE_FACTOR = 160;
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
@@ -71,30 +78,9 @@ void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
     }
 }
 
-void Network::Init()
-{
-    auto Data = reinterpret_cast<const int16_t*>(gNetData);
-
-    for (size_t i = 0; i < INPUT_NEURONS; i++)
-        for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            hiddenWeights[i][j] = *Data++;
-
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
-        hiddenBias[i] = *Data++;
-
-    for (size_t i = 0; i < HIDDEN_NEURONS * 2; i++)
-        outputWeights[i] = *Data++;
-
-    outputBias = *Data++;
-
-    // bullet trainer pads to a multiple of 64 bytes
-    Data += (64 - ((reinterpret_cast<const unsigned char*>(Data) - gNetData) % 64)) / sizeof(int16_t);
-    assert(reinterpret_cast<const unsigned char*>(Data) == gNetData + gNetSize);
-}
-
 void Network::Recalculate(const BoardState& board)
 {
-    AccumulatorStack = { { hiddenBias, hiddenBias } };
+    AccumulatorStack = { { net.hiddenBias, net.hiddenBias } };
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -125,7 +111,7 @@ int Network::index(Square square, Pieces piece, Players view)
 
 bool Network::Verify(const BoardState& board) const
 {
-    HalfAccumulator correct_answer = { hiddenBias, hiddenBias };
+    HalfAccumulator correct_answer = { net.hiddenBias, net.hiddenBias };
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -140,8 +126,8 @@ bool Network::Verify(const BoardState& board) const
 
             for (size_t j = 0; j < HIDDEN_NEURONS; j++)
             {
-                correct_answer.side[WHITE][j] += hiddenWeights[white_index][j];
-                correct_answer.side[BLACK][j] += hiddenWeights[black_index][j];
+                correct_answer.side[WHITE][j] += net.hiddenWeights[white_index][j];
+                correct_answer.side[BLACK][j] += net.hiddenWeights[black_index][j];
             }
         }
     }
@@ -166,8 +152,8 @@ void Network::AddInput(Square square, Pieces piece)
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
-        AccumulatorStack.back().side[WHITE][j] += hiddenWeights[white_index][j];
-        AccumulatorStack.back().side[BLACK][j] += hiddenWeights[black_index][j];
+        AccumulatorStack.back().side[WHITE][j] += net.hiddenWeights[white_index][j];
+        AccumulatorStack.back().side[BLACK][j] += net.hiddenWeights[black_index][j];
     }
 }
 
@@ -178,16 +164,24 @@ void Network::RemoveInput(Square square, Pieces piece)
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
-        AccumulatorStack.back().side[WHITE][j] -= hiddenWeights[white_index][j];
-        AccumulatorStack.back().side[BLACK][j] -= hiddenWeights[black_index][j];
+        AccumulatorStack.back().side[WHITE][j] -= net.hiddenWeights[white_index][j];
+        AccumulatorStack.back().side[BLACK][j] -= net.hiddenWeights[black_index][j];
     }
 }
 
-Score Network::Eval(Players stm) const
+int calculate_output_bucket(int pieces)
 {
-    int32_t output = outputBias;
-    DotProductHalves(
-        SCReLU(AccumulatorStack.back().side[stm]), SCReLU(AccumulatorStack.back().side[!stm]), outputWeights, output);
+    return (pieces - 2) / 4;
+}
+
+Score Network::Eval(const BoardState& board) const
+{
+    auto stm = board.stm;
+    auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
+
+    int32_t output = net.outputBias[output_bucket];
+    DotProductHalves(SCReLU(AccumulatorStack.back().side[stm]), SCReLU(AccumulatorStack.back().side[!stm]),
+        net.outputWeights[output_bucket], output);
     output *= SCALE_FACTOR;
     output /= L1_SCALE * L2_SCALE;
     return output;

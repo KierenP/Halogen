@@ -31,7 +31,7 @@ public:
     bool Verify(const BoardState& board) const;
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    Score Eval(Players stm) const;
+    Score Eval(const BoardState& board) const;
 
     // call and then update inputs as required
     void AccumulatorPush();
@@ -42,15 +42,8 @@ public:
     // do undo the last move
     void AccumulatorPop();
 
-    static void Init();
-
 private:
     static int index(Square square, Pieces piece, Players view);
 
     std::vector<HalfAccumulator> AccumulatorStack;
-
-    alignas(32) static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;
-    alignas(32) static std::array<int16_t, HIDDEN_NEURONS> hiddenBias;
-    alignas(32) static std::array<int16_t, HIDDEN_NEURONS * 2> outputWeights;
-    alignas(32) static int16_t outputBias;
 };
