@@ -13,8 +13,8 @@ struct alignas(64) network
 {
     std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights = {};
     std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, 8> outputWeights = {};
-    std::array<int16_t, 8> outputBias = {};
+    std::array<int16_t, HIDDEN_NEURONS * 2> outputWeights = {};
+    int16_t outputBias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
@@ -169,19 +169,13 @@ void Network::RemoveInput(Square square, Pieces piece)
     }
 }
 
-int calculate_output_bucket(int pieces)
-{
-    return (pieces - 2) / 4;
-}
-
 Score Network::Eval(const BoardState& board) const
 {
     auto stm = board.stm;
-    auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
-    int32_t output = net.outputBias[output_bucket];
+    int32_t output = net.outputBias;
     DotProductHalves(SCReLU(AccumulatorStack.back().side[stm]), SCReLU(AccumulatorStack.back().side[!stm]),
-        net.outputWeights[output_bucket], output);
+        net.outputWeights, output);
     output *= SCALE_FACTOR;
     output /= L1_SCALE * L2_SCALE;
     return output;
