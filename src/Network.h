@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "Move.h"
 #include "Score.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
@@ -33,17 +34,9 @@ public:
     // calculates starting from the first hidden layer and skips input -> hidden
     Score Eval(const BoardState& board) const;
 
-    // call and then update inputs as required
-    void AccumulatorPush();
-
-    void AddInput(Square square, Pieces piece);
-    void RemoveInput(Square square, Pieces piece);
-
-    // do undo the last move
-    void AccumulatorPop();
+    // void ApplyMove(const BoardState& board, Move move);
+    // void UndoMove(const BoardState& board);
 
 private:
-    static int index(Square square, Pieces piece, Players view);
-
     std::vector<HalfAccumulator> AccumulatorStack;
 };

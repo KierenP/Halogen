@@ -18,9 +18,10 @@ GameState::GameState()
 
 void GameState::ApplyMove(Move move)
 {
-    net.AccumulatorPush();
     previousStates.push_back(previousStates.back());
-    MutableBoard().ApplyMove(move, net);
+    MutableBoard().ApplyMove(move);
+    net.Recalculate(Board());
+    assert(net.Verify(Board()));
 }
 
 void GameState::ApplyMove(std::string_view strmove)
@@ -51,7 +52,8 @@ void GameState::RevertMove()
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
-    net.AccumulatorPop();
+    net.Recalculate(Board());
+    assert(net.Verify(Board()));
 }
 
 void GameState::ApplyNullMove()

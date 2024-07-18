@@ -81,7 +81,7 @@ public:
     bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
     void UpdateCastleRights(Move move, Zobrist& zobrist_key);
 
-    void ApplyMove(Move move, Network& net);
+    void ApplyMove(Move move);
     void ApplyNullMove();
 
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
@@ -90,8 +90,8 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
-    void SetSquareAndUpdate(Square square, Pieces piece, Network& net);
-    void ClearSquareAndUpdate(Square square, Network& net);
+    void SetSquareAndUpdate(Square square, Pieces piece);
+    void ClearSquareAndUpdate(Square square);
 
     // optimization: GetWhitePieces/GetBlackPieces can return a precalculated bitboard
     // which is updated only when needed

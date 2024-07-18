@@ -7,14 +7,35 @@
 #include "BoardState.h"
 #include "incbin/incbin.h"
 
+constexpr size_t OUTPUT_BUCKETS = 8;
+
+// clang-format off
+constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
+    0, 0, 1, 1, 2, 2, 3, 3,
+    4, 4, 4, 4, 5, 5, 5, 5,
+    6, 6, 6, 6, 7, 7, 7, 7,
+    6, 6, 6, 6, 7, 7, 7, 7,
+    6, 6, 6, 6, 7, 7, 7, 7,
+    6, 6, 6, 6, 7, 7, 7, 7,
+    6, 6, 6, 6, 7, 7, 7, 7,
+    6, 6, 6, 6, 7, 7, 7, 7,
+};
+// clang-format on
+
+constexpr size_t KING_BUCKET_COUNT = []()
+{
+    auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
+    return *max - *min + 1;
+}();
+
 INCBIN(Net, EVALFILE);
 
 struct alignas(64) network
 {
-    std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights = {};
+    std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
     std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, 8> outputWeights = {};
-    std::array<int16_t, 8> outputBias = {};
+    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
+    std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
@@ -78,40 +99,28 @@ void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
     }
 }
 
-void Network::Recalculate(const BoardState& board)
-{
-    AccumulatorStack = { { net.hiddenBias, net.hiddenBias } };
-
-    for (int i = 0; i < N_PIECES; i++)
-    {
-        Pieces piece = static_cast<Pieces>(i);
-        uint64_t bb = board.GetPieceBB(piece);
-
-        while (bb)
-        {
-            Square sq = LSBpop(bb);
-            AddInput(sq, piece);
-        }
-    }
-}
-
 Square MirrorVertically(Square sq)
 {
     return static_cast<Square>(sq ^ 56);
 }
 
-int Network::index(Square square, Pieces piece, Players view)
+int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
 {
-    Square sq = view == WHITE ? square : MirrorVertically(square);
+    piece_sq = view == WHITE ? piece_sq : MirrorVertically(piece_sq);
+    king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
+
+    auto king_bucket = KING_BUCKETS[king_sq];
     Players relativeColor = static_cast<Players>(view != ColourOfPiece(piece));
     PieceTypes pieceType = GetPieceType(piece);
 
-    return sq + pieceType * 64 + relativeColor * 64 * 6;
+    return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-bool Network::Verify(const BoardState& board) const
+void Network::Recalculate(const BoardState& board)
 {
-    HalfAccumulator correct_answer = { net.hiddenBias, net.hiddenBias };
+    AccumulatorStack = { { net.hiddenBias, net.hiddenBias } };
+    auto w_king = board.GetKing(WHITE);
+    auto b_king = board.GetKing(BLACK);
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -121,57 +130,59 @@ bool Network::Verify(const BoardState& board) const
         while (bb)
         {
             Square sq = LSBpop(bb);
-            size_t white_index = index(sq, piece, WHITE);
-            size_t black_index = index(sq, piece, BLACK);
+            size_t w_index = index(w_king, sq, piece, WHITE);
+            size_t b_index = index(b_king, sq, piece, BLACK);
 
             for (size_t j = 0; j < HIDDEN_NEURONS; j++)
             {
-                correct_answer.side[WHITE][j] += net.hiddenWeights[white_index][j];
-                correct_answer.side[BLACK][j] += net.hiddenWeights[black_index][j];
+                AccumulatorStack.back().side[WHITE][j] += net.hiddenWeights[w_index][j];
+                AccumulatorStack.back().side[BLACK][j] += net.hiddenWeights[b_index][j];
+            }
+        }
+    }
+}
+
+bool Network::Verify(const BoardState& board) const
+{
+    HalfAccumulator expected = { net.hiddenBias, net.hiddenBias };
+    auto w_king = board.GetKing(WHITE);
+    auto b_king = board.GetKing(BLACK);
+
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        Pieces piece = static_cast<Pieces>(i);
+        uint64_t bb = board.GetPieceBB(piece);
+
+        while (bb)
+        {
+            Square sq = LSBpop(bb);
+            size_t w_index = index(w_king, sq, piece, WHITE);
+            size_t b_index = index(b_king, sq, piece, WHITE);
+
+            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+            {
+                expected.side[WHITE][j] += net.hiddenWeights[w_index][j];
+                expected.side[BLACK][j] += net.hiddenWeights[b_index][j];
             }
         }
     }
 
-    return correct_answer == AccumulatorStack.back();
+    return expected == AccumulatorStack.back();
 }
 
-void Network::AccumulatorPush()
+/*void Network::ApplyMove(const BoardState&, Move)
 {
-    AccumulatorStack.push_back(AccumulatorStack.back());
+    // TODO
 }
 
-void Network::AccumulatorPop()
+void Network::UndoMove(const BoardState&)
 {
-    AccumulatorStack.pop_back();
-}
-
-void Network::AddInput(Square square, Pieces piece)
-{
-    size_t white_index = index(square, piece, WHITE);
-    size_t black_index = index(square, piece, BLACK);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        AccumulatorStack.back().side[WHITE][j] += net.hiddenWeights[white_index][j];
-        AccumulatorStack.back().side[BLACK][j] += net.hiddenWeights[black_index][j];
-    }
-}
-
-void Network::RemoveInput(Square square, Pieces piece)
-{
-    size_t white_index = index(square, piece, WHITE);
-    size_t black_index = index(square, piece, BLACK);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        AccumulatorStack.back().side[WHITE][j] -= net.hiddenWeights[white_index][j];
-        AccumulatorStack.back().side[BLACK][j] -= net.hiddenWeights[black_index][j];
-    }
-}
+    // TODO
+}*/
 
 int calculate_output_bucket(int pieces)
 {
-    return (pieces - 2) / 4;
+    return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
 Score Network::Eval(const BoardState& board) const
