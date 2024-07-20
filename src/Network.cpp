@@ -5,6 +5,7 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "Move.h"
 #include "incbin/incbin.h"
 
 constexpr size_t OUTPUT_BUCKETS = 8;
@@ -104,21 +105,50 @@ Square MirrorVertically(Square sq)
     return static_cast<Square>(sq ^ 56);
 }
 
+int get_king_bucket(Square king_sq, Players view)
+{
+    king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
+    return KING_BUCKETS[king_sq];
+}
+
 int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
 {
     piece_sq = view == WHITE ? piece_sq : MirrorVertically(piece_sq);
-    king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
 
-    auto king_bucket = KING_BUCKETS[king_sq];
+    auto king_bucket = get_king_bucket(king_sq, view);
     Players relativeColor = static_cast<Players>(view != ColourOfPiece(piece));
     PieceTypes pieceType = GetPieceType(piece);
 
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Network::Recalculate(const BoardState& board)
+void HalfAccumulator::AddInput(Square w_king, Square b_king, Square sq, Pieces piece)
 {
-    AccumulatorStack = { { net.hiddenBias, net.hiddenBias } };
+    size_t w_index = index(w_king, sq, piece, WHITE);
+    size_t b_index = index(b_king, sq, piece, BLACK);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        side[WHITE][j] += net.hiddenWeights[w_index][j];
+        side[BLACK][j] += net.hiddenWeights[b_index][j];
+    }
+}
+
+void HalfAccumulator::SubInput(Square w_king, Square b_king, Square sq, Pieces piece)
+{
+    size_t w_index = index(w_king, sq, piece, WHITE);
+    size_t b_index = index(b_king, sq, piece, BLACK);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        side[WHITE][j] -= net.hiddenWeights[w_index][j];
+        side[BLACK][j] -= net.hiddenWeights[b_index][j];
+    }
+}
+
+void HalfAccumulator::Recalculate(const BoardState& board)
+{
+    side = { net.hiddenBias, net.hiddenBias };
     auto w_king = board.GetKing(WHITE);
     auto b_king = board.GetKing(BLACK);
 
@@ -130,16 +160,15 @@ void Network::Recalculate(const BoardState& board)
         while (bb)
         {
             Square sq = LSBpop(bb);
-            size_t w_index = index(w_king, sq, piece, WHITE);
-            size_t b_index = index(b_king, sq, piece, BLACK);
-
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            {
-                AccumulatorStack.back().side[WHITE][j] += net.hiddenWeights[w_index][j];
-                AccumulatorStack.back().side[BLACK][j] += net.hiddenWeights[b_index][j];
-            }
+            AddInput(w_king, b_king, sq, piece);
         }
     }
+}
+
+void Network::Recalculate(const BoardState& board)
+{
+    AccumulatorStack.clear();
+    AccumulatorStack.emplace_back().Recalculate(board);
 }
 
 bool Network::Verify(const BoardState& board) const
@@ -156,29 +185,99 @@ bool Network::Verify(const BoardState& board) const
         while (bb)
         {
             Square sq = LSBpop(bb);
-            size_t w_index = index(w_king, sq, piece, WHITE);
-            size_t b_index = index(b_king, sq, piece, WHITE);
-
-            for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-            {
-                expected.side[WHITE][j] += net.hiddenWeights[w_index][j];
-                expected.side[BLACK][j] += net.hiddenWeights[b_index][j];
-            }
+            expected.AddInput(w_king, b_king, sq, piece);
         }
     }
 
     return expected == AccumulatorStack.back();
 }
 
-/*void Network::ApplyMove(const BoardState&, Move)
+void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move)
 {
-    // TODO
+    auto& acc = AccumulatorStack.emplace_back(AccumulatorStack.back());
+
+    auto stm = prev_move_board.stm;
+    auto from_sq = move.GetFrom();
+    auto to_sq = move.GetTo();
+    auto from_piece = prev_move_board.GetSquare(from_sq);
+    auto to_piece = post_move_board.GetSquare(to_sq);
+    auto cap_piece = prev_move_board.GetSquare(to_sq);
+
+    auto w_king = post_move_board.GetKing(WHITE);
+    auto b_king = post_move_board.GetKing(BLACK);
+
+    if (from_piece == Piece(KING, stm))
+    {
+        if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm))
+        {
+            // king bucket has changed -> recalculate the accumulator.
+            // TODO: avoid recalculating the non-STM accumulator
+            acc.Recalculate(post_move_board);
+        }
+        else if (move.IsCastle())
+        {
+            Square king_start = move.GetFrom();
+            Square king_end
+                = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
+            Square rook_start = move.GetTo();
+            Square rook_end
+                = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
+
+            acc.AddInput(w_king, b_king, king_end, from_piece);
+            acc.SubInput(w_king, b_king, king_start, from_piece);
+            acc.AddInput(w_king, b_king, rook_end, cap_piece);
+            acc.SubInput(w_king, b_king, rook_start, cap_piece);
+        }
+        else if (move.IsCapture())
+        {
+            acc.AddInput(w_king, b_king, to_sq, from_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+            acc.SubInput(w_king, b_king, to_sq, cap_piece);
+        }
+        else
+        {
+            acc.AddInput(w_king, b_king, to_sq, from_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+        }
+    }
+    else
+    {
+        if (move.IsPromotion() && move.IsCapture())
+        {
+            acc.AddInput(w_king, b_king, to_sq, to_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+            acc.SubInput(w_king, b_king, to_sq, cap_piece);
+        }
+        else if (move.IsPromotion())
+        {
+            acc.AddInput(w_king, b_king, to_sq, to_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+        }
+        else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
+        {
+            auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
+            acc.AddInput(w_king, b_king, to_sq, from_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+            acc.SubInput(w_king, b_king, ep_capture_sq, Piece(PAWN, !stm));
+        }
+        else if (move.IsCapture())
+        {
+            acc.AddInput(w_king, b_king, to_sq, from_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+            acc.SubInput(w_king, b_king, to_sq, cap_piece);
+        }
+        else
+        {
+            acc.AddInput(w_king, b_king, to_sq, from_piece);
+            acc.SubInput(w_king, b_king, from_sq, from_piece);
+        }
+    }
 }
 
-void Network::UndoMove(const BoardState&)
+void Network::UndoMove()
 {
-    // TODO
-}*/
+    AccumulatorStack.pop_back();
+}
 
 int calculate_output_bucket(int pieces)
 {

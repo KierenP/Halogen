@@ -21,6 +21,11 @@ struct HalfAccumulator
     {
         return side == rhs.side;
     }
+
+    void AddInput(Square w_king, Square b_king, Square sq, Pieces piece);
+    void SubInput(Square w_king, Square b_king, Square sq, Pieces piece);
+
+    void Recalculate(const BoardState& board);
 };
 
 class Network
@@ -34,8 +39,8 @@ public:
     // calculates starting from the first hidden layer and skips input -> hidden
     Score Eval(const BoardState& board) const;
 
-    // void ApplyMove(const BoardState& board, Move move);
-    // void UndoMove(const BoardState& board);
+    void ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move);
+    void UndoMove();
 
 private:
     std::vector<HalfAccumulator> AccumulatorStack;

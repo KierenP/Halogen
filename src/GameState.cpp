@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <iterator>
 #include <sstream>
 
 #include "Move.h"
@@ -12,7 +13,6 @@
 
 GameState::GameState()
 {
-    Reset();
     StartingPosition();
 }
 
@@ -20,7 +20,7 @@ void GameState::ApplyMove(Move move)
 {
     previousStates.push_back(previousStates.back());
     MutableBoard().ApplyMove(move);
-    net.Recalculate(Board());
+    net.ApplyMove(previousStates[previousStates.size() - 2], previousStates[previousStates.size() - 1], move);
     assert(net.Verify(Board()));
 }
 
@@ -52,7 +52,7 @@ void GameState::RevertMove()
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
-    net.Recalculate(Board());
+    net.UndoMove();
     assert(net.Verify(Board()));
 }
 
@@ -77,8 +77,8 @@ void GameState::StartingPosition()
 
 bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
 {
-    Reset();
-    bool ret = MutableBoard().InitialiseFromFen(fen);
+    previousStates.clear();
+    bool ret = previousStates.emplace_back().InitialiseFromFen(fen);
     net.Recalculate(Board());
     return ret;
 }
@@ -111,12 +111,6 @@ bool GameState::InitialiseFromFen(std::string_view fen)
     }
 
     return InitialiseFromFen(splitFen);
-}
-
-void GameState::Reset()
-{
-    previousStates = { BoardState() };
-    net.Recalculate(Board());
 }
 
 Score GameState::GetEvaluation() const
