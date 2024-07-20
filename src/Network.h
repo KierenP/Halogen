@@ -13,19 +13,40 @@ constexpr size_t HIDDEN_NEURONS = 512;
 
 class BoardState;
 
-struct HalfAccumulator
+// represents a single input on one accumulator side
+struct Input
 {
-    alignas(32) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
+    Square king_sq;
+    Square piece_sq;
+    Pieces piece;
+};
 
-    bool operator==(const HalfAccumulator& rhs) const
+// represents a pair of inputs (one on each accumulator side)
+struct InputPair
+{
+    Square w_king;
+    Square b_king;
+    Square piece_sq;
+    Pieces piece;
+};
+
+struct Accumulator
+{
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
+
+    bool operator==(const Accumulator& rhs) const
     {
         return side == rhs.side;
     }
 
-    void AddInput(Square w_king, Square b_king, Square sq, Pieces piece);
-    void SubInput(Square w_king, Square b_king, Square sq, Pieces piece);
+    void AddInput(const InputPair& input);
+    void AddInput(const Input& input, Players side);
+
+    void SubInput(const InputPair& input);
+    void SubInput(const Input& input, Players side);
 
     void Recalculate(const BoardState& board);
+    void Recalculate(const BoardState& board, Players side);
 };
 
 class Network
@@ -43,5 +64,5 @@ public:
     void UndoMove();
 
 private:
-    std::vector<HalfAccumulator> AccumulatorStack;
+    std::vector<Accumulator> AccumulatorStack;
 };
