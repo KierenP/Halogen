@@ -209,6 +209,8 @@ void Network::Recalculate(const BoardState& board)
     for (auto& entry : table.king_bucket)
     {
         entry.acc = { net.hiddenBias, net.hiddenBias };
+        entry.white_bb = {};
+        entry.black_bb = {};
     }
 }
 
