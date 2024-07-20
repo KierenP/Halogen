@@ -8,27 +8,6 @@
 #include "Move.h"
 #include "incbin/incbin.h"
 
-constexpr size_t OUTPUT_BUCKETS = 8;
-
-// clang-format off
-constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
-    0, 0, 1, 1, 2, 2, 3, 3,
-    4, 4, 4, 4, 5, 5, 5, 5,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-};
-// clang-format on
-
-constexpr size_t KING_BUCKET_COUNT = []()
-{
-    auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
-    return *max - *min + 1;
-}();
-
 INCBIN(Net, EVALFILE);
 
 struct alignas(64) network
@@ -156,21 +135,8 @@ void Accumulator::SubInput(const Input& input, Players view)
 
 void Accumulator::Recalculate(const BoardState& board)
 {
-    side = { net.hiddenBias, net.hiddenBias };
-    auto w_king = board.GetKing(WHITE);
-    auto b_king = board.GetKing(BLACK);
-
-    for (int i = 0; i < N_PIECES; i++)
-    {
-        Pieces piece = static_cast<Pieces>(i);
-        uint64_t bb = board.GetPieceBB(piece);
-
-        while (bb)
-        {
-            Square sq = LSBpop(bb);
-            AddInput({ w_king, b_king, sq, piece });
-        }
-    }
+    Recalculate(board, WHITE);
+    Recalculate(board, BLACK);
 }
 
 void Accumulator::Recalculate(const BoardState& board, Players view)
@@ -191,10 +157,61 @@ void Accumulator::Recalculate(const BoardState& board, Players view)
     }
 }
 
+void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq)
+{
+    auto& entry = king_bucket[get_king_bucket(king_sq, side)];
+    auto& bb = side == WHITE ? entry.white_bb : entry.black_bb;
+
+    for (const auto& piece : {
+             WHITE_PAWN,
+             WHITE_KNIGHT,
+             WHITE_BISHOP,
+             WHITE_ROOK,
+             WHITE_QUEEN,
+             WHITE_KING,
+             BLACK_PAWN,
+             BLACK_KNIGHT,
+             BLACK_BISHOP,
+             BLACK_ROOK,
+             BLACK_QUEEN,
+             BLACK_KING,
+         })
+    {
+        auto new_bb = board.GetPieceBB(piece);
+        auto& old_bb = bb[piece];
+
+        auto to_add = new_bb & ~old_bb;
+        auto to_sub = old_bb & ~new_bb;
+
+        while (to_add)
+        {
+            auto sq = LSBpop(to_add);
+            entry.acc.AddInput({ king_sq, sq, piece }, side);
+        }
+
+        while (to_sub)
+        {
+            auto sq = LSBpop(to_sub);
+            entry.acc.SubInput({ king_sq, sq, piece }, side);
+        }
+
+        old_bb = new_bb;
+    }
+
+    acc.side[side] = entry.acc.side[side];
+}
+
 void Network::Recalculate(const BoardState& board)
 {
     AccumulatorStack.clear();
     AccumulatorStack.emplace_back().Recalculate(board);
+
+    for (auto& entry : table.king_bucket)
+    {
+        entry.acc = { net.hiddenBias, net.hiddenBias };
+        entry.white_bb = {};
+        entry.black_bb = {};
+    }
 }
 
 bool Network::Verify(const BoardState& board) const
@@ -236,12 +253,13 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
     {
         if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm))
         {
-            // king bucket has changed -> recalculate that side's accumulator
-            acc.Recalculate(post_move_board, stm);
-
-            // incrementally update the other side's accumulator
+            auto our_king = stm == WHITE ? w_king : b_king;
             auto their_king = stm == WHITE ? b_king : w_king;
 
+            // king bucket has changed -> recalculate that side's accumulator
+            table.Recalculate(acc, post_move_board, stm, our_king);
+
+            // incrementally update the other side's accumulator
             if (move.IsCastle())
             {
                 Square king_start = move.GetFrom();
