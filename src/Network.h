@@ -92,8 +92,6 @@ struct AccumulatorTable
 class Network
 {
 public:
-    Network();
-
     void Recalculate(const BoardState& board);
 
     // return true if the incrementally updated accumulators are correct

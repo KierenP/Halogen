@@ -201,18 +201,15 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
     acc.side[side] = entry.acc.side[side];
 }
 
-Network::Network()
-{
-    for (auto& entry : table.king_bucket)
-    {
-        entry.acc = { net.hiddenBias, net.hiddenBias };
-    }
-}
-
 void Network::Recalculate(const BoardState& board)
 {
     AccumulatorStack.clear();
     AccumulatorStack.emplace_back().Recalculate(board);
+
+    for (auto& entry : table.king_bucket)
+    {
+        entry.acc = { net.hiddenBias, net.hiddenBias };
+    }
 }
 
 bool Network::Verify(const BoardState& board) const
