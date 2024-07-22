@@ -15,14 +15,14 @@ constexpr size_t OUTPUT_BUCKETS = 8;
 
 // clang-format off
 constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
-    0, 0, 1, 1, 2, 2, 3, 3,
-    4, 4, 4, 4, 5, 5, 5, 5,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
-    6, 6, 6, 6, 7, 7, 7, 7,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
 };
 // clang-format on
 
@@ -84,7 +84,7 @@ struct AccumulatorTableEntry
 // rather than initializing from scratch
 struct AccumulatorTable
 {
-    std::array<AccumulatorTableEntry, KING_BUCKET_COUNT> king_bucket = {};
+    std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
 
     void Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq);
 };

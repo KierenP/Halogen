@@ -84,6 +84,11 @@ Square MirrorVertically(Square sq)
     return static_cast<Square>(sq ^ 56);
 }
 
+Square MirrorHorizontally(Square sq)
+{
+    return static_cast<Square>(sq ^ 7);
+}
+
 int get_king_bucket(Square king_sq, Players view)
 {
     king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
@@ -93,6 +98,7 @@ int get_king_bucket(Square king_sq, Players view)
 int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
 {
     piece_sq = view == WHITE ? piece_sq : MirrorVertically(piece_sq);
+    piece_sq = GetFile(king_sq) <= FILE_D ? piece_sq : MirrorHorizontally(piece_sq);
 
     auto king_bucket = get_king_bucket(king_sq, view);
     Players relativeColor = static_cast<Players>(view != ColourOfPiece(piece));
@@ -159,7 +165,8 @@ void Accumulator::Recalculate(const BoardState& board, Players view)
 
 void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq)
 {
-    auto& entry = king_bucket[get_king_bucket(king_sq, side)];
+    // we need to keep a separate entry for when the king is on each side of the board
+    auto& entry = king_bucket[get_king_bucket(king_sq, side) + (GetFile(king_sq) <= FILE_D ? 0 : KING_BUCKET_COUNT)];
     auto& bb = side == WHITE ? entry.white_bb : entry.black_bb;
 
     for (const auto& piece : {
@@ -251,7 +258,8 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
 
     if (from_piece == Piece(KING, stm))
     {
-        if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm))
+        if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm)
+            || ((GetFile(from_sq) <= FILE_D) ^ (GetFile(to_sq) <= FILE_D)))
         {
             auto our_king = stm == WHITE ? w_king : b_king;
             auto their_king = stm == WHITE ? b_king : w_king;
