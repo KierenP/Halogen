@@ -8,6 +8,7 @@
 
 class Move;
 class Network;
+struct BoardStateInfo;
 
 /*
 
@@ -78,11 +79,13 @@ public:
     void ClearSquare(Square square);
 
     void Reset();
-    bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
+    bool InitialiseFromFen(const std::array<std::string_view, 6>& fen, BoardStateInfo& info);
     void UpdateCastleRights(Move move, Zobrist& zobrist_key);
 
-    void ApplyMove(Move move);
-    void ApplyNullMove();
+    void ApplyMove(Move move, BoardStateInfo& info);
+    void ApplyNullMove(BoardStateInfo& info);
+    void RevertMove(Move move, const BoardStateInfo& info);
+    void RevertNullMove(BoardStateInfo& info);
 
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
     MoveFlag GetMoveFlag(Square from, Square to) const;

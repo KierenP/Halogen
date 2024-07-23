@@ -91,7 +91,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
     {
         position.ApplyMove(moves[i]);
         nodeCount += Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.RevertMove(moves[i]);
     }
 
     return nodeCount;
@@ -165,7 +165,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     {
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.RevertMove(moves[i]);
         std::cout << moves[i] << ": " << ChildNodeCount << std::endl;
         nodeCount += ChildNodeCount;
     }
@@ -461,7 +461,7 @@ void Uci::process_input(std::string_view command)
         consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
-        consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
+        consume { "perft", next_token { to_int { [this](auto value) { PerftDivide(value, position, false); } } } },
         consume { "test", one_of {
             consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
             consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },

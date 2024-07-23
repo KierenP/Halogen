@@ -18,17 +18,17 @@ GameState::GameState()
 
 void GameState::ApplyMove(Move move)
 {
-    previousStates.push_back(previousStates.back());
-    MutableBoard().ApplyMove(move);
-    net.ApplyMove(previousStates[previousStates.size() - 2], previousStates[previousStates.size() - 1], move);
-    assert(net.Verify(Board()));
+    auto& ss = state_stack.emplace_back();
+    board.ApplyMove(move, ss);
+    net.ApplyMove(board, ss, move);
+    assert(net.Verify(board));
 }
 
 void GameState::ApplyMove(std::string_view strmove)
 {
     Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
     Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
-    MoveFlag flag = Board().GetMoveFlag(from, to);
+    MoveFlag flag = board.GetMoveFlag(from, to);
 
     // Promotion
     if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
@@ -44,30 +44,31 @@ void GameState::ApplyMove(std::string_view strmove)
     }
 
     ApplyMove(Move(from, to, flag));
-    net.Recalculate(Board());
+    net.Recalculate(board);
 }
 
-void GameState::RevertMove()
+void GameState::RevertMove(Move move)
 {
-    assert(previousStates.size() > 0);
+    assert(state_stack.size() > 0);
 
-    previousStates.pop_back();
+    board.RevertMove(move, state_stack.back());
+    state_stack.pop_back();
     net.UndoMove();
-    assert(net.Verify(Board()));
+    assert(net.Verify(board));
 }
 
 void GameState::ApplyNullMove()
 {
-    previousStates.push_back(previousStates.back());
-
-    MutableBoard().ApplyNullMove();
+    auto& ss = state_stack.emplace_back();
+    board.ApplyNullMove(ss);
 }
 
 void GameState::RevertNullMove()
 {
-    assert(previousStates.size() > 0);
+    assert(state_stack.size() > 0);
 
-    previousStates.pop_back();
+    board.RevertNullMove(state_stack.back());
+    state_stack.pop_back();
 }
 
 void GameState::StartingPosition()
@@ -77,9 +78,10 @@ void GameState::StartingPosition()
 
 bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
 {
-    previousStates.clear();
-    bool ret = previousStates.emplace_back().InitialiseFromFen(fen);
-    net.Recalculate(Board());
+    state_stack.clear();
+    auto& ss = state_stack.emplace_back();
+    bool ret = board.InitialiseFromFen(fen, ss);
+    net.Recalculate(board);
     return ret;
 }
 
@@ -115,28 +117,29 @@ bool GameState::InitialiseFromFen(std::string_view fen)
 
 Score GameState::GetEvaluation() const
 {
-    return net.Eval(Board());
+    return net.Eval(board);
 }
 
 bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 {
     int totalRep = 1;
-    uint64_t current = Board().GetZobristKey();
+    uint64_t current = board.GetZobristKey();
 
-    // check every second key from the back, skipping the last (current) key
-    for (int i = static_cast<int>(previousStates.size()) - 3; i >= 0; i -= 2)
+    // check every second key from the back. state_stack[i].key represents the key before applying move i, so the first
+    // key we check is 1 from the end
+    for (int i = static_cast<int>(state_stack.size()) - 2; i >= 0; i -= 2)
     {
-        if (previousStates[i].GetZobristKey() == current)
+        if (state_stack[i].key.Key() == current)
             totalRep++;
 
         if (totalRep == maxReps)
             return true; // maxReps (usually 3) reps is always a draw
-        if (totalRep == 2 && static_cast<int>(previousStates.size() - i) < distanceFromRoot)
+        if (totalRep == 2 && static_cast<int>(state_stack.size() - i) + 1 < distanceFromRoot)
             return true; // Don't allow 2 reps if its in the local search history (not part of the actual played game)
 
         // the fifty move count is reset when a irreversible move is made. As such, we can stop here
         // and know no repitition has taken place. Becuase we move by two at a time, we stop at 0 or 1.
-        if (previousStates[i].fifty_move_count <= 1)
+        if (state_stack[i].fifty_move_count <= 1)
             break;
     }
 
@@ -145,10 +148,5 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 
 const BoardState& GameState::Board() const
 {
-    return previousStates.back();
-}
-
-BoardState& GameState::MutableBoard()
-{
-    return previousStates.back();
+    return board;
 }

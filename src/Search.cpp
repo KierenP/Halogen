@@ -851,7 +851,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         Score search_score
             = search_move<pv_node>(position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves);
 
-        position.RevertMove();
+        position.RevertMove(move);
 
         if (local.aborting_search)
         {
@@ -948,7 +948,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         position.ApplyMove(move);
         auto search_score
             = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha).GetScore();
-        position.RevertMove();
+        position.RevertMove(move);
 
         if (local.aborting_search)
         {

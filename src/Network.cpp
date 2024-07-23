@@ -5,6 +5,7 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "GameState.h"
 #include "Move.h"
 #include "incbin/incbin.h"
 
@@ -302,21 +303,21 @@ bool Network::Verify(const BoardState& board) const
     return expected == AccumulatorStack.back();
 }
 
-void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move)
+void Network::ApplyMove(const BoardState& board, const BoardStateInfo& info, Move move)
 {
     auto& acc = AccumulatorStack.emplace_back(AccumulatorStack.back());
 
-    auto stm = prev_move_board.stm;
+    // move has already been applied to board
+    auto stm = !board.stm;
     auto from_sq = move.GetFrom();
     auto to_sq = move.GetTo();
-    auto from_piece = prev_move_board.GetSquare(from_sq);
-    auto to_piece = post_move_board.GetSquare(to_sq);
-    auto cap_piece = prev_move_board.GetSquare(to_sq);
+    auto target_piece = board.GetSquare(to_sq);
+    auto cap_piece = info.captured_piece;
 
-    auto w_king = post_move_board.GetKing(WHITE);
-    auto b_king = post_move_board.GetKing(BLACK);
+    auto w_king = board.GetKing(WHITE);
+    auto b_king = board.GetKing(BLACK);
 
-    if (from_piece == Piece(KING, stm))
+    if (target_piece == Piece(KING, stm) || move.IsCastle())
     {
         if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm)
             || ((GetFile(from_sq) <= FILE_D) ^ (GetFile(to_sq) <= FILE_D)))
@@ -325,7 +326,7 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
             auto their_king = stm == WHITE ? b_king : w_king;
 
             // king bucket has changed -> recalculate that side's accumulator
-            table.Recalculate(acc, post_move_board, stm, our_king);
+            table.Recalculate(acc, board, stm, our_king);
 
             // incrementally update the other side's accumulator
             if (move.IsCastle())
@@ -337,17 +338,17 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
                 Square rook_end
                     = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-                acc.Add2Sub2({ their_king, king_end, from_piece }, { their_king, rook_end, cap_piece },
-                    { their_king, king_start, from_piece }, { their_king, rook_start, cap_piece }, !stm);
+                acc.Add2Sub2({ their_king, king_end, Piece(KING, stm) }, { their_king, rook_end, Piece(ROOK, stm) },
+                    { their_king, king_start, Piece(KING, stm) }, { their_king, rook_start, Piece(ROOK, stm) }, !stm);
             }
             else if (move.IsCapture())
             {
-                acc.Add1Sub2({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece },
+                acc.Add1Sub2({ their_king, to_sq, Piece(KING, stm) }, { their_king, from_sq, Piece(KING, stm) },
                     { their_king, to_sq, cap_piece }, !stm);
             }
             else
             {
-                acc.Add1Sub1({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece }, !stm);
+                acc.Add1Sub1({ their_king, to_sq, Piece(KING, stm) }, { their_king, from_sq, Piece(KING, stm) }, !stm);
             }
         }
         else if (move.IsCastle())
@@ -359,44 +360,44 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
             Square rook_end
                 = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-            acc.Add2Sub2({ w_king, b_king, king_end, from_piece }, { w_king, b_king, rook_end, cap_piece },
-                { w_king, b_king, king_start, from_piece }, { w_king, b_king, rook_start, cap_piece });
+            acc.Add2Sub2({ w_king, b_king, king_end, Piece(KING, stm) }, { w_king, b_king, rook_end, Piece(ROOK, stm) },
+                { w_king, b_king, king_start, Piece(KING, stm) }, { w_king, b_king, rook_start, Piece(ROOK, stm) });
         }
         else if (move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            acc.Add1Sub2({ w_king, b_king, to_sq, Piece(KING, stm) }, { w_king, b_king, from_sq, Piece(KING, stm) },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, Piece(KING, stm) }, { w_king, b_king, from_sq, Piece(KING, stm) });
         }
     }
     else
     {
         if (move.IsPromotion() && move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece },
+            acc.Add1Sub2({ w_king, b_king, to_sq, target_piece }, { w_king, b_king, from_sq, Piece(PAWN, stm) },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else if (move.IsPromotion())
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, target_piece }, { w_king, b_king, from_sq, Piece(PAWN, stm) });
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
             auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            acc.Add1Sub2({ w_king, b_king, to_sq, target_piece }, { w_king, b_king, from_sq, target_piece },
                 { w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) });
         }
         else if (move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            acc.Add1Sub2({ w_king, b_king, to_sq, target_piece }, { w_king, b_king, from_sq, target_piece },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, target_piece }, { w_king, b_king, from_sq, target_piece });
         }
     }
 }

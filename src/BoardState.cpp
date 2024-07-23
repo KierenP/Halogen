@@ -1,6 +1,7 @@
 #include "BoardState.h"
 
 #include "BitBoardDefine.h"
+#include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
@@ -28,7 +29,7 @@ void BoardState::Reset()
     key.Recalculate(*this);
 }
 
-bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
+bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen, BoardStateInfo& info)
 {
     Reset();
 
@@ -138,6 +139,12 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 
     RecalculateWhiteBlackBoards();
     key.Recalculate(*this);
+
+    info.key = key;
+    info.en_passant = en_passant;
+    info.castle_squares = castle_squares;
+    info.fifty_move_count = fifty_move_count;
+
     return true;
 }
 
@@ -315,12 +322,22 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     os << "half_turn_count: " << b.half_turn_count << "\n";
     os << "stm: " << b.stm << "\n";
     os << "castle_squares: " << b.castle_squares << "\n";
+    os << "key: " << b.key.Key() << "\n";
 
     return os;
 }
 
-void BoardState::ApplyMove(Move move)
+void BoardState::ApplyMove(Move move, BoardStateInfo& info)
 {
+    info.key = key;
+    info.en_passant = en_passant;
+    info.castle_squares = castle_squares;
+    info.fifty_move_count = fifty_move_count;
+    if (move.IsCapture())
+    {
+        info.captured_piece = GetSquare(move.GetTo());
+    }
+
     key.ToggleSTM();
 
     // undo the previous ep square
@@ -328,8 +345,6 @@ void BoardState::ApplyMove(Move move)
         key.ToggleEnpassant(GetFile(en_passant));
 
     en_passant = N_SQUARES;
-
-    auto old_castle_squares = castle_squares;
     UpdateCastleRights(move, key);
 
     switch (move.GetFlag())
@@ -376,7 +391,7 @@ void BoardState::ApplyMove(Move move)
     {
         Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
-        Square rook_start = LSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
         ClearSquareAndUpdate(king_start);
@@ -390,7 +405,7 @@ void BoardState::ApplyMove(Move move)
     {
         Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
-        Square rook_start = MSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
         ClearSquareAndUpdate(king_start);
@@ -406,7 +421,7 @@ void BoardState::ApplyMove(Move move)
         ClearSquareAndUpdate(move.GetFrom());
         break;
     case EN_PASSANT:
-        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()));
+        SetSquareAndUpdate(move.GetTo(), Piece(PAWN, stm));
         ClearSquareAndUpdate(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
         ClearSquareAndUpdate(move.GetFrom());
         break;
@@ -461,8 +476,13 @@ void BoardState::ApplyMove(Move move)
     assert(key.Verify(*this));
 }
 
-void BoardState::ApplyNullMove()
+void BoardState::ApplyNullMove(BoardStateInfo& info)
 {
+    info.key = key;
+    info.en_passant = en_passant;
+    info.castle_squares = castle_squares;
+    info.fifty_move_count = fifty_move_count;
+
     key.ToggleSTM();
 
     // undo the previous ep square
@@ -472,6 +492,96 @@ void BoardState::ApplyNullMove()
     en_passant = N_SQUARES;
     fifty_move_count++;
     half_turn_count += 1;
+    stm = !stm;
+
+    assert(key.Verify(*this));
+}
+
+void BoardState::RevertMove(Move move, const BoardStateInfo& info)
+{
+    key = info.key;
+    en_passant = info.en_passant;
+    castle_squares = info.castle_squares;
+    fifty_move_count = info.fifty_move_count;
+    half_turn_count -= 1;
+    stm = !stm;
+
+    switch (move.GetFlag())
+    {
+    case QUIET:
+        SetSquare(move.GetFrom(), GetSquare(move.GetTo()));
+        ClearSquare(move.GetTo());
+        break;
+    case PAWN_DOUBLE_MOVE:
+    {
+        SetSquare(move.GetFrom(), Piece(PAWN, stm));
+        ClearSquare(move.GetTo());
+        break;
+    }
+    case A_SIDE_CASTLE:
+    {
+        Square king_start = move.GetFrom();
+        Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
+        Square rook_start = move.GetTo();
+        Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
+
+        ClearSquare(king_end);
+        ClearSquare(rook_end);
+        SetSquare(king_start, Piece(KING, stm));
+        SetSquare(rook_start, Piece(ROOK, stm));
+        break;
+    }
+    case H_SIDE_CASTLE:
+    {
+        Square king_start = move.GetFrom();
+        Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
+        Square rook_start = move.GetTo();
+        Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
+
+        ClearSquare(king_end);
+        ClearSquare(rook_end);
+        SetSquare(king_start, Piece(KING, stm));
+        SetSquare(rook_start, Piece(ROOK, stm));
+        break;
+    }
+    case CAPTURE:
+        SetSquare(move.GetFrom(), GetSquare(move.GetTo()));
+        ClearSquare(move.GetTo());
+        SetSquare(move.GetTo(), info.captured_piece);
+        break;
+    case EN_PASSANT:
+        SetSquare(move.GetFrom(), Piece(PAWN, stm));
+        ClearSquare(move.GetTo());
+        SetSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), Piece(PAWN, !stm));
+        break;
+    case KNIGHT_PROMOTION:
+    case BISHOP_PROMOTION:
+    case ROOK_PROMOTION:
+    case QUEEN_PROMOTION:
+        SetSquare(move.GetFrom(), Piece(PAWN, stm));
+        ClearSquare(move.GetTo());
+        break;
+    case KNIGHT_PROMOTION_CAPTURE:
+    case BISHOP_PROMOTION_CAPTURE:
+    case ROOK_PROMOTION_CAPTURE:
+    case QUEEN_PROMOTION_CAPTURE:
+        SetSquare(move.GetFrom(), Piece(PAWN, stm));
+        ClearSquare(move.GetTo());
+        SetSquare(move.GetTo(), info.captured_piece);
+        break;
+    default:
+        assert(0);
+    }
+
+    assert(key.Verify(*this));
+}
+
+void BoardState::RevertNullMove(BoardStateInfo& info)
+{
+    key = info.key;
+    en_passant = info.en_passant;
+    fifty_move_count = info.fifty_move_count;
+    half_turn_count -= 1;
     stm = !stm;
 
     assert(key.Verify(*this));

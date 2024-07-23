@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "Move.h"
 #include "Score.h"
 
@@ -33,6 +34,7 @@ constexpr size_t KING_BUCKET_COUNT = []()
 }();
 
 class BoardState;
+struct BoardStateInfo;
 
 // represents a single input on one accumulator side
 struct Input
@@ -109,7 +111,7 @@ public:
     // calculates starting from the first hidden layer and skips input -> hidden
     Score Eval(const BoardState& board) const;
 
-    void ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move);
+    void ApplyMove(const BoardState& board, const BoardStateInfo& info, Move move);
     void UndoMove();
 
 private:
