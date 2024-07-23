@@ -139,6 +139,66 @@ void Accumulator::SubInput(const Input& input, Players view)
     }
 }
 
+void Accumulator::Add1Sub1(const InputPair& add1, const InputPair& sub1)
+{
+    Add1Sub1({ add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
+    Add1Sub1({ add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
+}
+
+void Accumulator::Add1Sub1(const Input& add1, const Input& sub1, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        side[view][j] += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j];
+    }
+}
+
+void Accumulator::Add1Sub2(const InputPair& add1, const InputPair& sub1, const InputPair& sub2)
+{
+    Add1Sub2({ add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
+        { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
+    Add1Sub2({ add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
+        { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
+}
+
+void Accumulator::Add1Sub2(const Input& add1, const Input& sub1, const Input& sub2, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        side[view][j]
+            += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j] - net.hiddenWeights[sub2_index][j];
+    }
+}
+
+void Accumulator::Add2Sub2(const InputPair& add1, const InputPair& add2, const InputPair& sub1, const InputPair& sub2)
+{
+    Add2Sub2({ add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
+        { sub1.w_king, sub1.piece_sq, sub1.piece }, { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
+    Add2Sub2({ add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
+        { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
+}
+
+void Accumulator::Add2Sub2(const Input& add1, const Input& add2, const Input& sub1, const Input& sub2, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        side[view][j] += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
+            + net.hiddenWeights[add2_index][j] - net.hiddenWeights[sub2_index][j];
+    }
+}
+
 void Accumulator::Recalculate(const BoardState& board)
 {
     Recalculate(board, WHITE);
@@ -277,21 +337,17 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
                 Square rook_end
                     = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-                acc.AddInput({ their_king, king_end, from_piece }, !stm);
-                acc.SubInput({ their_king, king_start, from_piece }, !stm);
-                acc.AddInput({ their_king, rook_end, cap_piece }, !stm);
-                acc.SubInput({ their_king, rook_start, cap_piece }, !stm);
+                acc.Add2Sub2({ their_king, king_end, from_piece }, { their_king, rook_end, cap_piece },
+                    { their_king, king_start, from_piece }, { their_king, rook_start, cap_piece }, !stm);
             }
             else if (move.IsCapture())
             {
-                acc.AddInput({ their_king, to_sq, from_piece }, !stm);
-                acc.SubInput({ their_king, from_sq, from_piece }, !stm);
-                acc.SubInput({ their_king, to_sq, cap_piece }, !stm);
+                acc.Add1Sub2({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece },
+                    { their_king, to_sq, cap_piece }, !stm);
             }
             else
             {
-                acc.AddInput({ their_king, to_sq, from_piece }, !stm);
-                acc.SubInput({ their_king, from_sq, from_piece }, !stm);
+                acc.Add1Sub1({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece }, !stm);
             }
         }
         else if (move.IsCastle())
@@ -303,53 +359,44 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
             Square rook_end
                 = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-            acc.AddInput({ w_king, b_king, king_end, from_piece });
-            acc.SubInput({ w_king, b_king, king_start, from_piece });
-            acc.AddInput({ w_king, b_king, rook_end, cap_piece });
-            acc.SubInput({ w_king, b_king, rook_start, cap_piece });
+            acc.Add2Sub2({ w_king, b_king, king_end, from_piece }, { w_king, b_king, rook_end, cap_piece },
+                { w_king, b_king, king_start, from_piece }, { w_king, b_king, rook_start, cap_piece });
         }
         else if (move.IsCapture())
         {
-            acc.AddInput({ w_king, b_king, to_sq, from_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
-            acc.SubInput({ w_king, b_king, to_sq, cap_piece });
+            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+                { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.AddInput({ w_king, b_king, to_sq, from_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
         }
     }
     else
     {
         if (move.IsPromotion() && move.IsCapture())
         {
-            acc.AddInput({ w_king, b_king, to_sq, to_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
-            acc.SubInput({ w_king, b_king, to_sq, cap_piece });
+            acc.Add1Sub2({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece },
+                { w_king, b_king, to_sq, cap_piece });
         }
         else if (move.IsPromotion())
         {
-            acc.AddInput({ w_king, b_king, to_sq, to_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece });
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
             auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
-            acc.AddInput({ w_king, b_king, to_sq, from_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
-            acc.SubInput({ w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) });
+            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+                { w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) });
         }
         else if (move.IsCapture())
         {
-            acc.AddInput({ w_king, b_king, to_sq, from_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
-            acc.SubInput({ w_king, b_king, to_sq, cap_piece });
+            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+                { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.AddInput({ w_king, b_king, to_sq, from_piece });
-            acc.SubInput({ w_king, b_king, from_sq, from_piece });
+            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
         }
     }
 }

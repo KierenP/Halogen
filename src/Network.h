@@ -69,6 +69,15 @@ struct Accumulator
 
     void Recalculate(const BoardState& board);
     void Recalculate(const BoardState& board, Players side);
+
+    void Add1Sub1(const InputPair& add1, const InputPair& sub1);
+    void Add1Sub1(const Input& add1, const Input& sub1, Players side);
+
+    void Add1Sub2(const InputPair& add1, const InputPair& sub1, const InputPair& sub2);
+    void Add1Sub2(const Input& add1, const Input& sub1, const Input& sub2, Players side);
+
+    void Add2Sub2(const InputPair& add1, const InputPair& add2, const InputPair& sub1, const InputPair& sub2);
+    void Add2Sub2(const Input& add1, const Input& add2, const Input& sub1, const Input& sub2, Players side);
 };
 
 // An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
