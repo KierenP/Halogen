@@ -1,4 +1,5 @@
 #include "Move.h"
+#include "BitBoardDefine.h"
 
 #include <assert.h>
 #include <iostream>
@@ -61,6 +62,15 @@ std::ostream& operator<<(std::ostream& os, Move m)
     Square from = m.GetFrom();
     Square to = m.GetTo();
 
+    if (m.GetFlag() == A_SIDE_CASTLE)
+    {
+        to = GetPosition(FILE_C, GetRank(to));
+    }
+    else if (m.GetFlag() == H_SIDE_CASTLE)
+    {
+        to = GetPosition(FILE_G, GetRank(to));
+    }
+
     buffer[0] = 'a' + GetFile(from);
     buffer[1] = '1' + GetRank(from);
     buffer[2] = 'a' + GetFile(to);
@@ -97,4 +107,31 @@ void Move::SetFlag(MoveFlag flag)
 {
     data &= ~FLAG_MASK;
     data |= flag << 12;
+}
+
+std::ostream& operator<<(std::ostream& os, format_chess960 f)
+{
+    const auto& m = f.m;
+    char buffer[6] = {};
+    Square from = m.GetFrom();
+    Square to = m.GetTo();
+
+    buffer[0] = 'a' + GetFile(from);
+    buffer[1] = '1' + GetRank(from);
+    buffer[2] = 'a' + GetFile(to);
+    buffer[3] = '1' + GetRank(to);
+
+    if (f.m.IsPromotion())
+    {
+        if (m.GetFlag() == KNIGHT_PROMOTION || m.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+            buffer[4] = 'n';
+        else if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+            buffer[4] = 'b';
+        else if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            buffer[4] = 'q';
+        else if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
+            buffer[4] = 'r';
+    }
+
+    return os << buffer;
 }
