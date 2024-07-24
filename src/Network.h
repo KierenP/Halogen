@@ -69,15 +69,6 @@ struct Accumulator
 
     void Recalculate(const BoardState& board);
     void Recalculate(const BoardState& board, Players side);
-
-    void Add1Sub1(const InputPair& add1, const InputPair& sub1);
-    void Add1Sub1(const Input& add1, const Input& sub1, Players side);
-
-    void Add1Sub2(const InputPair& add1, const InputPair& sub1, const InputPair& sub2);
-    void Add1Sub2(const Input& add1, const Input& sub1, const Input& sub2, Players side);
-
-    void Add2Sub2(const InputPair& add1, const InputPair& add2, const InputPair& sub1, const InputPair& sub2);
-    void Add2Sub2(const Input& add1, const Input& add2, const Input& sub1, const Input& sub2, Players side);
 };
 
 // An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
@@ -101,18 +92,21 @@ struct AccumulatorTable
 class Network
 {
 public:
-    void Recalculate(const BoardState& board);
+    // called at the root of search
+    void Reset(const BoardState& board, Accumulator& acc);
 
-    // return true if the incrementally updated accumulators are correct
-    bool Verify(const BoardState& board) const;
+    // return true if the incrementally updated accumulator is correct
+    static bool Verify(const BoardState& board, const Accumulator& acc);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    Score Eval(const BoardState& board) const;
+    static Score Eval(const BoardState& board, const Accumulator& acc);
 
-    void ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move);
-    void UndoMove();
+    // does a full from scratch recalculation
+    static Score SlowEval(const BoardState& board);
+
+    void ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, const Accumulator& prev_acc,
+        Accumulator& next_acc, Move move);
 
 private:
-    std::vector<Accumulator> AccumulatorStack;
     AccumulatorTable table;
 };

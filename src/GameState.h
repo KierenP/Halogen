@@ -31,16 +31,13 @@ public:
     bool InitialiseFromFen(std::array<std::string_view, 6> fen);
     bool InitialiseFromFen(std::string_view fen);
 
-    Score GetEvaluation() const;
-
     bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
     const BoardState& Board() const;
+    const BoardState& PrevBoard() const;
 
 private:
     BoardState& MutableBoard();
-
-    Network net;
 
     std::vector<BoardState> previousStates;
 };

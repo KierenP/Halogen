@@ -563,7 +563,7 @@ void Uci::handle_spsa()
 void Uci::handle_eval()
 {
     std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << position.GetEvaluation() << std::endl;
+    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
 }
 
 void Uci::handle_probe()

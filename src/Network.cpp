@@ -107,6 +107,70 @@ int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j];
+    }
+}
+
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
+{
+    Add1Sub1(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
+    Add1Sub1(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
+}
+
+void Add1Sub2(
+    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
+            - net.hiddenWeights[sub2_index][j];
+    }
+}
+
+void Add1Sub2(
+    const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1, const InputPair& sub2)
+{
+    Add1Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
+        { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
+    Add1Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
+        { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
+}
+
+void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
+    const Input& sub2, Players view)
+{
+    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
+    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+
+    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
+    {
+        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
+            + net.hiddenWeights[add2_index][j] - net.hiddenWeights[sub2_index][j];
+    }
+}
+
+void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
+    const InputPair& sub1, const InputPair& sub2)
+{
+    Add2Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
+        { sub1.w_king, sub1.piece_sq, sub1.piece }, { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
+    Add2Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
+        { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
+}
+
 void Accumulator::AddInput(const InputPair& input)
 {
     AddInput({ input.w_king, input.piece_sq, input.piece }, WHITE);
@@ -136,66 +200,6 @@ void Accumulator::SubInput(const Input& input, Players view)
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
         side[view][j] -= net.hiddenWeights[side_index][j];
-    }
-}
-
-void Accumulator::Add1Sub1(const InputPair& add1, const InputPair& sub1)
-{
-    Add1Sub1({ add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
-    Add1Sub1({ add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
-}
-
-void Accumulator::Add1Sub1(const Input& add1, const Input& sub1, Players view)
-{
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        side[view][j] += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j];
-    }
-}
-
-void Accumulator::Add1Sub2(const InputPair& add1, const InputPair& sub1, const InputPair& sub2)
-{
-    Add1Sub2({ add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
-        { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add1Sub2({ add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
-        { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
-}
-
-void Accumulator::Add1Sub2(const Input& add1, const Input& sub1, const Input& sub2, Players view)
-{
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        side[view][j]
-            += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j] - net.hiddenWeights[sub2_index][j];
-    }
-}
-
-void Accumulator::Add2Sub2(const InputPair& add1, const InputPair& add2, const InputPair& sub1, const InputPair& sub2)
-{
-    Add2Sub2({ add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
-        { sub1.w_king, sub1.piece_sq, sub1.piece }, { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add2Sub2({ add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
-        { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
-}
-
-void Accumulator::Add2Sub2(const Input& add1, const Input& add2, const Input& sub1, const Input& sub2, Players view)
-{
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        side[view][j] += net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
-            + net.hiddenWeights[add2_index][j] - net.hiddenWeights[sub2_index][j];
     }
 }
 
@@ -268,10 +272,9 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
     acc.side[side] = entry.acc.side[side];
 }
 
-void Network::Recalculate(const BoardState& board)
+void Network::Reset(const BoardState& board, Accumulator& acc)
 {
-    AccumulatorStack.clear();
-    AccumulatorStack.emplace_back().Recalculate(board);
+    acc.Recalculate(board);
 
     for (auto& entry : table.king_bucket)
     {
@@ -281,7 +284,7 @@ void Network::Recalculate(const BoardState& board)
     }
 }
 
-bool Network::Verify(const BoardState& board) const
+bool Network::Verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = { net.hiddenBias, net.hiddenBias };
     auto w_king = board.GetKing(WHITE);
@@ -299,12 +302,13 @@ bool Network::Verify(const BoardState& board) const
         }
     }
 
-    return expected == AccumulatorStack.back();
+    return expected == acc;
 }
 
-void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, Move move)
+void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board,
+    const Accumulator& prev_acc, Accumulator& next_acc, Move move)
 {
-    auto& acc = AccumulatorStack.emplace_back(AccumulatorStack.back());
+    assert(Verify(prev_move_board, prev_acc));
 
     auto stm = prev_move_board.stm;
     auto from_sq = move.GetFrom();
@@ -325,7 +329,7 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
             auto their_king = stm == WHITE ? b_king : w_king;
 
             // king bucket has changed -> recalculate that side's accumulator
-            table.Recalculate(acc, post_move_board, stm, our_king);
+            table.Recalculate(next_acc, post_move_board, stm, our_king);
 
             // incrementally update the other side's accumulator
             if (move.IsCastle())
@@ -337,17 +341,18 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
                 Square rook_end
                     = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-                acc.Add2Sub2({ their_king, king_end, from_piece }, { their_king, rook_end, cap_piece },
+                Add2Sub2(prev_acc, next_acc, { their_king, king_end, from_piece }, { their_king, rook_end, cap_piece },
                     { their_king, king_start, from_piece }, { their_king, rook_start, cap_piece }, !stm);
             }
             else if (move.IsCapture())
             {
-                acc.Add1Sub2({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece },
+                Add1Sub2(prev_acc, next_acc, { their_king, to_sq, from_piece }, { their_king, from_sq, from_piece },
                     { their_king, to_sq, cap_piece }, !stm);
             }
             else
             {
-                acc.Add1Sub1({ their_king, to_sq, from_piece }, { their_king, from_sq, from_piece }, !stm);
+                Add1Sub1(
+                    prev_acc, next_acc, { their_king, to_sq, from_piece }, { their_king, from_sq, from_piece }, !stm);
             }
         }
         else if (move.IsCastle())
@@ -359,51 +364,51 @@ void Network::ApplyMove(const BoardState& prev_move_board, const BoardState& pos
             Square rook_end
                 = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-            acc.Add2Sub2({ w_king, b_king, king_end, from_piece }, { w_king, b_king, rook_end, cap_piece },
-                { w_king, b_king, king_start, from_piece }, { w_king, b_king, rook_start, cap_piece });
+            Add2Sub2(prev_acc, next_acc, { w_king, b_king, king_end, from_piece },
+                { w_king, b_king, rook_end, cap_piece }, { w_king, b_king, king_start, from_piece },
+                { w_king, b_king, rook_start, cap_piece });
         }
         else if (move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            Add1Sub2(prev_acc, next_acc, { w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
+            Add1Sub1(
+                prev_acc, next_acc, { w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
         }
     }
     else
     {
         if (move.IsPromotion() && move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece },
+            Add1Sub2(prev_acc, next_acc, { w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else if (move.IsPromotion())
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece });
+            Add1Sub1(prev_acc, next_acc, { w_king, b_king, to_sq, to_piece }, { w_king, b_king, from_sq, from_piece });
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
             auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            Add1Sub2(prev_acc, next_acc, { w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
                 { w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) });
         }
         else if (move.IsCapture())
         {
-            acc.Add1Sub2({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
+            Add1Sub2(prev_acc, next_acc, { w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece },
                 { w_king, b_king, to_sq, cap_piece });
         }
         else
         {
-            acc.Add1Sub1({ w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
+            Add1Sub1(
+                prev_acc, next_acc, { w_king, b_king, to_sq, from_piece }, { w_king, b_king, from_sq, from_piece });
         }
     }
-}
 
-void Network::UndoMove()
-{
-    AccumulatorStack.pop_back();
+    assert(Verify(post_move_board, next_acc));
 }
 
 int calculate_output_bucket(int pieces)
@@ -411,15 +416,21 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
-Score Network::Eval(const BoardState& board) const
+Score Network::Eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     int32_t output = net.outputBias[output_bucket];
-    DotProductHalves(SCReLU(AccumulatorStack.back().side[stm]), SCReLU(AccumulatorStack.back().side[!stm]),
-        net.outputWeights[output_bucket], output);
+    DotProductHalves(SCReLU(acc.side[stm]), SCReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
     output *= SCALE_FACTOR;
     output /= L1_SCALE * L2_SCALE;
     return output;
+}
+
+Score Network::SlowEval(const BoardState& board)
+{
+    Accumulator acc;
+    acc.Recalculate(board);
+    return Eval(board, acc);
 }

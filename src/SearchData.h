@@ -9,6 +9,7 @@
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "Network.h"
 #include "Score.h"
 #include "Search.h"
 #include "SearchLimits.h"
@@ -45,6 +46,8 @@ struct SearchStackState
     int nmp_verification_depth = 0;
     bool nmp_verification_root = false;
     const int distance_from_root;
+
+    Accumulator acc;
 };
 
 class SearchStack
@@ -106,6 +109,8 @@ public:
 
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;
+
+    Network net;
 };
 
 struct SearchResults

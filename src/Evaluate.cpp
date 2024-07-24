@@ -2,16 +2,16 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-#include "GameState.h"
+#include "Network.h"
 #include "Score.h"
 
 #include <algorithm>
 
 void TempoAdjustment(Score& eval);
 
-Score Evaluate(const GameState& position)
+Score Evaluate(const BoardState& board, const Accumulator& acc)
 {
-    Score eval = position.GetEvaluation();
+    Score eval = Network::Eval(board, acc);
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
