@@ -18,10 +18,7 @@ GameState::GameState()
 
 void GameState::ApplyMove(Move move)
 {
-    previousStates.push_back(previousStates.back());
-    MutableBoard().ApplyMove(move);
-    net.ApplyMove(previousStates[previousStates.size() - 2], previousStates[previousStates.size() - 1], move);
-    assert(net.Verify(Board()));
+    previousStates.emplace_back(previousStates.back()).ApplyMove(move);
 }
 
 void GameState::ApplyMove(std::string_view strmove)
@@ -44,7 +41,6 @@ void GameState::ApplyMove(std::string_view strmove)
     }
 
     ApplyMove(Move(from, to, flag));
-    net.Recalculate(Board());
 }
 
 void GameState::RevertMove()
@@ -52,8 +48,6 @@ void GameState::RevertMove()
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
-    net.UndoMove();
-    assert(net.Verify(Board()));
 }
 
 void GameState::ApplyNullMove()
@@ -78,9 +72,7 @@ void GameState::StartingPosition()
 bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
 {
     previousStates.clear();
-    bool ret = previousStates.emplace_back().InitialiseFromFen(fen);
-    net.Recalculate(Board());
-    return ret;
+    return previousStates.emplace_back().InitialiseFromFen(fen);
 }
 
 bool GameState::InitialiseFromFen(std::string_view fen)
@@ -113,11 +105,6 @@ bool GameState::InitialiseFromFen(std::string_view fen)
     return InitialiseFromFen(splitFen);
 }
 
-Score GameState::GetEvaluation() const
-{
-    return net.Eval(Board());
-}
-
 bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 {
     int totalRep = 1;
@@ -146,6 +133,11 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 const BoardState& GameState::Board() const
 {
     return previousStates.back();
+}
+
+const BoardState& GameState::PrevBoard() const
+{
+    return previousStates[previousStates.size() - 2];
 }
 
 BoardState& GameState::MutableBoard()
