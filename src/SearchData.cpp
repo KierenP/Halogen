@@ -26,6 +26,7 @@ void SearchStackState::reset()
     move = Move::Uninitialized;
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
+    acc = {};
 }
 
 const SearchStackState* SearchStack::root() const
