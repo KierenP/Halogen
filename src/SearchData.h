@@ -48,7 +48,7 @@ struct SearchStackState
     bool nmp_verification_root = false;
     const int distance_from_root;
 
-    Sided<Accumulator> acc;
+    Sided<Accumulator> acc { Accumulator { BLACK }, Accumulator { WHITE } };
 };
 
 class SearchStack

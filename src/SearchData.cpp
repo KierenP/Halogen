@@ -8,6 +8,7 @@
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "Network.h"
 #include "Score.h"
 #include "Search.h"
 #include "uci/uci.h"
@@ -26,7 +27,8 @@ void SearchStackState::reset()
     move = Move::Uninitialized;
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
-    acc = {};
+    acc[BLACK].Reset();
+    acc[WHITE].Reset();
 }
 
 const SearchStackState* SearchStack::root() const

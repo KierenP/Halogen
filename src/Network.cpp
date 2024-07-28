@@ -109,8 +109,8 @@ int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Players view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -121,9 +121,9 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
 void Add1Sub2(
     const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Players view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -135,10 +135,10 @@ void Add1Sub2(
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
     const Input& sub2, Players view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
+    const size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -147,9 +147,9 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, con
     }
 }
 
-void Accumulator::AddInput(const Input& input, Players view)
+void Accumulator::AddInput(const Input& input)
 {
-    size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
+    const size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -157,9 +157,9 @@ void Accumulator::AddInput(const Input& input, Players view)
     }
 }
 
-void Accumulator::SubInput(const Input& input, Players view)
+void Accumulator::SubInput(const Input& input)
 {
-    size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
+    const size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -167,24 +167,35 @@ void Accumulator::SubInput(const Input& input, Players view)
     }
 }
 
-void Accumulator::Recalculate(const BoardState& board_, Players view)
+void Accumulator::Recalculate(const BoardState& board_)
 {
     values = net.hiddenBias;
-    auto king = board_.GetKing(view);
+    const auto king = board_.GetKing(view);
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        Pieces piece = static_cast<Pieces>(i);
+        const Pieces piece = static_cast<Pieces>(i);
         uint64_t bb = board_.GetPieceBB(piece);
 
         while (bb)
         {
             Square sq = LSBpop(bb);
-            AddInput({ king, sq, piece }, view);
+            AddInput({ king, sq, piece });
         }
     }
 
     acc_is_valid = true;
+}
+
+void Accumulator::Reset()
+{
+    acc_is_valid = false;
+    requires_recalculation = false;
+    adds = {};
+    n_adds = 0;
+    subs = {};
+    n_subs = 0;
+    board = {};
 }
 
 void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Players view, Square king_sq)
@@ -207,7 +218,7 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
              BLACK_KING,
          })
     {
-        auto new_bb = board.GetPieceBB(piece);
+        const auto new_bb = board.GetPieceBB(piece);
         auto& old_bb = entry.bb[piece];
 
         auto to_add = new_bb & ~old_bb;
@@ -215,14 +226,14 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
 
         while (to_add)
         {
-            auto sq = LSBpop(to_add);
-            entry.acc.AddInput({ king_sq, sq, piece }, view);
+            const auto sq = LSBpop(to_add);
+            entry.acc.AddInput({ king_sq, sq, piece });
         }
 
         while (to_sub)
         {
-            auto sq = LSBpop(to_sub);
-            entry.acc.SubInput({ king_sq, sq, piece }, view);
+            const auto sq = LSBpop(to_sub);
+            entry.acc.SubInput({ king_sq, sq, piece });
         }
 
         old_bb = new_bb;
@@ -235,7 +246,7 @@ void Network::Reset(const BoardState& board, Sided<Accumulator>& acc)
 {
     for (const auto& side : { WHITE, BLACK })
     {
-        acc[side].Recalculate(board, side);
+        acc[side].Recalculate(board);
 
         for (auto& entry : table.side[side])
         {
@@ -249,19 +260,19 @@ bool Network::Verify(const BoardState& board, const Sided<Accumulator>& acc)
 {
     for (const auto& side : { WHITE, BLACK })
     {
-        Accumulator expected = {};
+        Accumulator expected { side };
         expected.values = net.hiddenBias;
-        auto king = board.GetKing(side);
+        const auto king = board.GetKing(side);
 
         for (int i = 0; i < N_PIECES; i++)
         {
-            Pieces piece = static_cast<Pieces>(i);
+            const Pieces piece = static_cast<Pieces>(i);
             uint64_t bb = board.GetPieceBB(piece);
 
             while (bb)
             {
-                Square sq = LSBpop(bb);
-                expected.AddInput({ king, sq, piece }, side);
+                const Square sq = LSBpop(bb);
+                expected.AddInput({ king, sq, piece });
             }
         }
 
@@ -294,16 +305,14 @@ void Network::StoreLazyUpdates(
         return;
     }
 
-    auto stm = prev_move_board.stm;
-    auto from_sq = move.GetFrom();
-    auto to_sq = move.GetTo();
-    auto from_piece = prev_move_board.GetSquare(from_sq);
-    auto to_piece = post_move_board.GetSquare(to_sq);
-    auto cap_piece = prev_move_board.GetSquare(to_sq);
+    const auto stm = prev_move_board.stm;
+    const auto from_sq = move.GetFrom();
+    const auto to_sq = move.GetTo();
+    const auto from_piece = prev_move_board.GetSquare(from_sq);
+    const auto to_piece = post_move_board.GetSquare(to_sq);
+    const auto cap_piece = prev_move_board.GetSquare(to_sq);
 
-    std::array<Square, N_PLAYERS> king = {};
-    king[WHITE] = post_move_board.GetKing(WHITE);
-    king[BLACK] = post_move_board.GetKing(BLACK);
+    const std::array<Square, N_PLAYERS> king = { post_move_board.GetKing(BLACK), post_move_board.GetKing(WHITE) };
 
     if (from_piece == Piece(KING, stm))
     {
@@ -315,11 +324,11 @@ void Network::StoreLazyUpdates(
 
             if (move.IsCastle())
             {
-                Square king_start = move.GetFrom();
-                Square king_end
+                const Square king_start = move.GetFrom();
+                const Square king_end
                     = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-                Square rook_start = move.GetTo();
-                Square rook_end
+                const Square rook_start = move.GetTo();
+                const Square rook_end
                     = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
                 acc[!stm].n_adds = 2;
@@ -353,11 +362,11 @@ void Network::StoreLazyUpdates(
         }
         else if (move.IsCastle())
         {
-            Square king_start = move.GetFrom();
-            Square king_end
+            const Square king_start = move.GetFrom();
+            const Square king_end
                 = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-            Square rook_start = move.GetTo();
-            Square rook_end
+            const Square rook_start = move.GetTo();
+            const Square rook_end
                 = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
             for (const auto& side : { WHITE, BLACK })
@@ -427,7 +436,7 @@ void Network::StoreLazyUpdates(
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
-            auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
+            const auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
 
             for (const auto& side : { WHITE, BLACK })
             {
@@ -510,8 +519,8 @@ int calculate_output_bucket(int pieces)
 
 Score Network::Eval(const BoardState& board, const Sided<Accumulator>& acc)
 {
-    auto stm = board.stm;
-    auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
+    const auto stm = board.stm;
+    const auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     int32_t output = net.outputBias[output_bucket];
     DotProductHalves(SCReLU(acc[stm].values), SCReLU(acc[!stm].values), net.outputWeights[output_bucket], output);
@@ -522,8 +531,8 @@ Score Network::Eval(const BoardState& board, const Sided<Accumulator>& acc)
 
 Score Network::SlowEval(const BoardState& board)
 {
-    Sided<Accumulator> acc;
-    acc[WHITE].Recalculate(board, WHITE);
-    acc[BLACK].Recalculate(board, BLACK);
+    Sided<Accumulator> acc { Accumulator { BLACK }, Accumulator { WHITE } };
+    acc[WHITE].Recalculate(board);
+    acc[BLACK].Recalculate(board);
     return Eval(board, acc);
 }

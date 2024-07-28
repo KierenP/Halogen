@@ -6,6 +6,9 @@ template <typename T>
 class Sided
 {
 public:
+    Sided(const T& black, const T& white)
+        : data({ black, white }) {};
+
     constexpr const T& operator[](Players p) const
     {
         return data[p];

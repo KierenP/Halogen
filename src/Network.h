@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 #include <vector>
 
 #include "BitBoardDefine.h"
@@ -47,6 +48,11 @@ struct Input
 // stored the accumulated first layer values for one side
 struct Accumulator
 {
+    explicit Accumulator(Players side)
+        : view(side)
+    {
+    }
+
     alignas(64) std::array<int16_t, HIDDEN_NEURONS> values = {};
 
     bool operator==(const Accumulator& rhs) const
@@ -59,9 +65,13 @@ struct Accumulator
         return !(*this == rhs);
     }
 
-    void AddInput(const Input& input, Players view);
-    void SubInput(const Input& input, Players view);
-    void Recalculate(const BoardState& board, Players view);
+    void AddInput(const Input& input);
+    void SubInput(const Input& input);
+    void Recalculate(const BoardState& board);
+
+    const Players view;
+
+    void Reset();
 
     // data for lazy updates
     bool acc_is_valid = false;
@@ -70,7 +80,7 @@ struct Accumulator
     size_t n_adds = 0;
     std::array<Input, 2> subs = {};
     size_t n_subs = 0;
-    BoardState board;
+    BoardState board = {};
 };
 
 // An accumulator, along with the bitboards that resulted in the accumulated values.
@@ -84,9 +94,17 @@ struct AccumulatorTableEntry
 // rather than initializing from scratch
 struct AccumulatorTable
 {
-    std::array<std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2>, N_PLAYERS> side = {};
+    std::array<std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2>, N_PLAYERS> side
+        = { generate(BLACK, std::make_index_sequence<KING_BUCKET_COUNT * 2>()),
+              generate(WHITE, std::make_index_sequence<KING_BUCKET_COUNT * 2>()) };
 
     void Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq);
+
+    template <size_t... N>
+    std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> generate(Players view, std::index_sequence<N...>)
+    {
+        return { AccumulatorTableEntry { Accumulator { (static_cast<void>(N), view) } }... };
+    }
 };
 
 class Network
