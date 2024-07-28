@@ -16,6 +16,7 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "atomic.h"
+#include "util.h"
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
@@ -47,7 +48,7 @@ struct SearchStackState
     bool nmp_verification_root = false;
     const int distance_from_root;
 
-    Accumulator acc;
+    Sided<Accumulator> acc;
 };
 
 class SearchStack

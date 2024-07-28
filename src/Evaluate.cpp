@@ -14,17 +14,24 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 {
     // apply lazy updates to accumulator stack
     //
-    // we assume the root position always has a valid accumulator, and use pointer arithmatic to get there
-    auto* current = ss;
-    while (!current->acc.acc_is_valid)
+    // we assume the root position always has a valid accumulator, and use pointer arithmatic to get there. We iterate
+    // backwards until we find a valid accumulator, or the first accumulator which needs recalculating
+    for (const auto& side : { WHITE, BLACK })
     {
-        current--;
-    }
+        auto* current = ss;
+        if (!current->acc[side].acc_is_valid)
+        {
+            while (!(current - 1)->acc[side].acc_is_valid && !current->acc[side].requires_recalculation)
+            {
+                current--;
+            }
 
-    while (current + 1 <= ss)
-    {
-        net.ApplyLazyUpdates(current->acc, (current + 1)->acc);
-        current++;
+            while (current <= ss)
+            {
+                net.ApplyLazyUpdates((current - 1)->acc[side], current->acc[side], side);
+                current++;
+            }
+        }
     }
 
     assert(Network::Verify(board, ss->acc));
