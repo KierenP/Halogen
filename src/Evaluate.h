@@ -6,7 +6,7 @@ class BoardState;
 class GameState;
 class Network;
 struct Accumulator;
-class SearchStackState;
+struct SearchStackState;
 
 bool DeadPosition(const BoardState& board);
 Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net);
