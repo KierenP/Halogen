@@ -435,7 +435,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 
     ss->move = Move::Uninitialized;
     position.ApplyNullMove();
-    (ss + 1)->acc = ss->acc;
+    local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
         = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1)
                .GetScore();
@@ -639,8 +639,9 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 
 // { raw, adjusted }
 template <bool is_qsearch>
-std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, TTEntry* const tt_entry,
-    const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth, int distance_from_root)
+std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchLocalState& local,
+    TTEntry* const tt_entry, const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth,
+    int distance_from_root)
 {
     if (tt_entry)
     {
@@ -651,7 +652,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
                 return tt_eval;
             }
             {
-                const auto eval = Evaluate(position.Board(), ss->acc);
+                const auto eval = Evaluate(position.Board(), ss, local.net);
                 tt_entry->static_eval = eval;
                 return eval;
             }
@@ -672,7 +673,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     }
     else
     {
-        const auto static_eval = Evaluate(position.Board(), ss->acc);
+        const auto static_eval = Evaluate(position.Board(), ss, local.net);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
         return { static_eval, static_eval };
@@ -733,8 +734,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
-    const auto [raw_eval, eval]
-        = get_search_eval<false>(position, ss, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const auto [raw_eval, eval] = get_search_eval<false>(
+        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -842,7 +843,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         ss->move = move;
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
-        local.net.ApplyMove(position.PrevBoard(), position.Board(), ss->acc, (ss + 1)->acc, move);
+        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 14: Check extensions
         if (IsInCheck(position.Board()))
@@ -915,7 +916,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     }
 
     const auto [raw_eval, eval]
-        = get_search_eval<true>(position, ss, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+        = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
@@ -951,7 +952,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         ss->move = move;
         position.ApplyMove(move);
         // TODO: prefetch
-        local.net.ApplyMove(position.PrevBoard(), position.Board(), ss->acc, (ss + 1)->acc, move);
+        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
         auto search_score
             = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha).GetScore();
         position.RevertMove();

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "Move.h"
 #include "Score.h"
 
@@ -69,6 +70,16 @@ struct Accumulator
 
     void Recalculate(const BoardState& board);
     void Recalculate(const BoardState& board, Players side);
+
+    // data for lazy updates
+    bool acc_is_valid = false;
+    bool white_requires_recalculation = false;
+    bool black_requires_recalculation = false;
+    std::array<InputPair, 2> adds = {};
+    size_t n_adds = 0;
+    std::array<InputPair, 2> subs = {};
+    size_t n_subs = 0;
+    BoardState board;
 };
 
 // An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
@@ -104,8 +115,10 @@ public:
     // does a full from scratch recalculation
     static Score SlowEval(const BoardState& board);
 
-    void ApplyMove(const BoardState& prev_move_board, const BoardState& post_move_board, const Accumulator& prev_acc,
-        Accumulator& next_acc, Move move);
+    void StoreLazyUpdates(
+        const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
+
+    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
     AccumulatorTable table;
