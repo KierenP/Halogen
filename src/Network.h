@@ -98,7 +98,7 @@ struct AccumulatorTable
         = { generate(BLACK, std::make_index_sequence<KING_BUCKET_COUNT * 2>()),
               generate(WHITE, std::make_index_sequence<KING_BUCKET_COUNT * 2>()) };
 
-    void Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq);
+    void Recalculate(Accumulator& acc, const BoardState& board, Square king_sq);
 
     template <size_t... N>
     std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> generate(Players view, std::index_sequence<N...>)
@@ -125,7 +125,7 @@ public:
     void StoreLazyUpdates(
         const BoardState& prev_move_board, const BoardState& post_move_board, Sided<Accumulator>& acc, Move move);
 
-    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc, Players view);
+    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
     AccumulatorTable table;

@@ -28,7 +28,7 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 
             while (current <= ss)
             {
-                net.ApplyLazyUpdates((current - 1)->acc[side], current->acc[side], side);
+                net.ApplyLazyUpdates((current - 1)->acc[side], current->acc[side]);
                 current++;
             }
         }

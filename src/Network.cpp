@@ -107,10 +107,10 @@ int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Players view)
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1)
 {
-    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, next.view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, next.view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -118,12 +118,11 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
     }
 }
 
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Players view)
+void Add1Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2)
 {
-    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, next.view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, next.view);
+    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, next.view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -133,12 +132,12 @@ void Add1Sub2(
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
-    const Input& sub2, Players view)
+    const Input& sub2)
 {
-    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    const size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
-    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    const size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, next.view);
+    const size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, next.view);
+    const size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, next.view);
+    const size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, next.view);
 
     for (size_t j = 0; j < HIDDEN_NEURONS; j++)
     {
@@ -198,9 +197,10 @@ void Accumulator::Reset()
     board = {};
 }
 
-void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Players view, Square king_sq)
+void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Square king_sq)
 {
     // we need to keep a separate entry for when the king is on each side of the board
+    auto& view = acc.view;
     auto& entry = side[view][get_king_bucket(king_sq, view) + (GetFile(king_sq) <= FILE_D ? 0 : KING_BUCKET_COUNT)];
 
     for (const auto& piece : {
@@ -477,7 +477,7 @@ void Network::StoreLazyUpdates(
     }
 }
 
-void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc, Players view)
+void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc)
 {
     if (next_acc.acc_is_valid)
     {
@@ -486,21 +486,21 @@ void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_ac
 
     if (next_acc.requires_recalculation)
     {
-        table.Recalculate(next_acc, next_acc.board, view, next_acc.board.GetKing(view));
+        table.Recalculate(next_acc, next_acc.board, next_acc.board.GetKing(next_acc.view));
     }
     else
     {
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
-            Add1Sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], view);
+            Add1Sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0]);
         }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
         {
-            Add1Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1], view);
+            Add1Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1]);
         }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
         {
-            Add2Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1], view);
+            Add2Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1]);
         }
         else if (next_acc.n_adds == 0 && next_acc.n_subs == 0)
         {
