@@ -577,9 +577,10 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
-    int32_t output = net.outputBias[output_bucket];
+    int32_t output = 0;
     DotProductSCReLU(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
-    return int64_t(output) * SCALE_FACTOR / L1_SCALE / L1_SCALE / L2_SCALE;
+    return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
+        / L2_SCALE;
 }
 
 Score Network::SlowEval(const BoardState& board)
