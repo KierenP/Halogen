@@ -9,7 +9,6 @@
 #include "BoardState.h"
 #include "Move.h"
 #include "Score.h"
-#include "util.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 768;
@@ -111,19 +110,19 @@ class Network
 {
 public:
     // called at the root of search (for each side)
-    void Reset(const BoardState& board, Sided<Accumulator>& acc);
+    void Reset(const BoardState& board, std::array<Accumulator, N_PLAYERS>& acc);
 
     // return true if the incrementally updated accumulator is correct
-    static bool Verify(const BoardState& board, const Sided<Accumulator>& acc);
+    static bool Verify(const BoardState& board, const std::array<Accumulator, N_PLAYERS>& acc);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    static Score Eval(const BoardState& board, const Sided<Accumulator>& acc);
+    static Score Eval(const BoardState& board, const std::array<Accumulator, N_PLAYERS>& acc);
 
     // does a full from scratch recalculation
     static Score SlowEval(const BoardState& board);
 
-    void StoreLazyUpdates(
-        const BoardState& prev_move_board, const BoardState& post_move_board, Sided<Accumulator>& acc, Move move);
+    void StoreLazyUpdates(const BoardState& prev_move_board, const BoardState& post_move_board,
+        std::array<Accumulator, N_PLAYERS>& acc, Move move);
 
     void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
 

@@ -242,7 +242,7 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Sq
     acc.values = entry.acc.values;
 }
 
-void Network::Reset(const BoardState& board, Sided<Accumulator>& acc)
+void Network::Reset(const BoardState& board, std::array<Accumulator, N_PLAYERS>& acc)
 {
     for (const auto& side : { WHITE, BLACK })
     {
@@ -256,7 +256,7 @@ void Network::Reset(const BoardState& board, Sided<Accumulator>& acc)
     }
 }
 
-bool Network::Verify(const BoardState& board, const Sided<Accumulator>& acc)
+bool Network::Verify(const BoardState& board, const std::array<Accumulator, N_PLAYERS>& acc)
 {
     for (const auto& side : { WHITE, BLACK })
     {
@@ -285,8 +285,8 @@ bool Network::Verify(const BoardState& board, const Sided<Accumulator>& acc)
     return true;
 }
 
-void Network::StoreLazyUpdates(
-    const BoardState& prev_move_board, const BoardState& post_move_board, Sided<Accumulator>& acc, Move move)
+void Network::StoreLazyUpdates(const BoardState& prev_move_board, const BoardState& post_move_board,
+    std::array<Accumulator, N_PLAYERS>& acc, Move move)
 {
     for (const auto& side : { WHITE, BLACK })
     {
@@ -517,7 +517,7 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
-Score Network::Eval(const BoardState& board, const Sided<Accumulator>& acc)
+Score Network::Eval(const BoardState& board, const std::array<Accumulator, N_PLAYERS>& acc)
 {
     const auto stm = board.stm;
     const auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
@@ -531,7 +531,7 @@ Score Network::Eval(const BoardState& board, const Sided<Accumulator>& acc)
 
 Score Network::SlowEval(const BoardState& board)
 {
-    Sided<Accumulator> acc { Accumulator { BLACK }, Accumulator { WHITE } };
+    std::array<Accumulator, N_PLAYERS> acc { Accumulator { BLACK }, Accumulator { WHITE } };
     acc[WHITE].Recalculate(board);
     acc[BLACK].Recalculate(board);
     return Eval(board, acc);
