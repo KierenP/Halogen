@@ -24,7 +24,7 @@ struct alignas(64) network
     return true;
 }();
 
-constexpr int16_t L1_SCALE = 181;
+constexpr int16_t L1_SCALE = 255;
 constexpr int16_t L2_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
@@ -65,17 +65,23 @@ template <typename T, size_t SIZE>
 }
 
 template <typename T_out, typename T_in, size_t SIZE>
-void DotProductHalves(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
+void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
     const std::array<T_in, SIZE * 2>& weights, T_out& output)
 {
+    // This uses the lizard-SCReLU trick: Given stm[i] < 255, and weights[i] < 126, we want to compute stm[i] * stm[i] *
+    // weights[i] to do the SCReLU dot product. By first doing stm[i] * weights[i], the result fits within the int16_t
+    // type. Then multiply by stm[i] and accumulate.
+
     for (size_t i = 0; i < SIZE; i++)
     {
-        output += stm[i] * weights[i];
+        int16_t partial = stm[i] * weights[i];
+        output += partial * stm[i];
     }
 
     for (size_t i = 0; i < SIZE; i++)
     {
-        output += other[i] * weights[i + SIZE];
+        int16_t partial = other[i] * weights[i + SIZE];
+        output += partial * other[i];
     }
 }
 
@@ -571,11 +577,10 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
-    int32_t output = net.outputBias[output_bucket];
-    DotProductHalves(SCReLU(acc.side[stm]), SCReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
-    output *= SCALE_FACTOR;
-    output /= L1_SCALE * L2_SCALE;
-    return output;
+    int32_t output = 0;
+    DotProductSCReLU(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
+    return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
+        / L2_SCALE;
 }
 
 Score Network::SlowEval(const BoardState& board)
