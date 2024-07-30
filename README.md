@@ -8,18 +8,18 @@ Halogen is a powerful, world-class program capable of analysing and playing ches
 -----------------------------------
 **Details**
 
-Written in c++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
+Written in C++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
 
 Halogen development is currently supported on the [Openbench](http://chess.grantnet.us/) framework. OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source Sequential Probability Ratio Testing (SPRT) framework designed for self-play testing of engines. OpenBench makes use of distributed computing, allowing anyone to contribute CPU time to further the development of some of the world's most powerful engines.
 
-Since Halogen 7, Halogen has used a neural network for its evaluation function. Halogen makes use of an incrementally updated architecture, inspired by the new NNUE networks in [Stockfish](https://github.com/official-stockfish/Stockfish). Halogen features an innovative neural network implementation with an abstract architecture that allows networks to be dropped in and replaced at will. Networks are trained through a private, from scratch C implementation created in collaboration with Andrew Grant.
+Since 2020, Halogen has used a neural network for its evaluation function. Halogen makes use of an incrementally updated architecture, inspired by the new NNUE networks in [Stockfish](https://github.com/official-stockfish/Stockfish). The neural networks were trained using a novel application of Temporaral Difference learning[^1], and then fine tuned using supervised learning on data generated through self-play games using the Bullet trainer[^2].
 
 -----------------------------------
- 
 **How to use**
 
-Halogen is not a stand alone application and should be used with any popular chess gui that supports the [UCI](http://wbec-ridderkerk.nl/html/UCIProtocol.html) protocol. [Arena](http://www.playwitharena.de/) chess is a good choice.
+Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice.
 
 -----------------------------------
 
-Halogen is currently ranked 19th in the international CCRL 40/15 leaderboards [Link](https://ccrl.chessdom.com/ccrl/4040/cgi/compare_engines.cgi?class=4-CPU+engines&print=Rating+list&print=Results+table&print=LOS+table&table_size=12&cross_tables_for_best_versions_only=1)
+[^1]: https://github.com/KierenP/Halogen/pull/517
+[^2]: https://github.com/jw1912/bullet
