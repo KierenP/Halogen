@@ -40,12 +40,15 @@ template <typename T, size_t SIZE>
 }
 
 template <typename T, size_t SIZE>
-[[nodiscard]] std::array<T, SIZE> CReLU(const std::array<T, SIZE>& source)
+[[nodiscard]] std::array<T, SIZE * 2> HalfCReLU(const std::array<T, SIZE>& input1, const std::array<T, SIZE>& input2)
 {
-    std::array<T, SIZE> ret;
+    std::array<T, SIZE * 2> ret;
 
     for (size_t i = 0; i < SIZE; i++)
-        ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
+    {
+        ret[i] = std::clamp(input1[i], T(0), T(L1_SCALE));
+        ret[i + SIZE] = std::clamp(input2[i], T(0), T(L1_SCALE));
+    }
 
     return ret;
 }
@@ -65,8 +68,7 @@ template <typename T, size_t SIZE>
 }
 
 template <typename T_out, typename T_in, size_t SIZE>
-void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
-    const std::array<T_in, SIZE * 2>& weights, T_out& output)
+void DotProductSCReLU(const std::array<T_in, SIZE>& input, const std::array<T_in, SIZE>& weights, T_out& output)
 {
     // This uses the lizard-SCReLU trick: Given stm[i] < 255, and weights[i] < 126, we want to compute stm[i] * stm[i] *
     // weights[i] to do the SCReLU dot product. By first doing stm[i] * weights[i], the result fits within the int16_t
@@ -74,14 +76,8 @@ void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 
     for (size_t i = 0; i < SIZE; i++)
     {
-        int16_t partial = stm[i] * weights[i];
-        output += partial * stm[i];
-    }
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        int16_t partial = other[i] * weights[i + SIZE];
-        output += partial * other[i];
+        int16_t partial = input[i] * weights[i];
+        output += partial * input[i];
     }
 }
 
@@ -578,7 +574,7 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     int32_t output = 0;
-    DotProductSCReLU(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
+    DotProductSCReLU(HalfCReLU(acc.side[stm], acc.side[!stm]), net.outputWeights[output_bucket], output);
     return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
         / L2_SCALE;
 }
