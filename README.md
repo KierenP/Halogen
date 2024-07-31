@@ -1,6 +1,5 @@
 # Halogen Chess engine
 
------------------------------------
 **About**
 
 Halogen is a powerful, world-class program capable of analysing and playing chess. It currently is ranked within the top 30 chess engines of all time.
@@ -17,9 +16,17 @@ Since 2020, Halogen has used a neural network for its evaluation function. Halog
 -----------------------------------
 **How to use**
 
-Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice.
+Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice. You can find prebuilt binaries from the last major release in the releases tab, or build Halogen yourself. Halogen is officially supported on the following platforms:
 
------------------------------------
+| Platform          | Build |
+|-------------------|-------|
+| Ubuntu            |       |
+| Windows (Mingw64) |       |
+| Windows (Clang64) |       |
+
+To build Halogen, simply use the included makefile in the `src` directory:
+
+> $ make
 
 [^1]: https://github.com/KierenP/Halogen/pull/517
 [^2]: https://github.com/jw1912/bullet
