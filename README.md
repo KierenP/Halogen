@@ -20,7 +20,7 @@ Halogen is not a stand alone application and should be used with any popular che
 
 | Platform          | Build |
 |-------------------|-------|
-| Ubuntu            |       |
+| Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
 | Windows (Mingw64) |       |
 | Windows (Clang64) |       |
 

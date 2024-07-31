@@ -1,4 +1,4 @@
-name: Cross-platform Check
+name: Windows (Clang64)
 
 on: 
   push:
@@ -13,7 +13,6 @@ jobs:
     strategy:
       matrix:
         config: 
-          - { system: mingw64, package: x86_64-gcc, compiler: g++ }
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
         # runners only seem to support up to avx2-pext
         target: [pgo, legacy, sse4, avx, avx2, avx2-pext]
