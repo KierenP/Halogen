@@ -1,0 +1,41 @@
+name: Ubuntu
+
+# Test that we get a deterministic 'bench' result across a variety of compilers and platforms. We try to use a older 
+# compiler here, to ensure we maintain a reasonable level of compatibility, and make it easy for people to build 
+# Halogen
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  Ubuntu:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        compiler: [g++-10, clang++-10]
+        # runners only seem to support up to avx2-pext
+        target: [legacy, sse4, avx, avx2, avx2-pext]
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+        # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+        # This ensures we can extract the expected bench from the commit message.
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Create build
+        run: |
+         cd src
+         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+
+      - name: Check bench matches commit message
+        run: |
+          cd bin
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
+          
