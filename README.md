@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/github/license/KierenP/Halogen?style=for-the-badge)](https://github.com/KierenP/Halogen/blob/main/LICENSE)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/KierenP/Halogen?style=for-the-badge)](https://github.com/KierenP/Halogen/releases/latest)
 [![Commits since latest release](https://img.shields.io/github/commits-since/KierenP/Halogen/latest?style=for-the-badge)](https://github.com/KierenP/Halogen/commits/main)
+![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/KierenP/Halogen/Halogen11-windows-popcnt.exe?style=for-the-badge)
 
 </div>
 
