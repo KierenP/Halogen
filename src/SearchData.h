@@ -47,7 +47,7 @@ struct SearchStackState
     bool nmp_verification_root = false;
     const int distance_from_root;
 
-    Accumulator acc;
+    std::array<Accumulator, N_PLAYERS> acc;
 };
 
 class SearchStack
