@@ -257,6 +257,24 @@ release:
 
 #----------------------------------------------------------------------------------------------------------------------
 
+# Copied from the Stockfish makefile
+$(EVALFILE):
+	@ mkdir -p $(dir $@)
+	@echo "net: $(EVALFILE)"
+	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
+	@if test -f "$(EVALFILE)"; then \
+        echo "Already available."; \
+	else \
+		if [ "x$(curl_or_wget)" = "x" ]; then \
+			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
+		else \
+			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
+			echo "Download complete."; \
+		fi; \
+	fi;
+
+#----------------------------------------------------------------------------------------------------------------------
+
 # The final build step.
 .PHONY: binary
 binary: $(OBJS)
