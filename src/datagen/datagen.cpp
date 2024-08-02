@@ -64,7 +64,7 @@ void info_thread()
             last_black_wins = black_wins;
         }
 
-        if (now - start >= 24h * 9)
+        if (fens > 3'000'000)
         {
             stop = true;
         }
