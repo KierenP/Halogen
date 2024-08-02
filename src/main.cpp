@@ -3,7 +3,7 @@
 #include "Network.h"
 #include "uci/uci.h"
 
-constexpr std::string_view version = "11.30.0";
+constexpr std::string_view version = "12.0.0";
 
 void PrintVersion()
 {
@@ -36,7 +36,6 @@ int main(int argc, char* argv[])
 {
     PrintVersion();
     std::ios::sync_with_stdio(false);
-    Network::Init();
     Uci uci { version };
 
     // read any command line input as a regular UCI instruction

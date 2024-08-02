@@ -5,52 +5,121 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
+#include "Move.h"
 #include "Score.h"
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
-constexpr size_t HIDDEN_NEURONS = 512;
+constexpr size_t HIDDEN_NEURONS = 1024;
+
+constexpr size_t OUTPUT_BUCKETS = 8;
+
+// clang-format off
+constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
+    0, 0, 1, 1, 1, 1, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+    3, 3, 3, 3, 3, 3, 3, 3, 
+};
+// clang-format on
+
+constexpr size_t KING_BUCKET_COUNT = []()
+{
+    auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
+    return *max - *min + 1;
+}();
 
 class BoardState;
 
-struct HalfAccumulator
+// represents a single input on one accumulator side
+struct Input
 {
-    alignas(32) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side;
+    Square king_sq;
+    Square piece_sq;
+    Pieces piece;
+};
 
-    bool operator==(const HalfAccumulator& rhs) const
+// represents a pair of inputs (one on each accumulator side)
+struct InputPair
+{
+    Square w_king;
+    Square b_king;
+    Square piece_sq;
+    Pieces piece;
+};
+
+// stored the accumulated first layer values for each side
+struct Accumulator
+{
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side = {};
+
+    bool operator==(const Accumulator& rhs) const
     {
         return side == rhs.side;
     }
+
+    void AddInput(const InputPair& input);
+    void AddInput(const Input& input, Players side);
+
+    void SubInput(const InputPair& input);
+    void SubInput(const Input& input, Players side);
+
+    void Recalculate(const BoardState& board);
+    void Recalculate(const BoardState& board, Players side);
+
+    // data for lazy updates
+    bool acc_is_valid = false;
+    bool white_requires_recalculation = false;
+    bool black_requires_recalculation = false;
+    std::array<InputPair, 2> adds = {};
+    size_t n_adds = 0;
+    std::array<InputPair, 2> subs = {};
+    size_t n_subs = 0;
+    BoardState board;
+};
+
+// An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
+// cached in each side might be different, so white_bb != black_bb
+struct AccumulatorTableEntry
+{
+    Accumulator acc;
+    std::array<uint64_t, N_PIECES> white_bb = {};
+    std::array<uint64_t, N_PIECES> black_bb = {};
+};
+
+// A cache of accumulators for each king bucket. When we want to recalculate the accumulator, we use this as a base
+// rather than initializing from scratch
+struct AccumulatorTable
+{
+    std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
+
+    void Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq);
 };
 
 class Network
 {
 public:
-    void Recalculate(const BoardState& board);
+    // called at the root of search
+    void Reset(const BoardState& board, Accumulator& acc);
 
-    // return true if the incrementally updated accumulators are correct
-    bool Verify(const BoardState& board) const;
+    // return true if the incrementally updated accumulator is correct
+    static bool Verify(const BoardState& board, const Accumulator& acc);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    Score Eval(Players stm) const;
+    static Score Eval(const BoardState& board, const Accumulator& acc);
 
-    // call and then update inputs as required
-    void AccumulatorPush();
+    // does a full from scratch recalculation
+    static Score SlowEval(const BoardState& board);
 
-    void AddInput(Square square, Pieces piece);
-    void RemoveInput(Square square, Pieces piece);
+    void StoreLazyUpdates(
+        const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
 
-    // do undo the last move
-    void AccumulatorPop();
-
-    static void Init();
+    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
-    static int index(Square square, Pieces piece, Players view);
-
-    std::vector<HalfAccumulator> AccumulatorStack;
-
-    alignas(32) static std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS> hiddenWeights;
-    alignas(32) static std::array<int16_t, HIDDEN_NEURONS> hiddenBias;
-    alignas(32) static std::array<int16_t, HIDDEN_NEURONS * 2> outputWeights;
-    alignas(32) static int16_t outputBias;
+    AccumulatorTable table;
 };

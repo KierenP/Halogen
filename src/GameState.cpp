@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <iterator>
 #include <sstream>
 
 #include "Move.h"
@@ -12,15 +13,12 @@
 
 GameState::GameState()
 {
-    Reset();
     StartingPosition();
 }
 
 void GameState::ApplyMove(Move move)
 {
-    net.AccumulatorPush();
-    previousStates.push_back(previousStates.back());
-    MutableBoard().ApplyMove(move, net);
+    previousStates.emplace_back(previousStates.back()).ApplyMove(move);
 }
 
 void GameState::ApplyMove(std::string_view strmove)
@@ -43,7 +41,6 @@ void GameState::ApplyMove(std::string_view strmove)
     }
 
     ApplyMove(Move(from, to, flag));
-    net.Recalculate(Board());
 }
 
 void GameState::RevertMove()
@@ -51,7 +48,6 @@ void GameState::RevertMove()
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
-    net.AccumulatorPop();
 }
 
 void GameState::ApplyNullMove()
@@ -75,10 +71,8 @@ void GameState::StartingPosition()
 
 bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
 {
-    Reset();
-    bool ret = MutableBoard().InitialiseFromFen(fen);
-    net.Recalculate(Board());
-    return ret;
+    previousStates.clear();
+    return previousStates.emplace_back().InitialiseFromFen(fen);
 }
 
 bool GameState::InitialiseFromFen(std::string_view fen)
@@ -111,17 +105,6 @@ bool GameState::InitialiseFromFen(std::string_view fen)
     return InitialiseFromFen(splitFen);
 }
 
-void GameState::Reset()
-{
-    previousStates = { BoardState() };
-    net.Recalculate(Board());
-}
-
-Score GameState::GetEvaluation() const
-{
-    return net.Eval(Board().stm);
-}
-
 bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 {
     int totalRep = 1;
@@ -150,6 +133,11 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 const BoardState& GameState::Board() const
 {
     return previousStates.back();
+}
+
+const BoardState& GameState::PrevBoard() const
+{
+    return previousStates[previousStates.size() - 2];
 }
 
 BoardState& GameState::MutableBoard()

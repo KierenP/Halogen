@@ -433,8 +433,8 @@ void Uci::process_input(std::string_view command)
     // clang-format off
     auto uci_processor = sequence {
     one_of {
-        consume { "ucinewgame", invoke { [this]{ handle_ucinewgame(); } } },
         consume { "uci", invoke { [this]{ handle_uci(); } } },
+        consume { "ucinewgame", invoke { [this]{ handle_ucinewgame(); } } },
         consume { "isready", invoke { [this]{ handle_isready(); } } },
         consume { "position", one_of {
             consume { "fen", sequence {
@@ -463,7 +463,7 @@ void Uci::process_input(std::string_view command)
         consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
-        consume { "perft", next_token { to_int { [this](auto value) { Perft(value, position, false); } } } },
+        consume { "perft", next_token { to_int { [this](auto value) { PerftDivide(value, position, false); } } } },
         consume { "test", one_of {
             consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
             consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
@@ -530,7 +530,14 @@ void Uci::print_search_info(const SearchResults& data, bool final)
 
     for (const auto& move : data.pv)
     {
-        std::cout << move << ' ';
+        if (shared.chess_960)
+        {
+            std::cout << format_chess960 { move } << ' ';
+        }
+        else
+        {
+            std::cout << move << ' ';
+        }
     }
 
     std::cout << std::endl;
@@ -540,7 +547,14 @@ void Uci::print_bestmove(Move move)
 {
     if (output_level > OutputLevel::None)
     {
-        std::cout << "bestmove " << move << std::endl;
+        if (shared.chess_960)
+        {
+            std::cout << "bestmove " << format_chess960 { move } << std::endl;
+        }
+        else
+        {
+            std::cout << "bestmove " << move << std::endl;
+        }
     }
 }
 
@@ -557,7 +571,7 @@ void Uci::handle_spsa()
 void Uci::handle_eval()
 {
     std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << position.GetEvaluation() << std::endl;
+    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
 }
 
 void Uci::handle_probe()

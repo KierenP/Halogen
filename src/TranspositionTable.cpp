@@ -84,8 +84,7 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
         if (entry.key == key16)
         {
             // reset the age of this entry to mark it as not old
-            TTMeta meta = entry.meta;
-            entry.meta = TTMeta { meta.type, get_generation(half_turn_count, distanceFromRoot) };
+            entry.meta.generation = get_generation(half_turn_count, distanceFromRoot);
             return &entry;
         }
     }
@@ -102,8 +101,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
     for (int i = 0; i < 1000; i++)
     {
         auto& entry = table[i / TTBucket::size][i % TTBucket::size];
-        TTMeta meta = entry.meta;
-        if (entry.key != EMPTY && meta.generation == current_generation)
+        if (entry.key != EMPTY && entry.meta.generation == current_generation)
         {
             count++;
         }
