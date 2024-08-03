@@ -13,16 +13,28 @@
 #include "Zobrist.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& position_, const SearchStackState* ss_, SearchLocalState& local_)
+    const GameState& position_, const SearchStackState* ss_, SearchLocalState& local_, Move tt_move)
     : position(position_)
     , local(local_)
     , ss(ss_)
-    , stage(Stage::GEN_MOVES)
+    , tt_move(tt_move)
+    , stage(Stage::TT_MOVE)
 {
 }
 
 bool StagedMoveGenerator::Next(Move& move)
 {
+    if (stage == Stage::TT_MOVE)
+    {
+        stage = Stage::GEN_MOVES;
+
+        if (MoveIsLegal(position.Board(), tt_move))
+        {
+            move = tt_move;
+            return true;
+        }
+    }
+
     if (stage == Stage::GEN_MOVES)
     {
         stage = Stage::GIVE_MOVES;

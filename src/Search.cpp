@@ -725,7 +725,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     int seen_moves = 0;
     bool noLegalMoves = true;
 
-    StagedMoveGenerator gen(position, ss, local);
+    StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
