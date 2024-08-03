@@ -11,8 +11,10 @@ class GameState;
 enum class Stage
 {
     TT_MOVE,
-    GEN_MOVES,
-    GIVE_MOVES
+    GEN_LOUD,
+    GIVE_LOUD,
+    GEN_QUIET,
+    GIVE_QUIET,
 };
 
 // Encapsulation of staged move generation. To loop through moves:
@@ -38,7 +40,8 @@ private:
     const GameState& position;
     SearchLocalState& local;
     const SearchStackState* ss;
-    ExtendedMoveList moves;
+    ExtendedMoveList loud_moves;
+    ExtendedMoveList quiet_moves;
     const Move tt_move;
 
     // Data uses for keeping track of internal values

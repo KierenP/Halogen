@@ -26,7 +26,7 @@ bool StagedMoveGenerator::Next(Move& move)
 {
     if (stage == Stage::TT_MOVE)
     {
-        stage = Stage::GEN_MOVES;
+        stage = Stage::GEN_LOUD;
 
         if (MoveIsLegal(position.Board(), tt_move))
         {
@@ -35,23 +35,46 @@ bool StagedMoveGenerator::Next(Move& move)
         }
     }
 
-    if (stage == Stage::GEN_MOVES)
+    if (stage == Stage::GEN_LOUD)
     {
-        stage = Stage::GIVE_MOVES;
-        LegalMoves(position.Board(), moves);
-        current = moves.begin();
+        stage = Stage::GIVE_LOUD;
+        QuiescenceMoves(position.Board(), loud_moves);
+        current = loud_moves.begin();
     }
 
-    if (stage == Stage::GIVE_MOVES)
+    if (stage == Stage::GIVE_LOUD)
     {
-        if (current == moves.end())
+        if (current == loud_moves.end())
+        {
+            stage = Stage::GEN_QUIET;
+        }
+        else
+        {
+            move = current->move;
+            current++;
+            return true;
+        }
+    }
+
+    if (stage == Stage::GEN_QUIET)
+    {
+        stage = Stage::GIVE_QUIET;
+        QuietMoves(position.Board(), quiet_moves);
+        current = quiet_moves.begin();
+    }
+
+    if (stage == Stage::GIVE_QUIET)
+    {
+        if (current == quiet_moves.end())
         {
             return false;
         }
-
-        move = current->move;
-        current++;
-        return true;
+        else
+        {
+            move = current->move;
+            current++;
+            return true;
+        }
     }
 
     assert(false);
