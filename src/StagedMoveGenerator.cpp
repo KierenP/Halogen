@@ -40,6 +40,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GIVE_LOUD;
         QuiescenceMoves(position.Board(), loud_moves);
+        OrderLoudMoves();
         current = loud_moves.begin();
     }
 
@@ -93,6 +94,19 @@ void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adju
             break;
 
         local.quiet_history.add(position, ss, m.move, negative_adjustment);
+    }
+}
+
+void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+{
+    local.loud_history.add(position, ss, move, positive_adjustment);
+
+    for (auto const& m : loud_moves)
+    {
+        if (m.move == move)
+            break;
+
+        local.loud_history.add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -197,20 +211,6 @@ void StagedMoveGenerator::OrderQuietMoves()
             swap_erase(i);
             i--;
         }
-
-        // Killers
-        /*else if (moves[i].move == Killer1)
-        {
-            swap_erase(i);
-            i--;
-        }
-
-        else if (moves[i].move == Killer2)
-        {
-            swap_erase(i);
-            i--;
-        }*/
-
         else
         {
             quiet_moves[i].score = local.quiet_history.get(position, ss, quiet_moves[i].move);
@@ -218,4 +218,29 @@ void StagedMoveGenerator::OrderQuietMoves()
     }
 
     selection_sort(quiet_moves);
+}
+
+void StagedMoveGenerator::OrderLoudMoves()
+{
+    auto swap_erase = [this](size_t i)
+    {
+        std::iter_swap(loud_moves.begin() + i, loud_moves.end() - 1);
+        loud_moves.pop_back();
+    };
+
+    for (size_t i = 0; i < loud_moves.size(); i++)
+    {
+        // Hash move
+        if (loud_moves[i].move == tt_move)
+        {
+            swap_erase(i);
+            i--;
+        }
+        else
+        {
+            loud_moves[i].score = local.loud_history.get(position, ss, loud_moves[i].move);
+        }
+    }
+
+    selection_sort(loud_moves);
 }

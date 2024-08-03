@@ -2,6 +2,7 @@
 
 #include "BitBoardDefine.h"
 #include "GameState.h"
+#include "SearchStack.h"
 
 #include <cstdint>
 #include <tuple>
@@ -42,12 +43,27 @@ struct ButterflyHistory : HistoryTable<ButterflyHistory>
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
-struct CountermoveHistory : HistoryTable<CountermoveHistory>
+template <size_t depth>
+struct CountermoveHistory : HistoryTable<CountermoveHistory<depth>>
 {
     static constexpr int max_value = 16384;
     static constexpr int scale = 64;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+    int16_t* get(const GameState& position, const SearchStackState* ss, Move move)
+    {
+        const auto& counter_move = (ss - depth)->move;
+        const auto& counter_piece = (ss - depth)->moved_piece;
+
+        if (counter_move == Move::Uninitialized || counter_piece == N_PIECES)
+        {
+            return nullptr;
+        }
+
+        const auto& stm = position.Board().stm;
+        const auto curr_piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+
+        return &table[stm][counter_piece][counter_move.GetTo()][curr_piece][move.GetTo()];
+    }
 };
 
 template <typename... Tables>
@@ -81,3 +97,4 @@ private:
 };
 
 using QuietHistory = History<ButterflyHistory>;
+using LoudHistory = History<CountermoveHistory<1>>;

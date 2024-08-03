@@ -19,6 +19,7 @@ SRCS := \
 	Search.cpp \
 	SearchData.cpp \
 	SearchLimits.cpp \
+	SearchStack.cpp \
 	StagedMoveGenerator.cpp \
 	TimeManager.cpp \
 	TranspositionTable.cpp \

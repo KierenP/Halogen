@@ -434,6 +434,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / 245);
 
     ss->move = Move::Uninitialized;
+    ss->moved_piece = N_PIECES;
     position.ApplyNullMove();
     local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
@@ -560,6 +561,14 @@ void AddQuietHistory(const StagedMoveGenerator& gen, const Move& move, int depth
     gen.AdjustQuietHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
 }
 
+void AddLoudHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
+{
+    if (!move.IsCapture() && !move.IsPromotion())
+        return;
+
+    gen.AdjustLoudHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+}
+
 template <bool pv_node>
 bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const int depth, const Score search_score,
     const Move search_move, Score& best_score, Move& best_move, Score& alpha, const Score beta)
@@ -582,6 +591,7 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
             {
                 AddKiller(search_move, ss->killers);
                 AddQuietHistory(gen, search_move, depth);
+                AddLoudHistory(gen, search_move, depth);
                 return true;
             }
         }
@@ -770,6 +780,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         seen_moves++;
 
         ss->move = move;
+        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);

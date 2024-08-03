@@ -35,9 +35,11 @@ public:
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
     void AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
 
 private:
     void OrderQuietMoves();
+    void OrderLoudMoves();
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
