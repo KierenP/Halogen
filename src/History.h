@@ -3,7 +3,6 @@
 #include "BitBoardDefine.h"
 #include "GameState.h"
 
-#include <array>
 #include <cstdint>
 #include <tuple>
 
@@ -14,6 +13,7 @@ struct HistoryTable
 {
     static constexpr void adjust_history(int16_t& entry, int change)
     {
+        change = std::clamp(change, -Derived::max_value / Derived::scale, Derived::max_value / Derived::scale);
         entry += Derived::scale * change - entry * abs(change) * Derived::scale / Derived::max_value;
     }
 

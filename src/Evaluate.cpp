@@ -1,45 +1,51 @@
-#include "EvalNet.h"
+#include "Evaluate.h"
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-#include "EvalCache.h"
-#include "GameState.h"
+#include "Network.h"
 #include "Score.h"
+#include "SearchData.h"
 
 #include <algorithm>
 
 void TempoAdjustment(Score& eval);
 
-Score EvaluatePositionNet(const GameState& position, EvalCacheTable& evalTable)
+Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 {
-    Score eval = 0;
-
-    if (!evalTable.GetEntry(position.Board().GetZobristKey(), eval))
+    // apply lazy updates to accumulator stack
+    //
+    // we assume the root position always has a valid accumulator, and use pointer arithmatic to get there
+    auto* current = ss;
+    while (!current->acc.acc_is_valid)
     {
-        eval = position.GetEvaluation();
-
-        TempoAdjustment(eval);
-
-        evalTable.AddEntry(position.Board().GetZobristKey(), eval);
+        current--;
     }
 
+    while (current + 1 <= ss)
+    {
+        net.ApplyLazyUpdates(current->acc, (current + 1)->acc);
+        current++;
+    }
+
+    assert(Network::Verify(board, ss->acc));
+    Score eval = Network::Eval(board, ss->acc);
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
 bool DeadPosition(const BoardState& board)
 {
-    if ((board.GetPieceBB(WHITE_PAWN)) != 0)
+    if ((board.GetPieceBB<WHITE_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB(WHITE_ROOK)) != 0)
+    if ((board.GetPieceBB<WHITE_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB(WHITE_QUEEN)) != 0)
+    if ((board.GetPieceBB<WHITE_QUEEN>()) != 0)
         return false;
 
-    if ((board.GetPieceBB(BLACK_PAWN)) != 0)
+    if ((board.GetPieceBB<BLACK_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB(BLACK_ROOK)) != 0)
+    if ((board.GetPieceBB<BLACK_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB(BLACK_QUEEN)) != 0)
+    if ((board.GetPieceBB<BLACK_QUEEN>()) != 0)
         return false;
 
     /*
@@ -52,10 +58,10 @@ bool DeadPosition(const BoardState& board)
     */
 
     // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = GetBitCount(board.GetPieceBB(WHITE_BISHOP));
-    int BlackBishops = GetBitCount(board.GetPieceBB(BLACK_BISHOP));
-    int WhiteKnights = GetBitCount(board.GetPieceBB(WHITE_KNIGHT));
-    int BlackKnights = GetBitCount(board.GetPieceBB(BLACK_KNIGHT));
+    int WhiteBishops = GetBitCount(board.GetPieceBB<WHITE_BISHOP>());
+    int BlackBishops = GetBitCount(board.GetPieceBB<BLACK_BISHOP>());
+    int WhiteKnights = GetBitCount(board.GetPieceBB<WHITE_KNIGHT>());
+    int BlackKnights = GetBitCount(board.GetPieceBB<BLACK_KNIGHT>());
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 

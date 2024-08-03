@@ -3,38 +3,45 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <iterator>
-#include <optional>
+#include <memory>
+
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
 
 #include "BitBoardDefine.h"
 #include "TTEntry.h"
 
-uint64_t TranspositionTable::HashFunction(const uint64_t& key) const
+TranspositionTable::~TranspositionTable()
 {
-    return key & hash_mask_;
+    Deallocate();
 }
 
 void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
-    int distanceFromRoot, EntryType Cutoff)
+    int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
 {
-    size_t hash = HashFunction(ZobristKey);
     score = convert_to_tt_score(score, distanceFromRoot);
-
-    // Keep in mind age from each generation goes up so lower (generally) means older
-    int8_t current_generation = get_generation(Turncount, distanceFromRoot);
+    auto key16 = uint16_t(ZobristKey);
+    auto current_generation = get_generation(Turncount, distanceFromRoot);
     std::array<int8_t, TTBucket::size> scores = {};
-    auto& bucket = table[hash];
+    auto& bucket = GetBucket(ZobristKey);
 
     const auto write_to_entry = [&](auto& entry)
     {
-        entry.move = best;
-        entry.key = ZobristKey;
+        // in q-search we want to avoid overwriting the best move if we don't have one
+        if (best != Move::Uninitialized || entry.key != key16)
+        {
+            entry.move = best;
+        }
+
+        entry.key = key16;
         entry.score = score;
+        entry.static_eval = static_eval;
         entry.depth = Depth;
-        entry.cutoff = Cutoff;
-        entry.generation = current_generation;
+        entry.meta = TTMeta { Cutoff, current_generation };
     };
 
     for (size_t i = 0; i < TTBucket::size; i++)
@@ -47,19 +54,20 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         }
 
         // avoid having multiple entries in a bucket for the same position.
-        if (bucket[i].key == ZobristKey)
+        if (bucket[i].key == key16)
         {
             // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
             // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
-            if (Cutoff == EntryType::EXACT || Depth >= bucket[i].depth - 3)
+            if (Cutoff == SearchResultType::EXACT || Depth >= bucket[i].depth - 3)
             {
                 write_to_entry(bucket[i]);
             }
             return;
         }
 
-        int8_t age_diff = current_generation - bucket[i].generation;
-        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + HALF_MOVE_MODULO);
+        TTMeta meta = bucket[i].meta;
+        int8_t age_diff = (int8_t)current_generation - (int8_t)meta.generation;
+        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
@@ -67,15 +75,16 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
 
 TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
-    size_t index = HashFunction(key);
+    auto& bucket = GetBucket(key);
+    auto key16 = uint16_t(key);
 
     // we return by copy here because other threads are reading/writing to this same table.
-    for (auto& entry : table[index])
+    for (auto& entry : bucket)
     {
-        if (entry.key == key)
+        if (entry.key == key16)
         {
             // reset the age of this entry to mark it as not old
-            entry.generation = get_generation(half_turn_count, distanceFromRoot);
+            entry.meta.generation = get_generation(half_turn_count, distanceFromRoot);
             return &entry;
         }
     }
@@ -86,11 +95,16 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
 int TranspositionTable::GetCapacity(int halfmove) const
 {
     int count = 0;
+    int8_t current_generation = get_generation(halfmove, 0);
 
-    for (int i = 0; i < 1000; i++) // 1000 chosen specifically, because result needs to be 'per mill'
+    // 1000 chosen specifically, because result needs to be 'per mill'
+    for (int i = 0; i < 1000; i++)
     {
-        if (table[i / TTBucket::size][i % TTBucket::size].generation == get_generation(halfmove, 0))
+        auto& entry = table[i / TTBucket::size][i % TTBucket::size];
+        if (entry.key != EMPTY && entry.meta.generation == current_generation)
+        {
             count++;
+        }
     }
 
     return count;
@@ -98,24 +112,70 @@ int TranspositionTable::GetCapacity(int halfmove) const
 
 void TranspositionTable::ResetTable()
 {
-    table.reset(new TTBucket[size_]);
+    Reallocate();
 }
 
 void TranspositionTable::SetSize(uint64_t MB)
 {
-    Reallocate(CalculateEntryCount(MB));
+    size_ = MB * 1024 * 1024 / sizeof(TTBucket);
+    Reallocate();
 }
 
-void TranspositionTable::Reallocate(size_t size)
+void TranspositionTable::Reallocate()
 {
-    // size should be a power of two
-    assert(GetBitCount(size) == 1);
-    size_ = size;
-    hash_mask_ = size - 1;
-    table.reset(new TTBucket[size]);
+    Deallocate();
+
+#ifdef __linux__
+    constexpr static size_t huge_page_size = 2 * 1024 * 1024;
+    const size_t bytes = size_ * sizeof(TTBucket);
+    table = static_cast<TTBucket*>(std::aligned_alloc(huge_page_size, bytes));
+    madvise(table, bytes, MADV_HUGEPAGE);
+    std::uninitialized_default_construct_n(table, size_);
+#else
+    table = new TTBucket[size_];
+#endif
+}
+
+void TranspositionTable::Deallocate()
+{
+#ifdef __linux__
+    if (table)
+    {
+        std::destroy_n(table, size_);
+        std::free(table);
+    }
+#else
+    if (table)
+    {
+        delete[] table;
+    }
+#endif
 }
 
 void TranspositionTable::PreFetch(uint64_t key) const
 {
-    __builtin_prefetch(&table[HashFunction(key)]);
+    __builtin_prefetch(&GetBucket(key));
+}
+
+size_t tt_index(uint64_t key, size_t tt_size)
+{
+    // multiply the key by tt_size and extract out the highest order 64 bits. This gives a uniform distribution where
+    // the index is determined by the higher order bits of key, for any tt_size
+
+#if defined(__GNUC__) && defined(__x86_64__)
+    __extension__ using uint128 = unsigned __int128;
+    return (uint128(key) * uint128(tt_size)) >> 64;
+#else
+    uint64_t aL = uint32_t(key), aH = key >> 32;
+    uint64_t bL = uint32_t(tt_size), bH = tt_size >> 32;
+    uint64_t c1 = (aL * bL) >> 32;
+    uint64_t c2 = aH * bL + c1;
+    uint64_t c3 = aL * bH + uint32_t(c2);
+    return aH * bH + (c2 >> 32) + (c3 >> 32);
+#endif
+}
+
+TTBucket& TranspositionTable::GetBucket(uint64_t key) const
+{
+    return table[tt_index(key, size_)];
 }

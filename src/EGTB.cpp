@@ -5,40 +5,20 @@
 
 #include <iostream>
 #include <mutex>
+#include <optional>
 
-TbResult::TbResult(unsigned int result)
-    : result_(result)
+Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
 {
-}
+    auto pyrrhic_move_from = [](PyrrhicMove m) { return (m >> 6) & 0x3F; };
+    auto pyrrhic_move_to = [](PyrrhicMove m) { return (m >> 0) & 0x3F; };
+    auto pyrrhic_move_promotes = [](PyrrhicMove m) { return (m >> 12) & 0x07; };
 
-Score TbResult::get_score(int distance_from_root) const
-{
-    const auto tb_score = TB_GET_WDL(result_);
-
-    switch (tb_score)
-    {
-    case TB_LOSS:
-        return Score::tb_loss_in(distance_from_root);
-    case TB_BLESSED_LOSS:
-    case TB_DRAW:
-    case TB_CURSED_WIN:
-        return Score::draw();
-    case TB_WIN:
-        return Score::tb_win_in(distance_from_root);
-    }
-
-    assert(false);
-    __builtin_unreachable();
-}
-
-Move TbResult::get_move(const BoardState& board) const
-{
-    const auto from = static_cast<Square>(TB_GET_FROM(result_));
-    const auto to = static_cast<Square>(TB_GET_TO(result_));
+    const auto from = static_cast<Square>(pyrrhic_move_from(move));
+    const auto to = static_cast<Square>(pyrrhic_move_to(move));
     const auto flag = [&]()
     {
         auto flag_without_promo = board.GetMoveFlag(from, to);
-        const auto promo = TB_GET_PROMOTES(result_);
+        const auto promo = pyrrhic_move_promotes(move);
 
         if (promo == PYRRHIC_PROMOTES_KNIGHT)
         {
@@ -63,14 +43,18 @@ Move TbResult::get_move(const BoardState& board) const
     return Move(from, to, flag);
 }
 
-void Syzygy::init(std::string_view path)
+void Syzygy::init(std::string_view path, bool print)
 {
     tb_init(path.data());
-    std::cout << "info string Found " << TB_NUM_WDL << " WDL, " << TB_NUM_DTM << " DTM and " << TB_NUM_DTZ
-              << " DTZ tablebase files. Largest " << TB_LARGEST << "-men" << std::endl;
+
+    if (print)
+    {
+        std::cout << "info string Found " << TB_NUM_WDL << " WDL, " << TB_NUM_DTM << " DTM and " << TB_NUM_DTZ
+                  << " DTZ tablebase files. Largest " << TB_LARGEST << "-men" << std::endl;
+    }
 }
 
-std::optional<TbResult> Syzygy::probe_wdl_search(const BoardState& board)
+std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int distance_from_root)
 {
     // Can't probe Syzygy if there is too many pieces on the board, if there is casteling rights, or fifty move isn't
     // zero
@@ -81,8 +65,8 @@ std::optional<TbResult> Syzygy::probe_wdl_search(const BoardState& board)
 
     // clang-format off
     auto probe = tb_probe_wdl(
-        board.GetWhitePieces(), 
-        board.GetBlackPieces(),
+        board.GetPieces<WHITE>(), 
+        board.GetPieces<BLACK>(),
         board.GetPieceBB<KING>(),
         board.GetPieceBB<QUEEN>(),
         board.GetPieceBB<ROOK>(),
@@ -98,7 +82,20 @@ std::optional<TbResult> Syzygy::probe_wdl_search(const BoardState& board)
         return std::nullopt;
     }
 
-    return probe;
+    switch (probe)
+    {
+    case TB_LOSS:
+        return Score::tb_loss_in(distance_from_root);
+    case TB_BLESSED_LOSS:
+    case TB_DRAW:
+    case TB_CURSED_WIN:
+        return Score::draw();
+    case TB_WIN:
+        return Score::tb_win_in(distance_from_root);
+    }
+
+    assert(false);
+    __builtin_unreachable();
 }
 
 std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
@@ -109,14 +106,19 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         return std::nullopt;
     }
 
-    uint32_t move_results[256];
+    TbRootMoves root_moves;
     static std::mutex tb_lock;
+
+    /*
+    We currently don't use the hasRepeated argument, because Halogen doesn't readily store that information. Halogen's
+    search should see the upcoming draw by repitition, and choose an alternative root move.
+    */
 
     tb_lock.lock();
     // clang-format off
-    auto probe = tb_probe_root(
-        board.GetWhitePieces(), 
-        board.GetBlackPieces(),
+    auto ec = tb_probe_root_dtz(
+        board.GetPieces<WHITE>(), 
+        board.GetPieces<BLACK>(),
         board.GetPieceBB<KING>(),
         board.GetPieceBB<QUEEN>(),
         board.GetPieceBB<ROOK>(),
@@ -126,25 +128,27 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         board.fifty_move_count,
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE,
-        move_results);
+        false,
+        true,
+        &root_moves);
     // clang-format on
     tb_lock.unlock();
 
-    if (probe == TB_RESULT_FAILED || probe == TB_RESULT_STALEMATE || probe == TB_RESULT_CHECKMATE)
+    // 0 means not all probes were successful
+    if (!ec)
     {
         return std::nullopt;
     }
 
-    RootProbeResult result;
-    result.root_result_ = probe;
+    std::stable_sort(root_moves.moves, root_moves.moves + root_moves.size,
+        [](const auto& lhs, const auto& rhs) { return lhs.tbRank > rhs.tbRank; });
 
-    // filter out the results which preserve the WDL outcome
-    for (int i = 0; i < 256 && move_results[i] != TB_RESULT_FAILED; i++)
+    RootProbeResult result;
+
+    for (unsigned int i = 0; i < root_moves.size; i++)
     {
-        if (TB_GET_WDL(probe) == TB_GET_WDL(move_results[i]))
-        {
-            result.root_move_whitelist.emplace_back(TbResult(move_results[i]).get_move(board));
-        }
+        result.root_moves.emplace_back(extract_pyrrhic_move(board, root_moves.moves[i].move),
+            root_moves.moves[i].tbScore, root_moves.moves[i].tbRank);
     }
 
     return result;

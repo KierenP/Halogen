@@ -1,0 +1,67 @@
+name: Openbench
+
+# Test that we get a deterministic 'bench' result across a variety of compilers and platforms. We try to use a older 
+# compiler here, to ensure we maintain a reasonable level of compatibility, and make it easy for people to build 
+# Halogen
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  # On OpenBench some workers use g++ 9.3.1, so we must maintain compatibility with that
+  gcc-PGO:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        compiler: [g++-9]
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      # gcc 9 needs to be installed on demand
+      - name: Install g++
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.compiler }}
+
+      - name: Create PGO compiles
+        run: |
+          cd src
+          make CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+         
+      - name: Run bench
+        run: |
+          cd bin
+          ./Halogen bench
+
+  # clang-PGO requires llvm-profdata being installed
+  clang-PGO:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        compiler: [clang++-10]
+        llvm: [llvm-10]
+        profdata: [llvm-profdata-10]
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+
+      - name: Install llvm-profdata
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.llvm }}
+
+      - name: Create PGO compiles
+        run: |
+          cd src
+          make CXX=${{ matrix.compiler }} LLVM_PROFDATA=${{ matrix.profdata }} EXE=../bin/Halogen -j4
+         
+      - name: Run bench
+        run: |
+          cd bin
+          ./Halogen bench

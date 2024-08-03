@@ -2,11 +2,13 @@
 
 #include <cstdint>
 #include <limits>
-#include <type_traits>
+#include <ostream>
 
 class Score
 {
 public:
+    constexpr Score();
+
     constexpr Score(int value)
         : value_(value)
     {
@@ -140,11 +142,22 @@ public:
         return Score(lhs.value_ / value);
     }
 
+    // print formatting
+    friend std::ostream& operator<<(std::ostream& os, const Score& s)
+    {
+        return os << s.value() << "cp";
+    }
+
 private:
     int16_t value_;
 };
 
 static constexpr Score SCORE_UNDEFINED = -32768;
+
+constexpr Score::Score()
+    : Score(SCORE_UNDEFINED)
+{
+}
 
 namespace std
 {
@@ -162,4 +175,9 @@ public:
         return Score(30000);
     };
 };
+
+inline Score abs(Score val)
+{
+    return std::abs(val.value());
+}
 }

@@ -1,11 +1,8 @@
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
 #include <string>
 #include <vector>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "Network.h"
@@ -22,7 +19,7 @@ public:
     GameState();
 
     void ApplyMove(Move move);
-    void ApplyMove(const std::string& strmove);
+    void ApplyMove(std::string_view strmove);
     void RevertMove();
 
     void ApplyNullMove();
@@ -31,25 +28,16 @@ public:
     void StartingPosition();
 
     // returns true after sucsessful execution, false otherwise
-    // TODO: are all these needed?
-    bool InitialiseFromFen(std::vector<std::string> fen);
-    bool InitialiseFromFen(const std::string& board, const std::string& turn, const std::string& castle,
-        const std::string& ep, const std::string& fiftyMove, const std::string& turnCount);
-    bool InitialiseFromFen(std::string fen);
-
-    // TODO: is this needed?
-    void Reset();
-
-    Score GetEvaluation() const;
+    bool InitialiseFromFen(std::array<std::string_view, 6> fen);
+    bool InitialiseFromFen(std::string_view fen);
 
     bool CheckForRep(int distanceFromRoot, int maxReps) const;
 
     const BoardState& Board() const;
+    const BoardState& PrevBoard() const;
 
 private:
     BoardState& MutableBoard();
-
-    Network net;
 
     std::vector<BoardState> previousStates;
 };
