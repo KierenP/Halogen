@@ -28,10 +28,13 @@ enum class Stage
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move);
+    StagedMoveGenerator(
+        const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool loud_only);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
+
+    int GetSEE(Move& move);
 
 private:
     void OrderMoves(ExtendedMoveList& moves);
@@ -43,6 +46,7 @@ private:
     ExtendedMoveList loud_moves;
     ExtendedMoveList quiet_moves;
     const Move tt_move;
+    const bool loud_only;
 
     // Data uses for keeping track of internal values
     Stage stage;

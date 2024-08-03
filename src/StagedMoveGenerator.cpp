@@ -13,11 +13,12 @@
 #include "Zobrist.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& position_, const SearchStackState* ss_, SearchLocalState& local_, Move tt_move)
+    const GameState& position_, const SearchStackState* ss_, SearchLocalState& local_, Move tt_move_, bool loud_only_)
     : position(position_)
     , local(local_)
     , ss(ss_)
-    , tt_move(tt_move)
+    , tt_move(tt_move_)
+    , loud_only(loud_only_)
     , stage(Stage::TT_MOVE)
 {
 }
@@ -46,6 +47,11 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         if (current == loud_moves.end())
         {
+            if (loud_only)
+            {
+                return false;
+            }
+
             stage = Stage::GEN_QUIET;
         }
         else
@@ -159,6 +165,11 @@ int see(const BoardState& board, Move move)
         scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
     }
     return scores[0];
+}
+
+int StagedMoveGenerator::GetSEE(Move& move)
+{
+    return see(position.Board(), move);
 }
 
 void StagedMoveGenerator::OrderMoves(ExtendedMoveList&) { }
