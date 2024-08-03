@@ -700,6 +700,19 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     auto max_score = std::numeric_limits<Score>::max();
     auto min_score = std::numeric_limits<Score>::min();
 
+    // Step 2: Probe transposition table
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
+
+    // Step 3: Check if we can use the TT entry to return early
+    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+    {
+        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
+        {
+            return *value;
+        }
+    }
+
     // Step 5: Drop into q-search
     if (depth <= 0)
     {
@@ -708,6 +721,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Set up search variables
     Move bestMove = Move::Uninitialized;
+    auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
 
@@ -751,6 +765,12 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     if (noLegalMoves)
     {
         return TerminalScore(position.Board(), distance_from_root);
+    }
+
+    // Step 18: Update transposition table
+    if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
+    {
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, 0);
     }
 
     score = std::clamp(score, min_score, max_score);
