@@ -192,8 +192,8 @@ int see(const BoardState& board, Move move)
     int index = 0;
 
     auto capturing = board.GetSquare(from);
-    auto captured = board.GetSquare(to);
     auto attacker = ColourOfPiece(capturing);
+    auto captured = move.GetFlag() == EN_PASSANT ? Piece(PAWN, !attacker) : board.GetSquare(to);
 
     uint64_t from_set = (1ull << from);
     uint64_t occ = board.GetAllPieces(), bishops = 0, rooks = 0;
@@ -201,6 +201,11 @@ int see(const BoardState& board, Move move)
     bishops = rooks = board.GetPieceBB<QUEEN>();
     bishops |= board.GetPieceBB<BISHOP>();
     rooks |= board.GetPieceBB<ROOK>();
+
+    if (move.GetFlag() == EN_PASSANT)
+    {
+        occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+    }
 
     uint64_t attack_def = AttackersToSq(board, to);
     scores[index] = PieceValues[captured];
@@ -280,13 +285,7 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
         // Captures
         else if (moves[i].move.IsCapture())
         {
-            int SEE = 0;
-
-            if (moves[i].move.GetFlag() != EN_PASSANT)
-            {
-                SEE = see(position.Board(), moves[i].move);
-            }
-
+            int SEE = see(position.Board(), moves[i].move);
             moves[i].score = SCORE_CAPTURE + SEE;
             moves[i].SEE = SEE;
         }
