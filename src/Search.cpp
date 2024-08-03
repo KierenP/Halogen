@@ -716,7 +716,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const bool InCheck = IsInCheck(position.Board());
 
     // Step 5: Drop into q-search
-    if (depth <= 0)
+    if (depth <= 0 && !InCheck)
     {
         return Evaluate(position.Board(), ss, local.net);
     }
