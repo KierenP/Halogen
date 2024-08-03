@@ -552,12 +552,13 @@ void AddKiller(Move move, std::array<Move, 2>& killers)
     killers[0] = move;
 }
 
-/*void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
+void AddQuietHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     if (move.IsCapture() || move.IsPromotion())
         return;
-    gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
-}*/
+
+    gen.AdjustQuietHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+}
 
 template <bool pv_node>
 bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const int depth, const Score search_score,
@@ -580,7 +581,7 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
             if (alpha >= beta)
             {
                 AddKiller(search_move, ss->killers);
-                // AddHistory(gen, search_move, depth);
+                AddQuietHistory(gen, search_move, depth);
                 return true;
             }
         }

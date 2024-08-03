@@ -7,6 +7,7 @@
 
 #include "BitBoardDefine.h"
 #include "GameState.h"
+#include "History.h"
 #include "MoveGeneration.h"
 #include "SearchData.h"
 #include "TranspositionTable.h"
@@ -60,6 +61,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GIVE_QUIET;
         QuietMoves(position.Board(), quiet_moves);
+        OrderQuietMoves();
         current = quiet_moves.begin();
     }
 
@@ -79,6 +81,19 @@ bool StagedMoveGenerator::Next(Move& move)
 
     assert(false);
     __builtin_unreachable();
+}
+
+void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+{
+    local.quiet_history.add(position, ss, move, positive_adjustment);
+
+    for (auto const& m : quiet_moves)
+    {
+        if (m.move == move)
+            break;
+
+        local.quiet_history.add(position, ss, m.move, negative_adjustment);
+    }
 }
 
 void selection_sort(ExtendedMoveList& v)
@@ -166,4 +181,41 @@ int see(const BoardState& board, Move move)
     return scores[0];
 }
 
-void StagedMoveGenerator::OrderMoves(ExtendedMoveList&) { }
+void StagedMoveGenerator::OrderQuietMoves()
+{
+    auto swap_erase = [this](size_t i)
+    {
+        std::iter_swap(quiet_moves.begin() + i, quiet_moves.end() - 1);
+        quiet_moves.pop_back();
+    };
+
+    for (size_t i = 0; i < quiet_moves.size(); i++)
+    {
+        // Hash move
+        if (quiet_moves[i].move == tt_move)
+        {
+            swap_erase(i);
+            i--;
+        }
+
+        // Killers
+        /*else if (moves[i].move == Killer1)
+        {
+            swap_erase(i);
+            i--;
+        }
+
+        else if (moves[i].move == Killer2)
+        {
+            swap_erase(i);
+            i--;
+        }*/
+
+        else
+        {
+            quiet_moves[i].score = local.quiet_history.get(position, ss, quiet_moves[i].move);
+        }
+    }
+
+    selection_sort(quiet_moves);
+}

@@ -23,25 +23,3 @@ int16_t* CountermoveHistory::get(const GameState& position, const SearchStackSta
 
     return &table[stm][counter_piece][counter.GetTo()][curr_piece][move.GetTo()];
 }
-
-void History::reset()
-{
-    std::apply([](auto&... table) { (table.reset(), ...); }, tables_);
-}
-
-int History::get(const GameState& position, const SearchStackState* ss, Move move)
-{
-    auto get_value = [&](auto& table)
-    {
-        auto* value = table.get(position, ss, move);
-        return value ? *value : 0;
-    };
-
-    return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_)
-        / (int)std::tuple_size_v<decltype(tables_)>;
-}
-
-void History::add(const GameState& position, const SearchStackState* ss, Move move, int change)
-{
-    std::apply([&](auto&... table) { (table.add(position, ss, move, change), ...); }, tables_);
-}
