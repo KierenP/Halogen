@@ -15,6 +15,7 @@
 #include "EGTB.h"
 #include "Evaluate.h"
 #include "GameState.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
@@ -854,7 +855,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        int SEE = gen.GetSEE(move);
+        // TODO: Fix see for en_passant
+        int SEE = !move.GetFlag() == EN_PASSANT ? gen.GetSEE(move) : 0;
 
         if (SEE <= 0)
         {
