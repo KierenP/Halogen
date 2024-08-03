@@ -713,10 +713,23 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
+    const bool InCheck = IsInCheck(position.Board());
+
     // Step 5: Drop into q-search
     if (depth <= 0)
     {
         return Evaluate(position.Board(), ss, local.net);
+    }
+
+    const auto [raw_eval, eval] = get_search_eval<false>(
+        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+
+    // Step 6: Static null move pruning (a.k.a reverse futility pruning)
+    //
+    // If the static score is far above beta we fail high.
+    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8 && eval - 93 * depth >= beta)
+    {
+        return beta;
     }
 
     // Set up search variables
@@ -770,7 +783,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Step 18: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, 0);
+        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
     }
 
     score = std::clamp(score, min_score, max_score);
