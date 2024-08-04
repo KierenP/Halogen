@@ -7,6 +7,7 @@
 #include "../SearchConstants.h"
 #include "../SearchData.h"
 #include "../datagen/datagen.h"
+#include "../datagen/filter.h"
 #include "../datagen/syzygy_rescore.h"
 #include "options.h"
 #include "parse.h"
@@ -477,11 +478,16 @@ void Uci::process_input(std::string_view command)
         consume { "eval", invoke { [this] { handle_eval(); } } },
         consume { "probe", invoke { [this] { handle_probe(); } } },
         consume { "datagen", next_token { [this](auto path){ handle_datagen(path); } } },
-        consume { "syzygy_rescore", with_context { syzygy_rescore_ctx{}, sequence {
+        consume { "syzygy_rescore", with_context { file_io_ctx{}, sequence {
              repeat { one_of {
                 consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
                 consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
-            invoke { [this](auto& ctx) { handle_syzygy_rescore(ctx); } } } } } },
+            invoke { [this](auto& ctx) { handle_syzygy_rescore(ctx); } } } } },
+        consume { "filter", with_context { file_io_ctx{}, sequence {
+             repeat { one_of {
+                consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            invoke { [this](auto& ctx) { handle_filter(ctx); } } } } } },
     end_command{}
     };
     // clang-format on
@@ -602,7 +608,12 @@ void Uci::handle_datagen(std::string_view path)
     datagen(*this, path);
 }
 
-void Uci::handle_syzygy_rescore(const syzygy_rescore_ctx& ctx)
+void Uci::handle_syzygy_rescore(const file_io_ctx& ctx)
 {
     syzygy_rescore(ctx.input_path, ctx.output_path);
+}
+
+void Uci::handle_filter(const file_io_ctx& ctx)
+{
+    filter(ctx.input_path, ctx.output_path);
 }
