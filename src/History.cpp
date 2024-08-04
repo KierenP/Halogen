@@ -11,5 +11,12 @@ int16_t* ButterflyHistory::get(const GameState& position, const SearchStackState
 int16_t* PieceButterflyHistory::get(const GameState& position, const SearchStackState* ss, Move move)
 {
     const auto& stm = position.Board().stm;
-    return &table[stm][ss->moved_piece][move.GetFrom()][move.GetTo()];
+    const auto& moved_piece = ss->moved_piece;
+
+    if (moved_piece == N_PIECES)
+    {
+        return nullptr;
+    }
+
+    return &table[stm][moved_piece][move.GetFrom()][move.GetTo()];
 }
