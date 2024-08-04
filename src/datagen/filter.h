@@ -15,7 +15,7 @@ inline void filter(std::string_view input_path, std::string_view output_path)
 
     training_data data;
     size_t datapoint_count = 0;
-    double filtered_count = 0;
+    size_t filtered_count = 0;
 
     auto print_diagnostics = [&]()
     {
