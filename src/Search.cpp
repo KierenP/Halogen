@@ -813,10 +813,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
-            if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
-            {
-                break;
-            }
         }
 
         int extensions = 0;
