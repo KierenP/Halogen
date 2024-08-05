@@ -247,7 +247,6 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
     return false;
 }
 
-template <bool is_qsearch = false>
 std::optional<Score> init_search_node(const GameState& position, const int distance_from_root, SearchStackState* ss,
     SearchLocalState& local, const SearchSharedState& shared)
 {
@@ -269,11 +268,6 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     if (DeadPosition(position.Board()))
     {
         return 0;
-    }
-
-    if constexpr (is_qsearch)
-    {
-        return std::nullopt;
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with
@@ -689,8 +683,16 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     const auto distance_from_root = ss->distance_from_root;
+    const bool InCheck = IsInCheck(position.Board());
 
-    // Step 1: Check for abort or draw and update stats in the local state and search stack
+    // Step 1: Drop into q-search
+    if (depth <= 0 && !InCheck)
+    {
+        constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
+        return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
+    }
+
+    // Step 2: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
@@ -702,10 +704,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // If we are in a singular move search, we don't want to do any early pruning
 
-    // Step 2: Probe transposition table
+    // Step 3: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
 
-    // Step 3: Check if we can use the TT entry to return early
+    // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
@@ -715,7 +717,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    // Step 4: Probe syzygy EGTB
+    // Step 5: Probe syzygy EGTB
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
@@ -723,15 +725,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         {
             return *value;
         }
-    }
-
-    const bool InCheck = IsInCheck(position.Board());
-
-    // Step 5: Drop into q-search
-    if (depth <= 0 && !InCheck)
-    {
-        constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
-        return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(
@@ -897,7 +890,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     const auto distance_from_root = ss->distance_from_root;
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
-    if (auto value = init_search_node<true>(position, distance_from_root, ss, local, shared))
+    if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
     }
