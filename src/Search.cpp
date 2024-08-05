@@ -559,7 +559,7 @@ void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemai
     gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
 }
 
-template <bool pv_node>
+template <bool pv_node, bool update_history>
 bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const int depth, const Score search_score,
     const Move search_move, Score& best_score, Move& best_move, Score& alpha, const Score beta)
 {
@@ -579,8 +579,11 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 
             if (alpha >= beta)
             {
-                AddKiller(search_move, ss->killers);
-                AddHistory(gen, search_move, depth);
+                if constexpr (update_history)
+                {
+                    AddKiller(search_move, ss->killers);
+                    AddHistory(gen, search_move, depth);
+                }
                 return true;
             }
         }
@@ -782,7 +785,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
@@ -864,7 +867,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         // Step 16: Update history/killer move tables and check for fail-high
-        if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
+        if (update_search_stats<pv_node, true>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
@@ -917,34 +920,38 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     const auto [raw_eval, eval]
         = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const bool in_check = IsInCheck(position.Board());
+    auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
-    // score
-    alpha = std::max(alpha, eval);
+    // score. This does not apply when in check.
+    alpha = std::max(alpha, score);
     if (alpha >= beta)
     {
         return alpha;
     }
 
     Move bestmove = Move::Uninitialized;
-    auto score = eval;
+    bool no_legal_moves = true;
     auto original_alpha = alpha;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, !in_check);
     Move move;
 
     while (gen.Next(move))
     {
+        no_legal_moves = false;
         int SEE = gen.GetSEE(move);
 
         // delta pruning
-        if (eval + SEE + 280 < alpha)
+        if (!in_check && eval + SEE + 280 < alpha)
         {
             break;
         }
 
         // prune underpromotions
-        if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
+        if (!in_check && move.IsPromotion()
+            && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
             break;
         }
@@ -963,13 +970,19 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
 
         // Step 5: Update best score and check for fail-high
-        if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
+        if (update_search_stats<pv_node, false>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 6: Update transposition table
+    // Step 6: Handle checkmate
+    if (in_check && no_legal_moves)
+    {
+        return Score::mated_in(distance_from_root);
+    }
+
+    // Step 7: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
