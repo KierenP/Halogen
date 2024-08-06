@@ -689,7 +689,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const bool InCheck = IsInCheck(position.Board());
 
     // Step 1: Drop into q-search
-    if (depth <= 0 && !InCheck)
+    if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
