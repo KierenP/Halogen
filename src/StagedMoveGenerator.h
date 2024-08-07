@@ -33,8 +33,8 @@ enum class Stage
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(
-        const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool Quiescence);
+    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
+        bool good_loud_only = false);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
@@ -68,7 +68,7 @@ private:
     const GameState& position;
     SearchLocalState& local;
     const SearchStackState* ss;
-    bool quiescence;
+    const bool good_loud_only;
     ExtendedMoveList loudMoves;
     ExtendedMoveList quietMoves;
 
