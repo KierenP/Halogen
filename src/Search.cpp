@@ -15,6 +15,7 @@
 #include "EGTB.h"
 #include "Evaluate.h"
 #include "GameState.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
@@ -290,15 +291,20 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
     int distanceFromRoot, Score beta, Move bestMove, Score static_eval)
 {
-    if (score <= alphaOriginal)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::UPPER_BOUND, static_eval);
-    else if (score >= beta)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::LOWER_BOUND, static_eval);
-    else
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::EXACT, static_eval);
+    const auto bound = score <= alphaOriginal ? SearchResultType::UPPER_BOUND
+        : score >= beta                       ? SearchResultType::LOWER_BOUND
+                                              : SearchResultType::EXACT;
+
+    tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
+        bound, static_eval);
+
+    // assuming the best move was not a castle / ep capture, we store in the TT the position without castle/ep rights as
+    // well
+    if (!bestMove.IsCastle() && bestMove.GetFlag() != EN_PASSANT)
+    {
+        tTable.AddEntry(bestMove, board.GetSimpleKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
+            bound, static_eval);
+    }
 }
 
 template <bool root_node, bool pv_node>
