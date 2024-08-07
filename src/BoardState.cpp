@@ -162,6 +162,23 @@ uint64_t BoardState::GetZobristKey() const
     return key.Key();
 }
 
+uint64_t BoardState::GetSimpleKey() const
+{
+    auto simple = key;
+    if (en_passant <= SQ_H8)
+    {
+        simple.ToggleEnpassant(GetFile(en_passant));
+    }
+
+    auto castle = castle_squares;
+    while (castle)
+    {
+        simple.ToggleCastle(LSBpop(castle));
+    }
+
+    return simple.Key();
+}
+
 void BoardState::SetSquare(Square square, Pieces piece)
 {
     assert(square < N_SQUARES);

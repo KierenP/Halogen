@@ -73,6 +73,7 @@ public:
     }
 
     uint64_t GetZobristKey() const;
+    uint64_t GetSimpleKey() const;
 
     void SetSquare(Square square, Pieces piece);
     void ClearSquare(Square square);
