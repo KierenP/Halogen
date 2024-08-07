@@ -934,9 +934,10 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     while (gen.Next(move))
     {
         no_legal_moves = false;
+        const auto see = move.IsCapture() ? gen.GetSEE(move) : 0;
 
         // delta pruning
-        if (score > Score::tb_loss_in(MAX_DEPTH) && eval + gen.GetSEE(move) + 280 < alpha)
+        if (score > Score::tb_loss_in(MAX_DEPTH) && eval + see + 280 < alpha)
         {
             break;
         }
