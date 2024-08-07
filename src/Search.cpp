@@ -911,9 +911,11 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     const auto [raw_eval, eval]
         = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
+    return eval;
+
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    alpha = std::max(alpha, eval);
+    /*alpha = std::max(alpha, eval);
     if (alpha >= beta)
     {
         return alpha;
@@ -968,5 +970,5 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
     }
 
-    return SearchResult(score, bestmove);
+    return SearchResult(score, bestmove);*/
 }
