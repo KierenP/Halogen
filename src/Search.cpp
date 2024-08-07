@@ -936,13 +936,13 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         no_legal_moves = false;
 
         // delta pruning
-        if (!in_check && eval + gen.GetSEE(move) + 280 < alpha)
+        if (score > Score::tb_loss_in(MAX_DEPTH) && eval + gen.GetSEE(move) + 280 < alpha)
         {
             break;
         }
 
         // prune underpromotions
-        if (!in_check && move.IsPromotion()
+        if (score > Score::tb_loss_in(MAX_DEPTH) && move.IsPromotion()
             && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
             break;
