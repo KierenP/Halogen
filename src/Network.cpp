@@ -11,7 +11,6 @@
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
-static_assert(alignof(gNetData) == 64);
 
 struct alignas(64) network
 {
