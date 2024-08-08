@@ -730,7 +730,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
-    if (!pv_node && !InCheck && depth < 8 && eval < alpha - 500 - 300 * depth * depth)
+    if (depth < 8 && eval < alpha - 500 - 300 * depth * depth)
     {
         auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha - 1, alpha).GetScore();
         if (q_score < alpha)
