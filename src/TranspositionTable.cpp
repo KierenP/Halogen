@@ -26,7 +26,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     score = convert_to_tt_score(score, distanceFromRoot);
     auto key16 = uint16_t(ZobristKey);
     auto current_generation = get_generation(Turncount, distanceFromRoot);
-    std::array<int8_t, TTBucket::size> scores = {};
+    std::array<int16_t, TTBucket::size> scores = {};
     auto& bucket = GetBucket(ZobristKey);
 
     const auto write_to_entry = [&](auto& entry)
