@@ -8,6 +8,8 @@
 #include "Move.h"
 #include "incbin/incbin.h"
 
+#undef INCBIN_ALIGNMENT
+#define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
 
 struct alignas(64) network
