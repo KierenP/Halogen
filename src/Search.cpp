@@ -736,8 +736,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // should be set to no more than >= 8, or we will face overflow issues calculating the score
     if (depth < 8 && eval < alpha - 500 - 300 * depth * depth)
     {
-        auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha - 1, alpha).GetScore();
-        if (q_score < alpha)
+        auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha, alpha + 1).GetScore();
+        if (q_score <= alpha)
         {
             return q_score;
         }
