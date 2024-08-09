@@ -730,6 +730,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
+    // Step 6: Razoring
+    //
+    // If the static score is far below alpha, we do a q-search. If the q-search fails low, we return. The depth limit
+    // should be set to no more than >= 8, or we will face overflow issues calculating the score
     if (depth < 8 && eval < alpha - 500 - 300 * depth * depth)
     {
         auto q_score = Quiescence<SearchType::ZW>(position, ss, local, shared, depth, alpha - 1, alpha).GetScore();
@@ -739,7 +743,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    // Step 6: Static null move pruning (a.k.a reverse futility pruning)
+    // Step 7: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8 && eval - 93 * depth >= beta)
@@ -747,7 +751,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         return beta;
     }
 
-    // Step 7: Null move pruning
+    // Step 8: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
@@ -762,7 +766,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    // Step 8: Mate distance pruning
+    // Step 9: Mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
     beta = std::min(Score::mate_in(distance_from_root + 1), beta);
     if (alpha >= beta)
@@ -774,7 +778,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     int seen_moves = 0;
     bool noLegalMoves = true;
 
-    // Step 9: Rebel style IID
+    // Step 10: Rebel style IID
     //
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
@@ -787,7 +791,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
 
-    // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
+    // Step 11: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
     {
         noLegalMoves = false;
@@ -799,7 +803,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         seen_moves++;
 
-        // Step 11: Late move pruning
+        // Step 12: Late move pruning
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
@@ -808,7 +812,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             gen.SkipQuiets();
         }
 
-        // Step 12: Futility pruning
+        // Step 13: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
@@ -823,7 +827,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
         int extensions = 0;
 
-        // Step 13: Singular extensions.
+        // Step 14: Singular extensions.
         //
         // If one move is significantly better than all alternatives, we extend the search for that
         // critical move. When looking for potentially singular moves, we look for TT moves at sufficient depth with
@@ -847,13 +851,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
-        // Step 14: Check extensions
+        // Step 15: Check extensions
         if (IsInCheck(position.Board()))
         {
             extensions += 1;
         }
 
-        // Step 15: Late move reductions
+        // Step 16: Late move reductions
         int r = reduction<pv_node>(depth, seen_moves, history);
         Score search_score
             = search_move<pv_node>(position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves);
@@ -865,14 +869,14 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             return SCORE_UNDEFINED;
         }
 
-        // Step 16: Update history/killer move tables and check for fail-high
+        // Step 17: Update history/killer move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 17: Handle terminal node conditions
+    // Step 18: Handle terminal node conditions
     if (noLegalMoves)
     {
         return TerminalScore(position.Board(), distance_from_root);
@@ -880,7 +884,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     score = std::clamp(score, min_score, max_score);
 
-    // Step 18: Update transposition table
+    // Step 19: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
