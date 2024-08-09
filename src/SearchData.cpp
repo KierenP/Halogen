@@ -178,15 +178,15 @@ void SearchSharedState::report_search_result(
     }
 }
 
-uint64_t SearchSharedState::tb_hits() const
+int64_t SearchSharedState::tb_hits() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (int64_t)0,
         [](const auto& val, const auto& state) { return val + state->tb_hits; });
 }
 
-uint64_t SearchSharedState::nodes() const
+int64_t SearchSharedState::nodes() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (int64_t)0,
         [](const auto& val, const auto& state) { return val + state->nodes; });
 }
 

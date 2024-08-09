@@ -86,8 +86,8 @@ public:
     SearchStack search_stack;
     History history;
     int sel_septh = 0;
-    atomic_relaxed<uint64_t> tb_hits = 0;
-    atomic_relaxed<uint64_t> nodes = 0;
+    atomic_relaxed<int64_t> tb_hits = 0;
+    atomic_relaxed<int64_t> nodes = 0;
 
     // track the current depth + multi-pv of the search
     int curr_depth = 0;
@@ -149,8 +149,8 @@ public:
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
-    uint64_t tb_hits() const;
-    uint64_t nodes() const;
+    int64_t tb_hits() const;
+    int64_t nodes() const;
     int get_threads_setting() const;
     int get_multi_pv_setting() const;
 
