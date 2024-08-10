@@ -680,7 +680,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 Score futility_margin(int depth, const bool improving)
 {
     depth = std::max(0, depth - improving);
-    return 38 + 19 * depth + 11 * depth * depth;
+    return 39 + 27 * depth + 11 * depth * depth;
 }
 
 template <SearchType search_type>
