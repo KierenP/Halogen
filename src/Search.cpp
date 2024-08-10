@@ -680,7 +680,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 int lmp_moves(int depth, const int improving)
 {
     depth = std::max(0, depth - improving);
-    return 5 + 4 * depth;
+    return 5 + 5 * depth;
 }
 
 template <SearchType search_type>
