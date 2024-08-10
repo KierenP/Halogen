@@ -652,6 +652,8 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
             }
         }();
 
+        ss->static_eval = static_eval;
+
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
             && (tt_cutoff == SearchResultType::EXACT
@@ -670,8 +672,15 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         const auto static_eval = Evaluate(position.Board(), ss, local.net);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
+        ss->static_eval = static_eval;
         return { static_eval, static_eval };
     }
+}
+
+int lmp_moves(int depth, const int improving)
+{
+    depth = std::max(0, depth - improving);
+    return 5 + 4 * depth;
 }
 
 template <SearchType search_type>
@@ -729,6 +738,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const bool improving = ss->static_eval > (ss - 2)->static_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -794,7 +804,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= 3 + 3 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < 6 && seen_moves >= lmp_moves(depth, improving) && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }

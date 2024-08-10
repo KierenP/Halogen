@@ -37,6 +37,8 @@ struct SearchStackState
     SearchStackState(int distance_from_root_);
     void reset();
 
+    const int distance_from_root;
+
     BasicMoveList pv = {};
     std::array<Move, 2> killers = {};
 
@@ -45,15 +47,15 @@ struct SearchStackState
     int multiple_extensions = 0;
     int nmp_verification_depth = 0;
     bool nmp_verification_root = false;
-    const int distance_from_root;
+    Score static_eval = SCORE_UNDEFINED;
 
     Accumulator acc;
 };
 
 class SearchStack
 {
-    // The search accesses [ss-1, ss+1]
-    constexpr static int min_access = -1;
+    // The search accesses [ss-2, ss+1]
+    constexpr static int min_access = -2;
     constexpr static int max_access = 1;
     constexpr static size_t size = MAX_DEPTH + max_access - min_access;
 
