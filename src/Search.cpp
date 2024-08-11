@@ -928,10 +928,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        int SEE = gen.GetSEE(move);
-
         // delta pruning
-        if (eval + SEE + 280 < alpha)
+        if (move.IsCapture() && eval + gen.GetSEE(move) + 280 < alpha)
         {
             continue;
         }

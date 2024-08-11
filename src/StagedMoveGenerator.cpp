@@ -55,9 +55,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loud_moves.end())
         {
-            current->SEE = see(position.Board(), current->move);
-
-            if (current->SEE < 0)
+            if (current->move.IsCapture() && ((current->SEE = see(position.Board(), current->move)) < 0))
             {
                 bad_loud_moves.push_back(*current);
                 ++current;
@@ -72,9 +70,14 @@ bool StagedMoveGenerator::Next(Move& move)
         }
 
         if (quiescence)
-            return false;
-
-        stage = Stage::GIVE_KILLER_1;
+        {
+            current = bad_loud_moves.begin();
+            stage = Stage::GIVE_BAD_LOUD;
+        }
+        else
+        {
+            stage = Stage::GIVE_KILLER_1;
+        }
     }
 
     if (stage == Stage::GIVE_KILLER_1)
@@ -113,6 +116,11 @@ bool StagedMoveGenerator::Next(Move& move)
         }
         else
         {
+            if (quiescence)
+            {
+                return false;
+            }
+
             stage = Stage::GEN_QUIET;
         }
     }
@@ -198,6 +206,8 @@ uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, P
 
 int see(const BoardState& board, Move move)
 {
+    assert(move.IsCapture());
+
     Square from = move.GetFrom();
     Square to = move.GetTo();
 
