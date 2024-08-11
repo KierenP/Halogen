@@ -69,7 +69,8 @@ private:
     SearchLocalState& local;
     const SearchStackState* ss;
     bool quiescence;
-    ExtendedMoveList loudMoves;
+    ExtendedMoveList loud_moves;
+    ExtendedMoveList bad_loud_moves;
     ExtendedMoveList quietMoves;
 
     // Data uses for keeping track of internal values

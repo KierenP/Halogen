@@ -933,13 +933,13 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         // delta pruning
         if (eval + SEE + 280 < alpha)
         {
-            break;
+            continue;
         }
 
         // prune underpromotions
         if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
-            break;
+            continue;
         }
 
         ss->move = move;

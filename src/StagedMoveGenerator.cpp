@@ -12,6 +12,8 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
+int see(const BoardState& board, Move move);
+
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
     : position(Position)
@@ -43,20 +45,30 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.Board(), loudMoves);
-        OrderMoves(loudMoves);
-        current = loudMoves.begin();
+        QuiescenceMoves(position.Board(), loud_moves);
+        OrderMoves(loud_moves);
+        current = loud_moves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
     }
 
     if (stage == Stage::GIVE_GOOD_LOUD)
     {
-        if (current != loudMoves.end() && current->SEE >= 0)
+        while (current != loud_moves.end())
         {
-            move = current->move;
-            moveSEE = current->SEE;
-            ++current;
-            return true;
+            current->SEE = see(position.Board(), current->move);
+
+            if (current->SEE < 0)
+            {
+                bad_loud_moves.push_back(*current);
+                ++current;
+            }
+            else
+            {
+                move = current->move;
+                moveSEE = current->SEE;
+                ++current;
+                return true;
+            }
         }
 
         if (quiescence)
@@ -81,6 +93,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
+        current = bad_loud_moves.begin();
 
         if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
         {
@@ -91,7 +104,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GIVE_BAD_LOUD)
     {
-        if (current != loudMoves.end())
+        if (current != bad_loud_moves.end())
         {
             move = current->move;
             moveSEE = current->SEE;
@@ -243,7 +256,7 @@ int16_t StagedMoveGenerator::GetSEE(Move move) const
 void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
-    static constexpr int16_t SCORE_CAPTURE = 20000;
+    // static constexpr int16_t SCORE_CAPTURE = 20000;
     static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
 
     for (size_t i = 0; i < moves.size(); i++)
@@ -274,7 +287,6 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
             {
                 moves[i].score = SCORE_QUEEN_PROMOTION;
-                moves[i].SEE = PieceValues[QUEEN];
             }
             else
             {
@@ -282,15 +294,7 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
             }
         }
 
-        // Captures
-        else if (moves[i].move.IsCapture())
-        {
-            int SEE = see(position.Board(), moves[i].move);
-            moves[i].score = SCORE_CAPTURE + SEE;
-            moves[i].SEE = SEE;
-        }
-
-        // Quiet
+        // Use history to score quiet / loud moves
         else
         {
             int history = local.history.get(position, ss, moves[i].move);
