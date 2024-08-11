@@ -23,7 +23,7 @@ std::atomic<uint64_t> black_wins;
 
 bool stop = false;
 
-void info_thread()
+void info_thread(std::chrono::seconds datagen_time)
 {
     using namespace std::chrono_literals;
 
@@ -64,7 +64,7 @@ void info_thread()
             last_black_wins = black_wins;
         }
 
-        if (fens > 3'000'000)
+        if ((now - start) >= datagen_time)
         {
             stop = true;
         }
@@ -85,9 +85,9 @@ void generation_thread(Uci& uci, std::string_view output_path)
     }
 }
 
-void datagen(Uci& uci, std::string_view output_path)
+void datagen(Uci& uci, std::string_view output_path, std::chrono::seconds duration)
 {
-    auto info = std::thread(info_thread);
+    auto info = std::thread(info_thread, duration);
     auto data = std::thread(generation_thread, std::ref(uci), output_path);
 
     info.join();

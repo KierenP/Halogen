@@ -477,7 +477,11 @@ void Uci::process_input(std::string_view command)
         consume { "spsa", invoke { [this] { handle_spsa(); } } },
         consume { "eval", invoke { [this] { handle_eval(); } } },
         consume { "probe", invoke { [this] { handle_probe(); } } },
-        consume { "datagen", next_token { [this](auto path){ handle_datagen(path); } } },
+        consume { "datagen", with_context { datagen_ctx{}, sequence {
+             repeat { one_of {
+                consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } },
+                consume { "duration", next_token { to_int{[](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
+            invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } },
         consume { "syzygy_rescore", with_context { file_io_ctx{}, sequence {
              repeat { one_of {
                 consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
@@ -603,9 +607,9 @@ void Uci::handle_probe()
     std::cout << std::endl;
 }
 
-void Uci::handle_datagen(std::string_view path)
+void Uci::handle_datagen(const datagen_ctx& ctx)
 {
-    datagen(*this, path);
+    datagen(*this, ctx.output_path, ctx.duration);
 }
 
 void Uci::handle_syzygy_rescore(const file_io_ctx& ctx)
