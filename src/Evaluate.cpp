@@ -38,7 +38,7 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
     assert(Network::Verify(board, ss->acc));
     Score eval = Network::Eval(board, ss->acc);
 
-    // scale the eval based on the phase
+    // scale the eval based on the phase. Careful of overflow here
     eval = eval.value() * (19200 + Phase(board)) / 32768;
 
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
