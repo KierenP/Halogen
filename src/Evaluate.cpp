@@ -4,11 +4,19 @@
 #include "BoardState.h"
 #include "Network.h"
 #include "Score.h"
+#include "SearchConstants.h"
 #include "SearchData.h"
 
 #include <algorithm>
 
-void TempoAdjustment(Score& eval);
+int Phase(const BoardState& board)
+{
+    return GetBitCount(board.GetPieceBB(WHITE_PAWN) | board.GetPieceBB(BLACK_PAWN)) * SEE_value[PAWN]
+        + GetBitCount(board.GetPieceBB(WHITE_KNIGHT) | board.GetPieceBB(BLACK_KNIGHT)) * SEE_value[KNIGHT]
+        + GetBitCount(board.GetPieceBB(WHITE_BISHOP) | board.GetPieceBB(BLACK_BISHOP)) * SEE_value[BISHOP]
+        + GetBitCount(board.GetPieceBB(WHITE_ROOK) | board.GetPieceBB(BLACK_ROOK)) * SEE_value[ROOK]
+        + GetBitCount(board.GetPieceBB(WHITE_QUEEN) | board.GetPieceBB(BLACK_QUEEN)) * SEE_value[QUEEN];
+}
 
 Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 {
@@ -29,6 +37,10 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 
     assert(Network::Verify(board, ss->acc));
     Score eval = Network::Eval(board, ss->acc);
+
+    // scale the eval based on the phase
+    eval = eval.value() * (19200 + Phase(board)) / 32768;
+
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
@@ -73,10 +85,4 @@ bool DeadPosition(const BoardState& board)
         return true; // 2
 
     return false;
-}
-
-void TempoAdjustment(Score& eval)
-{
-    constexpr static int TEMPO = 10;
-    eval += TEMPO;
 }

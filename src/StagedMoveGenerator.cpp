@@ -8,6 +8,7 @@
 #include "BitBoardDefine.h"
 #include "GameState.h"
 #include "MoveGeneration.h"
+#include "SearchConstants.h"
 #include "SearchData.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
@@ -155,8 +156,6 @@ void selection_sort(ExtendedMoveList& v)
     }
 }
 
-constexpr int PieceValues[] = { 91, 532, 568, 715, 1279, 5000, 91, 532, 568, 715, 1279, 5000 };
-
 uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
     uint64_t pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
@@ -208,13 +207,13 @@ int see(const BoardState& board, Move move)
     }
 
     uint64_t attack_def = AttackersToSq(board, to);
-    scores[index] = PieceValues[captured];
+    scores[index] = SEE_value[captured];
 
     do
     {
         index++;
         attacker = !attacker;
-        scores[index] = PieceValues[capturing] - scores[index - 1];
+        scores[index] = SEE_value[capturing] - scores[index - 1];
 
         if (-scores[index - 1] < 0 && scores[index] < 0)
             break;
@@ -274,7 +273,7 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
             {
                 moves[i].score = SCORE_QUEEN_PROMOTION;
-                moves[i].SEE = PieceValues[QUEEN];
+                moves[i].SEE = SEE_value[QUEEN];
             }
             else
             {

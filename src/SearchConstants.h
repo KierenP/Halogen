@@ -11,6 +11,8 @@
 #define TUNEABLE_CONSTANT const inline
 #endif
 
+TUNEABLE_CONSTANT int SEE_value[] = { 91, 532, 568, 715, 1279, 5000, 91, 532, 568, 715, 1279, 5000 };
+
 TUNEABLE_CONSTANT double LMR_constant = 1.19;
 TUNEABLE_CONSTANT double LMR_depth_coeff = -1.48;
 TUNEABLE_CONSTANT double LMR_move_coeff = 1.91;
