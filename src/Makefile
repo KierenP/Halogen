@@ -3,8 +3,8 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/fb19d1823c259e0d1735de94c8b6890557fafd96/46f749a2.nn?raw=true
-EVALFILE = $(BUILD_DIR)/46f749a2.nn
+EVALURL = https://github.com/KierenP/Halogen-Networks/blob/f7f182c776dce3cac71a2fae258f3e3037bd4016/2cc25bae.nn?raw=true
+EVALFILE = $(BUILD_DIR)/2cc25bae.nn
 
 SRCS := \
 	BitBoardDefine.cpp \
