@@ -3,8 +3,8 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/414f007e25168fab573c9b938acb198e4e1b66d4/0a11ed39.nn?raw=true
-EVALFILE = $(BUILD_DIR)/0a11ed39.nn
+EVALURL = https://github.com/KierenP/Halogen-Networks/blob/f7f182c776dce3cac71a2fae258f3e3037bd4016/2cc25bae.nn?raw=true
+EVALFILE = $(BUILD_DIR)/2cc25bae.nn
 
 SRCS := \
 	BitBoardDefine.cpp \
@@ -42,8 +42,8 @@ AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
-SFLAGS = -O0 $(AFLAGS) -Werror -fno-omit-frame-pointer
-DFLAGS = -O0 $(AFLAGS) -Werror
+SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
+DFLAGS = -O1 $(AFLAGS) -Werror
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 

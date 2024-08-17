@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/github/license/KierenP/Halogen?style=for-the-badge)](https://github.com/KierenP/Halogen/blob/master/LICENSE)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/KierenP/Halogen?style=for-the-badge)](https://github.com/KierenP/Halogen/releases/latest)
 [![Commits since latest release](https://img.shields.io/github/commits-since/KierenP/Halogen/latest?style=for-the-badge)](https://github.com/KierenP/Halogen/commits/master)
-[![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/KierenP/Halogen/Halogen11-windows-popcnt.exe?style=for-the-badge)](https://github.com/KierenP/Halogen/releases/latest)
+[![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/KierenP/Halogen/Halogen12-windows-avx2-pext.exe?style=for-the-badge)](https://github.com/KierenP/Halogen/releases/latest)
 
 </div>
 
@@ -25,11 +25,11 @@ Since 2020, Halogen has used a neural network for its evaluation function. Halog
 
 | Version | [CCRL 40/15][ccrl-4015] | [CCRL Blitz][ccrl-blitz] | [CCRL 40/2 FRC][ccrl-402-frc] | [CEGT 40/20][cegt-4020] | [CEGT 40/4][cegt-404] | [MCERL] |
 |:-------:|:-----------------------:|:------------------------:|:-----------------------------:|:---------------------:|:-----------------------:|:-------:|
+|  12.0.0 |            -            |           3539           |             -              |          3385           |          -           |    -    |
 |  11.4.0 |            -            |           -           |             3437              |           -           |          -           |    -    |
 |  11.0.0 |          3380           |           3433           |             -              |         3288             |          3313           |    3398    |
 |  10.0.0 |          3196           |           3220           |             -              |         3084          |            -         |  -   |
 |  9.0.0  |          3153           |           3178           |             -              |           3013           |          -           |  -   |
-|  8.1.0  |          -           |           3015           |             -              |         2866          |             -           |  -   |
 
 
 ## How to use
@@ -55,5 +55,5 @@ To build Halogen, simply use the included makefile in the `src` directory:
 [ccrl-blitz]: https://www.computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on&num_best_in_class=1&print=Rating+list
 [ccrl-402-frc]: https://www.computerchess.org.uk/ccrl/404FRC/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on&num_best_in_class=1&print=Rating+list
 [cegt-404]: http://www.cegt.net/40_4_Ratinglist/40_4_single/rangliste.html
-[cegt-4020]: http://www.cegt.net/40_40%20Rating%20List/40_40%20All%20Versions/rangliste.html
+[cegt-4020]: http://www.cegt.net/40_40%20Rating%20List/40_40%20SingleVersion/rangliste.html
 [mcerl]: https://www.chessengeria.eu/mcerl
