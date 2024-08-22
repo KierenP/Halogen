@@ -259,7 +259,7 @@ void Uci::handle_isready()
 void Uci::handle_ucinewgame()
 {
     position.StartingPosition();
-    tTable.ResetTable();
+    tTable.Clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
@@ -340,13 +340,13 @@ void Uci::handle_go(go_ctx& ctx)
 
 void Uci::handle_setoption_clear_hash()
 {
-    tTable.ResetTable();
+    tTable.Clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    tTable.SetSize(value);
+    tTable.SetSize(value, shared.get_threads_setting());
 }
 
 void Uci::handle_setoption_threads(int value)

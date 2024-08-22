@@ -7,6 +7,8 @@
 #include <cstring>
 #include <iterator>
 #include <memory>
+#include <thread>
+#include <vector>
 
 #ifdef __linux__
 #include <sys/mman.h>
@@ -110,18 +112,36 @@ int TranspositionTable::GetCapacity(int halfmove) const
     return count;
 }
 
-void TranspositionTable::ResetTable()
+void TranspositionTable::Clear(int thread_count)
 {
-    Reallocate();
+    // For extremely large hash sizes, we clear the table using multiple threads
+
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < thread_count; i++)
+    {
+        threads.emplace_back(
+            [this, i, thread_count]()
+            {
+                const size_t begin = (size_ / thread_count) * i;
+                const size_t len = i + 1 != thread_count ? size_ / thread_count : size_ - begin;
+                std::memset(&table[begin], 0, len * sizeof(TTBucket));
+            });
+    }
+
+    for (auto& t : threads)
+    {
+        t.join();
+    }
 }
 
-void TranspositionTable::SetSize(uint64_t MB)
+void TranspositionTable::SetSize(uint64_t MB, int thread_count)
 {
     size_ = MB * 1024 * 1024 / sizeof(TTBucket);
-    Reallocate();
+    Reallocate(thread_count);
 }
 
-void TranspositionTable::Reallocate()
+void TranspositionTable::Reallocate(int thread_count)
 {
     Deallocate();
 
@@ -134,6 +154,8 @@ void TranspositionTable::Reallocate()
 #else
     table = new TTBucket[size_];
 #endif
+
+    Clear(thread_count);
 }
 
 void TranspositionTable::Deallocate()
