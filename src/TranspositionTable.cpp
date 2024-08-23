@@ -124,8 +124,8 @@ void TranspositionTable::Clear(int thread_count)
             [this, i, thread_count]()
             {
                 const size_t begin = (size_ / thread_count) * i;
-                const size_t len = i + 1 != thread_count ? size_ / thread_count : size_ - begin;
-                std::memset(&table[begin], 0, len * sizeof(TTBucket));
+                const size_t end = i + 1 != thread_count ? size_ / thread_count * (i + 1) : size_;
+                std::fill(&table[begin], &table[end], TTBucket {});
             });
     }
 
