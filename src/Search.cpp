@@ -706,10 +706,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Step 3: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
-    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
+    const bool excluded_search = ss->singular_exclusion != Move::Uninitialized;
 
     // Step 4: Check if we can use the TT entry to return early
-    if (!pv_node && excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
+    if (!pv_node && !excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
         && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
@@ -719,7 +719,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     // Step 5: Probe syzygy EGTB
-    if (excluded_search)
+    if (!excluded_search)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
                 position, distance_from_root, local, alpha, beta, min_score, max_score, depth))
@@ -734,7 +734,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && excluded_search && depth < 8 && eval - 93 * depth >= beta)
+    if (!pv_node && !InCheck && !excluded_search && depth < 8 && eval - 93 * depth >= beta)
     {
         return beta;
     }
@@ -744,7 +744,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
-    if (!pv_node && !InCheck && excluded_search && (ss - 1)->move != Move::Uninitialized
+    if (!pv_node && !InCheck && !excluded_search && (ss - 1)->move != Move::Uninitialized
         && distance_from_root >= ss->nmp_verification_depth && eval > beta
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
@@ -823,7 +823,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && excluded_search && depth >= 7 && tt_depth + 3 >= depth
+        if (!root_node && !excluded_search && depth >= 7 && tt_depth + 3 >= depth
             && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED)
         {
             if (auto value
@@ -873,7 +873,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     score = std::clamp(score, min_score, max_score);
 
     // Step 18: Update transposition table
-    if (!local.aborting_search && excluded_search)
+    if (!local.aborting_search && !excluded_search)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
     }
@@ -898,10 +898,10 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     // Step 2: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
-    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
+    const bool excluded_search = ss->singular_exclusion != Move::Uninitialized;
 
     // Step 3: Check if we can use the TT entry to return early
-    if (!pv_node && excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
+    if (!pv_node && !excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
         && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, tt_move, alpha, beta))
@@ -965,7 +965,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     }
 
     // Step 6: Update transposition table
-    if (!local.aborting_search && excluded_search)
+    if (!local.aborting_search && !excluded_search)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
     }
