@@ -729,7 +729,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff,
-        depth, distance_from_root, ss->singular_exclusion == Move::Uninitialized);
+        depth, distance_from_root, ss->singular_exclusion != Move::Uninitialized);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -910,7 +910,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     }
 
     const auto [raw_eval, eval] = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff,
-        depth, distance_from_root, ss->singular_exclusion == Move::Uninitialized);
+        depth, distance_from_root, ss->singular_exclusion != Move::Uninitialized);
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
