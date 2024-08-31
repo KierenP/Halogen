@@ -684,7 +684,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     constexpr bool root_node = search_type == SearchType::ROOT;
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = IsInCheck(position.Board());
-    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
 
     // Step 1: Drop into q-search
     if (depth <= 0 && !InCheck)
@@ -707,6 +706,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // Step 3: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
+    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
 
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
@@ -889,7 +889,6 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
     constexpr bool pv_node = search_type != SearchType::ZW;
     const auto distance_from_root = ss->distance_from_root;
-    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
@@ -899,6 +898,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     // Step 2: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
+    const bool excluded_search = ss->singular_exclusion == Move::Uninitialized;
 
     // Step 3: Check if we can use the TT entry to return early
     if (!pv_node && excluded_search && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
