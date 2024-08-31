@@ -635,8 +635,13 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 template <bool is_qsearch>
 std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchLocalState& local,
     TTEntry* const tt_entry, const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth,
-    int distance_from_root)
+    int distance_from_root, bool in_check)
 {
+    if (in_check)
+    {
+        return { SCORE_UNDEFINED, SCORE_UNDEFINED };
+    }
+
     if (tt_entry)
     {
         const auto static_eval = [&]
@@ -728,7 +733,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(
-        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -908,8 +913,10 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
     }
 
-    const auto [raw_eval, eval]
-        = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    // TODO: When q-search does check evasions we can fix this, for now, we pass in_check = false so we eval the
+    // position
+    const auto [raw_eval, eval] = get_search_eval<true>(
+        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, false);
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
