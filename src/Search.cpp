@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
+#include <iostream>
 #include <limits>
 #include <optional>
 #include <thread>
@@ -830,6 +831,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             {
                 return *value;
             }
+        }
+
+        // Late irreversible move extension
+        if (move == tt_move && position.Board().fifty_move_count > 80
+            && (move.IsCapture() || GetPieceType(position.Board().GetSquare(move.GetFrom())) == PAWN))
+        {
+            extensions += 2;
         }
 
         int history = local.history.get(position, ss, move);
