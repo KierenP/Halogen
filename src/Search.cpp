@@ -834,7 +834,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
 
         // Late irreversible move extension
-        if (move == tt_move && position.Board().fifty_move_count > 80
+        if (position.Board().fifty_move_count > 80
             && (move.IsCapture() || GetPieceType(position.Board().GetSquare(move.GetFrom())) == PAWN))
         {
             extensions += 2;
