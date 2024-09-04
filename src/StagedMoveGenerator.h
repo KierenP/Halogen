@@ -62,7 +62,8 @@ public:
     }
 
 private:
-    void OrderMoves(ExtendedMoveList& moves);
+    void OrderQuietMoves(ExtendedMoveList& moves);
+    void OrderLoudMoves(ExtendedMoveList& moves);
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
@@ -70,6 +71,7 @@ private:
     const SearchStackState* ss;
     bool quiescence;
     ExtendedMoveList loudMoves;
+    ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
 
     // Data uses for keeping track of internal values

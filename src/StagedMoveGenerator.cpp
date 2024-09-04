@@ -7,11 +7,14 @@
 
 #include "BitBoardDefine.h"
 #include "GameState.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
+
+int see(const BoardState& board, Move move);
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
@@ -45,24 +48,35 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GEN_LOUD)
     {
         QuiescenceMoves(position.Board(), loudMoves);
-        OrderMoves(loudMoves);
+        OrderLoudMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
     }
 
     if (stage == Stage::GIVE_GOOD_LOUD)
     {
-        if (current != loudMoves.end() && current->SEE >= 0)
+        while (current != loudMoves.end())
         {
-            move = current->move;
-            moveSEE = current->SEE;
-            ++current;
-            return true;
+            current->SEE = see(position.Board(), current->move);
+
+            if (current->SEE >= 0)
+            {
+                move = current->move;
+                moveSEE = current->SEE;
+                ++current;
+                return true;
+            }
+            else
+            {
+                bad_loudMoves.emplace_back(*current);
+                ++current;
+            }
         }
 
         if (quiescence)
             return false;
 
+        current = bad_loudMoves.begin();
         stage = Stage::GIVE_KILLER_1;
     }
 
@@ -92,7 +106,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GIVE_BAD_LOUD)
     {
-        if (current != loudMoves.end())
+        if (current != bad_loudMoves.end())
         {
             move = current->move;
             moveSEE = current->SEE;
@@ -111,7 +125,7 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GEN_QUIET)
     {
         QuietMoves(position.Board(), quietMoves);
-        OrderMoves(quietMoves);
+        OrderQuietMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
     }
@@ -161,12 +175,8 @@ int16_t StagedMoveGenerator::GetSEE(Move) const
     return *moveSEE;
 }
 
-void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
 {
-    static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
-    static constexpr int16_t SCORE_CAPTURE = 20000;
-    static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
-
     for (size_t i = 0; i < moves.size(); i++)
     {
         // Hash move
@@ -189,6 +199,42 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
             i--;
         }
 
+        // Quiet
+        else
+        {
+            int history = local.history.get(position, ss, moves[i].move);
+            moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
+                std::numeric_limits<decltype(moves[i].score)>::max());
+        }
+    }
+
+    selection_sort(moves);
+}
+
+void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
+{
+    static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
+    static constexpr int16_t SCORE_CAPTURE = 20000;
+    static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
+
+    static constexpr std::array MVV_LVA = {
+        std::array { 15, 14, 13, 12, 11, 10 },
+        std::array { 25, 24, 23, 22, 21, 20 },
+        std::array { 35, 34, 33, 32, 31, 30 },
+        std::array { 45, 44, 43, 42, 41, 40 },
+        std::array { 55, 54, 53, 52, 51, 50 },
+        std::array { 0, 0, 0, 0, 0, 0 },
+    };
+
+    for (size_t i = 0; i < moves.size(); i++)
+    {
+        // Hash move
+        if (moves[i].move == TTmove)
+        {
+            moves.erase(moves.begin() + i);
+            i--;
+        }
+
         // Promotions
         else if (moves[i].move.IsPromotion())
         {
@@ -203,20 +249,18 @@ void StagedMoveGenerator::OrderMoves(ExtendedMoveList& moves)
             }
         }
 
-        // Captures
-        else if (moves[i].move.IsCapture())
+        // Handle en passant separate to MVV_LVA
+        else if (moves[i].move.GetFlag() == EN_PASSANT)
         {
-            int SEE = see(position.Board(), moves[i].move);
-            moves[i].score = SCORE_CAPTURE + SEE;
-            moves[i].SEE = SEE;
+            moves[i].score = SCORE_CAPTURE + MVV_LVA[PAWN][PAWN];
         }
 
-        // Quiet
+        // Captures
         else
         {
-            int history = local.history.get(position, ss, moves[i].move);
-            moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
-                std::numeric_limits<decltype(moves[i].score)>::max());
+            moves[i].score = SCORE_CAPTURE
+                + MVV_LVA[GetPieceType(position.Board().GetSquare(moves[i].move.GetTo()))]
+                         [GetPieceType(position.Board().GetSquare(moves[i].move.GetFrom()))];
         }
     }
 
