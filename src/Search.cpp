@@ -637,41 +637,40 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     TTEntry* const tt_entry, const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth,
     int distance_from_root)
 {
+    Score raw_eval;
+    Score adjusted_eval;
+
     if (tt_entry)
     {
-        const auto static_eval = [&]
+        if (tt_eval != SCORE_UNDEFINED)
         {
-            if (tt_eval != SCORE_UNDEFINED)
-            {
-                return tt_eval;
-            }
-            {
-                const auto eval = Evaluate(position.Board(), ss, local.net);
-                tt_entry->static_eval = eval;
-                return eval;
-            }
-        }();
+            raw_eval = tt_eval;
+        }
+        else
+        {
+            tt_entry->static_eval = raw_eval = Evaluate(position.Board(), ss, local.net);
+        }
+
+        adjusted_eval = raw_eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
             && (tt_cutoff == SearchResultType::EXACT
-                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= static_eval)
-                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= static_eval)))
+                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adjusted_eval)
+                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adjusted_eval)))
         {
-            return { static_eval, tt_score };
-        }
-        else
-        {
-            return { static_eval, static_eval };
+            adjusted_eval = tt_score;
         }
     }
     else
     {
-        const auto static_eval = Evaluate(position.Board(), ss, local.net);
+        raw_eval = Evaluate(position.Board(), ss, local.net);
+        adjusted_eval = raw_eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
-            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, static_eval);
-        return { static_eval, static_eval };
+            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
+
+    return { raw_eval, adjusted_eval };
 }
 
 template <SearchType search_type>
