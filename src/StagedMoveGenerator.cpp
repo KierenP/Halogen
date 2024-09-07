@@ -216,9 +216,6 @@ int see(const BoardState& board, Move move)
         attacker = !attacker;
         scores[index] = PieceValues[capturing] - scores[index - 1];
 
-        if (-scores[index - 1] < 0 && scores[index] < 0)
-            break;
-
         attack_def ^= from_set;
         occ ^= from_set;
 
