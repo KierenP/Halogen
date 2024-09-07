@@ -937,7 +937,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
             {
                 if (eval + PieceValues[QUEEN] + 280 < alpha)
                 {
-                    continue;
+                    break;
                 }
             }
             else
