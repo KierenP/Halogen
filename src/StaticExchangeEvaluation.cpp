@@ -4,14 +4,13 @@
 #include "MoveGeneration.h"
 #include "Score.h"
 
-uint64_t AttackersToSq(const BoardState& board, Square sq)
+uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
 {
     uint64_t pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
     pawn_mask |= (board.GetPieceBB<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
 
     uint64_t bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
     uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
-    uint64_t occ = board.GetAllPieces();
 
     return (pawn_mask & board.GetPieceBB<PAWN>()) | (AttackBB<KNIGHT>(sq) & board.GetPieceBB<KNIGHT>())
         | (AttackBB<KING>(sq) & board.GetPieceBB<KING>()) | (AttackBB<BISHOP>(sq, occ) & bishops)
@@ -54,7 +53,7 @@ int see(const BoardState& board, Move move)
         occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
     }
 
-    uint64_t attack_def = AttackersToSq(board, to);
+    uint64_t attack_def = AttackersToSq(board, to, occ);
     scores[index] = PieceValues[captured];
 
     do
@@ -113,12 +112,9 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
         occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
     }
 
-    uint64_t attack_def = AttackersToSq(board, to);
-    attack_def ^= SquareBB[from];
     occ ^= SquareBB[from];
-
-    // the initial move might allow some x-ray attacks
-    attack_def |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
+    uint64_t attack_def = AttackersToSq(board, to, occ);
+    attack_def ^= SquareBB[from];
 
     while (true)
     {

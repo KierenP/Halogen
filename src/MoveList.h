@@ -5,21 +5,18 @@
 #include "Move.h"
 #include "StaticVector.h"
 
-// For move ordering we need to bundle the 'score' and SEE values
-// with the move objects
+// For move ordering we need to bundle the 'score' with the move objects
 struct ExtendedMove
 {
     ExtendedMove() = default;
     ExtendedMove(const Move _move)
         : move(_move)
         , score(0)
-        , SEE(0)
     {
     }
     ExtendedMove(Square from, Square to, MoveFlag flag)
         : move(from, to, flag)
         , score(0)
-        , SEE(0)
     {
     }
 
@@ -35,7 +32,6 @@ struct ExtendedMove
 
     Move move;
     int16_t score;
-    int16_t SEE;
 };
 
 using ExtendedMoveList = StaticVector<ExtendedMove, 256>;
