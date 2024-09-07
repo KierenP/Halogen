@@ -14,8 +14,6 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-int see(const BoardState& board, Move move);
-
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
     : position(Position)
@@ -57,7 +55,21 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            current->SEE = see(position.Board(), current->move);
+            if (current->move.IsPromotion())
+            {
+                if (current->move.GetFlag() == QUEEN_PROMOTION || current->move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+                {
+                    current->SEE = PieceValues[QUEEN];
+                }
+                else
+                {
+                    current->SEE = 0;
+                }
+            }
+            else
+            {
+                current->SEE = see(position.Board(), current->move);
+            }
 
             if (current->SEE >= 0)
             {
@@ -241,7 +253,6 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
             {
                 moves[i].score = SCORE_QUEEN_PROMOTION;
-                moves[i].SEE = PieceValues[QUEEN];
             }
             else
             {
