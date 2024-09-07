@@ -6,6 +6,7 @@
 #include <atomic>
 #include <cmath>
 #include <ctime>
+#include <iostream>
 #include <limits>
 #include <optional>
 #include <thread>
@@ -22,6 +23,7 @@
 #include "SearchConstants.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
+#include "StaticExchangeEvaluation.h"
 #include "TTEntry.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
@@ -916,6 +918,11 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     if (alpha >= beta)
     {
         return alpha;
+    }
+
+    if (eval + PieceValues[QUEEN] + 280 < alpha)
+    {
+        return eval;
     }
 
     Move bestmove = Move::Uninitialized;
