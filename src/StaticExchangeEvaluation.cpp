@@ -2,6 +2,7 @@
 
 #include "BoardState.h"
 #include "MoveGeneration.h"
+#include "Score.h"
 
 uint64_t AttackersToSq(const BoardState& board, Square sq)
 {
@@ -73,4 +74,144 @@ int see(const BoardState& board, Move move)
         scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
     }
     return scores[0];
+}
+
+bool see_ge(const BoardState& board, Move move, Score threshold)
+{
+    Square from = move.GetFrom();
+    Square to = move.GetTo();
+
+    auto capturing = board.GetSquare(from);
+    auto attacker = ColourOfPiece(capturing);
+    auto captured = move.GetFlag() == EN_PASSANT ? Piece(PAWN, !attacker) : board.GetSquare(to);
+
+    // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If the
+    // value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
+    Score swap = PieceValues[captured] - threshold + 1;
+    if (swap <= 0)
+    {
+        return false;
+    }
+
+    // From the opponents perspective, if recapturing does not beat the threshold we win
+    swap = PieceValues[capturing] - swap + 1;
+    if (swap <= 0)
+    {
+        return true;
+    }
+
+    auto stm = board.stm;
+    int result = 1;
+    uint64_t occ = board.GetAllPieces(), bishop_queen = 0, rook_queen = 0;
+
+    bishop_queen = rook_queen = board.GetPieceBB<QUEEN>();
+    bishop_queen |= board.GetPieceBB<BISHOP>();
+    rook_queen |= board.GetPieceBB<ROOK>();
+
+    if (move.GetFlag() == EN_PASSANT)
+    {
+        occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+    }
+
+    uint64_t attack_def = AttackersToSq(board, to);
+    attack_def ^= SquareBB[from];
+    occ ^= SquareBB[from];
+
+    // the initial move might allow some x-ray attacks
+    attack_def |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
+
+    while (true)
+    {
+        stm = !stm;
+        attack_def &= occ;
+        auto stmAttackers = attack_def & board.GetPiecesColour(stm);
+
+        // If the side to move has no more attackers, stm loses
+        if (!stmAttackers)
+        {
+            break;
+        }
+
+        result ^= 1;
+
+        // Find the least valuable attacker. Depending on the type of piece moved, we might also look for x-ray
+        // attackers
+        {
+            auto pawns = stmAttackers & board.GetPieceBB(PAWN, stm);
+            if (pawns)
+            {
+                swap = PieceValues[PAWN] - swap + 1;
+                if (swap <= 0)
+                    break;
+                occ ^= SquareBB[LSB(pawns)];
+                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                continue;
+            }
+        }
+
+        {
+            auto knights = stmAttackers & board.GetPieceBB(KNIGHT, stm);
+            if (knights)
+            {
+                swap = PieceValues[KNIGHT] - swap + 1;
+                if (swap <= 0)
+                    break;
+                occ ^= SquareBB[LSB(knights)];
+                continue;
+            }
+        }
+
+        {
+            auto bishops = stmAttackers & board.GetPieceBB(BISHOP, stm);
+            if (bishops)
+            {
+                swap = PieceValues[BISHOP] - swap + 1;
+                if (swap <= 0)
+                    break;
+                occ ^= SquareBB[LSB(bishops)];
+                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                continue;
+            }
+        }
+
+        {
+            auto rooks = stmAttackers & board.GetPieceBB(ROOK, stm);
+            if (rooks)
+            {
+                swap = PieceValues[ROOK] - swap + 1;
+                if (swap <= 0)
+                    break;
+                occ ^= SquareBB[LSB(rooks)];
+                attack_def |= occ & (rook_queen & AttackBB<ROOK>(to, occ));
+                continue;
+            }
+        }
+
+        {
+            auto queens = stmAttackers & board.GetPieceBB(QUEEN, stm);
+            if (queens)
+            {
+                swap = PieceValues[QUEEN] - swap + 1;
+                if (swap <= 0)
+                    break;
+                occ ^= SquareBB[LSB(queens)];
+                attack_def
+                    |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
+                continue;
+            }
+        }
+
+        {
+            // if we only have the king available to attack we lose if the opponent has any further
+            // attackers, and we would win on the next iteration if they don't
+            if (attack_def & board.GetPiecesColour(!stm))
+            {
+                result ^= 1;
+            }
+
+            break;
+        }
+    }
+
+    return result;
 }

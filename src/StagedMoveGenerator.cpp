@@ -30,8 +30,6 @@ StagedMoveGenerator::StagedMoveGenerator(
 
 bool StagedMoveGenerator::Next(Move& move)
 {
-    moveSEE = std::nullopt;
-
     if (stage == Stage::TT_MOVE)
     {
         stage = Stage::GEN_LOUD;
@@ -55,26 +53,9 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            if (current->move.IsPromotion())
-            {
-                if (current->move.GetFlag() == QUEEN_PROMOTION || current->move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-                {
-                    current->SEE = PieceValues[QUEEN];
-                }
-                else
-                {
-                    current->SEE = 0;
-                }
-            }
-            else
-            {
-                current->SEE = see(position.Board(), current->move);
-            }
-
-            if (current->SEE >= 0)
+            if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0))
             {
                 move = current->move;
-                moveSEE = current->SEE;
                 ++current;
                 return true;
             }
@@ -121,7 +102,6 @@ bool StagedMoveGenerator::Next(Move& move)
         if (current != bad_loudMoves.end())
         {
             move = current->move;
-            moveSEE = current->SEE;
             ++current;
             return true;
         }
@@ -147,7 +127,6 @@ bool StagedMoveGenerator::Next(Move& move)
         if (current != quietMoves.end())
         {
             move = current->move;
-            moveSEE = current->SEE;
             ++current;
             return true;
         }
@@ -180,11 +159,6 @@ void selection_sort(ExtendedMoveList& v)
     {
         std::iter_swap(it, std::max_element(it, v.end()));
     }
-}
-
-int16_t StagedMoveGenerator::GetSEE(Move) const
-{
-    return *moveSEE;
 }
 
 void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)

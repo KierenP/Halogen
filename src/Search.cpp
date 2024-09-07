@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "EGTB.h"
 #include "Evaluate.h"
 #include "GameState.h"
@@ -22,6 +23,7 @@
 #include "SearchConstants.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
+#include "StaticExchangeEvaluation.h"
 #include "TTEntry.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
@@ -927,10 +929,26 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        int SEE = gen.GetSEE(move);
-
-        // delta pruning
-        if (eval + SEE + 280 < alpha)
+        // delta pruning (This looks pretty strange, but it was to maintain the legacy behaviour. It will be simplified
+        // away)
+        if (move.IsPromotion())
+        {
+            if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            {
+                if (eval + PieceValues[QUEEN] + 280 < alpha)
+                {
+                    break;
+                }
+            }
+            else
+            {
+                if (eval + 280 < alpha)
+                {
+                    break;
+                }
+            }
+        }
+        else if (!see_ge(position.Board(), move, alpha - eval - 280))
         {
             break;
         }
