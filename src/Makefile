@@ -27,6 +27,8 @@ SRCS := \
 	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
+	StaticExchangeEvaluation.cpp \
+	test/StaticExchangeEvaluation.cpp \
 	uci/uci.cpp \
 	Pyrrhic/tbprobe.c
 
