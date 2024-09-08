@@ -944,19 +944,19 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
             {
                 if (eval + 280 < alpha)
                 {
-                    break;
+                    continue;
                 }
             }
         }
         else if (!see_ge(position.Board(), move, alpha - eval - 280))
         {
-            break;
+            continue;
         }
 
         // prune underpromotions
         if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
-            break;
+            continue;
         }
 
         ss->move = move;
