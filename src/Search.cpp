@@ -640,6 +640,14 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     Score raw_eval;
     Score adjusted_eval;
 
+    auto scale_eval_50_move = [&position](Score eval)
+    {
+        // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
+        // return false mate scores
+        auto adjusted = eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
+        return std::clamp<Score>(adjusted, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
+    };
+
     if (tt_entry)
     {
         if (tt_eval != SCORE_UNDEFINED)
@@ -651,7 +659,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
             tt_entry->static_eval = raw_eval = Evaluate(position.Board(), ss, local.net);
         }
 
-        adjusted_eval = raw_eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
+        adjusted_eval = scale_eval_50_move(raw_eval);
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
@@ -665,7 +673,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     else
     {
         raw_eval = Evaluate(position.Board(), ss, local.net);
-        adjusted_eval = raw_eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
+        adjusted_eval = scale_eval_50_move(raw_eval);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
