@@ -937,26 +937,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        // delta pruning (This looks pretty strange, but it was to maintain the legacy behaviour. It will be simplified
-        // away)
-        if (move.IsPromotion())
-        {
-            if (move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
-            {
-                if (eval + PieceValues[QUEEN] + 280 < alpha)
-                {
-                    break;
-                }
-            }
-            else
-            {
-                if (eval + 280 < alpha)
-                {
-                    continue;
-                }
-            }
-        }
-        else if (!see_ge(position.Board(), move, alpha - eval - 280))
+        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;
         }
