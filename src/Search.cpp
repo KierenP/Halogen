@@ -962,7 +962,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
 
         // SEE pruning
-        if (!see_ge(position.Board(), move, -50))
+        if (!see_ge(position.Board(), move, -100))
         {
             continue;
         }
