@@ -961,6 +961,12 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
             continue;
         }
 
+        // SEE pruning
+        if (!see_ge(position.Board(), move, -50))
+        {
+            continue;
+        }
+
         // prune underpromotions
         if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
