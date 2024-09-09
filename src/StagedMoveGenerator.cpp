@@ -67,10 +67,15 @@ bool StagedMoveGenerator::Next(Move& move)
         }
 
         if (quiescence)
-            return false;
+        {
+            stage = Stage::GIVE_BAD_LOUD;
+        }
+        else
+        {
+            stage = Stage::GIVE_KILLER_1;
+        }
 
         current = bad_loudMoves.begin();
-        stage = Stage::GIVE_KILLER_1;
     }
 
     if (stage == Stage::GIVE_KILLER_1)
@@ -107,6 +112,11 @@ bool StagedMoveGenerator::Next(Move& move)
         }
         else
         {
+            if (quiescence)
+            {
+                return false;
+            }
+
             stage = Stage::GEN_QUIET;
         }
     }
