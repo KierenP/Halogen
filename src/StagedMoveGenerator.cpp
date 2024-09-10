@@ -226,7 +226,7 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
 
     auto capture_score = [](auto mvv_lva, auto history)
     {
-        auto score = (mvv_lva - 30) * 500 + history;
+        auto score = (mvv_lva - 30) * 500 + history / 10;
         return std::clamp<int>(score, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
     };
 
