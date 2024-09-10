@@ -216,11 +216,11 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
     static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
 
     static constexpr std::array MVV_LVA = {
-        std::array { 15, 14, 13, 12, 11, 10 },
-        std::array { 25, 24, 23, 22, 21, 20 },
-        std::array { 35, 34, 33, 32, 31, 30 },
-        std::array { 45, 44, 43, 42, 41, 40 },
-        std::array { 55, 54, 53, 52, 51, 50 },
+        std::array { 10, 10, 10, 10, 10, 10 },
+        std::array { 20, 20, 20, 20, 20, 20 },
+        std::array { 30, 30, 30, 30, 30, 30 },
+        std::array { 40, 40, 40, 40, 40, 40 },
+        std::array { 50, 50, 50, 50, 50, 50 },
         std::array { 0, 0, 0, 0, 0, 0 },
     };
 
