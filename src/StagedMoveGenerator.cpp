@@ -259,7 +259,7 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         if (moves[i].move.GetFlag() == EN_PASSANT)
         {
             auto mvv_lva = MVV_LVA[PAWN][PAWN];
-            auto history = local.quiet_history.get(position, ss, moves[i].move);
+            auto history = local.loud_history.get(position, ss, moves[i].move);
             moves[i].score = capture_score(mvv_lva, history);
         }
 
@@ -268,7 +268,7 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         {
             auto mvv_lva = MVV_LVA[GetPieceType(position.Board().GetSquare(moves[i].move.GetTo()))]
                                   [GetPieceType(position.Board().GetSquare(moves[i].move.GetFrom()))];
-            auto history = local.quiet_history.get(position, ss, moves[i].move);
+            auto history = local.loud_history.get(position, ss, moves[i].move);
             moves[i].score = capture_score(mvv_lva, history);
         }
     }
