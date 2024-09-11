@@ -146,6 +146,11 @@ void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adju
 
         local.quiet_history.add(position, ss, m.move, negative_adjustment);
     }
+
+    for (auto const& m : loudMoves)
+    {
+        local.loud_history.add(position, ss, m.move, negative_adjustment);
+    }
 }
 
 void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
