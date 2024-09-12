@@ -237,15 +237,13 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         // Handle en passant separate to MVV_LVA
         else if (moves[i].move.GetFlag() == EN_PASSANT)
         {
-            moves[i].score = SCORE_CAPTURE + MVV_LVA[PAWN][PAWN];
+            moves[i].score = 0;
         }
 
         // Captures
         else
         {
-            moves[i].score = SCORE_CAPTURE
-                + MVV_LVA[GetPieceType(position.Board().GetSquare(moves[i].move.GetTo()))]
-                         [GetPieceType(position.Board().GetSquare(moves[i].move.GetFrom()))];
+            moves[i].score = 0;
         }
     }
 
