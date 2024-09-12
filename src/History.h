@@ -53,7 +53,7 @@ struct CountermoveHistory : HistoryTable<CountermoveHistory>
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
     static constexpr int max_value = 16384;
-    static constexpr int scale = 64;
+    static constexpr int scale = 32;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
