@@ -135,16 +135,29 @@ bool StagedMoveGenerator::Next(Move& move)
     return false;
 }
 
-void StagedMoveGenerator::AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.history.add(position, ss, move, positive_adjustment);
+    local.quiet_history.add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.history.add(position, ss, m.move, negative_adjustment);
+        local.quiet_history.add(position, ss, m.move, negative_adjustment);
+    }
+}
+
+void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+{
+    local.loud_history.add(position, ss, move, positive_adjustment);
+
+    for (auto const& m : loudMoves)
+    {
+        if (m.move == move)
+            break;
+
+        local.loud_history.add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -188,7 +201,7 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.history.get(position, ss, moves[i].move);
+            int history = local.quiet_history.get(position, ss, moves[i].move);
             moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
                 std::numeric_limits<decltype(moves[i].score)>::max());
         }
@@ -200,8 +213,7 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
 void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
-    static constexpr int16_t SCORE_CAPTURE = 20000;
-    static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
+    static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
 
     static constexpr std::array MVV_LVA = {
         std::array { 15, 14, 13, 12, 11, 10 },
@@ -219,10 +231,11 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         {
             moves.erase(moves.begin() + i);
             i--;
+            continue;
         }
 
         // Promotions
-        else if (moves[i].move.IsPromotion())
+        if (moves[i].move.IsPromotion())
         {
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
             {
@@ -232,18 +245,20 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
             {
                 moves[i].score = SCORE_UNDER_PROMOTION;
             }
+
+            continue;
         }
 
         // Handle en passant separate to MVV_LVA
-        else if (moves[i].move.GetFlag() == EN_PASSANT)
+        if (moves[i].move.GetFlag() == EN_PASSANT)
         {
-            moves[i].score = 0;
+            moves[i].score = local.loud_history.get(position, ss, moves[i].move);
         }
 
         // Captures
         else
         {
-            moves[i].score = 0;
+            moves[i].score = local.loud_history.get(position, ss, moves[i].move);
         }
     }
 
