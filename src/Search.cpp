@@ -846,7 +846,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = local.quiet_history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
+                                                             : local.quiet_history.get(position, ss, move);
         ss->move = move;
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
