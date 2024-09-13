@@ -821,6 +821,14 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
+        int history = local.history.get(position, ss, move);
+
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !move.IsCapture() && !move.IsPromotion() && depth <= 10
+            && !see_ge(position.Board(), move, -20 * depth * depth - history / 128))
+        {
+            continue;
+        }
+
         int extensions = 0;
 
         // Step 13: Singular extensions.
@@ -841,7 +849,6 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = local.history.get(position, ss, move);
         ss->move = move;
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
