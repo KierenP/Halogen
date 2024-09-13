@@ -220,15 +220,6 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
     static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
 
-    static constexpr std::array MVV_LVA = {
-        std::array { 15, 14, 13, 12, 11, 10 },
-        std::array { 25, 24, 23, 22, 21, 20 },
-        std::array { 35, 34, 33, 32, 31, 30 },
-        std::array { 45, 44, 43, 42, 41, 40 },
-        std::array { 55, 54, 53, 52, 51, 50 },
-        std::array { 0, 0, 0, 0, 0, 0 },
-    };
-
     for (size_t i = 0; i < moves.size(); i++)
     {
         // Hash move
@@ -236,11 +227,10 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         {
             moves.erase(moves.begin() + i);
             i--;
-            continue;
         }
 
         // Promotions
-        if (moves[i].move.IsPromotion())
+        else if (moves[i].move.IsPromotion())
         {
             if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
             {
@@ -250,14 +240,6 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
             {
                 moves[i].score = SCORE_UNDER_PROMOTION;
             }
-
-            continue;
-        }
-
-        // Handle en passant separate to MVV_LVA
-        if (moves[i].move.GetFlag() == EN_PASSANT)
-        {
-            moves[i].score = local.loud_history.get(position, ss, moves[i].move);
         }
 
         // Captures
