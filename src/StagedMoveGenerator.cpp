@@ -135,16 +135,34 @@ bool StagedMoveGenerator::Next(Move& move)
     return false;
 }
 
-void StagedMoveGenerator::AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.history.add(position, ss, move, positive_adjustment);
+    local.quiet_history.add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.history.add(position, ss, m.move, negative_adjustment);
+        local.quiet_history.add(position, ss, m.move, negative_adjustment);
+    }
+
+    for (auto const& m : loudMoves)
+    {
+        local.loud_history.add(position, ss, m.move, negative_adjustment);
+    }
+}
+
+void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+{
+    local.loud_history.add(position, ss, move, positive_adjustment);
+
+    for (auto const& m : loudMoves)
+    {
+        if (m.move == move)
+            break;
+
+        local.loud_history.add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -188,7 +206,7 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.history.get(position, ss, moves[i].move);
+            int history = local.quiet_history.get(position, ss, moves[i].move);
             moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
                 std::numeric_limits<decltype(moves[i].score)>::max());
         }
@@ -200,17 +218,7 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
 void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
-    static constexpr int16_t SCORE_CAPTURE = 20000;
-    static constexpr int16_t SCORE_UNDER_PROMOTION = -1;
-
-    static constexpr std::array MVV_LVA = {
-        std::array { 15, 14, 13, 12, 11, 10 },
-        std::array { 25, 24, 23, 22, 21, 20 },
-        std::array { 35, 34, 33, 32, 31, 30 },
-        std::array { 45, 44, 43, 42, 41, 40 },
-        std::array { 55, 54, 53, 52, 51, 50 },
-        std::array { 0, 0, 0, 0, 0, 0 },
-    };
+    static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
 
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -234,18 +242,10 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
             }
         }
 
-        // Handle en passant separate to MVV_LVA
-        else if (moves[i].move.GetFlag() == EN_PASSANT)
-        {
-            moves[i].score = SCORE_CAPTURE + MVV_LVA[PAWN][PAWN];
-        }
-
         // Captures
         else
         {
-            moves[i].score = SCORE_CAPTURE
-                + MVV_LVA[GetPieceType(position.Board().GetSquare(moves[i].move.GetTo()))]
-                         [GetPieceType(position.Board().GetSquare(moves[i].move.GetFrom()))];
+            moves[i].score = local.loud_history.get(position, ss, moves[i].move);
         }
     }
 
