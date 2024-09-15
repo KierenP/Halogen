@@ -11,13 +11,12 @@ on:
   pull_request:
 
 jobs:
-  # On OpenBench some workers use g++ 9.3.1, so we must maintain compatibility with that
   gcc-PGO:
     runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        compiler: [g++-9]
+        compiler: [g++-11]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -44,9 +43,9 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [clang++-10]
-        llvm: [llvm-10]
-        profdata: [llvm-profdata-10]
+        compiler: [clang++-12]
+        llvm: [llvm-12]
+        profdata: [llvm-profdata-12]
 
     steps:
       - uses: actions/checkout@v4.1.1
