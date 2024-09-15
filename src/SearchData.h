@@ -84,7 +84,8 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    History history;
+    QuietHistory quiet_history;
+    LoudHistory loud_history;
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;

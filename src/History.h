@@ -50,13 +50,43 @@ struct CountermoveHistory : HistoryTable<CountermoveHistory>
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
+struct CaptureHistory : HistoryTable<CaptureHistory>
+{
+    static constexpr int max_value = 16384;
+    static constexpr int scale = 32;
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
+    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+};
+
+template <typename... tables>
 class History
 {
 public:
-    void reset();
-    int get(const GameState& position, const SearchStackState* ss, Move move);
-    void add(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void reset()
+    {
+        std::apply([](auto&... table) { (table.reset(), ...); }, tables_);
+    }
+
+    int get(const GameState& position, const SearchStackState* ss, Move move)
+    {
+        auto get_value = [&](auto& table)
+        {
+            auto* value = table.get(position, ss, move);
+            return value ? *value : 0;
+        };
+
+        return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_)
+            / (int)std::tuple_size_v<decltype(tables_)>;
+    }
+
+    void add(const GameState& position, const SearchStackState* ss, Move move, int change)
+    {
+        std::apply([&](auto&... table) { (table.add(position, ss, move, change), ...); }, tables_);
+    }
 
 private:
-    std::tuple<ButterflyHistory, CountermoveHistory> tables_;
+    std::tuple<tables...> tables_;
 };
+
+using QuietHistory = History<ButterflyHistory, CountermoveHistory>;
+using LoudHistory = History<CaptureHistory>;
