@@ -12,11 +12,13 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-10]
+        config:
+          - { compiler: g++-11, package: g++-11 }
+          - { compiler: clang++-12, package: clang-12 }
         # runners only seem to support up to avx2-pext
         target: [legacy, sse4, avx, avx2, avx2-pext]
 
@@ -27,10 +29,15 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Install
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.config.package }}
+
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen -j4
 
       - name: Check bench matches commit message
         run: |

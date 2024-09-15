@@ -37,7 +37,7 @@ struct SearchStackState
     SearchStackState(int distance_from_root_);
     void reset();
 
-    BasicMoveList pv = {};
+    StaticVector<Move, MAX_DEPTH> pv = {};
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
@@ -84,7 +84,8 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    History history;
+    QuietHistory quiet_history;
+    LoudHistory loud_history;
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;
@@ -120,7 +121,7 @@ struct SearchResults
     int multi_pv = 0;
     Move best_move = Move::Uninitialized;
     Score score = SCORE_UNDEFINED;
-    BasicMoveList pv = {};
+    StaticVector<Move, MAX_DEPTH> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
 };
 
@@ -170,7 +171,7 @@ private:
     int threads_setting {};
 
     // [thread_id][multi_pv][depth]
-    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;
+    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
 
     SearchResults* best_search_result_ = nullptr;
 
