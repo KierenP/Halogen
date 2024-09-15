@@ -41,7 +41,9 @@ jobs:
 
     strategy:
       matrix:
+        config:
         compiler: [clang++-12]
+        package: [clang-12]
         llvm: [llvm-12]
         profdata: [llvm-profdata-12]
 
@@ -51,7 +53,7 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.llvm }} ${{ matrix.compiler }}
+          sudo apt install ${{ matrix.llvm }} ${{ matrix.package }}
 
       - name: Create PGO compiles
         run: |
