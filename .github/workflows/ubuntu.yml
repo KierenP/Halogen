@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-10, clang++-10]
+        compiler: [g++-11, clang++-12]
         # runners only seem to support up to avx2-pext
         target: [legacy, sse4, avx, avx2, avx2-pext]
 
