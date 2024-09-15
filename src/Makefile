@@ -41,8 +41,8 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
 AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
-CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
-RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
+CFLAGS = -Ofast $(AFLAGS) -DNDEBUG -flto -march=native
+RFLAGS = -Ofast $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
 SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O1 $(AFLAGS) -Werror

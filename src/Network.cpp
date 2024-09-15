@@ -28,7 +28,7 @@ struct alignas(64) network
 
 constexpr int16_t L1_SCALE = 255;
 constexpr int16_t L2_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
+constexpr int16_t SCALE_FACTOR = 160;
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
