@@ -12,7 +12,7 @@ on:
 
 jobs:
   gcc-PGO:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -39,7 +39,7 @@ jobs:
 
   # clang-PGO requires llvm-profdata being installed
   clang-PGO:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
