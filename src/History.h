@@ -89,4 +89,4 @@ private:
 };
 
 using QuietHistory = History<ButterflyHistory, CountermoveHistory>;
-using LoudHistory = History<CaptureHistory>;
+using LoudHistory = History<CaptureHistory, CountermoveHistory>;
