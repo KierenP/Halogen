@@ -16,7 +16,9 @@ jobs:
 
     strategy:
       matrix:
-        compiler: [g++-11, clang++-12]
+        config:
+          - { compiler: g++-11, package: g++-11 }
+          - { compiler: clang++-12, package: clang-12 }
         # runners only seem to support up to avx2-pext
         target: [legacy, sse4, avx, avx2, avx2-pext]
 
@@ -30,7 +32,7 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.compiler }}
+          sudo apt install ${{ matrix.package }}
 
       - name: Create build
         run: |
