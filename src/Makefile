@@ -86,12 +86,12 @@ endif
 # Detect if CXX is g++ or clang++, in this order.
 ifeq ($(findstring clang++, $(CXX)),)
 	PGOGEN = -fprofile-generate
-	PGOUSE = -fprofile-use
+	PGOUSE = -fprofile-use -fprofile-partial-training
 	CXXFLAGS += -Wno-interference-size
   	$(info detected compiler is [g++])
 else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
-	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw
+	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
 	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
   	$(info detected compiler is [clang++])
 endif

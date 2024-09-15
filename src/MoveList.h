@@ -34,5 +34,5 @@ struct ExtendedMove
     int16_t score;
 };
 
-using ExtendedMoveList = StaticVector<ExtendedMove, 256>;
-using BasicMoveList = StaticVector<Move, 256>;
+using ExtendedMoveList = StaticVector<ExtendedMove, 218>;
+using BasicMoveList = StaticVector<Move, 218>;

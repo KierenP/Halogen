@@ -40,7 +40,8 @@ public:
     bool Next(Move& move);
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
-    void AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
 
     // Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
     void SkipQuiets();

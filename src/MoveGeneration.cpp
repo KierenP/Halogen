@@ -461,8 +461,8 @@ bool CheckCastleMove(
     return true;
 }
 
-template <Players STM>
-void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pinned)
+template <Players STM, typename T>
+void CastleMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     // tricky edge case, if the rook is pinned then castling will put the king in check,
     // but it is possible none of the squares the king will move through will be threatened
@@ -502,15 +502,6 @@ void CastleMoves(const BoardState& board, std::vector<Move>& moves, uint64_t pin
     }
 }
 
-template <Players STM, typename T>
-void CastleMoves(const BoardState& board, T& moves, uint64_t pinned)
-{
-    std::vector<Move> tmp;
-    CastleMoves<STM>(board, tmp, pinned);
-    for (auto& move : tmp)
-        moves.emplace_back(move);
-}
-
 template <PieceTypes pieceType, bool capture, Players STM, typename T>
 void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned)
 {
@@ -522,41 +513,22 @@ void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pi
 template <Players colour>
 bool IsSquareThreatened(const BoardState& board, Square square)
 {
-    if ((KnightAttacks[square] & board.GetPieceBB<KNIGHT, !colour>()) != 0)
+    if (AttackBB<KNIGHT>(square) & board.GetPieceBB<KNIGHT, !colour>())
+        return true;
+    if (PawnAttacks[colour][square] & board.GetPieceBB<PAWN, !colour>())
+        return true;
+    if (AttackBB<KING>(square) & board.GetPieceBB<KING, !colour>())
         return true;
 
-    if ((PawnAttacks[colour][square] & board.GetPieceBB<PAWN, !colour>()) != 0)
+    uint64_t queens = board.GetPieceBB<QUEEN, !colour>();
+    uint64_t bishops = board.GetPieceBB<BISHOP, !colour>();
+    uint64_t rooks = board.GetPieceBB<ROOK, !colour>();
+    uint64_t occ = board.GetAllPieces();
+
+    if (AttackBB<BISHOP>(square, occ) & (bishops | queens))
         return true;
-
-    // if I can attack the enemy king he can attack me
-    if ((KingAttacks[square] & board.GetPieceBB<KING, !colour>()) != 0)
+    if (AttackBB<ROOK>(square, occ) & (rooks | queens))
         return true;
-
-    uint64_t Pieces = board.GetAllPieces();
-
-    uint64_t queen = board.GetPieceBB<QUEEN, !colour>() & QueenAttacks[square];
-    while (queen != 0)
-    {
-        auto start = LSBpop(queen);
-        if (mayMove(start, square, Pieces))
-            return true;
-    }
-
-    uint64_t bishops = board.GetPieceBB<BISHOP, !colour>() & BishopAttacks[square];
-    while (bishops != 0)
-    {
-        auto start = LSBpop(bishops);
-        if (mayMove(start, square, Pieces))
-            return true;
-    }
-
-    uint64_t rook = board.GetPieceBB<ROOK, !colour>() & RookAttacks[square];
-    while (rook != 0)
-    {
-        auto start = LSBpop(rook);
-        if (mayMove(start, square, Pieces))
-            return true;
-    }
 
     return false;
 }
@@ -589,35 +561,16 @@ uint64_t GetThreats(const BoardState& board, Square square)
 {
     uint64_t threats = EMPTY;
 
-    threats |= (KnightAttacks[square] & board.GetPieceBB<KNIGHT, !colour>());
+    uint64_t queens = board.GetPieceBB<QUEEN, !colour>();
+    uint64_t bishops = board.GetPieceBB<BISHOP, !colour>();
+    uint64_t rooks = board.GetPieceBB<ROOK, !colour>();
+    uint64_t occ = board.GetAllPieces();
+
+    threats |= (AttackBB<KNIGHT>(square) & board.GetPieceBB<KNIGHT, !colour>());
     threats |= (PawnAttacks[colour][square] & board.GetPieceBB<PAWN, !colour>());
-    threats |= (KingAttacks[square] & board.GetPieceBB<KING, !colour>());
-
-    uint64_t Pieces = board.GetAllPieces();
-
-    uint64_t queen = board.GetPieceBB<QUEEN, !colour>() & QueenAttacks[square];
-    while (queen != 0)
-    {
-        auto start = LSBpop(queen);
-        if (mayMove(start, square, Pieces))
-            threats |= SquareBB[start];
-    }
-
-    uint64_t bishops = board.GetPieceBB<BISHOP, !colour>() & BishopAttacks[square];
-    while (bishops != 0)
-    {
-        auto start = LSBpop(bishops);
-        if (mayMove(start, square, Pieces))
-            threats |= SquareBB[start];
-    }
-
-    uint64_t rook = board.GetPieceBB<ROOK, !colour>() & RookAttacks[square];
-    while (rook != 0)
-    {
-        auto start = LSBpop(rook);
-        if (mayMove(start, square, Pieces))
-            threats |= SquareBB[start];
-    }
+    threats |= (AttackBB<KING>(square) & board.GetPieceBB<KING, !colour>());
+    threats |= (AttackBB<BISHOP>(square, occ) & (bishops | queens));
+    threats |= (AttackBB<ROOK>(square, occ) & (rooks | queens));
 
     return threats;
 }
@@ -750,7 +703,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     /*For castle moves, just generate them and see if we find a match*/
     if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
     {
-        std::vector<Move> moves;
+        StaticVector<Move, 4> moves;
         CastleMoves<STM>(board, moves, PinnedMask<STM>(board));
         for (size_t i = 0; i < moves.size(); i++)
         {

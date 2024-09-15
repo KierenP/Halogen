@@ -551,8 +551,13 @@ void AddKiller(Move move, std::array<Move, 2>& killers)
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     if (move.IsCapture() || move.IsPromotion())
-        return;
-    gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    {
+        gen.AdjustLoudHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    }
+    else
+    {
+        gen.AdjustQuietHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    }
 }
 
 template <bool pv_node>
@@ -821,7 +826,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = local.history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
+                                                             : local.quiet_history.get(position, ss, move);
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !move.IsCapture() && !move.IsPromotion() && depth <= 10
             && !see_ge(position.Board(), move, -20 * depth * depth - history / 128))
