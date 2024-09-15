@@ -32,12 +32,12 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.package }}
+          sudo apt install ${{ matrix.config.package }}
 
       - name: Create build
         run: |
          cd src
-         make ${{ matrix.target }} CXX=${{ matrix.compiler }} EXE=../bin/Halogen -j4
+         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen -j4
 
       - name: Check bench matches commit message
         run: |

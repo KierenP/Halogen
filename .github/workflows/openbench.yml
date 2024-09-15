@@ -42,10 +42,7 @@ jobs:
     strategy:
       matrix:
         config:
-        compiler: [clang++-12]
-        package: [clang-12]
-        llvm: [llvm-12]
-        profdata: [llvm-profdata-12]
+          - { compiler: clang++-12, packages: "clang-12 llvm-12", profdata: llvm-profdata-12 }
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -53,12 +50,12 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.llvm }} ${{ matrix.package }}
+          sudo apt install ${{ matrix.config.packages }}
 
       - name: Create PGO compiles
         run: |
           cd src
-          make CXX=${{ matrix.compiler }} LLVM_PROFDATA=${{ matrix.profdata }} EXE=../bin/Halogen -j4
+          make CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXE=../bin/Halogen -j4
          
       - name: Run bench
         run: |
