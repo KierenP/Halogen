@@ -27,6 +27,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      - name: Install
+        run: |
+          sudo apt update
+          sudo apt install ${{ matrix.compiler }}
+
       - name: Create build
         run: |
          cd src

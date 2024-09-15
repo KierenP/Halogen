@@ -21,8 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
 
-      # gcc 9 needs to be installed on demand
-      - name: Install g++
+      - name: Install
         run: |
           sudo apt update
           sudo apt install ${{ matrix.compiler }}
@@ -37,7 +36,6 @@ jobs:
           cd bin
           ./Halogen bench
 
-  # clang-PGO requires llvm-profdata being installed
   clang-PGO:
     runs-on: ubuntu-22.04
 
@@ -50,10 +48,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.1
 
-      - name: Install llvm-profdata
+      - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.llvm }}
+          sudo apt install ${{ matrix.llvm }} ${{ matrix.compiler }}
 
       - name: Create PGO compiles
         run: |
