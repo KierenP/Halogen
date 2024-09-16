@@ -936,7 +936,6 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     Move bestmove = Move::Uninitialized;
     auto score = eval;
-    auto original_alpha = alpha;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
     Move move;
@@ -977,7 +976,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     // Step 6: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
-        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
+        AddScoreToTable(score, beta - 1, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
     }
 
     return SearchResult(score, bestmove);
