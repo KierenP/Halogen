@@ -207,8 +207,8 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
         else
         {
             int history = local.quiet_history.get(position, ss, moves[i].move);
-            moves[i].score = std::clamp<int>(history, std::numeric_limits<decltype(moves[i].score)>::min(),
-                std::numeric_limits<decltype(moves[i].score)>::max());
+            moves[i].score
+                = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
     }
 
@@ -245,7 +245,9 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            moves[i].score = local.loud_history.get(position, ss, moves[i].move);
+            int history = local.loud_history.get(position, ss, moves[i].move);
+            moves[i].score
+                = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
     }
 
