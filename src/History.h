@@ -36,24 +36,24 @@ struct HistoryTable
 
 struct ButterflyHistory : HistoryTable<ButterflyHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 32;
+    static constexpr int max_value = 24441;
+    static constexpr int scale = 70;
     int16_t table[N_PLAYERS][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CountermoveHistory : HistoryTable<CountermoveHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 64;
+    static constexpr int max_value = 14681;
+    static constexpr int scale = 41;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 64;
+    static constexpr int max_value = 15317;
+    static constexpr int scale = 26;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
