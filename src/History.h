@@ -36,24 +36,24 @@ struct HistoryTable
 
 struct ButterflyHistory : HistoryTable<ButterflyHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 32;
+    static constexpr int max_value = 15145;
+    static constexpr int scale = 71;
     int16_t table[N_PLAYERS][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CountermoveHistory : HistoryTable<CountermoveHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 64;
+    static constexpr int max_value = 15683;
+    static constexpr int scale = 55;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 32;
+    static constexpr int max_value = 18795;
+    static constexpr int scale = 40;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
@@ -75,8 +75,7 @@ public:
             return value ? *value : 0;
         };
 
-        return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_)
-            / (int)std::tuple_size_v<decltype(tables_)>;
+        return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_);
     }
 
     void add(const GameState& position, const SearchStackState* ss, Move move, int change)

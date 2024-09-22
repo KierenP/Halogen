@@ -527,7 +527,7 @@ int reduction(int depth, int seen_moves, int history)
     if constexpr (pv_node)
         r--;
 
-    r -= history / 3922;
+    r -= history / 7844;
 
     return std::max(0, r);
 }
