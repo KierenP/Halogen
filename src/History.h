@@ -50,6 +50,14 @@ struct CountermoveHistory : HistoryTable<CountermoveHistory>
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
+struct FollowmoveHistory : HistoryTable<FollowmoveHistory>
+{
+    static constexpr int max_value = 15683;
+    static constexpr int scale = 55;
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
+    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+};
+
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
     static constexpr int max_value = 18795;
@@ -87,5 +95,5 @@ private:
     std::tuple<tables...> tables_;
 };
 
-using QuietHistory = History<ButterflyHistory, CountermoveHistory>;
+using QuietHistory = History<ButterflyHistory, CountermoveHistory, FollowmoveHistory>;
 using LoudHistory = History<CaptureHistory>;
