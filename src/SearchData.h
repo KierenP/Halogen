@@ -41,6 +41,7 @@ struct SearchStackState
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
+    Pieces moved_piece = N_PIECES;
     Move singular_exclusion = Move::Uninitialized;
     int multiple_extensions = 0;
     int nmp_verification_depth = 0;

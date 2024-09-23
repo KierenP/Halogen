@@ -430,6 +430,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / 245);
 
     ss->move = Move::Uninitialized;
+    ss->moved_piece = N_PIECES;
     position.ApplyNullMove();
     local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
@@ -849,6 +850,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
                                                              : local.quiet_history.get(position, ss, move);
         ss->move = move;
+        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
@@ -955,6 +957,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
 
         ss->move = move;
+        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
         // TODO: prefetch
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);

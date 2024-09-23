@@ -24,6 +24,7 @@ void SearchStackState::reset()
     pv = {};
     killers = {};
     move = Move::Uninitialized;
+    moved_piece = N_PIECES;
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
     acc = {};
