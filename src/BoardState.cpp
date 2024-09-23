@@ -143,9 +143,9 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 
 void BoardState::RecalculateWhiteBlackBoards()
 {
-    WhitePieces = GetPieceBB<WHITE_PAWN>() | GetPieceBB<WHITE_KNIGHT>() | GetPieceBB<WHITE_BISHOP>()
+    side_bb[WHITE] = GetPieceBB<WHITE_PAWN>() | GetPieceBB<WHITE_KNIGHT>() | GetPieceBB<WHITE_BISHOP>()
         | GetPieceBB<WHITE_ROOK>() | GetPieceBB<WHITE_QUEEN>() | GetPieceBB<WHITE_KING>();
-    BlackPieces = GetPieceBB<BLACK_PAWN>() | GetPieceBB<BLACK_KNIGHT>() | GetPieceBB<BLACK_BISHOP>()
+    side_bb[BLACK] = GetPieceBB<BLACK_PAWN>() | GetPieceBB<BLACK_KNIGHT>() | GetPieceBB<BLACK_BISHOP>()
         | GetPieceBB<BLACK_ROOK>() | GetPieceBB<BLACK_QUEEN>() | GetPieceBB<BLACK_KING>();
 }
 
@@ -174,7 +174,7 @@ void BoardState::SetSquare(Square square, Pieces piece)
     if (piece < N_PIECES)
         board[piece] |= SquareBB[square];
 
-    RecalculateWhiteBlackBoards();
+    side_bb[ColourOfPiece(piece)] |= SquareBB[square];
 }
 
 uint64_t BoardState::GetPieceBB(Pieces piece) const
@@ -191,7 +191,8 @@ void BoardState::ClearSquare(Square square)
         board[i] &= ~SquareBB[square];
     }
 
-    RecalculateWhiteBlackBoards();
+    side_bb[WHITE] &= ~SquareBB[square];
+    side_bb[BLACK] &= ~SquareBB[square];
 }
 
 uint64_t BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
