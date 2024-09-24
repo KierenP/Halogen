@@ -777,6 +777,10 @@ bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
         return true;
 
     uint64_t pawns = board.GetPieceBB<PAWN, !STM>() & ~SquareBB[move.GetTo()];
+
+    if (move.GetFlag() == EN_PASSANT)
+        pawns &= ~SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+
     if (PawnAttacks[STM][king] & pawns)
         return true;
 
