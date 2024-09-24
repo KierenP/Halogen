@@ -18,20 +18,20 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned);
 
 // Pawn moves
 template <Players STM, typename T>
-void PawnPushes(const BoardState& board, T& moves, uint64_t pinned);
+void PawnPushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
 template <Players STM, typename T>
-void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned);
+void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
 template <Players STM, typename T>
-void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned);
+void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
 template <Players STM, typename T>
 // Ep moves are always checked for legality so no need for pinned mask
 void PawnEnPassant(const BoardState& board, T& moves);
 template <Players STM, typename T>
-void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned);
+void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
 
 // All other pieces
 template <PieceTypes pieceType, bool capture, Players STM, typename T>
-void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned);
+void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
 
 // misc
 template <Players STM, typename T>
@@ -58,9 +58,10 @@ template <Players STM, typename T>
 void KingCapturesEvade(const BoardState& board, T& moves); // use only for multi threat with king evasions
 // capture the attacker	(single threat only)
 template <Players STM, typename T>
-void CaptureThreat(const BoardState& board, T& moves, uint64_t threats);
+void CaptureThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
+// block the attacker (single threat only)
 template <Players STM, typename T>
-void BlockThreat(const BoardState& board, T& moves, uint64_t threats); // block the attacker (single threat only)
+void BlockThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
 
 template <typename T>
 void LegalMoves(const BoardState& board, T& moves)
@@ -85,7 +86,8 @@ void QuiescenceMoves(const BoardState& board, T& moves)
 template <Players STM, typename T>
 void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
-    uint64_t threats = GetThreats<STM>(board, board.GetKing(STM));
+    const Square king = board.GetKing(STM);
+    uint64_t threats = GetThreats<STM>(board, king);
     assert(GetBitCount(threats) <= 2); // triple or more check is impossible
 
     if (GetBitCount(threats) == 2)
@@ -96,11 +98,11 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
     else if (GetBitCount(threats) == 1)
     {
         // single check
-        PawnCaptures<STM>(board, moves, pinned);
+        PawnCaptures<STM>(board, moves, pinned, threats);
         PawnEnPassant<STM>(board, moves);
-        PawnPromotions<STM>(board, moves, pinned);
+        PawnPromotions<STM>(board, moves, pinned, betweenArray[LSB(threats)][king]);
         KingCapturesEvade<STM>(board, moves);
-        CaptureThreat<STM>(board, moves, threats);
+        CaptureThreat<STM>(board, moves, threats, pinned);
     }
     else
     {
@@ -110,15 +112,16 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
         PawnPromotions<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
-            GenerateMoves<KNIGHT, true, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<KNIGHT, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned);
-        for (uint64_t pieces = board.GetPieceBB<KING, STM>(); pieces != 0;)
-            GenerateMoves<KING, true, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned, king);
+
+        KingCapturesEvade<STM>(board, moves);
+
         for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
-            GenerateMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
-            GenerateMoves<QUEEN, true, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<QUEEN, true, STM>(board, moves, LSBpop(pieces), pinned, king);
     }
 }
 
@@ -138,7 +141,8 @@ void QuietMoves(const BoardState& board, T& moves)
 template <Players STM, typename T>
 void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
-    uint64_t threats = GetThreats<STM>(board, board.GetKing(STM));
+    const Square king = board.GetKing(STM);
+    uint64_t threats = GetThreats<STM>(board, king);
     assert(GetBitCount(threats) <= 2); // triple or more check is impossible
 
     if (GetBitCount(threats) == 2)
@@ -149,10 +153,11 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
     else if (GetBitCount(threats) == 1)
     {
         // single check
-        PawnPushes<STM>(board, moves, pinned);
-        PawnDoublePushes<STM>(board, moves, pinned);
+        const auto block_squares = betweenArray[LSB(threats)][king];
+        PawnPushes<STM>(board, moves, pinned, block_squares);
+        PawnDoublePushes<STM>(board, moves, pinned, block_squares);
         KingEvasions<STM>(board, moves);
-        BlockThreat<STM>(board, moves, threats);
+        BlockThreat<STM>(board, moves, threats, pinned);
     }
     else
     {
@@ -161,15 +166,15 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
         CastleMoves<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
-            GenerateMoves<KNIGHT, false, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<KNIGHT, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
-            GenerateMoves<QUEEN, false, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<QUEEN, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
-            GenerateMoves<ROOK, false, STM>(board, moves, LSBpop(pieces), pinned);
-        for (uint64_t pieces = board.GetPieceBB<KING, STM>(); pieces != 0;)
-            GenerateMoves<KING, false, STM>(board, moves, LSBpop(pieces), pinned);
+            GenerateMoves<ROOK, false, STM>(board, moves, LSBpop(pieces), pinned, king);
+
+        KingEvasions<STM>(board, moves);
     }
 }
 
@@ -177,9 +182,6 @@ template <Players STM>
 uint64_t PinnedMask(const BoardState& board)
 {
     Square king = board.GetKing(STM);
-    if (IsInCheck(board))
-        return UNIVERSE;
-
     uint64_t pins = EMPTY;
     uint64_t all_pieces = board.GetAllPieces();
     uint64_t our_pieces = board.GetPieces<STM>();
@@ -216,8 +218,17 @@ uint64_t PinnedMask(const BoardState& board)
 
 // Moves going from a square to squares on a bitboard
 template <Players STM, typename T>
-void AppendLegalMoves(
-    Square from, uint64_t to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned = UNIVERSE)
+void AppendLegalMoves(Square from, uint64_t to, MoveFlag flag, T& moves)
+{
+    while (to != 0)
+    {
+        moves.emplace_back(from, LSBpop(to), flag);
+    }
+}
+
+template <Players STM, typename T>
+void AppendLegalMovesCheckLegality(
+    Square from, uint64_t to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned)
 {
     while (to != 0)
     {
@@ -230,8 +241,17 @@ void AppendLegalMoves(
 
 // Moves going to a square from squares on a bitboard
 template <Players STM, typename T>
-void AppendLegalMoves(
-    uint64_t from, Square to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned = UNIVERSE)
+void AppendLegalMoves(uint64_t from, Square to, MoveFlag flag, T& moves)
+{
+    while (from != 0)
+    {
+        moves.emplace_back(LSBpop(from), to, flag);
+    }
+}
+
+template <Players STM, typename T>
+void AppendLegalMovesCheckLegality(
+    uint64_t from, Square to, const BoardState& board, MoveFlag flag, T& moves, uint64_t pinned)
 {
     while (from != 0)
     {
@@ -247,7 +267,7 @@ void KingEvasions(const BoardState& board, T& moves)
 {
     Square square = board.GetKing(STM);
     uint64_t quiets = board.GetEmptySquares() & KingAttacks[square];
-    AppendLegalMoves<STM>(square, quiets, board, QUIET, moves);
+    AppendLegalMovesCheckLegality<STM>(square, quiets, board, QUIET, moves, UNIVERSE);
 }
 
 template <Players STM, typename T>
@@ -255,23 +275,24 @@ void KingCapturesEvade(const BoardState& board, T& moves)
 {
     Square square = board.GetKing(STM);
     uint64_t captures = board.GetPieces<!STM>() & KingAttacks[square];
-    AppendLegalMoves<STM>(square, captures, board, CAPTURE, moves);
+    AppendLegalMovesCheckLegality<STM>(square, captures, board, CAPTURE, moves, UNIVERSE);
 }
 
 template <Players STM, typename T>
-void CaptureThreat(const BoardState& board, T& moves, uint64_t threats)
+void CaptureThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned)
 {
     Square square = LSBpop(threats);
 
     uint64_t potentialCaptures = GetThreats<!STM>(board, square)
         & ~SquareBB[board.GetKing(STM)] // King captures handelled in KingCapturesEvade()
-        & ~board.GetPieceBB<PAWN, STM>(); // Pawn captures handelled elsewhere
+        & ~board.GetPieceBB<PAWN, STM>() // Pawn captures handelled elsewhere
+        & ~pinned; // any pinned pieces cannot legally capture the threat
 
-    AppendLegalMoves<STM>(potentialCaptures, square, board, CAPTURE, moves);
+    AppendLegalMoves<STM>(potentialCaptures, square, CAPTURE, moves);
 }
 
 template <Players STM, typename T>
-void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
+void BlockThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned)
 {
     Square threatSquare = LSBpop(threats);
     Pieces piece = board.GetSquare(threatSquare);
@@ -286,18 +307,19 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats)
         // pawn moves need to be handelled elsewhere because they might threaten a square without being able to move
         // there
         Square square = LSBpop(blockSquares);
-        uint64_t potentialBlockers = GetThreats<!STM>(board, square) & ~board.GetPieceBB<PAWN, STM>();
-        AppendLegalMoves<STM>(potentialBlockers, square, board, QUIET, moves);
+        // blocking moves are legal iff the piece is not pinned
+        uint64_t potentialBlockers = GetThreats<!STM>(board, square) & ~board.GetPieceBB<PAWN, STM>() & ~pinned;
+        AppendLegalMoves<STM>(potentialBlockers, square, QUIET, moves);
     }
 }
 
 template <Players STM, typename T>
-void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
+void PawnPushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
-    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares();
+    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares() & target_squares;
     uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); // pushes that aren't to the back ranks
 
     while (pawnPushes != 0)
@@ -305,20 +327,21 @@ void PawnPushes(const BoardState& board, T& moves, uint64_t pinned)
         Square end = LSBpop(pawnPushes);
         Square start = end - foward;
 
-        Move move(start, end, QUIET);
-
-        if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck<STM>(board, move))
-            moves.emplace_back(move);
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if (!(pinned & SquareBB[start]) || (GetFile(start) == GetFile(board.GetKing(STM))))
+        {
+            moves.emplace_back(start, end, QUIET);
+        }
     }
 }
 
 template <Players STM, typename T>
-void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
+void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
-    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares();
+    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares() & target_squares;
     uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); // pushes that are to the back ranks
 
     while (pawnPromotions != 0)
@@ -326,11 +349,11 @@ void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
         Square end = LSBpop(pawnPromotions);
         Square start = end - foward;
 
-        Move move(start, end, KNIGHT_PROMOTION);
-        if ((pinned & SquareBB[start]) && MovePutsSelfInCheck<STM>(board, move))
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if ((pinned & SquareBB[start]) && (GetFile(start) != GetFile(board.GetKing(STM))))
             continue;
 
-        moves.emplace_back(move);
+        moves.emplace_back(start, end, KNIGHT_PROMOTION);
         moves.emplace_back(start, end, ROOK_PROMOTION);
         moves.emplace_back(start, end, BISHOP_PROMOTION);
         moves.emplace_back(start, end, QUEEN_PROMOTION);
@@ -338,34 +361,26 @@ void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned)
 }
 
 template <Players STM, typename T>
-void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned)
+void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
-    constexpr Shift foward = STM == WHITE ? Shift::NN : Shift::SS;
+    constexpr Shift foward2 = STM == WHITE ? Shift::NN : Shift::SS;
+    constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
+    constexpr uint64_t RankMask = STM == WHITE ? RankBB[RANK_2] : RankBB[RANK_7];
     uint64_t targets = 0;
     uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
 
-    if constexpr (STM == WHITE)
-    {
-        pawnSquares &= RankBB[RANK_2];
-        targets = shift_bb<Shift::N>(pawnSquares) & board.GetEmptySquares();
-        targets = shift_bb<Shift::N>(targets) & board.GetEmptySquares();
-    }
-    if constexpr (STM == BLACK)
-    {
-        pawnSquares &= RankBB[RANK_7];
-        targets = shift_bb<Shift::S>(pawnSquares) & board.GetEmptySquares();
-        targets = shift_bb<Shift::S>(targets) & board.GetEmptySquares();
-    }
+    pawnSquares &= RankMask;
+    targets = shift_bb<foward>(pawnSquares) & board.GetEmptySquares();
+    targets = shift_bb<foward>(targets) & board.GetEmptySquares() & target_squares;
 
     while (targets != 0)
     {
         Square end = LSBpop(targets);
-        Square start = end - foward;
+        Square start = end - foward2;
 
-        Move move(start, end, PAWN_DOUBLE_MOVE);
-
-        if (!(pinned & SquareBB[start]) || !MovePutsSelfInCheck<STM>(board, move))
-            moves.emplace_back(move);
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if (!(pinned & SquareBB[start]) || (GetFile(start) == GetFile(board.GetKing(STM))))
+            moves.emplace_back(start, end, PAWN_DOUBLE_MOVE);
     }
 }
 
@@ -375,59 +390,54 @@ void PawnEnPassant(const BoardState& board, T& moves)
     if (board.en_passant <= SQ_H8)
     {
         uint64_t potentialAttackers = PawnAttacks[!STM][board.en_passant] & board.GetPieceBB<PAWN, STM>();
-        AppendLegalMoves<STM>(potentialAttackers, board.en_passant, board, EN_PASSANT, moves);
+        AppendLegalMovesCheckLegality<STM>(potentialAttackers, board.en_passant, board, EN_PASSANT, moves, UNIVERSE);
     }
 }
 
 template <Players STM, typename T>
-void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned)
+void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
-    constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SW;
-    constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SE;
+    constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SE;
+    constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SW;
     uint64_t leftAttack = 0;
     uint64_t rightAttack = 0;
     uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
-    leftAttack = shift_bb<fowardleft>(pawnSquares) & board.GetPieces<!STM>();
-    rightAttack = shift_bb<fowardright>(pawnSquares) & board.GetPieces<!STM>();
+    leftAttack = shift_bb<fowardleft>(pawnSquares) & board.GetPieces<!STM>() & target_squares;
+    rightAttack = shift_bb<fowardright>(pawnSquares) & board.GetPieces<!STM>() & target_squares;
 
-    while (leftAttack != 0)
+    auto generate_attacks = [&](uint64_t attacks, Shift forward, auto get_cardinal)
     {
-        Square end = LSBpop(leftAttack);
-        Square start = end - fowardleft;
-
-        Move move(start, end, CAPTURE);
-        if ((pinned & SquareBB[start]) && MovePutsSelfInCheck<STM>(board, move))
-            continue;
-
-        if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
+        while (attacks != 0)
         {
-            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
+            Square end = LSBpop(attacks);
+            Square start = end - forward;
+
+            // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
+            if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.GetKing(STM))))
+                continue;
+
+            if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
+            {
+                moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+                moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+                moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+                moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
+            }
+            else
+                moves.emplace_back(start, end, CAPTURE);
         }
-        else
-            moves.emplace_back(move);
+    };
+
+    // TODO: this was added to keep the bench the same
+    if constexpr (STM == WHITE)
+    {
+        generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
+        generate_attacks(rightAttack, fowardright, GetDiagonal);
     }
-
-    while (rightAttack != 0)
+    else
     {
-        Square end = LSBpop(rightAttack);
-        Square start = end - fowardright;
-
-        Move move(start, end, CAPTURE);
-        if ((pinned & SquareBB[start]) && MovePutsSelfInCheck<STM>(board, move))
-            continue;
-
-        if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
-        {
-            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
-        }
-        else
-            moves.emplace_back(move);
+        generate_attacks(rightAttack, fowardright, GetDiagonal);
+        generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
     }
 }
 
@@ -503,11 +513,37 @@ void CastleMoves(const BoardState& board, T& moves, uint64_t pinned)
 }
 
 template <PieceTypes pieceType, bool capture, Players STM, typename T>
-void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned)
+void GenerateMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
 {
     uint64_t occupied = board.GetAllPieces();
     uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<pieceType>(square, occupied);
-    AppendLegalMoves<STM>(square, targets, board, capture ? CAPTURE : QUIET, moves, pinned);
+
+    // If the piece is pinned, the move is legal iff it remains on the same rank/file/etc it was originally on shared
+    // with the king
+
+    if (!(pinned & SquareBB[square]))
+    {
+    }
+    else if (GetRank(king) == GetRank(square))
+    {
+        targets &= RankBB[GetRank(square)];
+    }
+    else if (GetFile(king) == GetFile(square))
+    {
+        targets &= FileBB[GetFile(square)];
+    }
+    else if (GetDiagonal(king) == GetDiagonal(square))
+    {
+        targets &= DiagonalBB[GetDiagonal(square)];
+    }
+    else if (GetAntiDiagonal(king) == GetAntiDiagonal(square))
+    {
+        targets &= AntiDiagonalBB[GetAntiDiagonal(square)];
+    }
+
+    AppendLegalMoves<STM>(square, targets, capture ? CAPTURE : QUIET, moves);
+
+    return;
 }
 
 template <Players colour>
@@ -773,15 +809,40 @@ bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
     assert(move.GetFlag() != A_SIDE_CASTLE);
     assert(move.GetFlag() != H_SIDE_CASTLE);
 
-    BoardState copy = board;
+    Square king = GetPieceType(board.GetSquare(move.GetFrom())) == KING ? move.GetTo() : board.GetKing(STM);
 
-    copy.SetSquare(move.GetTo(), copy.GetSquare(move.GetFrom()));
-    copy.ClearSquare(move.GetFrom());
+    uint64_t knights = board.GetPieceBB<KNIGHT, !STM>() & ~SquareBB[move.GetTo()];
+    if (AttackBB<KNIGHT>(king) & knights)
+        return true;
+
+    uint64_t pawns = board.GetPieceBB<PAWN, !STM>() & ~SquareBB[move.GetTo()];
 
     if (move.GetFlag() == EN_PASSANT)
-        copy.ClearSquare(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
+        pawns &= ~SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
 
-    return IsInCheck<STM>(copy);
+    if (PawnAttacks[STM][king] & pawns)
+        return true;
+
+    if (AttackBB<KING>(king) & board.GetPieceBB<KING, !STM>())
+        return true;
+
+    uint64_t queens = board.GetPieceBB<QUEEN, !STM>() & ~SquareBB[move.GetTo()];
+    uint64_t bishops = board.GetPieceBB<BISHOP, !STM>() & ~SquareBB[move.GetTo()];
+    uint64_t rooks = board.GetPieceBB<ROOK, !STM>() & ~SquareBB[move.GetTo()];
+    uint64_t occ = board.GetAllPieces();
+
+    occ &= ~SquareBB[move.GetFrom()];
+    occ |= SquareBB[move.GetTo()];
+
+    if (move.GetFlag() == EN_PASSANT)
+        occ &= ~SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+
+    if (AttackBB<BISHOP>(king, occ) & (bishops | queens))
+        return true;
+    if (AttackBB<ROOK>(king, occ) & (rooks | queens))
+        return true;
+
+    return false;
 }
 
 // Below code adapted with permission from Terje, author of Weiss.
