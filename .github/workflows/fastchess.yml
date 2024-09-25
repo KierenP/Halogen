@@ -33,6 +33,9 @@ jobs:
       - name: Run games
         working-directory: fast-chess
         run: |
+          ls
+          ls ..
+          ls ../..
           ./fast-chess  -rounds 4 -games 2 -repeat -concurrency 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen
                -engine name=halogen2 cmd=../Halogen/bin/Halogen
