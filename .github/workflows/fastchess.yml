@@ -1,8 +1,11 @@
 # This workflow will play games with a debug enabled Halogen
 
-name: Games
-on:
-  workflow_call:
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
 jobs:
   Matetrack:
     name: Games
