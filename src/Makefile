@@ -40,7 +40,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # Define compiler flags and instruction sets
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++17 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
+AFLAGS = $(WFLAGS) -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
