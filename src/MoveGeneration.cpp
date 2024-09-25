@@ -800,6 +800,18 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     return true;
 }
 
+bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
+{
+    if (board.stm == WHITE)
+    {
+        return MovePutsSelfInCheck<WHITE>(board, move);
+    }
+    else
+    {
+        return MovePutsSelfInCheck<BLACK>(board, move);
+    }
+}
+
 /*
 This function does not work for casteling moves. They are tested for legality their creation.
 */
