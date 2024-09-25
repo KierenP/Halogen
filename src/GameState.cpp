@@ -23,7 +23,7 @@ void GameState::ApplyMove(Move move)
 
 void GameState::ApplyMove(std::string_view strmove)
 {
-    Square from = static_cast<Square>((strmove[0] - 96) + (strmove[1] - 49) * 8);
+    Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
     Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
     MoveFlag flag = Board().GetMoveFlag(from, to);
 
