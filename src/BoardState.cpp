@@ -45,18 +45,18 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
         // clang-format off
 		switch (letter)
 		{
-		case 'p': SetSquare(sq, BLACK_PAWN); break;
-		case 'r': SetSquare(sq, BLACK_ROOK); break;
-		case 'n': SetSquare(sq, BLACK_KNIGHT); break;
-		case 'b': SetSquare(sq, BLACK_BISHOP); break;
-		case 'q': SetSquare(sq, BLACK_QUEEN); break;
-		case 'k': SetSquare(sq, BLACK_KING); break;
-		case 'P': SetSquare(sq, WHITE_PAWN); break;
-		case 'R': SetSquare(sq, WHITE_ROOK); break;
-		case 'N': SetSquare(sq, WHITE_KNIGHT); break;
-		case 'B': SetSquare(sq, WHITE_BISHOP); break;
-		case 'Q': SetSquare(sq, WHITE_QUEEN); break;
-		case 'K': SetSquare(sq, WHITE_KING); break;
+		case 'p': AddPiece(sq, BLACK_PAWN); break;
+		case 'r': AddPiece(sq, BLACK_ROOK); break;
+		case 'n': AddPiece(sq, BLACK_KNIGHT); break;
+		case 'b': AddPiece(sq, BLACK_BISHOP); break;
+		case 'q': AddPiece(sq, BLACK_QUEEN); break;
+		case 'k': AddPiece(sq, BLACK_KING); break;
+		case 'P': AddPiece(sq, WHITE_PAWN); break;
+		case 'R': AddPiece(sq, WHITE_ROOK); break;
+		case 'N': AddPiece(sq, WHITE_KNIGHT); break;
+		case 'B': AddPiece(sq, WHITE_BISHOP); break;
+		case 'Q': AddPiece(sq, WHITE_QUEEN); break;
+		case 'K': AddPiece(sq, WHITE_KING); break;
 		case '/': square--; break;
 		case '1': break;
 		case '2': square += 1; break;
@@ -162,19 +162,22 @@ uint64_t BoardState::GetZobristKey() const
     return key.Key();
 }
 
-void BoardState::SetSquare(Square square, Pieces piece)
+void BoardState::AddPiece(Square square, Pieces piece)
 {
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
 
-    ClearSquare(square);
-
-    // it is possible we might set a square to be empty using this function rather than using the ClearSquare function
-    // below.
-    if (piece < N_PIECES)
-        board[piece] |= SquareBB[square];
-
+    board[piece] |= SquareBB[square];
     side_bb[ColourOfPiece(piece)] |= SquareBB[square];
+}
+
+void BoardState::RemovePiece(Square square, Pieces piece)
+{
+    assert(square < N_SQUARES);
+    assert(piece < N_PIECES);
+
+    board[piece] ^= SquareBB[square];
+    side_bb[ColourOfPiece(piece)] ^= SquareBB[square];
 }
 
 uint64_t BoardState::GetPieceBB(Pieces piece) const
@@ -330,15 +333,17 @@ void BoardState::ApplyMove(Move move)
 
     en_passant = N_SQUARES;
 
-    auto old_castle_squares = castle_squares;
     UpdateCastleRights(move, key);
 
     switch (move.GetFlag())
     {
     case QUIET:
-        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()));
-        ClearSquareAndUpdate(move.GetFrom());
+    {
+        auto piece = GetSquare(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), piece);
+        RemovePieceAndUpdate(move.GetFrom(), piece);
         break;
+    }
     case PAWN_DOUBLE_MOVE:
     {
         // average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the
@@ -350,17 +355,9 @@ void BoardState::ApplyMove(Move move)
 
         while (potentialAttackers)
         {
-            Square threat_sq = LSBpop(potentialAttackers);
-
-            // carefully apply the potential ep capture, check for legality, then undo
-            SetSquare(ep_sq, Piece(PAWN, !stm));
-            ClearSquare(threat_sq);
-            ClearSquare(move.GetTo());
-            bool legal = !IsInCheck(*this, !stm);
-            ClearSquare(ep_sq);
-            SetSquare(threat_sq, Piece(PAWN, !stm));
-            SetSquare(move.GetTo(), Piece(PAWN, stm));
-
+            stm = !stm;
+            bool legal = !MovePutsSelfInCheck(*this, Move(LSBpop(potentialAttackers), ep_sq, EN_PASSANT));
+            stm = !stm;
             if (legal)
             {
                 en_passant = ep_sq;
@@ -369,21 +366,21 @@ void BoardState::ApplyMove(Move move)
             }
         }
 
-        SetSquareAndUpdate(move.GetTo(), Piece(PAWN, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(PAWN, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     }
     case A_SIDE_CASTLE:
     {
         Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
-        Square rook_start = LSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
-        ClearSquareAndUpdate(king_start);
-        ClearSquareAndUpdate(rook_start);
-        SetSquareAndUpdate(king_end, Piece(KING, stm));
-        SetSquareAndUpdate(rook_end, Piece(ROOK, stm));
+        RemovePieceAndUpdate(king_start, Piece(KING, stm));
+        RemovePieceAndUpdate(rook_start, Piece(ROOK, stm));
+        AddPieceAndUpdate(king_end, Piece(KING, stm));
+        AddPieceAndUpdate(rook_end, Piece(ROOK, stm));
 
         break;
     }
@@ -391,61 +388,64 @@ void BoardState::ApplyMove(Move move)
     {
         Square king_start = move.GetFrom();
         Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
-        Square rook_start = MSB(old_castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+        Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
-        ClearSquareAndUpdate(king_start);
-        ClearSquareAndUpdate(rook_start);
-        SetSquareAndUpdate(king_end, Piece(KING, stm));
-        SetSquareAndUpdate(rook_end, Piece(ROOK, stm));
+        RemovePieceAndUpdate(king_start, Piece(KING, stm));
+        RemovePieceAndUpdate(rook_start, Piece(ROOK, stm));
+        AddPieceAndUpdate(king_end, Piece(KING, stm));
+        AddPieceAndUpdate(rook_end, Piece(ROOK, stm));
 
         break;
     }
     case CAPTURE:
+    {
         ClearSquareAndUpdate(move.GetTo());
-        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()));
-        ClearSquareAndUpdate(move.GetFrom());
+        auto piece = GetSquare(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), piece);
+        RemovePieceAndUpdate(move.GetFrom(), piece);
         break;
+    }
     case EN_PASSANT:
-        SetSquareAndUpdate(move.GetTo(), GetSquare(move.GetFrom()));
-        ClearSquareAndUpdate(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(PAWN, stm));
+        RemovePieceAndUpdate(GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom())), Piece(PAWN, !stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case KNIGHT_PROMOTION:
-        SetSquareAndUpdate(move.GetTo(), Piece(KNIGHT, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(KNIGHT, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case BISHOP_PROMOTION:
-        SetSquareAndUpdate(move.GetTo(), Piece(BISHOP, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(BISHOP, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case ROOK_PROMOTION:
-        SetSquareAndUpdate(move.GetTo(), Piece(ROOK, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(ROOK, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case QUEEN_PROMOTION:
-        SetSquareAndUpdate(move.GetTo(), Piece(QUEEN, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(QUEEN, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case KNIGHT_PROMOTION_CAPTURE:
         ClearSquareAndUpdate(move.GetTo());
-        SetSquareAndUpdate(move.GetTo(), Piece(KNIGHT, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(KNIGHT, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case BISHOP_PROMOTION_CAPTURE:
         ClearSquareAndUpdate(move.GetTo());
-        SetSquareAndUpdate(move.GetTo(), Piece(BISHOP, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(BISHOP, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case ROOK_PROMOTION_CAPTURE:
         ClearSquareAndUpdate(move.GetTo());
-        SetSquareAndUpdate(move.GetTo(), Piece(ROOK, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(ROOK, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     case QUEEN_PROMOTION_CAPTURE:
         ClearSquareAndUpdate(move.GetTo());
-        SetSquareAndUpdate(move.GetTo(), Piece(QUEEN, stm));
-        ClearSquareAndUpdate(move.GetFrom());
+        AddPieceAndUpdate(move.GetTo(), Piece(QUEEN, stm));
+        RemovePieceAndUpdate(move.GetFrom(), Piece(PAWN, stm));
         break;
     default:
         assert(0);
@@ -478,10 +478,16 @@ void BoardState::ApplyNullMove()
     assert(key.Verify(*this));
 }
 
-void BoardState::SetSquareAndUpdate(Square square, Pieces piece)
+void BoardState::AddPieceAndUpdate(Square square, Pieces piece)
 {
     key.TogglePieceSquare(piece, square);
-    SetSquare(square, piece);
+    AddPiece(square, piece);
+}
+
+void BoardState::RemovePieceAndUpdate(Square square, Pieces piece)
+{
+    key.TogglePieceSquare(piece, square);
+    RemovePiece(square, piece);
 }
 
 void BoardState::ClearSquareAndUpdate(Square square)

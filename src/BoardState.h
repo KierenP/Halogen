@@ -67,7 +67,8 @@ public:
 
     uint64_t GetZobristKey() const;
 
-    void SetSquare(Square square, Pieces piece);
+    void AddPiece(Square square, Pieces piece);
+    void RemovePiece(Square square, Pieces piece);
     void ClearSquare(Square square);
 
     void Reset();
@@ -83,7 +84,8 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
-    void SetSquareAndUpdate(Square square, Pieces piece);
+    void AddPieceAndUpdate(Square square, Pieces piece);
+    void RemovePieceAndUpdate(Square square, Pieces piece);
     void ClearSquareAndUpdate(Square square);
     void RecalculateWhiteBlackBoards();
 

@@ -40,6 +40,16 @@ void GameState::ApplyMove(std::string_view strmove)
             flag = (flag == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
     }
 
+    // Correction for castle moves (encode as KxR)
+    if (flag == A_SIDE_CASTLE)
+    {
+        to = LSB(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+    }
+    else if (flag == H_SIDE_CASTLE)
+    {
+        to = MSB(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+    }
+
     ApplyMove(Move(from, to, flag));
 }
 
