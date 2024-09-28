@@ -653,9 +653,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
             tt_entry->static_eval = raw_eval = Evaluate(position.Board(), ss, local.net);
         }
 
-        // correct the static_eval with the correction history
         adjusted_eval = raw_eval + local.correction_history.get_correction_score(position);
-
         adjusted_eval = scale_eval_50_move(adjusted_eval);
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
@@ -670,9 +668,9 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     else
     {
         raw_eval = Evaluate(position.Board(), ss, local.net);
-        // correct the static_eval with the correction history
         adjusted_eval = raw_eval + local.correction_history.get_correction_score(position);
-        adjusted_eval = scale_eval_50_move(raw_eval);
+        adjusted_eval = scale_eval_50_move(adjusted_eval);
+
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
