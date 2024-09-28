@@ -37,29 +37,55 @@ struct HistoryTable
 
 struct ButterflyHistory : HistoryTable<ButterflyHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 32;
+    static constexpr int max_value = 15145;
+    static constexpr int scale = 71;
     int16_t table[N_PLAYERS][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CountermoveHistory : HistoryTable<CountermoveHistory>
 {
-    static constexpr int max_value = 16384;
-    static constexpr int scale = 64;
+    static constexpr int max_value = 15683;
+    static constexpr int scale = 55;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
+struct CaptureHistory : HistoryTable<CaptureHistory>
+{
+    static constexpr int max_value = 18795;
+    static constexpr int scale = 40;
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
+    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+};
+
+template <typename... tables>
 class History
 {
 public:
-    void reset();
-    int get(const GameState& position, const SearchStackState* ss, Move move);
-    void add(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void reset()
+    {
+        std::apply([](auto&... table) { (table.reset(), ...); }, tables_);
+    }
+
+    int get(const GameState& position, const SearchStackState* ss, Move move)
+    {
+        auto get_value = [&](auto& table)
+        {
+            auto* value = table.get(position, ss, move);
+            return value ? *value : 0;
+        };
+
+        return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_);
+    }
+
+    void add(const GameState& position, const SearchStackState* ss, Move move, int change)
+    {
+        std::apply([&](auto&... table) { (table.add(position, ss, move, change), ...); }, tables_);
+    }
 
 private:
-    std::tuple<ButterflyHistory, CountermoveHistory> tables_;
+    std::tuple<tables...> tables_;
 };
 
 // A special type of history not used for move ordering, but tracks a EWA of the difference between static eval and
@@ -81,3 +107,6 @@ struct CorrectionHistory
 
     Score get_correction_score(const GameState& position) const;
 };
+
+using QuietHistory = History<ButterflyHistory, CountermoveHistory>;
+using LoudHistory = History<CaptureHistory>;

@@ -1,0 +1,44 @@
+name: FastChess
+
+# This workflow will play games with a debug enabled Halogen
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  Matetrack:
+    name: Games
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Build
+        run: |
+          cd src
+          make debug EXE=../bin/Halogen -j4
+
+      - name: Checkout fast-chess repo
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: Disservin/fast-chess
+          path: fast-chess
+          ref: d54af1910d5479c669dc731f1f54f9108a251951
+
+      - name: fast-chess build
+        working-directory: fast-chess
+        run: make -j
+
+      - name: Run games
+        working-directory: fast-chess
+        run: |
+          ./fast-chess  -rounds 4 -games 2 -repeat -concurrency 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
+               -engine name=halogen1 cmd=../bin/Halogen\
+               -engine name=halogen2 cmd=../bin/Halogen\
+               -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 -log file=fast.log | tee fast.out
+          cat fast.log
+          ! grep "Assertion" fast.log > /dev/null
+          ! grep "disconnect" fast.out > /dev/null

@@ -158,6 +158,7 @@ struct tokens_until
     template <typename... Ctx>
     bool operator()(std::string_view& command, Ctx&&... ctx)
     {
+        // for a command like 'position fen A B C moves X Y Z' we are trying to consume 'A B C' for example
         auto pos = command.find(delimiter_);
 
         if (pos == command.npos)
@@ -192,7 +193,10 @@ struct consume
     template <typename... Ctx>
     bool operator()(std::string_view& command, Ctx&&... ctx)
     {
-        if (command.substr(0, token_.size()) == token_)
+        // try to match the token as the prefix to command. To avoid matching 'uci' when the token is actually
+        // 'ucinewgame', we also need to either follow with the delimiter or consume the whole token
+        if (command.substr(0, token_.size()) == token_
+            && (command.size() == token_.size() || command[token_.size()] == uci_delimiter))
         {
             command = command.substr(std::min(command.size(), token_.size() + 1));
             return invoke_with_optional_validation(handler_, command, std::forward<Ctx>(ctx)...);

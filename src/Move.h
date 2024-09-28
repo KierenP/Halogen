@@ -74,3 +74,10 @@ private:
 static_assert(std::is_trivial_v<Move>);
 
 inline const Move Move::Uninitialized = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
+
+struct format_chess960
+{
+    Move m;
+
+    friend std::ostream& operator<<(std::ostream& os, format_chess960 f);
+};

@@ -7,7 +7,7 @@
 class Score
 {
 public:
-    constexpr Score();
+    Score() = default;
 
     constexpr Score(int value)
         : value_(value)
@@ -154,11 +154,6 @@ private:
 
 static constexpr Score SCORE_UNDEFINED = -32768;
 
-constexpr Score::Score()
-    : Score(SCORE_UNDEFINED)
-{
-}
-
 namespace std
 {
 template <>
@@ -175,4 +170,9 @@ public:
         return Score(30000);
     };
 };
+
+inline Score abs(Score val)
+{
+    return std::abs(val.value());
+}
 }

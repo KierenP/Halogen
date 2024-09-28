@@ -39,13 +39,9 @@ public:
     // Returns false if no more legal moves
     bool Next(Move& move);
 
-    // Get the static exchange evaluation of the given move
-    // Optimized to return the SEE without calculation if it
-    // was already calculated and used in move ordering
-    int16_t GetSEE(Move move) const;
-
     // Signal the generator that a fail high has occured, and history tables need to be updated
-    void AdjustHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
 
     // Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
     void SkipQuiets();
@@ -62,7 +58,8 @@ public:
     }
 
 private:
-    void OrderMoves(ExtendedMoveList& moves);
+    void OrderQuietMoves(ExtendedMoveList& moves);
+    void OrderLoudMoves(ExtendedMoveList& moves);
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
@@ -70,15 +67,12 @@ private:
     const SearchStackState* ss;
     bool quiescence;
     ExtendedMoveList loudMoves;
+    ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
 
     // Data uses for keeping track of internal values
     Stage stage;
     ExtendedMoveList::iterator current;
-
-    // We use SEE for ordering the moves, but SEE is also used in QS.
-    // See the body of GetSEE for usage.
-    std::optional<int16_t> moveSEE;
 
     const Move TTmove = Move::Uninitialized;
     Move Killer1 = Move::Uninitialized;

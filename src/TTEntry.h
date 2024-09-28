@@ -26,12 +26,12 @@ class TTEntry
 public:
     TTEntry() = default;
 
-    uint16_t key = 0; // 2 bytes
-    Move move = Move::Uninitialized; // 2 bytes
-    Score score = SCORE_UNDEFINED; // 2 bytes
-    Score static_eval = SCORE_UNDEFINED; // 2 bytes
-    int8_t depth = 0; // 1 bytes
-    TTMeta meta = TTMeta { SearchResultType::EMPTY, 0 }; // 1 byte
+    uint16_t key; // 2 bytes
+    Move move; // 2 bytes
+    Score score; // 2 bytes
+    Score static_eval; // 2 bytes
+    int8_t depth; // 1 bytes
+    TTMeta meta; // 1 byte
 };
 
 struct alignas(32) TTBucket : public std::array<TTEntry, 3>
@@ -42,5 +42,4 @@ struct alignas(32) TTBucket : public std::array<TTEntry, 3>
 static_assert(sizeof(TTEntry) == 10);
 static_assert(sizeof(TTBucket) == 32);
 static_assert(alignof(TTBucket) == 32);
-static_assert(std::is_trivially_copyable_v<TTBucket>);
-static_assert(std::is_trivially_destructible_v<TTBucket>);
+static_assert(std::is_trivial_v<TTBucket>);

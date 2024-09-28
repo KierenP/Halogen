@@ -2,17 +2,33 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-#include "GameState.h"
+#include "Network.h"
 #include "Score.h"
+#include "SearchData.h"
 
 #include <algorithm>
 
 void TempoAdjustment(Score& eval);
 
-Score Evaluate(const GameState& position)
+Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 {
-    constexpr static int TEMPO = 10;
-    Score eval = position.GetEvaluation() + TEMPO;
+    // apply lazy updates to accumulator stack
+    //
+    // we assume the root position always has a valid accumulator, and use pointer arithmatic to get there
+    auto* current = ss;
+    while (!current->acc.acc_is_valid)
+    {
+        current--;
+    }
+
+    while (current + 1 <= ss)
+    {
+        net.ApplyLazyUpdates(current->acc, (current + 1)->acc);
+        current++;
+    }
+
+    assert(Network::Verify(board, ss->acc));
+    Score eval = Network::Eval(board, ss->acc);
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 

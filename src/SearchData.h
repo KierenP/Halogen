@@ -9,6 +9,7 @@
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
+#include "Network.h"
 #include "Score.h"
 #include "Search.h"
 #include "SearchLimits.h"
@@ -36,15 +37,18 @@ struct SearchStackState
     SearchStackState(int distance_from_root_);
     void reset();
 
-    BasicMoveList pv = {};
+    StaticVector<Move, MAX_DEPTH> pv = {};
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
+    Pieces moved_piece = N_PIECES;
     Move singular_exclusion = Move::Uninitialized;
     int multiple_extensions = 0;
     int nmp_verification_depth = 0;
     bool nmp_verification_root = false;
     const int distance_from_root;
+
+    Accumulator acc;
 };
 
 class SearchStack
@@ -81,11 +85,12 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    History history;
+    QuietHistory quiet_history;
+    LoudHistory loud_history;
     CorrectionHistory correction_history;
     int sel_septh = 0;
-    atomic_relaxed<uint64_t> tb_hits = 0;
-    atomic_relaxed<uint64_t> nodes = 0;
+    atomic_relaxed<int64_t> tb_hits = 0;
+    atomic_relaxed<int64_t> nodes = 0;
 
     // track the current depth + multi-pv of the search
     int curr_depth = 0;
@@ -107,6 +112,8 @@ public:
 
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;
+
+    Network net;
 };
 
 struct SearchResults
@@ -116,7 +123,7 @@ struct SearchResults
     int multi_pv = 0;
     Move best_move = Move::Uninitialized;
     Score score = SCORE_UNDEFINED;
-    BasicMoveList pv = {};
+    StaticVector<Move, MAX_DEPTH> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
 };
 
@@ -145,8 +152,8 @@ public:
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
 
-    uint64_t tb_hits() const;
-    uint64_t nodes() const;
+    int64_t tb_hits() const;
+    int64_t nodes() const;
     int get_threads_setting() const;
     int get_multi_pv_setting() const;
 
@@ -166,7 +173,7 @@ private:
     int threads_setting {};
 
     // [thread_id][multi_pv][depth]
-    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH + 1>>> search_results_;
+    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
 
     SearchResults* best_search_result_ = nullptr;
 

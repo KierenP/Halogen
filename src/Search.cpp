@@ -12,15 +12,18 @@
 #include <vector>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "EGTB.h"
 #include "Evaluate.h"
 #include "GameState.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
+#include "Network.h"
 #include "Score.h"
 #include "SearchConstants.h"
 #include "SearchData.h"
 #include "StagedMoveGenerator.h"
+#include "StaticExchangeEvaluation.h"
 #include "TTEntry.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
@@ -93,6 +96,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     {
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
+        local.net.Reset(position.Board(), local.search_stack.root()->acc);
         threads.emplace_back(
             std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
     }
@@ -245,7 +249,6 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
     return false;
 }
 
-template <bool is_qsearch = false>
 std::optional<Score> init_search_node(const GameState& position, const int distance_from_root, SearchStackState* ss,
     SearchLocalState& local, const SearchSharedState& shared)
 {
@@ -267,11 +270,6 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     if (DeadPosition(position.Board()))
     {
         return 0;
-    }
-
-    if constexpr (is_qsearch)
-    {
-        return std::nullopt;
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with
@@ -418,7 +416,9 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / 245);
 
     ss->move = Move::Uninitialized;
+    ss->moved_piece = N_PIECES;
     position.ApplyNullMove();
+    local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
         = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1)
                .GetScore();
@@ -514,7 +514,7 @@ int reduction(int depth, int seen_moves, int history)
     if constexpr (pv_node)
         r--;
 
-    r -= history / 3922;
+    r -= history / 7844;
 
     return std::max(0, r);
 }
@@ -538,8 +538,13 @@ void AddKiller(Move move, std::array<Move, 2>& killers)
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     if (move.IsCapture() || move.IsPromotion())
-        return;
-    gen.AdjustHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    {
+        gen.AdjustLoudHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    }
+    else
+    {
+        gen.AdjustQuietHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+    }
 }
 
 template <bool pv_node>
@@ -621,50 +626,58 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 }
 
 // { raw, adjusted }
-std::tuple<Score, Score> get_search_eval(const GameState& position, const SearchLocalState& local,
+template <bool is_qsearch>
+std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchLocalState& local,
     TTEntry* const tt_entry, const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth,
     int distance_from_root)
 {
+    Score raw_eval;
+    Score adjusted_eval;
+
+    auto scale_eval_50_move = [&position](Score eval)
+    {
+        // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
+        // return false mate scores
+        auto adjusted = eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
+        return std::clamp<Score>(adjusted, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
+    };
+
     if (tt_entry)
     {
-        const auto raw_eval = [&]
+        if (tt_eval != SCORE_UNDEFINED)
         {
-            if (tt_eval != SCORE_UNDEFINED)
-            {
-                return tt_eval;
-            }
-            {
-                const auto eval = Evaluate(position);
-                tt_entry->static_eval = eval;
-                return eval;
-            }
-        }();
-
-        // correct the static_eval with the correction history
-        const auto adj_eval = raw_eval + local.correction_history.get_correction_score(position);
-
-        // use the tt_score to improve the static eval if possible
-        if (tt_score != SCORE_UNDEFINED
-            && (tt_cutoff == SearchResultType::EXACT
-                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adj_eval)
-                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adj_eval)))
-        {
-            return { raw_eval, tt_score };
+            raw_eval = tt_eval;
         }
         else
         {
-            return { raw_eval, adj_eval };
+            tt_entry->static_eval = raw_eval = Evaluate(position.Board(), ss, local.net);
+        }
+
+        // correct the static_eval with the correction history
+        adjusted_eval = raw_eval + local.correction_history.get_correction_score(position);
+
+        adjusted_eval = scale_eval_50_move(adjusted_eval);
+
+        // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
+        if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
+            && (tt_cutoff == SearchResultType::EXACT
+                || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adjusted_eval)
+                || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adjusted_eval)))
+        {
+            adjusted_eval = tt_score;
         }
     }
     else
     {
-        const auto raw_eval = Evaluate(position);
+        raw_eval = Evaluate(position.Board(), ss, local.net);
+        // correct the static_eval with the correction history
+        adjusted_eval = raw_eval + local.correction_history.get_correction_score(position);
+        adjusted_eval = scale_eval_50_move(raw_eval);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
-        // correct the static_eval with the correction history
-        const auto adj_eval = raw_eval + local.correction_history.get_correction_score(position);
-        return { raw_eval, adj_eval };
     }
+
+    return { raw_eval, adjusted_eval };
 }
 
 template <SearchType search_type>
@@ -676,8 +689,16 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     const auto distance_from_root = ss->distance_from_root;
+    const bool InCheck = IsInCheck(position.Board());
 
-    // Step 1: Check for abort or draw and update stats in the local state and search stack
+    // Step 1: Drop into q-search
+    if (depth <= 0 && !InCheck)
+    {
+        constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
+        return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
+    }
+
+    // Step 2: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
@@ -689,10 +710,10 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     // If we are in a singular move search, we don't want to do any early pruning
 
-    // Step 2: Probe transposition table
+    // Step 3: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
 
-    // Step 3: Check if we can use the TT entry to return early
+    // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
@@ -702,7 +723,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    // Step 4: Probe syzygy EGTB
+    // Step 5: Probe syzygy EGTB
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
@@ -712,17 +733,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         }
     }
 
-    const bool InCheck = IsInCheck(position.Board());
-
-    // Step 5: Drop into q-search
-    if (depth <= 0 && !InCheck)
-    {
-        constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
-        return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
-    }
-
-    const auto [raw_eval, eval]
-        = get_search_eval(position, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const auto [raw_eval, eval] = get_search_eval<false>(
+        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -826,10 +838,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = local.history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
+                                                             : local.quiet_history.get(position, ss, move);
         ss->move = move;
+        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
+        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 14: Check extensions
         if (IsInCheck(position.Board()))
@@ -899,7 +914,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     const auto distance_from_root = ss->distance_from_root;
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
-    if (auto value = init_search_node<true>(position, distance_from_root, ss, local, shared))
+    if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
     }
@@ -917,11 +932,11 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
         }
     }
 
+    const auto [raw_eval, eval]
+        = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    const auto [raw_eval, eval]
-        = get_search_eval(position, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
-
     alpha = std::max(alpha, eval);
     if (alpha >= beta)
     {
@@ -937,22 +952,22 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
     while (gen.Next(move))
     {
-        int SEE = gen.GetSEE(move);
-
-        // delta pruning
-        if (eval + SEE + 280 < alpha)
+        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
-            break;
+            continue;
         }
 
         // prune underpromotions
         if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
-            break;
+            continue;
         }
 
         ss->move = move;
+        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
+        // TODO: prefetch
+        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
         auto search_score
             = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha).GetScore();
         position.RevertMove();

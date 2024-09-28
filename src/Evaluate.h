@@ -1,11 +1,12 @@
 #pragma once
 
-#include "GameState.h"
 #include "Score.h"
-#include "Zobrist.h"
 
 class BoardState;
 class GameState;
+class Network;
+struct Accumulator;
+struct SearchStackState;
 
 bool DeadPosition(const BoardState& board);
-Score Evaluate(const GameState& position);
+Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net);

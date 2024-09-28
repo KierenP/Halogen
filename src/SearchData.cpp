@@ -24,8 +24,10 @@ void SearchStackState::reset()
     pv = {};
     killers = {};
     move = Move::Uninitialized;
+    moved_piece = N_PIECES;
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
+    acc = {};
 }
 
 const SearchStackState* SearchStack::root() const
@@ -88,7 +90,8 @@ void SearchLocalState::ResetNewSearch()
 void SearchLocalState::ResetNewGame()
 {
     ResetNewSearch();
-    history.reset();
+    quiet_history.reset();
+    loud_history.reset();
     correction_history.reset();
 }
 
@@ -178,15 +181,15 @@ void SearchSharedState::report_search_result(
     }
 }
 
-uint64_t SearchSharedState::tb_hits() const
+int64_t SearchSharedState::tb_hits() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (int64_t)0,
         [](const auto& val, const auto& state) { return val + state->tb_hits; });
 }
 
-uint64_t SearchSharedState::nodes() const
+int64_t SearchSharedState::nodes() const
 {
-    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (uint64_t)0,
+    return std::accumulate(search_local_states_.begin(), search_local_states_.end(), (int64_t)0,
         [](const auto& val, const auto& state) { return val + state->nodes; });
 }
 

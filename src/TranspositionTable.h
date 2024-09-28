@@ -19,10 +19,10 @@ public:
 
     int GetCapacity(int halfmove) const;
 
-    void ResetTable();
+    void Clear(int thread_count);
 
     // will wipe the table and reconstruct a new empty table with a set size. units in MB!
-    void SetSize(uint64_t MB);
+    void SetSize(uint64_t MB, int thread_count);
 
     void AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount, int distanceFromRoot,
         SearchResultType Cutoff, Score static_eval);
@@ -33,7 +33,7 @@ public:
     TTEntry* GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count);
 
 private:
-    void Reallocate();
+    void Reallocate(int thread_count);
     void Deallocate();
     TTBucket& GetBucket(uint64_t key) const;
 
