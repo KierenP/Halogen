@@ -44,14 +44,7 @@ public:
     template <Players side>
     uint64_t GetPieces() const
     {
-        if constexpr (side == Players::WHITE)
-        {
-            return WhitePieces;
-        }
-        else
-        {
-            return BlackPieces;
-        }
+        return side_bb[side];
     }
 
     template <PieceTypes type>
@@ -74,7 +67,8 @@ public:
 
     uint64_t GetZobristKey() const;
 
-    void SetSquare(Square square, Pieces piece);
+    void AddPiece(Square square, Pieces piece);
+    void RemovePiece(Square square, Pieces piece);
     void ClearSquare(Square square);
 
     void Reset();
@@ -90,16 +84,13 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
-    void SetSquareAndUpdate(Square square, Pieces piece);
+    void AddPieceAndUpdate(Square square, Pieces piece);
+    void RemovePieceAndUpdate(Square square, Pieces piece);
     void ClearSquareAndUpdate(Square square);
-
-    // optimization: GetWhitePieces/GetBlackPieces can return a precalculated bitboard
-    // which is updated only when needed
     void RecalculateWhiteBlackBoards();
-    uint64_t WhitePieces;
-    uint64_t BlackPieces;
 
     Zobrist key;
 
     std::array<uint64_t, N_PIECES> board = {};
+    std::array<uint64_t, 2> side_bb;
 };
