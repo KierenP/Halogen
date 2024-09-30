@@ -41,6 +41,15 @@ int16_t* FollowmoveHistory::get(const GameState& position, const SearchStackStat
     return &table[stm][counter_piece][counter.GetTo()][curr_piece][move.GetTo()];
 }
 
+int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Move move)
+{
+    const auto& stm = position.Board().stm;
+    const auto pawn_hash = position.Board().GetPawnKey() % pawn_states;
+    const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+
+    return &table[stm][pawn_hash][piece][move.GetTo()];
+}
+
 int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
