@@ -66,6 +66,7 @@ public:
     }
 
     uint64_t GetZobristKey() const;
+    uint64_t GetPawnKey() const;
 
     void AddPiece(Square square, Pieces piece);
     void RemovePiece(Square square, Pieces piece);
@@ -90,6 +91,7 @@ private:
     void RecalculateWhiteBlackBoards();
 
     Zobrist key;
+    PawnKey pawn_key;
 
     std::array<uint64_t, N_PIECES> board = {};
     std::array<uint64_t, 2> side_bb;

@@ -49,3 +49,34 @@ private:
 
     uint64_t key = EMPTY;
 };
+
+class PawnKey
+{
+public:
+    void recalculate(const BoardState& board)
+    {
+        key = generate(board);
+    }
+
+    operator uint64_t() const
+    {
+        return key;
+    }
+
+    void toggle_piece_square(Pieces piece, Square square)
+    {
+        key ^= table[((piece == WHITE_PAWN) ? 0 : 64) + square];
+    }
+
+    bool verify(const BoardState& board) const
+    {
+        return generate(board) == key;
+    }
+
+private:
+    static uint64_t generate(const BoardState& board);
+
+    // 2 pieces * 64 squares
+    const static std::array<uint64_t, 2 * 64> table;
+    uint64_t key = EMPTY;
+};
