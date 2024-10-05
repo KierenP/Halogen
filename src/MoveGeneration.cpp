@@ -857,6 +857,54 @@ bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
     return false;
 }
 
+template <Players us>
+uint64_t ThreatMask(const BoardState& board)
+{
+    const uint64_t occ = board.GetAllPieces();
+
+    uint64_t threats = EMPTY;
+    uint64_t vulnerable = board.GetPieces<!us>();
+
+    // Pawn capture non-pawn
+    vulnerable ^= board.GetPieceBB<PAWN, !us>();
+    for (uint64_t pieces = board.GetPieceBB<PAWN, us>(); pieces != 0;)
+    {
+        threats |= PawnAttacks[us][LSBpop(pieces)] & vulnerable;
+    }
+
+    // Bishop/Knight capture Rook/Queen
+    vulnerable ^= board.GetPieceBB<KNIGHT, !us>() | board.GetPieceBB<BISHOP, !us>();
+    for (uint64_t pieces = board.GetPieceBB<KNIGHT, us>(); pieces != 0;)
+    {
+        threats |= AttackBB<KNIGHT>(LSBpop(pieces), occ) & vulnerable;
+    }
+    for (uint64_t pieces = board.GetPieceBB<BISHOP, us>(); pieces != 0;)
+    {
+        threats |= AttackBB<BISHOP>(LSBpop(pieces), occ) & vulnerable;
+    }
+
+    // Rook capture queen
+    vulnerable ^= board.GetPieceBB<ROOK, !us>();
+    for (uint64_t pieces = board.GetPieceBB<ROOK, us>(); pieces != 0;)
+    {
+        threats |= AttackBB<ROOK>(LSBpop(pieces), occ) & vulnerable;
+    }
+
+    return threats;
+}
+
+uint64_t ThreatMask(const BoardState& board, Players colour)
+{
+    if (colour == WHITE)
+    {
+        return ThreatMask<WHITE>(board);
+    }
+    else
+    {
+        return ThreatMask<BLACK>(board);
+    }
+}
+
 // Below code adapted with permission from Terje, author of Weiss.
 //--------------------------------------------------------------------------
 

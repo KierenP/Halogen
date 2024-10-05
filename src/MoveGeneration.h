@@ -22,6 +22,9 @@ bool MoveIsLegal(const BoardState& board, const Move& move);
 // This function does not work for casteling moves. They are tested for legality their creation.
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move);
 
+// Returns a threat mask that only contains winning captures (RxQ, B/NxR/Q, Px!P)
+uint64_t ThreatMask(const BoardState& board, Players colour);
+
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceTypes pieceType>
 uint64_t AttackBB(Square sq, uint64_t occupied = EMPTY);
