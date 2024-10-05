@@ -42,10 +42,14 @@ struct SearchStackState
 
     Move move = Move::Uninitialized;
     Pieces moved_piece = N_PIECES;
+    uint64_t threat_mask = EMPTY;
+
     Move singular_exclusion = Move::Uninitialized;
     int multiple_extensions = 0;
+
     int nmp_verification_depth = 0;
     bool nmp_verification_root = false;
+
     const int distance_from_root;
 
     Accumulator acc;

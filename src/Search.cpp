@@ -779,6 +779,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
+    ss->threat_mask = ThreatMask(position.Board(), !position.Board().stm);
 
     // Step 9: Rebel style IID
     //
