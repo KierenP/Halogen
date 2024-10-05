@@ -25,6 +25,7 @@ void SearchStackState::reset()
     killers = {};
     move = Move::Uninitialized;
     moved_piece = N_PIECES;
+    threat_mask = EMPTY;
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
     acc = {};
