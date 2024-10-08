@@ -791,7 +791,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false, InCheck);
     Move move;
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
@@ -848,8 +848,8 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
-                                                             : local.quiet_history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history[InCheck].get(position, ss, move)
+                                                             : local.quiet_history[InCheck].get(position, ss, move);
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         position.ApplyMove(move);
@@ -941,7 +941,7 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
     auto score = eval;
     auto original_alpha = alpha;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true, false);
     Move move;
 
     while (gen.Next(move))

@@ -89,8 +89,8 @@ public:
 
     const int thread_id;
     SearchStack search_stack;
-    QuietHistory quiet_history;
-    LoudHistory loud_history;
+    std::array<QuietHistory, 2> quiet_history; // [in_check]
+    std::array<LoudHistory, 2> loud_history; // [in_check]
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;

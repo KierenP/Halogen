@@ -14,12 +14,13 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
+    Move tt_move, bool Quiescence, bool InCheck)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , in_check(InCheck)
     , TTmove(tt_move)
 {
     if (quiescence)
@@ -137,32 +138,32 @@ bool StagedMoveGenerator::Next(Move& move)
 
 void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.quiet_history.add(position, ss, move, positive_adjustment);
+    local.quiet_history[in_check].add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.quiet_history.add(position, ss, m.move, negative_adjustment);
+        local.quiet_history[in_check].add(position, ss, m.move, negative_adjustment);
     }
 
     for (auto const& m : loudMoves)
     {
-        local.loud_history.add(position, ss, m.move, negative_adjustment);
+        local.loud_history[in_check].add(position, ss, m.move, negative_adjustment);
     }
 }
 
 void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.loud_history.add(position, ss, move, positive_adjustment);
+    local.loud_history[in_check].add(position, ss, move, positive_adjustment);
 
     for (auto const& m : loudMoves)
     {
         if (m.move == move)
             break;
 
-        local.loud_history.add(position, ss, m.move, negative_adjustment);
+        local.loud_history[in_check].add(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -206,7 +207,7 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.quiet_history.get(position, ss, moves[i].move);
+            int history = local.quiet_history[in_check].get(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
@@ -245,7 +246,7 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            int history = local.loud_history.get(position, ss, moves[i].move);
+            int history = local.loud_history[in_check].get(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }

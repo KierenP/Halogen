@@ -91,8 +91,8 @@ void SearchLocalState::ResetNewSearch()
 void SearchLocalState::ResetNewGame()
 {
     ResetNewSearch();
-    quiet_history.reset();
-    loud_history.reset();
+    std::for_each(quiet_history.begin(), quiet_history.end(), [](auto& h) { h.reset(); });
+    std::for_each(loud_history.begin(), loud_history.end(), [](auto& h) { h.reset(); });
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)
