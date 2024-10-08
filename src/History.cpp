@@ -1,13 +1,8 @@
 #include "History.h"
 #include "BitBoardDefine.h"
 #include "Move.h"
+#include "MoveGeneration.h"
 #include "SearchData.h"
-
-int16_t* ButterflyHistory::get(const GameState& position, const SearchStackState*, Move move)
-{
-    const auto& stm = position.Board().stm;
-    return &table[stm][move.GetFrom()][move.GetTo()];
-}
 
 int16_t* CountermoveHistory::get(const GameState& position, const SearchStackState* ss, Move move)
 {
@@ -48,6 +43,15 @@ int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Mo
     const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
 
     return &table[stm][pawn_hash][piece][move.GetTo()];
+}
+
+int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* ss, Move move)
+{
+    const auto& stm = position.Board().stm;
+    const uint64_t& threat_mask = ss->threat_mask;
+    const bool from_square_threat = threat_mask & SquareBB[move.GetFrom()];
+
+    return &table[stm][from_square_threat][move.GetFrom()][move.GetTo()];
 }
 
 int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
