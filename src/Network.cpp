@@ -6,6 +6,7 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
+#include "Utility.h"
 #include "incbin/incbin.h"
 
 #undef INCBIN_ALIGNMENT
@@ -226,13 +227,7 @@ void Accumulator::Recalculate(const BoardState& board_, Players view)
     for (int i = 0; i < N_PIECES; i++)
     {
         Pieces piece = static_cast<Pieces>(i);
-        uint64_t bb = board_.GetPieceBB(piece);
-
-        while (bb)
-        {
-            Square sq = LSBpop(bb);
-            AddInput({ king, sq, piece }, view);
-        }
+        extract_bits(board_.GetPieceBB(piece), [&](auto sq) { AddInput({ king, sq, piece }, view); });
     }
 }
 
@@ -263,17 +258,8 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
         auto to_add = new_bb & ~old_bb;
         auto to_sub = old_bb & ~new_bb;
 
-        while (to_add)
-        {
-            auto sq = LSBpop(to_add);
-            entry.acc.AddInput({ king_sq, sq, piece }, side);
-        }
-
-        while (to_sub)
-        {
-            auto sq = LSBpop(to_sub);
-            entry.acc.SubInput({ king_sq, sq, piece }, side);
-        }
+        extract_bits(to_add, [&](auto sq) { entry.acc.AddInput({ king_sq, sq, piece }, side); });
+        extract_bits(to_sub, [&](auto sq) { entry.acc.SubInput({ king_sq, sq, piece }, side); });
 
         old_bb = new_bb;
     }
@@ -304,13 +290,7 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
     for (int i = 0; i < N_PIECES; i++)
     {
         Pieces piece = static_cast<Pieces>(i);
-        uint64_t bb = board.GetPieceBB(piece);
-
-        while (bb)
-        {
-            Square sq = LSBpop(bb);
-            expected.AddInput({ w_king, b_king, sq, piece });
-        }
+        extract_bits(board.GetPieceBB(piece), [&](auto sq) { expected.AddInput({ w_king, b_king, sq, piece }); });
     }
 
     return expected == acc;

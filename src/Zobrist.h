@@ -47,7 +47,7 @@ private:
     // 12 pieces * 64 squares, 1 for side to move, 16 for casteling rights and 8 for ep squares
     const static std::array<uint64_t, 12 * 64 + 1 + 16 + 8> ZobristTable;
 
-    uint64_t key = EMPTY;
+    uint64_t key = 0;
 };
 
 class PawnKey
@@ -78,5 +78,5 @@ private:
 
     // 2 pieces * 64 squares
     const static std::array<uint64_t, 2 * 64> table;
-    uint64_t key = EMPTY;
+    uint64_t key = 0;
 };

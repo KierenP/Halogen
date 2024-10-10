@@ -34,18 +34,18 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 
 bool DeadPosition(const BoardState& board)
 {
-    if ((board.GetPieceBB<WHITE_PAWN>()) != 0)
+    if ((board.GetPieceBB<WHITE_PAWN>()) != BB::none)
         return false;
-    if ((board.GetPieceBB<WHITE_ROOK>()) != 0)
+    if ((board.GetPieceBB<WHITE_ROOK>()) != BB::none)
         return false;
-    if ((board.GetPieceBB<WHITE_QUEEN>()) != 0)
+    if ((board.GetPieceBB<WHITE_QUEEN>()) != BB::none)
         return false;
 
-    if ((board.GetPieceBB<BLACK_PAWN>()) != 0)
+    if ((board.GetPieceBB<BLACK_PAWN>()) != BB::none)
         return false;
-    if ((board.GetPieceBB<BLACK_ROOK>()) != 0)
+    if ((board.GetPieceBB<BLACK_ROOK>()) != BB::none)
         return false;
-    if ((board.GetPieceBB<BLACK_QUEEN>()) != 0)
+    if ((board.GetPieceBB<BLACK_QUEEN>()) != BB::none)
         return false;
 
     /*

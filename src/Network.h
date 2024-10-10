@@ -87,8 +87,8 @@ struct Accumulator
 struct AccumulatorTableEntry
 {
     Accumulator acc;
-    std::array<uint64_t, N_PIECES> white_bb = {};
-    std::array<uint64_t, N_PIECES> black_bb = {};
+    std::array<BB, N_PIECES> white_bb = {};
+    std::array<BB, N_PIECES> black_bb = {};
 };
 
 // A cache of accumulators for each king bucket. When we want to recalculate the accumulator, we use this as a base

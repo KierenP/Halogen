@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "BitBoardDefine.h"
+#include "Bitboard.h"
 #include "Zobrist.h"
 
 class Move;
@@ -23,8 +24,8 @@ bool MoveIsLegal(const BoardState& board, const Move& move);
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move);
 
 // Returns a threat mask that only contains winning captures (RxQ, B/NxR/Q, Px!P)
-uint64_t ThreatMask(const BoardState& board, Players colour);
+BB ThreatMask(const BoardState& board, Players colour);
 
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceTypes pieceType>
-uint64_t AttackBB(Square sq, uint64_t occupied = EMPTY);
+BB AttackBB(Square sq, BB occupied = BB::none);

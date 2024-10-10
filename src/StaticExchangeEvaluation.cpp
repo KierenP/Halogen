@@ -4,75 +4,17 @@
 #include "MoveGeneration.h"
 #include "Score.h"
 
-uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
+BB AttackersToSq(const BoardState& board, Square sq, BB occ)
 {
-    uint64_t pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
+    BB pawn_mask = (board.GetPieceBB<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
     pawn_mask |= (board.GetPieceBB<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
 
-    uint64_t bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
-    uint64_t rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
+    BB bishops = board.GetPieceBB<QUEEN>() | board.GetPieceBB<BISHOP>();
+    BB rooks = board.GetPieceBB<QUEEN>() | board.GetPieceBB<ROOK>();
 
     return (pawn_mask & board.GetPieceBB<PAWN>()) | (AttackBB<KNIGHT>(sq) & board.GetPieceBB<KNIGHT>())
         | (AttackBB<KING>(sq) & board.GetPieceBB<KING>()) | (AttackBB<BISHOP>(sq, occ) & bishops)
         | (AttackBB<ROOK>(sq, occ) & rooks);
-}
-
-uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, Pieces& capturing, Players side)
-{
-    for (int i = 0; i < 6; i++)
-    {
-        capturing = Piece(PieceTypes(i), side);
-        uint64_t pieces = board.GetPieceBB(capturing) & attackers;
-        if (pieces)
-            return pieces & (~pieces + 1); // isolate LSB
-    }
-    return 0;
-}
-
-int see(const BoardState& board, Move move)
-{
-    Square from = move.GetFrom();
-    Square to = move.GetTo();
-
-    int scores[32] { 0 };
-    int index = 0;
-
-    auto capturing = board.GetSquare(from);
-    auto attacker = ColourOfPiece(capturing);
-    auto captured = move.GetFlag() == EN_PASSANT ? Piece(PAWN, !attacker) : board.GetSquare(to);
-
-    uint64_t from_set = (1ull << from);
-    uint64_t occ = board.GetAllPieces(), bishops = 0, rooks = 0;
-
-    bishops = rooks = board.GetPieceBB<QUEEN>();
-    bishops |= board.GetPieceBB<BISHOP>();
-    rooks |= board.GetPieceBB<ROOK>();
-
-    if (move.GetFlag() == EN_PASSANT)
-    {
-        occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
-    }
-
-    uint64_t attack_def = AttackersToSq(board, to, occ);
-    scores[index] = PieceValues[captured];
-
-    do
-    {
-        index++;
-        attacker = !attacker;
-        scores[index] = PieceValues[capturing] - scores[index - 1];
-
-        attack_def ^= from_set;
-        occ ^= from_set;
-
-        attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
-        from_set = GetLeastValuableAttacker(board, attack_def, capturing, Players(attacker));
-    } while (from_set);
-    while (--index)
-    {
-        scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
-    }
-    return scores[0];
 }
 
 bool see_ge(const BoardState& board, Move move, Score threshold)
@@ -101,7 +43,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
     auto stm = board.stm;
     int result = 1;
-    uint64_t occ = board.GetAllPieces(), bishop_queen = 0, rook_queen = 0;
+    BB occ = board.GetAllPieces(), bishop_queen = BB::none, rook_queen = BB::none;
 
     bishop_queen = rook_queen = board.GetPieceBB<QUEEN>();
     bishop_queen |= board.GetPieceBB<BISHOP>();
@@ -113,7 +55,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     }
 
     occ ^= SquareBB[from];
-    uint64_t attack_def = AttackersToSq(board, to, occ);
+    BB attack_def = AttackersToSq(board, to, occ);
     attack_def ^= SquareBB[from];
 
     while (true)
@@ -123,7 +65,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
         auto stmAttackers = attack_def & board.GetPiecesColour(stm);
 
         // If the side to move has no more attackers, stm loses
-        if (!stmAttackers)
+        if (stmAttackers == BB::none)
         {
             break;
         }
@@ -134,7 +76,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
         // attackers
         {
             auto pawns = stmAttackers & board.GetPieceBB(PAWN, stm);
-            if (pawns)
+            if (pawns != BB::none)
             {
                 swap = PieceValues[PAWN] - swap + 1;
                 if (swap <= 0)
@@ -147,7 +89,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
         {
             auto knights = stmAttackers & board.GetPieceBB(KNIGHT, stm);
-            if (knights)
+            if (knights != BB::none)
             {
                 swap = PieceValues[KNIGHT] - swap + 1;
                 if (swap <= 0)
@@ -159,7 +101,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
         {
             auto bishops = stmAttackers & board.GetPieceBB(BISHOP, stm);
-            if (bishops)
+            if (bishops != BB::none)
             {
                 swap = PieceValues[BISHOP] - swap + 1;
                 if (swap <= 0)
@@ -172,7 +114,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
         {
             auto rooks = stmAttackers & board.GetPieceBB(ROOK, stm);
-            if (rooks)
+            if (rooks != BB::none)
             {
                 swap = PieceValues[ROOK] - swap + 1;
                 if (swap <= 0)
@@ -185,7 +127,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
         {
             auto queens = stmAttackers & board.GetPieceBB(QUEEN, stm);
-            if (queens)
+            if (queens != BB::none)
             {
                 swap = PieceValues[QUEEN] - swap + 1;
                 if (swap <= 0)
@@ -200,7 +142,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
         {
             // if we only have the king available to attack we lose if the opponent has any further
             // attackers, and we would win on the next iteration if they don't
-            if (attack_def & board.GetPiecesColour(!stm))
+            if ((attack_def & board.GetPiecesColour(!stm)) != BB::none)
             {
                 result ^= 1;
             }

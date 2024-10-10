@@ -49,7 +49,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     for (size_t i = 0; i < TTBucket::size; i++)
     {
         // each bucket fills from the first entry, and only once all entries are full do we use the replacement scheme
-        if (bucket[i].key == EMPTY)
+        if (bucket[i].key == 0)
         {
             write_to_entry(bucket[i]);
             return;
@@ -103,7 +103,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
     for (int i = 0; i < 1000; i++)
     {
         auto& entry = table[i / TTBucket::size][i % TTBucket::size];
-        if (entry.key != EMPTY && entry.meta.generation == current_generation)
+        if (entry.key != 0 && entry.meta.generation == current_generation)
         {
             count++;
         }

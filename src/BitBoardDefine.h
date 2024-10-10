@@ -1,205 +1,28 @@
 #pragma once
 
+#include "Bitboard.h"
 #include <algorithm>
 #include <array>
 #include <assert.h>
 #include <cstdint>
 #include <type_traits>
 
-enum class SearchResultType : uint8_t
-{
-    EMPTY,
-    EXACT,
-    LOWER_BOUND,
-    UPPER_BOUND,
-};
-
-enum Square
-{
-    // clang-format off
-    SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
-    SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
-    SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
-    SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4,
-    SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5,
-    SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
-    SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
-    SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
-
-    N_SQUARES,
-    // clang-format on
-};
-
-constexpr Square& operator++(Square& sq)
-{
-    assert(sq < N_SQUARES);
-    sq = static_cast<Square>(sq + 1);
-    return sq;
-}
-
-enum Players
-{
-    BLACK,
-    WHITE,
-
-    N_PLAYERS
-};
-
-constexpr Players operator!(const Players& val)
-{
-    return val == WHITE ? BLACK : WHITE;
-}
-
-enum Pieces
-{
-    BLACK_PAWN,
-    BLACK_KNIGHT,
-    BLACK_BISHOP,
-    BLACK_ROOK,
-    BLACK_QUEEN,
-    BLACK_KING,
-
-    WHITE_PAWN,
-    WHITE_KNIGHT,
-    WHITE_BISHOP,
-    WHITE_ROOK,
-    WHITE_QUEEN,
-    WHITE_KING,
-
-    N_PIECES
-};
-
-enum PieceTypes
-{
-    PAWN,
-    KNIGHT,
-    BISHOP,
-    ROOK,
-    QUEEN,
-    KING,
-
-    N_PIECE_TYPES
-};
-
-enum Rank
-{
-    RANK_1,
-    RANK_2,
-    RANK_3,
-    RANK_4,
-    RANK_5,
-    RANK_6,
-    RANK_7,
-    RANK_8,
-
-    N_RANKS
-};
-
-constexpr Rank Mirror(Rank rank)
-{
-    assert(rank < N_RANKS);
-    return static_cast<Rank>(RANK_8 - rank);
-}
-
-constexpr Rank& operator++(Rank& rank)
-{
-    assert(rank < N_RANKS);
-    rank = static_cast<Rank>(rank + 1);
-    return rank;
-}
-
-enum File
-{
-    FILE_A,
-    FILE_B,
-    FILE_C,
-    FILE_D,
-    FILE_E,
-    FILE_F,
-    FILE_G,
-    FILE_H,
-
-    N_FILES
-};
-
-constexpr File& operator++(File& file)
-{
-    assert(file < N_FILES);
-    file = static_cast<File>(file + 1);
-    return file;
-}
-
-enum Diagonal
-{
-    DIAG_A8A8,
-    DIAG_A7B8,
-    DIAG_A6C8,
-    DIAG_A5D8,
-    DIAG_A4E8,
-    DIAG_A3F8,
-    DIAG_A2G8,
-    DIAG_A1H8,
-    DIAG_B1H7,
-    DIAG_C1H6,
-    DIAG_D1H5,
-    DIAG_E1H4,
-    DIAG_F1H3,
-    DIAG_G1H2,
-    DIAG_H1H1,
-
-    N_DIAGONALS
-};
-
-constexpr Diagonal& operator++(Diagonal& diagonal)
-{
-    assert(diagonal < N_DIAGONALS);
-    diagonal = static_cast<Diagonal>(diagonal + 1);
-    return diagonal;
-}
-
-enum AntiDiagonal
-{
-    DIAG_H8H8,
-    DIAG_G8H7,
-    DIAG_F8H6,
-    DIAG_E8H5,
-    DIAG_D8H4,
-    DIAG_C8H3,
-    DIAG_B8H2,
-    DIAG_A8H1,
-    DIAG_A7G1,
-    DIAG_A6F1,
-    DIAG_A5E1,
-    DIAG_A4D1,
-    DIAG_A3C1,
-    DIAG_A2B1,
-    DIAG_A1A1,
-
-    N_ANTI_DIAGONALS
-};
-
-constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal)
-{
-    assert(antidiagonal < N_ANTI_DIAGONALS);
-    antidiagonal = static_cast<AntiDiagonal>(antidiagonal + 1);
-    return antidiagonal;
-}
-
-constexpr int GetBitCount(uint64_t bb)
+constexpr int GetBitCount(BB bb)
 {
 #if defined(__GNUG__) && defined(USE_POPCNT)
-    return __builtin_popcountll(bb);
+    return __builtin_popcountll(uint64_t(bb));
 #else
     // https://www.chessprogramming.org/Population_Count
-    const uint64_t k1 = uint64_t(0x5555555555555555); /*  -1/3   */
-    const uint64_t k2 = uint64_t(0x3333333333333333); /*  -1/5   */
-    const uint64_t k4 = uint64_t(0x0f0f0f0f0f0f0f0f); /*  -1/17  */
-    const uint64_t kf = uint64_t(0x0101010101010101); /*  -1/255 */
-    bb = bb - ((bb >> 1) & k1); /* put count of each 2 bits into those 2 bits */
-    bb = (bb & k2) + ((bb >> 2) & k2); /* put count of each 4 bits into those 4 bits */
-    bb = (bb + (bb >> 4)) & k4; /* put count of each 8 bits into those 8 bits */
-    bb = (bb * kf) >> 56; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
-    return (int)bb;
+    uint64_t bbull = (uint64_t)bb;
+    constexpr uint64_t k1 { 0x5555555555555555 }; /*  -1/3   */
+    constexpr uint64_t k2 { 0x3333333333333333 }; /*  -1/5   */
+    constexpr uint64_t k4 { 0x0f0f0f0f0f0f0f0f }; /*  -1/17  */
+    constexpr uint64_t kf { 0x0101010101010101 }; /*  -1/255 */
+    bbull = bbull - ((bbull >> 1) & k1); /* put count of each 2 bits into those 2 bits */
+    bbull = (bbull & k2) + ((bbull >> 2) & k2); /* put count of each 4 bits into those 4 bits */
+    bbull = (bbull + (bbull >> 4)) & k4; /* put count of each 8 bits into those 8 bits */
+    bbull = (bbull * kf) >> 56; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
+    return (uint64_t)bbull;
 #endif
 }
 
@@ -290,20 +113,17 @@ constexpr Square GetPosition(File file, Rank rank)
     return static_cast<Square>(rank * 8 + file);
 }
 
-constexpr uint64_t EMPTY = 0;
-constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
-
 namespace Detail // so these don't polute the global scope
 {
 // Not my code, slightly modified
-constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
+constexpr BB inBetween(unsigned int sq1, unsigned int sq2)
 {
     const uint64_t a2a7 = uint64_t(0x0001010101010100);
     const uint64_t b2g7 = uint64_t(0x0040201008040200);
     const uint64_t h1b7 = uint64_t(0x0002040810204080); /* Thanks Dustin, g2b7 did not work for c1-a3 */
     uint64_t btwn = 0, line = 0, rank = 0, file = 0;
 
-    btwn = (UNIVERSE << sq1) ^ (UNIVERSE << sq2);
+    btwn = uint64_t((BB::all << sq1) ^ (BB::all << sq2));
     file = (sq2 & 7) - (sq1 & 7);
     rank = ((sq2 | 7) - sq1) >> 3;
     line = ((file & 7) - 1) & a2a7; /* a2a7 if same file */
@@ -311,37 +131,37 @@ constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
     line += (((rank - file) & 15) - 1) & b2g7; /* b2g7 if same diagonal */
     line += (((rank + file) & 15) - 1) & h1b7; /* h1b7 if same antidiag */
     line = int64_t(uint64_t(line) << (std::min)(sq1, sq2)); /* shift by smaller square */
-    return line & btwn; /* return the bits on that line in-between */
+    return BB { line & btwn }; /* return the bits on that line in-between */
 }
 }
 
 constexpr auto RankBB = []()
 {
-    std::array<uint64_t, N_RANKS> ret {};
+    std::array<BB, N_RANKS> ret {};
     for (Rank i = RANK_1; i <= RANK_8; ++i)
-        ret[i] = 0xffULL << (8 * i);
+        ret[i] = BB { 0xffULL } << (8 * i);
     return ret;
 }();
 
 constexpr auto FileBB = []()
 {
-    std::array<uint64_t, N_FILES> ret {};
+    std::array<BB, N_FILES> ret {};
     for (File i = FILE_A; i <= FILE_H; ++i)
-        ret[i] = 0x101010101010101 << i;
+        ret[i] = BB { 0x101010101010101 } << i;
     return ret;
 }();
 
 constexpr auto SquareBB = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
-        ret[i] = 1ULL << i;
+        ret[i] = BB { 1ULL } << i;
     return ret;
 }();
 
 constexpr auto DiagonalBB = []()
 {
-    std::array<uint64_t, N_DIAGONALS> ret { 0x100000000000000 };
+    std::array<BB, N_DIAGONALS> ret { BB { 0x100000000000000 } };
     for (Diagonal i = DIAG_A7B8; i <= DIAG_H1H1; ++i)
         if (i > N_DIAGONALS / 2)
             ret[i] = (ret[i - 1] >> 8);
@@ -352,7 +172,7 @@ constexpr auto DiagonalBB = []()
 
 constexpr auto AntiDiagonalBB = []()
 {
-    std::array<uint64_t, N_ANTI_DIAGONALS> ret { 0x8000000000000000 };
+    std::array<BB, N_ANTI_DIAGONALS> ret { BB { 0x8000000000000000 } };
     for (AntiDiagonal i = DIAG_G8H7; i <= DIAG_A1A1; ++i)
         if (i > N_ANTI_DIAGONALS / 2)
             ret[i] = (ret[i - 1] >> 8);
@@ -363,7 +183,7 @@ constexpr auto AntiDiagonalBB = []()
 
 constexpr auto betweenArray = []()
 {
-    std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> ret {};
+    std::array<std::array<BB, N_SQUARES>, N_SQUARES> ret {};
     for (int i = 0; i < 64; i++)
     {
         for (int j = 0; j < 64; j++)
@@ -376,7 +196,7 @@ constexpr auto betweenArray = []()
 
 constexpr auto KnightAttacks = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if ((AbsRankDiff(i, j) == 1 && AbsFileDiff(i, j) == 2)
@@ -387,7 +207,7 @@ constexpr auto KnightAttacks = []()
 
 constexpr auto RookAttacks = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (RankBB[GetRank(i)] | FileBB[GetFile(i)]) ^ SquareBB[i];
     return ret;
@@ -395,7 +215,7 @@ constexpr auto RookAttacks = []()
 
 constexpr auto BishopAttacks = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = (DiagonalBB[GetDiagonal(i)] | AntiDiagonalBB[GetAntiDiagonal(i)]) ^ SquareBB[i];
     return ret;
@@ -403,7 +223,7 @@ constexpr auto BishopAttacks = []()
 
 constexpr auto KingAttacks = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if (i != j && AbsFileDiff(i, j) <= 1 && AbsRankDiff(i, j) <= 1)
@@ -413,7 +233,7 @@ constexpr auto KingAttacks = []()
 
 constexpr auto PawnAttacks = []()
 {
-    std::array<std::array<uint64_t, N_SQUARES>, N_PLAYERS> ret {};
+    std::array<std::array<BB, N_SQUARES>, N_PLAYERS> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         for (Square j = SQ_A1; j <= SQ_H8; ++j)
             if ((AbsFileDiff(i, j) == 1) && RankDiff(j, i) == 1) // either side one ahead
@@ -427,18 +247,19 @@ constexpr auto PawnAttacks = []()
 
 constexpr auto QueenAttacks = []()
 {
-    std::array<uint64_t, N_SQUARES> ret {};
+    std::array<BB, N_SQUARES> ret {};
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
         ret[i] = RookAttacks[i] | BishopAttacks[i];
     return ret;
 }();
 
-constexpr Square LSB(uint64_t bb)
+constexpr Square LSB(BB bb)
 {
-    assert(bb != 0);
+    assert(bb != BB::none);
+    uint64_t bbull = uint64_t(bb);
 
 #if defined(__GNUG__) && defined(USE_POPCNT)
-    return static_cast<Square>(__builtin_ctzll(bb));
+    return static_cast<Square>(__builtin_ctzll(bbull));
 #else
     /**
      * bitScanForward
@@ -460,26 +281,27 @@ constexpr Square LSB(uint64_t bb)
     };
     // clang-format on
     constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-    return static_cast<Square>(index64[((bb ^ (bb - 1)) * debruijn64) >> 58]);
+    return static_cast<Square>(index64[((bbull ^ (bbull - 1)) * debruijn64) >> 58]);
 #endif
 }
 
-constexpr Square LSBpop(uint64_t& bb)
+constexpr Square LSBpop(BB& bb)
 {
-    assert(bb != 0);
+    assert(bb != BB::none);
 
     auto index = LSB(bb);
-    bb &= bb - 1;
+    bb &= BB { (uint64_t)bb - 1 };
 
     return index;
 }
 
-constexpr Square MSB(uint64_t bb)
+constexpr Square MSB(BB bb)
 {
-    assert(bb != 0);
+    assert(bb != BB::none);
+    uint64_t bbull = uint64_t(bb);
 
 #if defined(__GNUG__) && defined(USE_POPCNT)
-    return static_cast<Square>(SQ_H8 - __builtin_clzll(bb));
+    return static_cast<Square>(SQ_H8 - __builtin_clzll(bbull));
 #else
     /**
      * bitScanReverse
@@ -501,18 +323,18 @@ constexpr Square MSB(uint64_t bb)
     };
     // clang-format on
     constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-    bb |= bb >> 1;
-    bb |= bb >> 2;
-    bb |= bb >> 4;
-    bb |= bb >> 8;
-    bb |= bb >> 16;
-    bb |= bb >> 32;
-    return static_cast<Square>(index64[(bb * debruijn64) >> 58]);
+    bbull |= bbull >> 1;
+    bbull |= bbull >> 2;
+    bbull |= bbull >> 4;
+    bbull |= bbull >> 8;
+    bbull |= bbull >> 16;
+    bbull |= bbull >> 32;
+    return static_cast<Square>(index64[(bbull * debruijn64) >> 58]);
 #endif
 }
-constexpr bool mayMove(Square from, Square to, uint64_t pieces)
+constexpr bool mayMove(Square from, Square to, BB pieces)
 {
-    return (betweenArray[from][to] & pieces) == 0;
+    return (betweenArray[from][to] & pieces) == BB::none;
 }
 
 const int MAX_DEPTH = 100;
@@ -539,52 +361,52 @@ constexpr Square operator-(Square sq, Shift s)
 };
 
 template <Shift direction>
-constexpr auto shift_bb(uint64_t bb);
+constexpr auto shift_bb(BB bb);
 
 template <>
-constexpr auto shift_bb<Shift::N>(uint64_t bb)
+constexpr auto shift_bb<Shift::N>(BB bb)
 {
     return bb << 8;
 }
 
 template <>
-constexpr auto shift_bb<Shift::S>(uint64_t bb)
+constexpr auto shift_bb<Shift::S>(BB bb)
 {
     return bb >> 8;
 }
 
 template <>
-constexpr auto shift_bb<Shift::W>(uint64_t bb)
+constexpr auto shift_bb<Shift::W>(BB bb)
 {
     return (bb & ~FileBB[FILE_A]) >> 1;
 }
 
 template <>
-constexpr auto shift_bb<Shift::E>(uint64_t bb)
+constexpr auto shift_bb<Shift::E>(BB bb)
 {
     return (bb & ~FileBB[FILE_H]) << 1;
 }
 
 template <>
-constexpr auto shift_bb<Shift::NW>(uint64_t bb)
+constexpr auto shift_bb<Shift::NW>(BB bb)
 {
     return (bb & ~FileBB[FILE_A]) << 7;
 }
 
 template <>
-constexpr auto shift_bb<Shift::NE>(uint64_t bb)
+constexpr auto shift_bb<Shift::NE>(BB bb)
 {
     return (bb & ~FileBB[FILE_H]) << 9;
 }
 
 template <>
-constexpr auto shift_bb<Shift::SW>(uint64_t bb)
+constexpr auto shift_bb<Shift::SW>(BB bb)
 {
     return (bb & ~FileBB[FILE_A]) >> 9;
 }
 
 template <>
-constexpr auto shift_bb<Shift::SE>(uint64_t bb)
+constexpr auto shift_bb<Shift::SE>(BB bb)
 {
     return (bb & ~FileBB[FILE_H]) >> 7;
 }
