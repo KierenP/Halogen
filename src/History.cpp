@@ -48,8 +48,8 @@ int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Mo
 int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* ss, Move move)
 {
     const auto& stm = position.Board().stm;
-    const uint64_t& threat_mask = ss->threat_mask;
-    const bool from_square_threat = threat_mask & SquareBB[move.GetFrom()];
+    const BB& threat_mask = ss->threat_mask;
+    const bool from_square_threat = threat_mask.contains(move.GetFrom());
 
     return &table[stm][from_square_threat][move.GetFrom()][move.GetTo()];
 }

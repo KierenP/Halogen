@@ -3,6 +3,7 @@
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
+#include "Utility.h"
 #include "Zobrist.h"
 
 #include <charconv>
@@ -20,7 +21,7 @@ void BoardState::Reset()
     half_turn_count = 1;
 
     stm = N_PLAYERS;
-    castle_squares = EMPTY;
+    castle_squares = BB::none;
 
     board = {};
 
@@ -151,7 +152,7 @@ void BoardState::RecalculateWhiteBlackBoards()
         | GetPieceBB<BLACK_ROOK>() | GetPieceBB<BLACK_QUEEN>() | GetPieceBB<BLACK_KING>();
 }
 
-uint64_t BoardState::GetPiecesColour(Players colour) const
+BB BoardState::GetPiecesColour(Players colour) const
 {
     if (colour == WHITE)
         return GetPieces<WHITE>();
@@ -187,7 +188,7 @@ void BoardState::RemovePiece(Square square, Pieces piece)
     side_bb[ColourOfPiece(piece)] ^= SquareBB[square];
 }
 
-uint64_t BoardState::GetPieceBB(Pieces piece) const
+BB BoardState::GetPieceBB(Pieces piece) const
 {
     return board[piece];
 }
@@ -205,21 +206,21 @@ void BoardState::ClearSquare(Square square)
     side_bb[BLACK] &= ~SquareBB[square];
 }
 
-uint64_t BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
+BB BoardState::GetPieceBB(PieceTypes pieceType, Players colour) const
 {
     return GetPieceBB(Piece(pieceType, colour));
 }
 
 Square BoardState::GetKing(Players colour) const
 {
-    assert(GetPieceBB(KING, colour) != 0);
+    assert(GetPieceBB(KING, colour) != BB::none);
     return LSB(GetPieceBB(KING, colour));
 }
 
 bool BoardState::IsEmpty(Square square) const
 {
     assert(square != N_SQUARES);
-    return ((GetAllPieces() & SquareBB[square]) == 0);
+    return !GetAllPieces().contains(square);
 }
 
 bool BoardState::IsOccupied(Square square) const
@@ -232,19 +233,19 @@ Pieces BoardState::GetSquare(Square square) const
 {
     for (int i = 0; i < N_PIECES; i++)
     {
-        if ((GetPieceBB(static_cast<Pieces>(i)) & SquareBB[square]) != 0)
+        if (GetPieceBB(static_cast<Pieces>(i)).contains(square))
             return static_cast<Pieces>(i);
     }
 
     return N_PIECES;
 }
 
-uint64_t BoardState::GetAllPieces() const
+BB BoardState::GetAllPieces() const
 {
     return GetPieces<WHITE>() | GetPieces<BLACK>();
 }
 
-uint64_t BoardState::GetEmptySquares() const
+BB BoardState::GetEmptySquares() const
 {
     return ~GetAllPieces();
 }
@@ -256,38 +257,26 @@ void BoardState::UpdateCastleRights(Move move, Zobrist& zobrist)
     if (move.GetFrom() == GetKing(WHITE))
     {
         // get castle squares on white side
-        uint64_t white_castle = castle_squares & RankBB[RANK_1];
-
-        while (white_castle)
-        {
-            auto sq = LSBpop(white_castle);
-            zobrist.ToggleCastle(sq);
-        }
-
+        BB white_castle = castle_squares & RankBB[RANK_1];
+        extract_bits(white_castle, [&](auto sq) { zobrist.ToggleCastle(sq); });
         castle_squares &= ~(RankBB[RANK_1]);
     }
 
     if (move.GetFrom() == GetKing(BLACK))
     {
         // get castle squares on black side
-        uint64_t black_castle = castle_squares & RankBB[RANK_8];
-
-        while (black_castle)
-        {
-            auto sq = LSBpop(black_castle);
-            zobrist.ToggleCastle(sq);
-        }
-
+        BB black_castle = castle_squares & RankBB[RANK_8];
+        extract_bits(black_castle, [&](auto sq) { zobrist.ToggleCastle(sq); });
         castle_squares &= ~(RankBB[RANK_8]);
     }
 
-    if (SquareBB[move.GetTo()] & castle_squares)
+    if (castle_squares.contains(move.GetTo()))
     {
         zobrist.ToggleCastle(move.GetTo());
         castle_squares &= ~SquareBB[move.GetTo()];
     }
 
-    if (SquareBB[move.GetFrom()] & castle_squares)
+    if (castle_squares.contains(move.GetFrom()))
     {
         zobrist.ToggleCastle(move.GetFrom());
         castle_squares &= ~SquareBB[move.GetFrom()];
@@ -358,19 +347,19 @@ void BoardState::ApplyMove(Move move)
         Square ep_sq = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
 
         // it only counts as a ep square if a pawn could potentially do the capture!
-        uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & GetPieceBB(PAWN, !stm);
+        BB potentialAttackers = PawnAttacks[stm][ep_sq] & GetPieceBB(PAWN, !stm);
 
-        while (potentialAttackers)
+        if (any_of(potentialAttackers,
+                [&](auto sq)
+                {
+                    stm = !stm;
+                    bool legal = !MovePutsSelfInCheck(*this, Move(sq, ep_sq, EN_PASSANT));
+                    stm = !stm;
+                    return legal;
+                }))
         {
-            stm = !stm;
-            bool legal = !MovePutsSelfInCheck(*this, Move(LSBpop(potentialAttackers), ep_sq, EN_PASSANT));
-            stm = !stm;
-            if (legal)
-            {
-                en_passant = ep_sq;
-                key.ToggleEnpassant(GetFile(ep_sq));
-                break;
-            }
+            en_passant = ep_sq;
+            key.ToggleEnpassant(GetFile(ep_sq));
         }
 
         AddPieceAndUpdate(move.GetTo(), Piece(PAWN, stm));

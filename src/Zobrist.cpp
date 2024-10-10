@@ -5,6 +5,7 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "Utility.h"
 
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Zobrist::ZobristTable = []
 {
@@ -52,21 +53,14 @@ uint64_t Zobrist::Generate(const BoardState& board)
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        uint64_t bitboard = board.GetPieceBB(static_cast<Pieces>(i));
-        while (bitboard != 0)
-        {
-            Key.TogglePieceSquare(static_cast<Pieces>(i), LSBpop(bitboard));
-        }
+        auto piece = static_cast<Pieces>(i);
+        extract_bits(board.GetPieceBB(piece), [&](auto sq) { Key.TogglePieceSquare(piece, sq); });
     }
 
     if (board.stm == WHITE)
         Key.ToggleSTM();
 
-    auto castle_rights = board.castle_squares;
-    while (castle_rights != 0)
-    {
-        Key.ToggleCastle(LSBpop(castle_rights));
-    }
+    extract_bits(board.castle_squares, [&](auto sq) { Key.ToggleCastle(sq); });
 
     if (board.en_passant <= SQ_H8)
     {
@@ -80,17 +74,8 @@ uint64_t PawnKey::generate(const BoardState& board)
 {
     PawnKey Key;
 
-    uint64_t white = board.GetPieceBB<WHITE_PAWN>();
-    while (white != 0)
-    {
-        Key.toggle_piece_square(WHITE_PAWN, LSBpop(white));
-    }
-
-    uint64_t black = board.GetPieceBB<BLACK_PAWN>();
-    while (black != 0)
-    {
-        Key.toggle_piece_square(BLACK_PAWN, LSBpop(black));
-    }
+    extract_bits(board.GetPieceBB<WHITE_PAWN>(), [&](auto sq) { Key.toggle_piece_square(WHITE_PAWN, sq); });
+    extract_bits(board.GetPieceBB<BLACK_PAWN>(), [&](auto sq) { Key.toggle_piece_square(BLACK_PAWN, sq); });
 
     return Key;
 }

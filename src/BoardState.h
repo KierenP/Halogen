@@ -26,41 +26,41 @@ public:
     unsigned int half_turn_count;
 
     Players stm = N_PLAYERS;
-    uint64_t castle_squares;
+    BB castle_squares;
 
     Pieces GetSquare(Square square) const;
 
     bool IsEmpty(Square square) const;
     bool IsOccupied(Square square) const;
 
-    uint64_t GetAllPieces() const;
-    uint64_t GetEmptySquares() const;
-    uint64_t GetPiecesColour(Players colour) const;
-    uint64_t GetPieceBB(PieceTypes pieceType, Players colour) const;
-    uint64_t GetPieceBB(Pieces piece) const;
+    BB GetAllPieces() const;
+    BB GetEmptySquares() const;
+    BB GetPiecesColour(Players colour) const;
+    BB GetPieceBB(PieceTypes pieceType, Players colour) const;
+    BB GetPieceBB(Pieces piece) const;
 
     Square GetKing(Players colour) const;
 
     template <Players side>
-    uint64_t GetPieces() const
+    BB GetPieces() const
     {
         return side_bb[side];
     }
 
     template <PieceTypes type>
-    uint64_t GetPieceBB() const
+    BB GetPieceBB() const
     {
         return GetPieceBB<type, WHITE>() | GetPieceBB<type, BLACK>();
     }
 
     template <Pieces type>
-    uint64_t GetPieceBB() const
+    BB GetPieceBB() const
     {
         return board[type];
     }
 
     template <PieceTypes pieceType, Players colour>
-    uint64_t GetPieceBB() const
+    BB GetPieceBB() const
     {
         return GetPieceBB<Piece(pieceType, colour)>();
     }
@@ -93,6 +93,6 @@ private:
     Zobrist key;
     PawnKey pawn_key;
 
-    std::array<uint64_t, N_PIECES> board = {};
-    std::array<uint64_t, 2> side_bb;
+    std::array<BB, N_PIECES> board = {};
+    std::array<BB, 2> side_bb;
 };

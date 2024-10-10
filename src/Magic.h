@@ -9,20 +9,20 @@
 #endif
 
 template <Shift direction>
-constexpr uint64_t MakeRayAttackBB(Square sq, uint64_t occupied)
+constexpr BB MakeRayAttackBB(Square sq, BB occupied)
 {
-    uint64_t attacks = 0;
-    uint64_t bb = SquareBB[sq];
+    BB attacks = BB::none;
+    BB bb = SquareBB[sq];
 
     while (true)
     {
         bb = shift_bb<direction>(bb);
-        if (bb == EMPTY)
+        if (bb == BB::none)
         {
             break;
         }
         attacks |= bb;
-        if ((occupied & bb) != 0)
+        if ((occupied & bb) != BB::none)
         {
             break;
         }
@@ -32,24 +32,24 @@ constexpr uint64_t MakeRayAttackBB(Square sq, uint64_t occupied)
 }
 
 template <Shift... direction>
-constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied)
+constexpr BB MakeSliderAttackBB(Square sq, BB occupied)
 {
-    return (MakeRayAttackBB<direction>(sq, occupied) | ... | EMPTY);
+    return (MakeRayAttackBB<direction>(sq, occupied) | ... | BB::none);
 }
 
 namespace detail
 {
 struct Magic
 {
-    uint64_t* attacks;
-    uint64_t mask;
+    BB* attacks;
+    BB mask;
 #ifndef USE_PEXT
-    uint64_t magic;
+    BB magic;
     int shift;
 #endif
 };
 
-template <typename Derived, uint64_t size, Shift... directions>
+template <typename Derived, size_t size, Shift... directions>
 class MagicTable
 {
 public:
@@ -58,59 +58,59 @@ public:
         InitSliderAttacks();
     }
 
-    constexpr uint64_t AttackMask(Square sq, uint64_t occupied) const
+    constexpr BB AttackMask(Square sq, BB occupied) const
     {
         return table[sq].attacks[AttackIndex(sq, occupied)];
     }
 
 private:
-    constexpr uint64_t& AttackMask(Square sq, uint64_t occupied)
+    constexpr BB& AttackMask(Square sq, BB occupied)
     {
         return table[sq].attacks[AttackIndex(sq, occupied)];
     }
 
-    constexpr size_t AttackIndex(Square sq, uint64_t occupied) const
+    constexpr size_t AttackIndex(Square sq, BB occupied) const
     {
 #ifdef USE_PEXT
         // Uses the bmi2 pext instruction in place of magic bitboards
-        return _pext_u64(occupied, table[sq].mask);
+        return _pext_u64((uint64_t)occupied, (uint64_t)table[sq].mask);
 #else
         // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
-        return ((occupied & table[sq].mask) * table[sq].magic) >> table[sq].shift;
+        return (((uint64_t)occupied & (uint64_t)table[sq].mask) * (uint64_t)table[sq].magic) >> table[sq].shift;
 #endif
     }
 
     constexpr void InitSliderAttacks()
     {
-        uint64_t* attack = attacks.data();
+        BB* attack = attacks.data();
 
         for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
         {
             table[sq].attacks = attack;
 
             // Construct the mask
-            uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[GetRank(sq)])
+            BB edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[GetRank(sq)])
                 | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[GetFile(sq)]);
 
-            table[sq].mask = MakeSliderAttackBB<directions...>(sq, 0) & ~edges;
+            table[sq].mask = MakeSliderAttackBB<directions...>(sq, BB::none) & ~edges;
 
 #ifndef USE_PEXT
-            table[sq].magic = Derived::magics[sq];
+            table[sq].magic = BB { Derived::magics[sq] };
             table[sq].shift = 64 - GetBitCount(table[sq].mask);
 #endif
 
-            uint64_t occupied = 0;
+            BB occupied = BB::none;
             do
             {
                 AttackMask(sq, occupied) = MakeSliderAttackBB<directions...>(sq, occupied);
-                occupied = (occupied - table[sq].mask) & table[sq].mask; // Carry rippler
+                occupied = BB((uint64_t)occupied - (uint64_t)table[sq].mask) & table[sq].mask; // Carry rippler
                 attack++;
-            } while (occupied);
+            } while (occupied != BB::none);
         }
     }
 
     std::array<Magic, N_SQUARES> table = {};
-    std::array<uint64_t, size> attacks = {};
+    std::array<BB, size> attacks = {};
 };
 
 struct BishopTable : public MagicTable<BishopTable, 0x1480, Shift::NW, Shift::NE, Shift::SW, Shift::SE>

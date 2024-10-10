@@ -40,16 +40,26 @@
 
 #include "../MoveGeneration.h"
 
-#define PYRRHIC_POPCOUNT(x)              (GetBitCount(x))
-#define PYRRHIC_LSB(x)                   (LSB(x))
-#define PYRRHIC_POPLSB(x)                (LSBpop(*x))
+inline constexpr Square pyrrhic_poplsb(uint64_t& bb)
+{
+    assert(bb != 0);
 
-#define PYRRHIC_PAWN_ATTACKS(sq, c)      (PawnAttacks[c][sq])
-#define PYRRHIC_KNIGHT_ATTACKS(sq)       (AttackBB<KNIGHT>(static_cast<Square>(sq)))
-#define PYRRHIC_BISHOP_ATTACKS(sq, occ)  (AttackBB<BISHOP>(static_cast<Square>(sq), occ))
-#define PYRRHIC_ROOK_ATTACKS(sq, occ)    (AttackBB<ROOK>(static_cast<Square>(sq), occ))
-#define PYRRHIC_QUEEN_ATTACKS(sq, occ)   (AttackBB<QUEEN>(static_cast<Square>(sq), occ))
-#define PYRRHIC_KING_ATTACKS(sq)         (AttackBB<KING>(static_cast<Square>(sq)))
+    auto index = LSB(BB(bb));
+    bb &= bb - 1;
+
+    return index;
+}
+
+#define PYRRHIC_POPCOUNT(x)              ((uint64_t)GetBitCount(BB(x)))
+#define PYRRHIC_LSB(x)                   ((uint64_t)LSB(BB(x)))
+#define PYRRHIC_POPLSB(x)                (pyrrhic_poplsb(*x))
+
+#define PYRRHIC_PAWN_ATTACKS(sq, c)      ((uint64_t)PawnAttacks[c][sq])
+#define PYRRHIC_KNIGHT_ATTACKS(sq)       ((uint64_t)AttackBB<KNIGHT>(static_cast<Square>(sq)))
+#define PYRRHIC_BISHOP_ATTACKS(sq, occ)  ((uint64_t)AttackBB<BISHOP>(static_cast<Square>(sq), BB(occ)))
+#define PYRRHIC_ROOK_ATTACKS(sq, occ)    ((uint64_t)AttackBB<ROOK>(static_cast<Square>(sq), BB(occ)))
+#define PYRRHIC_QUEEN_ATTACKS(sq, occ)   ((uint64_t)AttackBB<QUEEN>(static_cast<Square>(sq), BB(occ)))
+#define PYRRHIC_KING_ATTACKS(sq)         ((uint64_t)AttackBB<KING>(static_cast<Square>(sq)))
 
 /*
  * Pyrrhic can produce scores for tablebase moves. These depend on the value
