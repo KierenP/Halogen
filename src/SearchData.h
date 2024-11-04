@@ -53,7 +53,7 @@ struct SearchStackState
     const int distance_from_root;
 
     PieceMoveHistory* cont_hist_subtable = nullptr;
-    std::array<PieceMoveHistory*, 2> cont_hist_subtables = {};
+    std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
 
     Accumulator acc;
 };
