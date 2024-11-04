@@ -138,6 +138,7 @@ bool StagedMoveGenerator::Next(Move& move)
 void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
     local.quiet_history.add(position, ss, move, positive_adjustment);
+    local.cont_hist.add(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
@@ -145,6 +146,7 @@ void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adju
             break;
 
         local.quiet_history.add(position, ss, m.move, negative_adjustment);
+        local.cont_hist.add(position, ss, m.move, negative_adjustment);
     }
 
     for (auto const& m : loudMoves)
@@ -206,7 +208,8 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.quiet_history.get(position, ss, moves[i].move);
+            int history = local.quiet_history.get(position, ss, moves[i].move)
+                + local.cont_hist.get(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
