@@ -850,8 +850,9 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
-                                                             : local.quiet_history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion()
+            ? local.loud_history.get(position, ss, move)
+            : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
