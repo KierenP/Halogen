@@ -128,7 +128,6 @@ struct SearchResults
     int depth = 0;
     int sel_septh = 0;
     int multi_pv = 0;
-    Move best_move = Move::Uninitialized;
     Score score = SCORE_UNDEFINED;
     StaticVector<Move, MAX_DEPTH> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
@@ -154,7 +153,7 @@ public:
     SearchResults get_best_search_result() const;
 
     void report_search_result(
-        const SearchStackState* ss, const SearchLocalState& local, SearchResult result, SearchResultType type);
+        const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type);
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------

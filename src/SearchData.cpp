@@ -158,14 +158,13 @@ SearchResults SearchSharedState::get_best_search_result() const
 }
 
 void SearchSharedState::report_search_result(
-    const SearchStackState* ss, const SearchLocalState& local, SearchResult result, SearchResultType type)
+    const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type)
 {
     std::scoped_lock lock(lock_);
 
     // Store the result in the table (potentially overwriting a previous lower/upper bound)
     auto& result_data = search_results_[local.thread_id][local.curr_multi_pv - 1][local.curr_depth];
-    result_data
-        = { local.curr_depth, local.sel_septh, local.curr_multi_pv, result.GetMove(), result.GetScore(), ss->pv, type };
+    result_data = { local.curr_depth, local.sel_septh, local.curr_multi_pv, score, ss->pv, type };
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
