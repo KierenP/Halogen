@@ -182,7 +182,7 @@ private:
     // [thread_id][multi_pv][depth]
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
 
-    SearchResults* best_search_result_ = nullptr;
+    std::optional<SearchResults> best_search_result_;
 
     // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
     // we start a search.

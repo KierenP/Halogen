@@ -113,7 +113,7 @@ void SearchSharedState::ResetNewSearch()
         }
     }
 
-    best_search_result_ = nullptr;
+    best_search_result_ = {};
     search_timer.reset();
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
 }
@@ -150,7 +150,11 @@ void SearchSharedState::set_threads(int threads)
 SearchResults SearchSharedState::get_best_search_result() const
 {
     std::scoped_lock lock(lock_);
-    return *best_search_result_;
+    if (!best_search_result_)
+    {
+        uci_handler.print_error("Could not find best move");
+    }
+    return best_search_result_.value_or(SearchResults {});
 }
 
 void SearchSharedState::report_search_result(
@@ -169,7 +173,7 @@ void SearchSharedState::report_search_result(
         && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
             || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
     {
-        best_search_result_ = &result_data;
+        best_search_result_ = result_data;
     }
 
     // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds

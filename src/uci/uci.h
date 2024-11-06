@@ -27,6 +27,7 @@ public:
 
     void print_search_info(const SearchResults& data, bool final = false);
     void print_bestmove(Move move);
+    void print_error(const std::string& error_str);
 
     struct go_ctx
     {

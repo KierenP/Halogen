@@ -550,6 +550,11 @@ void Uci::print_bestmove(Move move)
     }
 }
 
+void Uci::print_error(const std::string& error_str)
+{
+    std::cout << "info string Error: " << error_str << std::endl;
+}
+
 void Uci::handle_print()
 {
     std::cout << position.Board() << std::endl;
