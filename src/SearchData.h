@@ -52,6 +52,9 @@ struct SearchStackState
 
     const int distance_from_root;
 
+    PieceMoveHistory* cont_hist_subtable = nullptr;
+    std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
+
     Accumulator acc;
 };
 
@@ -91,6 +94,7 @@ public:
     SearchStack search_stack;
     QuietHistory quiet_history;
     LoudHistory loud_history;
+    ContinuationHistory cont_hist;
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;

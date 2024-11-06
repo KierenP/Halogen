@@ -34,22 +34,6 @@ struct HistoryTable
     }
 };
 
-struct CountermoveHistory : HistoryTable<CountermoveHistory>
-{
-    static constexpr int max_value = 10036;
-    static constexpr int scale = 35;
-    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
-};
-
-struct FollowmoveHistory : HistoryTable<FollowmoveHistory>
-{
-    static constexpr int max_value = 10036;
-    static constexpr int scale = 35;
-    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
-};
-
 struct PawnHistory : HistoryTable<PawnHistory>
 {
     static constexpr int max_value = 10036;
@@ -73,6 +57,33 @@ struct CaptureHistory : HistoryTable<CaptureHistory>
     static constexpr int scale = 40;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+};
+
+struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
+{
+    static constexpr int max_value = 10036;
+    static constexpr int scale = 35;
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+};
+
+// Continuation history lets us look up history in the form
+// [side][(ss-N)->moved_piece][(ss-N)->move.GetTo()][(ss)->moved_piece][(ss)->move.GetTo()]
+// To add strength, we use the same table for all values of N (typically 1..6 in strong engines).
+// This means if we add a bonus for a particular 4 ply continuation, we will also observe this bonus for
+// equivalent 2 ply or 6 ply continuations
+struct ContinuationHistory
+{
+    static constexpr int cont_hist_depth = 2;
+    PieceMoveHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+    static std::array<PieceMoveHistory*, cont_hist_depth> get_subtables(const SearchStackState* ss);
+    void add(const GameState& position, const SearchStackState* ss, Move move, int change);
+    int32_t get(const GameState& position, const SearchStackState* ss, Move move);
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
 };
 
 template <typename... tables>
@@ -104,5 +115,5 @@ private:
     std::tuple<tables...> tables_;
 };
 
-using QuietHistory = History<CountermoveHistory, FollowmoveHistory, PawnHistory, ThreatHistory>;
+using QuietHistory = History<PawnHistory, ThreatHistory>;
 using LoudHistory = History<CaptureHistory>;

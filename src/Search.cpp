@@ -431,6 +431,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
+    ss->cont_hist_subtable = nullptr;
     position.ApplyNullMove();
     local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
@@ -793,6 +794,7 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
 
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
+    ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
@@ -848,10 +850,13 @@ SearchResult NegaScout(GameState& position, SearchStackState* ss, SearchLocalSta
             }
         }
 
-        int history = move.IsCapture() || move.IsPromotion() ? local.loud_history.get(position, ss, move)
-                                                             : local.quiet_history.get(position, ss, move);
+        int history = move.IsCapture() || move.IsPromotion()
+            ? local.loud_history.get(position, ss, move)
+            : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
+        ss->cont_hist_subtable
+            = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
@@ -959,6 +964,8 @@ SearchResult Quiescence(GameState& position, SearchStackState* ss, SearchLocalSt
 
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
+        ss->cont_hist_subtable
+            = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         // TODO: prefetch
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);

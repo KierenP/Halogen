@@ -29,6 +29,8 @@ void SearchStackState::reset()
     singular_exclusion = Move::Uninitialized;
     multiple_extensions = 0;
     acc = {};
+    cont_hist_subtable = nullptr;
+    cont_hist_subtables = {};
 }
 
 const SearchStackState* SearchStack::root() const
@@ -93,6 +95,7 @@ void SearchLocalState::ResetNewGame()
     ResetNewSearch();
     quiet_history.reset();
     loud_history.reset();
+    cont_hist.reset();
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)
