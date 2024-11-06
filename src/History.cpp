@@ -8,7 +8,6 @@ int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Mo
 {
     const auto& stm = position.Board().stm;
     const auto pawn_hash = position.Board().GetPawnKey() % pawn_states;
-    // TODO: could use ss->moved_piece?
     const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
 
     return &table[stm][pawn_hash][piece][move.GetTo()];
@@ -26,7 +25,6 @@ int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* s
 int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
-    // TODO: could use ss->moved_piece?
     const auto curr_piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
     const auto cap_piece = move.GetFlag() == EN_PASSANT ? PAWN : GetPieceType(position.Board().GetSquare(move.GetTo()));
 
@@ -36,7 +34,6 @@ int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*,
 int16_t* PieceMoveHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
-    // TODO: could use ss->moved_piece?
     const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
 
     return &table[stm][piece][move.GetTo()];
