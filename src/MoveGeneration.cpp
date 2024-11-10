@@ -110,18 +110,16 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
         PawnCaptures<STM>(board, moves, pinned);
         PawnEnPassant<STM>(board, moves);
         PawnPromotions<STM>(board, moves, pinned);
-
-        for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
-            GenerateMoves<KNIGHT, true, STM>(board, moves, LSBpop(pieces), pinned, king);
-        for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned, king);
-
         KingCapturesEvade<STM>(board, moves);
 
-        for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
-            GenerateMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
             GenerateMoves<QUEEN, true, STM>(board, moves, LSBpop(pieces), pinned, king);
+        for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
+            GenerateMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned, king);
+        for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
+            GenerateMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned, king);
+        for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
+            GenerateMoves<KNIGHT, true, STM>(board, moves, LSBpop(pieces), pinned, king);
     }
 }
 
@@ -165,14 +163,14 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
         PawnDoublePushes<STM>(board, moves, pinned);
         CastleMoves<STM>(board, moves, pinned);
 
-        for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
-            GenerateMoves<KNIGHT, false, STM>(board, moves, LSBpop(pieces), pinned, king);
-        for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
             GenerateMoves<QUEEN, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
             GenerateMoves<ROOK, false, STM>(board, moves, LSBpop(pieces), pinned, king);
+        for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
+            GenerateMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned, king);
+        for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>(); pieces != 0;)
+            GenerateMoves<KNIGHT, false, STM>(board, moves, LSBpop(pieces), pinned, king);
 
         KingEvasions<STM>(board, moves);
     }
@@ -428,17 +426,8 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned, uint64_t t
         }
     };
 
-    // TODO: this was added to keep the bench the same
-    if constexpr (STM == WHITE)
-    {
-        generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
-        generate_attacks(rightAttack, fowardright, GetDiagonal);
-    }
-    else
-    {
-        generate_attacks(rightAttack, fowardright, GetDiagonal);
-        generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
-    }
+    generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
+    generate_attacks(rightAttack, fowardright, GetDiagonal);
 }
 
 template <Players STM>
