@@ -304,7 +304,7 @@ void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, 
 
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchLocalState& local,
-    Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
+    SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(position.Board(), distance_from_root);
     if (probe.has_value())
@@ -312,7 +312,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
         local.tb_hits.fetch_add(1, std::memory_order_relaxed);
         const auto tb_score = *probe;
 
-        if (!root_node)
+        if constexpr (!root_node)
         {
             const auto bound = [tb_score]()
             {
@@ -365,6 +365,13 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             {
                 min_score = tb_score;
                 alpha = std::max(alpha, tb_score);
+
+                if constexpr (root_node)
+                {
+                    // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
+                    // In this case, any move from the root move whitelist is acceptable
+                    ss->pv.push_back(local.root_move_whitelist.front());
+                }
             }
             else
             {
@@ -733,7 +740,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, local, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, local, ss, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
