@@ -143,7 +143,6 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
             }
 
             auto score = AspirationWindowSearch(position, ss, local, shared, mid_score);
-            local.root_move_blacklist.push_back(ss->pv[0]);
 
             if (local.aborting_search)
             {
@@ -155,6 +154,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
                 mid_score = score;
             }
 
+            local.root_move_blacklist.push_back(ss->pv[0]);
             shared.report_search_result(ss, local, score, SearchResultType::EXACT);
 
             if (shared.limits.mate && Score::Limits::MATE - abs(score.value()) <= shared.limits.mate.value() * 2)
