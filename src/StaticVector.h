@@ -230,7 +230,7 @@ public:
 
     iterator erase(const_iterator first, const_iterator last)
     {
-        assert(size_ > (last - first));
+        assert((int)size_ > (last - first));
         auto mutable_first = begin() + std::distance(cbegin(), first);
         std::move(last, cend(), mutable_first);
         size_ -= last - first;
