@@ -125,17 +125,17 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
 
     for (int depth = 1; depth < MAX_DEPTH; depth++)
     {
+        if (shared.limits.depth && depth > shared.limits.depth)
+        {
+            return;
+        }
+
         local.root_move_blacklist.clear();
         local.curr_depth = depth;
 
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
             local.curr_multi_pv = multi_pv;
-
-            if (shared.limits.depth && depth > shared.limits.depth)
-            {
-                return;
-            }
 
             if (shared.limits.time && !shared.limits.time->ShouldContinueSearch())
             {
@@ -156,11 +156,11 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
 
             local.root_move_blacklist.push_back(ss->pv[0]);
             shared.report_search_result(ss, local, score, SearchResultType::EXACT);
+        }
 
-            if (shared.limits.mate && Score::Limits::MATE - abs(score.value()) <= shared.limits.mate.value() * 2)
-            {
-                return;
-            }
+        if (shared.limits.mate && Score::Limits::MATE - abs(mid_score.value()) <= shared.limits.mate.value() * 2)
+        {
+            return;
         }
     }
 }
