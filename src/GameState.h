@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 
+#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "Network.h"
+#include "StaticVector.h"
 #include "Zobrist.h"
 
 /*
@@ -39,5 +41,7 @@ public:
 private:
     BoardState& MutableBoard();
 
-    std::vector<BoardState> previousStates;
+    // need to keep track of all game states from search, plus all the previous states from the root until the most
+    // recent 50 move reset
+    StaticVector<BoardState, MAX_DEPTH + 100> previousStates;
 };

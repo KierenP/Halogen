@@ -87,18 +87,24 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     shared.set_multi_pv(multi_pv);
     shared.stop_searching = false;
 
-    // TODO: in single threaded search, we can avoid the latency hit of creating a new thread.
-    // TODO: fix behaviour of multi-pv when it is set higher than the number of legal moves. Also consider syzygy
-    // whitelist interactions
     std::vector<std::thread> threads;
 
-    for (int i = 0; i < shared.get_threads_setting(); i++)
+    // We directly run SearchPosition from the main thread, and launch the other threads for any additional threads.
+    // This means in single threaded mode we can avoid launching any additional threads or having to copy position.
+    for (int i = 1; i < shared.get_threads_setting(); i++)
     {
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
         local.net.Reset(position.Board(), local.search_stack.root()->acc);
         threads.emplace_back(
             std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
+    }
+
+    {
+        auto& local = shared.get_local_state(0);
+        local.root_move_whitelist = root_move_whitelist;
+        local.net.Reset(position.Board(), local.search_stack.root()->acc);
+        SearchPosition(position, local, shared);
     }
 
     for (size_t i = 0; i < threads.size(); i++)

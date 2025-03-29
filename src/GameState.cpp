@@ -51,6 +51,12 @@ void GameState::ApplyMove(std::string_view strmove)
     }
 
     ApplyMove(Move(from, to, flag));
+
+    // trim all moves before a 50 move reset
+    if (Board().fifty_move_count == 0)
+    {
+        previousStates.erase(previousStates.begin(), previousStates.end() - 1);
+    }
 }
 
 void GameState::RevertMove()
@@ -142,15 +148,18 @@ bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
 
 const BoardState& GameState::Board() const
 {
+    assert(previousStates.size() >= 1);
     return previousStates.back();
 }
 
 const BoardState& GameState::PrevBoard() const
 {
+    assert(previousStates.size() >= 2);
     return previousStates[previousStates.size() - 2];
 }
 
 BoardState& GameState::MutableBoard()
 {
+    assert(previousStates.size() >= 1);
     return previousStates.back();
 }
