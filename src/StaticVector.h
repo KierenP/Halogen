@@ -76,37 +76,31 @@ public:
 
     iterator begin()
     {
-        assert(size_ > 0);
         return &elems_[0];
     };
 
     const_iterator begin() const
     {
-        assert(size_ > 0);
         return &elems_[0];
     };
 
     const_iterator cbegin() const
     {
-        assert(size_ > 0);
         return &elems_[0];
     };
 
     iterator end()
     {
-        assert(size_ > 0);
         return &elems_[size_];
     }
 
     const_iterator end() const
     {
-        assert(size_ > 0);
         return &elems_[size_];
     }
 
     const_iterator cend() const
     {
-        assert(size_ > 0);
         return &elems_[size_];
     }
 
