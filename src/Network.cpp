@@ -1,7 +1,9 @@
 #include "Network.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
+#include <initializer_list>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"

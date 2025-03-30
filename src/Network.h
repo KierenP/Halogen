@@ -1,13 +1,14 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <vector>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-#include "Move.h"
 #include "Score.h"
+
+class Move;
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 1024;
@@ -32,8 +33,6 @@ constexpr size_t KING_BUCKET_COUNT = []()
     auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
     return *max - *min + 1;
 }();
-
-class BoardState;
 
 // represents a single input on one accumulator side
 struct Input
