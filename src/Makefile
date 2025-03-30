@@ -4,7 +4,7 @@ BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
 EVALURL = https://github.com/KierenP/Halogen-Networks/blob/feefcc3817f7e9b0fd8a94dbb9756ce8b805a73a/6913d330.nn?raw=true
-EVALFILE = $(BUILD_DIR)6913d330.nn
+EVALFILE = $(BUILD_DIR)/6913d330.nn
 
 SRCS := \
 	BitBoardDefine.cpp \
@@ -40,7 +40,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # Define compiler flags and instruction sets
 
 WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
-AFLAGS = $(WFLAGS) -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
+AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler

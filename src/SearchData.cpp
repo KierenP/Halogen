@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <compare>
 #include <cstdint>
 #include <mutex>
 #include <numeric>

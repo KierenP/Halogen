@@ -1,6 +1,7 @@
 #include "TimeManager.h"
 
 #include <chrono>
+#include <compare>
 #include <ratio>
 
 Timer::Timer()
