@@ -1,6 +1,6 @@
 #pragma once
 
-#include "validate_callback.h"
+#include "uci/validate_callback.h"
 
 #include <charconv>
 #include <string>

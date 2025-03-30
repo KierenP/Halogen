@@ -38,7 +38,7 @@
  * to define White as 0 and Black as 1.
  */
 
-#include "../MoveGeneration.h"
+#include "MoveGeneration.h"
 
 #define PYRRHIC_POPCOUNT(x)              (GetBitCount(x))
 #define PYRRHIC_LSB(x)                   (LSB(x))

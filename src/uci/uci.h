@@ -7,8 +7,8 @@
 #include <string_view>
 #include <thread>
 
-#include "../GameState.h"
-#include "../SearchData.h"
+#include "GameState.h"
+#include "SearchData.h"
 
 class Move;
 
