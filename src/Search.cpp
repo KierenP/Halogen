@@ -6,7 +6,6 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
-#include <ctime>
 #include <optional>
 #include <thread>
 #include <tuple>

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <cstring>
 #include <mutex>
 #include <numeric>
 #include <string>
