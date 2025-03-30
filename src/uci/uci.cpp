@@ -1,21 +1,39 @@
 #include "uci.h"
 
-#include "../Benchmark.h"
-#include "../EGTB.h"
-#include "../GameState.h"
-#include "../MoveGeneration.h"
-#include "../SearchConstants.h"
-#include "../SearchData.h"
-#include "options.h"
-#include "parse.h"
-
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <chrono>
+#include <cstdint>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <ratio>
 #include <sstream>
 #include <string_view>
+#include <vector>
+
+#include "../Benchmark.h"
+#include "../BitBoardDefine.h"
+#include "../BoardState.h"
+#include "../EGTB.h"
+#include "../GameState.h"
+#include "../Move.h"
+#include "../MoveGeneration.h"
+#include "../MoveList.h"
+#include "../Network.h"
+#include "../Score.h"
+#include "../Search.h"
+#include "../SearchData.h"
+#include "../SearchLimits.h"
+#include "../StaticVector.h"
+#include "../TimeManager.h"
+#include "../TranspositionTable.h"
+#include "../atomic.h"
+#include "options.h"
+#include "parse.h"
 
 std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {

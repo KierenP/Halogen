@@ -1,7 +1,9 @@
 #include "History.h"
+
 #include "BitBoardDefine.h"
+#include "BoardState.h"
+#include "GameState.h"
 #include "Move.h"
-#include "MoveGeneration.h"
 #include "SearchData.h"
 
 int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Move move)

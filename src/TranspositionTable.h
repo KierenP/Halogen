@@ -1,11 +1,13 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
-#include <memory> //required to compile with g++
 
-#include "TTEntry.h"
+#include "Score.h"
 
 class Move;
+class TTEntry;
+enum class SearchResultType : uint8_t;
+struct TTBucket;
 
 class TranspositionTable
 {

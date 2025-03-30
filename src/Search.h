@@ -1,7 +1,6 @@
 #pragma once
 
-#include "GameState.h"
-
+class GameState;
 class SearchSharedState;
 
 void SearchThread(GameState& position, SearchSharedState& sharedData);

@@ -1,6 +1,11 @@
 #include "StaticExchangeEvaluation.h"
 
+#include <array>
+#include <cstdint>
+
+#include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "Score.h"
 

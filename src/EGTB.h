@@ -1,12 +1,14 @@
 #pragma once
 
-#include "BoardState.h"
+#include <cstdint>
+#include <optional>
+#include <string_view>
+
 #include "Move.h"
 #include "Score.h"
 #include "StaticVector.h"
 
-#include <optional>
-#include <string_view>
+class BoardState;
 
 class RootProbeResult
 {

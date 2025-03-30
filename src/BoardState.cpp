@@ -1,12 +1,14 @@
 #include "BoardState.h"
 
+#include <cassert>
+#include <charconv>
+#include <cstddef>
+#include <iostream>
+
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
-
-#include <charconv>
-#include <iostream>
 
 BoardState::BoardState()
 {

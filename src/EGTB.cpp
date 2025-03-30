@@ -1,11 +1,15 @@
 #include "EGTB.h"
-#include "BitBoardDefine.h"
-#include "Move.h"
-#include "Pyrrhic/tbprobe.h"
 
+#include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <mutex>
 #include <optional>
+
+#include "BitBoardDefine.h"
+#include "BoardState.h"
+#include "Move.h"
+#include "Pyrrhic/tbprobe.h"
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
 {

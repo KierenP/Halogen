@@ -4,7 +4,6 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <iterator>
 #include <memory>
 #include <thread>
@@ -15,6 +14,7 @@
 #endif
 
 #include "BitBoardDefine.h"
+#include "Move.h"
 #include "TTEntry.h"
 
 TranspositionTable::~TranspositionTable()

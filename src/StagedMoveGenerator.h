@@ -1,12 +1,10 @@
 #pragma once
-#include <cstdint>
-#include <optional>
-
 #include "Move.h"
 #include "MoveList.h"
-#include "SearchData.h"
 
 class GameState;
+struct SearchLocalState;
+struct SearchStackState;
 
 enum class Stage
 {

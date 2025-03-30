@@ -1,11 +1,16 @@
 #pragma once
 
-#include "BitBoardDefine.h"
-#include "GameState.h"
-
+#include <algorithm>
+#include <array>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <tuple>
 
+#include "BitBoardDefine.h"
+#include "Move.h"
+
+class GameState;
 struct SearchStackState;
 
 template <typename Derived>

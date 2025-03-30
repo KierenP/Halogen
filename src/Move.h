@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <string>
+#include <iosfwd>
 #include <type_traits>
 
 #include "BitBoardDefine.h"

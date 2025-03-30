@@ -1,12 +1,13 @@
 #include "Evaluate.h"
 
+#include <algorithm>
+#include <cassert>
+
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Network.h"
 #include "Score.h"
 #include "SearchData.h"
-
-#include <algorithm>
 
 void TempoAdjustment(Score& eval);
 

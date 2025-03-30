@@ -1,15 +1,15 @@
 #include "MoveGeneration.h"
 
-#include <algorithm>
-#include <assert.h>
+#include <array>
+#include <cassert>
 #include <cstddef>
-#include <vector>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Magic.h"
 #include "Move.h"
-#include "MoveList.h"
+#include "MoveList.h" // IWYU pragma: keep
+#include "StaticVector.h"
 
 template <Players STM, typename T>
 void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned); // captures and/or promotions
