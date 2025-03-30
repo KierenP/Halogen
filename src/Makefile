@@ -35,7 +35,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 #----------------------------------------------------------------------------------------------------------------------
 # Define compiler flags and instruction sets
 
-WFLAGS = -Wall -Wextra -Wshadow -Wno-deprecated
+WFLAGS = -Wall -Wextra -Wshadow
 AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
