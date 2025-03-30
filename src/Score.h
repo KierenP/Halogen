@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <iterator>
 #include <ostream>
 
 class Score

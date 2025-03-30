@@ -7,24 +7,20 @@ EVALURL = https://github.com/KierenP/Halogen-Networks/blob/feefcc3817f7e9b0fd8a9
 EVALFILE = $(BUILD_DIR)/6913d330.nn
 
 SRCS := \
-	BitBoardDefine.cpp \
 	BoardState.cpp \
 	Evaluate.cpp \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
-	MoveList.cpp \
 	Network.cpp \
 	GameState.cpp \
 	Search.cpp \
 	SearchData.cpp \
-	SearchLimits.cpp \
 	StagedMoveGenerator.cpp \
 	TimeManager.cpp \
 	TranspositionTable.cpp \
 	TTEntry.cpp \
 	Zobrist.cpp \
-	Score.cpp \
 	EGTB.cpp \
 	History.cpp \
 	StaticExchangeEvaluation.cpp \
