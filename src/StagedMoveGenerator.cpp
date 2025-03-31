@@ -3,16 +3,16 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 
-#include "BitBoardDefine.h"
 #include "GameState.h"
+#include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
+#include "Score.h"
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
-#include "TranspositionTable.h"
-#include "Zobrist.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)

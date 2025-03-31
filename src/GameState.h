@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <array>
+#include <string_view>
 #include <vector>
 
 #include "BoardState.h"
-#include "Move.h"
-#include "Network.h"
-#include "Zobrist.h"
+
+class Move;
 
 /*
 This class holds all the data required to define a state in a chess game,

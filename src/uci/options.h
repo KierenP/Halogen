@@ -1,7 +1,7 @@
 #pragma once
 
-#include "parse.h"
-#include "validate_callback.h"
+#include "uci/parse.h"
+#include "uci/validate_callback.h"
 
 #include <cassert>
 #include <optional>

@@ -2,13 +2,13 @@
 
 #include <algorithm>
 #include <array>
-#include <assert.h>
 #include <atomic>
-#include <cmath>
-#include <ctime>
-#include <limits>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
 #include <optional>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 #include "BitBoardDefine.h"
@@ -16,18 +16,22 @@
 #include "EGTB.h"
 #include "Evaluate.h"
 #include "GameState.h"
+#include "History.h"
+#include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Network.h"
 #include "Score.h"
 #include "SearchConstants.h"
 #include "SearchData.h"
+#include "SearchLimits.h"
 #include "StagedMoveGenerator.h"
 #include "StaticExchangeEvaluation.h"
+#include "StaticVector.h"
 #include "TTEntry.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
-#include "Zobrist.h"
+#include "atomic.h"
 #include "uci/uci.h"
 
 enum class SearchType

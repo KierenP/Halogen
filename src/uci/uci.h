@@ -1,11 +1,16 @@
 #pragma once
 
-#include "../GameState.h"
-#include "../SearchData.h"
-
 #include <chrono>
+#include <iosfwd>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <thread>
+
+#include "GameState.h"
+#include "SearchData.h"
+
+class Move;
 
 enum class OutputLevel
 {

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <cstdint>
 #include <type_traits>
 

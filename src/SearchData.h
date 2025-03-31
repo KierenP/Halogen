@@ -1,7 +1,11 @@
 #pragma once
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
+#include <new>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -11,11 +15,12 @@
 #include "MoveList.h"
 #include "Network.h"
 #include "Score.h"
-#include "Search.h"
 #include "SearchLimits.h"
+#include "StaticVector.h"
 #include "TimeManager.h"
-#include "TranspositionTable.h"
 #include "atomic.h"
+
+class TranspositionTable;
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
@@ -28,7 +33,6 @@ constexpr std::size_t hardware_destructive_interference_size = 64;
 
 extern TranspositionTable tTable;
 
-class GameState;
 class Uci;
 
 // Holds information about the search state for a particular recursion depth.

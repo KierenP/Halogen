@@ -1,15 +1,13 @@
 #include "GameState.h"
+
+#include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+
 #include "BitBoardDefine.h"
 #include "BoardState.h"
-
-#include <assert.h>
-#include <ctype.h>
-#include <iterator>
-#include <sstream>
-
 #include "Move.h"
-#include "MoveGeneration.h"
-#include "Zobrist.h"
 
 GameState::GameState()
 {

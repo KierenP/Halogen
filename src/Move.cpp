@@ -1,7 +1,7 @@
 #include "Move.h"
 #include "BitBoardDefine.h"
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 
 constexpr int CAPTURE_MASK = 1 << 14; // 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0

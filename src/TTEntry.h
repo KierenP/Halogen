@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "Score.h"
-#include "atomic.h"
+
+enum class SearchResultType : uint8_t;
 
 Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);

@@ -1,13 +1,13 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
+#include <iosfwd>
+#include <string_view>
+
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "Zobrist.h"
-
-#include <vector>
-
-class Move;
-class Network;
 
 /*
 

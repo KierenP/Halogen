@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Score.h"
-#include "TimeManager.h"
-
+#include <cstdint>
 #include <optional>
+
+#include "TimeManager.h"
 
 class SearchLimits
 {

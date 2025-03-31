@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <limits>
+#include <cstdlib>
 #include <ostream>
 
 class Score

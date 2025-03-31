@@ -2,10 +2,9 @@
 #include <cstdint>
 
 #include "BitBoardDefine.h"
-#include "Zobrist.h"
 
-class Move;
 class BoardState;
+class Move;
 
 template <typename T>
 void LegalMoves(const BoardState& board, T& moves);

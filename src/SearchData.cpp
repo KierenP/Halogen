@@ -1,15 +1,18 @@
 #include "SearchData.h"
 
-#include <atomic>
+#include <algorithm>
+#include <chrono>
+#include <compare>
 #include <cstdint>
 #include <mutex>
 #include <numeric>
+#include <string>
 
 #include "BitBoardDefine.h"
+#include "BoardState.h"
 #include "Move.h"
-#include "MoveList.h"
 #include "Score.h"
-#include "Search.h"
+#include "TranspositionTable.h"
 #include "uci/uci.h"
 
 TranspositionTable tTable;

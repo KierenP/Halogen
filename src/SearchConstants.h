@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Score.h"
 #include <array>
 #include <cmath>
 #include <cstddef>
