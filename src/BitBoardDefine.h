@@ -206,12 +206,12 @@ constexpr int GetBitCount(uint64_t bb)
 constexpr Players ColourOfPiece(Pieces piece)
 {
     assert(piece < N_PIECES);
-    return static_cast<Players>(piece / N_PIECE_TYPES);
+    return static_cast<Players>((int)piece / (int)N_PIECE_TYPES);
 }
 
 constexpr PieceTypes GetPieceType(Pieces piece)
 {
-    return static_cast<PieceTypes>(piece % N_PIECE_TYPES);
+    return static_cast<PieceTypes>((int)piece % (int)N_PIECE_TYPES);
 }
 
 constexpr File GetFile(Square square)
@@ -235,7 +235,7 @@ constexpr Diagonal GetDiagonal(Square square)
 constexpr AntiDiagonal GetAntiDiagonal(Square square)
 {
     assert(square < N_SQUARES);
-    return static_cast<AntiDiagonal>(RANK_8 + FILE_H - GetRank(square) - GetFile(square));
+    return static_cast<AntiDiagonal>((int)RANK_8 + (int)FILE_H - (int)GetRank(square) - (int)GetFile(square));
 }
 
 constexpr int RankDiff(Square sq1, Square sq2)
@@ -279,7 +279,7 @@ constexpr Pieces Piece(PieceTypes type, Players colour)
     assert(type < N_PIECE_TYPES);
     assert(colour < N_PLAYERS);
 
-    return static_cast<Pieces>(type + N_PIECE_TYPES * colour);
+    return static_cast<Pieces>((int)type + (int)N_PIECE_TYPES * (int)colour);
 }
 
 constexpr Square GetPosition(File file, Rank rank)
@@ -287,7 +287,7 @@ constexpr Square GetPosition(File file, Rank rank)
     assert(file < N_FILES);
     assert(rank < N_RANKS);
 
-    return static_cast<Square>(rank * 8 + file);
+    return static_cast<Square>((int)rank * 8 + (int)file);
 }
 
 constexpr uint64_t EMPTY = 0;
