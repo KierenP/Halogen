@@ -39,6 +39,12 @@ class Uci;
 struct SearchStackState
 {
     SearchStackState(int distance_from_root_);
+
+    SearchStackState(const SearchStackState&) = delete;
+    SearchStackState& operator=(const SearchStackState&) = delete;
+    SearchStackState(SearchStackState&&) = delete;
+    SearchStackState& operator=(SearchStackState&&) = delete;
+
     void reset();
 
     StaticVector<Move, MAX_DEPTH> pv = {};
@@ -74,6 +80,13 @@ public:
     SearchStackState* root();
     void reset();
 
+    SearchStack() = default;
+
+    SearchStack(const SearchStack&) = delete;
+    SearchStack& operator=(const SearchStack&) = delete;
+    SearchStack(SearchStack&&) = delete;
+    SearchStack& operator=(SearchStack&&) = delete;
+
 private:
     std::array<SearchStackState, size> search_stack_array_ { generate(std::make_integer_sequence<int, size>()) };
 
@@ -89,6 +102,11 @@ struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
 public:
     SearchLocalState(int thread_id);
+
+    SearchLocalState(const SearchLocalState&) = delete;
+    SearchLocalState& operator=(const SearchLocalState&) = delete;
+    SearchLocalState(SearchLocalState&&) = delete;
+    SearchLocalState& operator=(SearchLocalState&&) = delete;
 
     bool RootExcludeMove(Move move);
     void ResetNewSearch();
@@ -142,6 +160,11 @@ class SearchSharedState
 {
 public:
     SearchSharedState(Uci& uci);
+
+    SearchSharedState(const SearchSharedState&) = delete;
+    SearchSharedState& operator=(const SearchSharedState&) = delete;
+    SearchSharedState(SearchSharedState&&) = delete;
+    SearchSharedState& operator=(SearchSharedState&&) = delete;
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
