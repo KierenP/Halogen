@@ -806,12 +806,13 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     }
 
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
-    Move move;
+    auto generator = gen.generate();
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
-    while (gen.Next(move))
+    while (generator.next())
     {
+        Move move = generator.get();
         noLegalMoves = false;
 
         if (move == ss->singular_exclusion || (root_node && local.RootExcludeMove(move)))
@@ -837,7 +838,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
-            if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
+            if (gen.AtBadLoudMoves())
             {
                 break;
             }
@@ -960,10 +961,12 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     auto original_alpha = alpha;
 
     StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
-    Move move;
+    auto generator = gen.generate();
 
-    while (gen.Next(move))
+    while (generator.next())
     {
+        Move move = generator.get();
+
         if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;
