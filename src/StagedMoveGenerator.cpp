@@ -22,117 +22,75 @@ StagedMoveGenerator::StagedMoveGenerator(
     , quiescence(Quiescence)
     , TTmove(tt_move)
 {
-    if (quiescence)
-        stage = Stage::GEN_LOUD;
-    else
-        stage = Stage::TT_MOVE;
 }
 
-bool StagedMoveGenerator::Next(Move& move)
+MoveGenerator StagedMoveGenerator::generate()
 {
-    if (stage == Stage::TT_MOVE)
+    if (!quiescence)
     {
-        stage = Stage::GEN_LOUD;
-
         if (MoveIsLegal(position.Board(), TTmove))
         {
-            move = TTmove;
-            return true;
+            co_yield TTmove;
         }
     }
 
-    if (stage == Stage::GEN_LOUD)
-    {
-        QuiescenceMoves(position.Board(), loudMoves);
-        OrderLoudMoves(loudMoves);
-        current = loudMoves.begin();
-        stage = Stage::GIVE_GOOD_LOUD;
-    }
+    QuiescenceMoves(position.Board(), loudMoves);
+    OrderLoudMoves(loudMoves);
 
-    if (stage == Stage::GIVE_GOOD_LOUD)
+    for (const auto& ext_move : loudMoves)
     {
-        while (current != loudMoves.end())
+        if (ext_move.move.IsPromotion() || see_ge(position.Board(), ext_move.move, 0))
         {
-            if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0))
-            {
-                move = current->move;
-                ++current;
-                return true;
-            }
-            else
-            {
-                bad_loudMoves.emplace_back(*current);
-                ++current;
-            }
+            co_yield ext_move.move;
         }
-
-        if (quiescence)
-            return false;
-
-        current = bad_loudMoves.begin();
-        stage = Stage::GIVE_KILLER_1;
-    }
-
-    if (stage == Stage::GIVE_KILLER_1)
-    {
-        Killer1 = ss->killers[0];
-        stage = Stage::GIVE_KILLER_2;
-
-        if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
+        else if (!quiescence)
         {
-            move = Killer1;
-            return true;
+            bad_loudMoves.emplace_back(ext_move.move);
         }
     }
 
-    if (stage == Stage::GIVE_KILLER_2)
+    if (quiescence)
     {
-        Killer2 = ss->killers[1];
-        stage = Stage::GIVE_BAD_LOUD;
-
-        if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
-        {
-            move = Killer2;
-            return true;
-        }
+        co_return;
     }
 
-    if (stage == Stage::GIVE_BAD_LOUD)
+    Killer1 = ss->killers[0];
+
+    if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
     {
-        if (current != bad_loudMoves.end())
-        {
-            move = current->move;
-            ++current;
-            return true;
-        }
-        else
-        {
-            stage = Stage::GEN_QUIET;
-        }
+        co_yield Killer1;
+    }
+
+    Killer2 = ss->killers[1];
+    at_bad_loudMoves = true;
+
+    if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
+    {
+        co_yield Killer2;
+    }
+
+    for (const auto& ext_move : bad_loudMoves)
+    {
+        co_yield ext_move.move;
     }
 
     if (skipQuiets)
-        return false;
-
-    if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
-        OrderQuietMoves(quietMoves);
-        current = quietMoves.begin();
-        stage = Stage::GIVE_QUIET;
+        co_return;
     }
 
-    if (stage == Stage::GIVE_QUIET)
+    QuietMoves(position.Board(), quietMoves);
+    OrderQuietMoves(quietMoves);
+
+    for (const auto& ext_move : quietMoves)
     {
-        if (current != quietMoves.end())
+        co_yield ext_move.move;
+
+        if (skipQuiets)
         {
-            move = current->move;
-            ++current;
-            return true;
+            co_return;
         }
     }
-
-    return false;
 }
 
 void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
