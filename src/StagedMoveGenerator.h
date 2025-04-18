@@ -38,12 +38,18 @@ public:
         {
             return {};
         }
+
         std::suspend_always final_suspend() noexcept
         {
             return {};
         }
 
         void return_void() noexcept { }
+
+        void unhandled_exception() noexcept
+        {
+            std::terminate();
+        }
 
         std::suspend_always yield_value(Move m) noexcept
         {
