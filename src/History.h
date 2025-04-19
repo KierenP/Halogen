@@ -41,8 +41,8 @@ struct HistoryTable
 
 struct PawnHistory : HistoryTable<PawnHistory>
 {
-    static constexpr int max_value = 10036;
-    static constexpr int scale = 35;
+    static constexpr int max_value = 8028;
+    static constexpr int scale = 28;
     static constexpr size_t pawn_states = 512;
     int16_t table[N_PLAYERS][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
@@ -50,24 +50,24 @@ struct PawnHistory : HistoryTable<PawnHistory>
 
 struct ThreatHistory : HistoryTable<ThreatHistory>
 {
-    static constexpr int max_value = 9692;
-    static constexpr int scale = 45;
+    static constexpr int max_value = 7753;
+    static constexpr int scale = 36;
     int16_t table[N_PLAYERS][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static constexpr int max_value = 18795;
-    static constexpr int scale = 40;
+    static constexpr int max_value = 15036;
+    static constexpr int scale = 32;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
-    static constexpr int max_value = 10036;
-    static constexpr int scale = 35;
+    static constexpr int max_value = 8028;
+    static constexpr int scale = 28;
     int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
@@ -79,7 +79,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 // equivalent 2 ply or 6 ply continuations
 struct ContinuationHistory
 {
-    static constexpr int cont_hist_depth = 2;
+    static constexpr int cont_hist_depth = 3;
     PieceMoveHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
     static std::array<PieceMoveHistory*, cont_hist_depth> get_subtables(const SearchStackState* ss);
     void add(const GameState& position, const SearchStackState* ss, Move move, int change);
