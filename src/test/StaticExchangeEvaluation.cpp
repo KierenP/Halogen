@@ -110,3 +110,33 @@ auto test11 = []()
     test_see(position, Move(SQ_F4, SQ_E3, EN_PASSANT), PieceValues[PAWN]);
     return true;
 }();
+
+// quiet moves (no capture)
+
+auto test12 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("3k4/8/1B6/8/8/8/8/3K4 w - - 0 1");
+    test_see(position, Move(SQ_B6, SQ_E3, QUIET), 0);
+    return true;
+}();
+
+// quiet moves (recapture)
+
+auto test13 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("3k4/8/1B6/5n2/8/8/8/3K4 w - - 0 1");
+    test_see(position, Move(SQ_B6, SQ_E3, QUIET), -PieceValues[BISHOP]);
+    return true;
+}();
+
+// quiet moves (complex recapture)
+
+auto test14 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("3k4/8/1B6/5n2/8/8/5P2/3K4 w - - 0 1");
+    test_see(position, Move(SQ_B6, SQ_E3, QUIET), -PieceValues[BISHOP] + PieceValues[KNIGHT]);
+    return true;
+}();
