@@ -192,6 +192,7 @@ void SearchSharedState::report_search_result(
             {
                 best_search_result_ = result_data;
             }
+
             // if the best search result is a lower bound, and this is an exact result, we want to use this one
             else if (best_search_result_->type == SearchResultType::LOWER_BOUND
                 && result_data.type == SearchResultType::EXACT)
