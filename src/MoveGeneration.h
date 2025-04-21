@@ -17,9 +17,7 @@ bool IsInCheck(const BoardState& board, Players colour);
 bool IsInCheck(const BoardState& board);
 
 bool MoveIsLegal(const BoardState& board, const Move& move);
-
-// This function does not work for casteling moves. They are tested for legality their creation.
-bool MovePutsSelfInCheck(const BoardState& board, const Move& move);
+bool EnPassantIsLegal(const BoardState& board, const Move& move);
 
 // Returns a threat mask that only contains winning captures (RxQ, B/NxR/Q, Px!P)
 uint64_t ThreatMask(const BoardState& board, Players colour);
