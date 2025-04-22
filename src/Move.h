@@ -57,10 +57,6 @@ public:
     friend std::ostream& operator<<(std::ostream& os, Move m);
 
 private:
-    void SetFrom(Square from);
-    void SetTo(Square to);
-    void SetFlag(MoveFlag flag);
-
     // 6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
     uint16_t data;
 };

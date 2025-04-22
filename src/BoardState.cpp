@@ -365,7 +365,7 @@ void BoardState::ApplyMove(Move move)
         while (potentialAttackers)
         {
             stm = !stm;
-            bool legal = !MovePutsSelfInCheck(*this, Move(LSBpop(potentialAttackers), ep_sq, EN_PASSANT));
+            bool legal = EnPassantIsLegal(*this, Move(LSBpop(potentialAttackers), ep_sq, EN_PASSANT));
             stm = !stm;
             if (legal)
             {
