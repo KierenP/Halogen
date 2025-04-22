@@ -854,6 +854,13 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             continue;
         }
 
+        if (score > Score::tb_loss_in(MAX_DEPTH) && is_loud_move && depth <= SEE_prune_loud_depth
+            && !see_ge(position.Board(), move,
+                -SEE_prune_loud_depth_coeff * depth * depth - history / SEE_prune_loud_history_quotient))
+        {
+            continue;
+        }
+
         int extensions = 0;
 
         // Step 13: Singular extensions.

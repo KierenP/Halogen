@@ -26,6 +26,7 @@
 #include "Network.h"
 #include "Score.h"
 #include "Search.h"
+#include "SearchConstants.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
 #include "StaticVector.h"
@@ -243,6 +244,10 @@ auto Uci::options_handler()
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         combo_option {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
+
+        tuneable_int(SEE_prune_loud_depth, 10, 0, 100),
+        tuneable_int(SEE_prune_loud_depth_coeff, 20, 0, 100),
+        tuneable_int(SEE_prune_loud_history_quotient, 128, 0, 1000),
     };
 
 #undef tuneable_int

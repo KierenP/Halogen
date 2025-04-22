@@ -15,6 +15,10 @@ TUNEABLE_CONSTANT double LMR_depth_coeff = -1.48;
 TUNEABLE_CONSTANT double LMR_move_coeff = 1.91;
 TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.12;
 
+TUNEABLE_CONSTANT int SEE_prune_loud_depth {};
+TUNEABLE_CONSTANT int SEE_prune_loud_depth_coeff {};
+TUNEABLE_CONSTANT int SEE_prune_loud_history_quotient {};
+
 inline auto Initialise_LMR_reduction()
 {
     std::array<std::array<int, 64>, 64> ret = {};
