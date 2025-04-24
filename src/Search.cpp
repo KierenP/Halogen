@@ -843,6 +843,11 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             }
         }
 
+        // Step 13: SEE pruning
+        //
+        // If a move appears to lose material we prune it. The margin is adjusted based on depth and history. This means
+        // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
+        // material.
         bool is_loud_move = move.IsCapture() || move.IsPromotion();
         int history = is_loud_move
             ? local.loud_history.get(position, ss, move)
@@ -856,7 +861,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
         int extensions = 0;
 
-        // Step 13: Singular extensions.
+        // Step 14: Singular extensions.
         //
         // If one move is significantly better than all alternatives, we extend the search for that
         // critical move. When looking for potentially singular moves, we look for TT moves at sufficient depth with
@@ -882,13 +887,13 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
-        // Step 14: Check extensions
+        // Step 15: Check extensions
         if (IsInCheck(position.Board()))
         {
             extensions += 1;
         }
 
-        // Step 15: Late move reductions
+        // Step 16: Late move reductions
         int r = reduction<pv_node>(depth, seen_moves, history);
         Score search_score
             = search_move<pv_node>(position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves);
@@ -900,14 +905,14 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             return SCORE_UNDEFINED;
         }
 
-        // Step 16: Update history/killer move tables and check for fail-high
+        // Step 17: Update history/killer move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 17: Handle terminal node conditions
+    // Step 18: Handle terminal node conditions
     if (noLegalMoves)
     {
         return TerminalScore(position.Board(), distance_from_root);
@@ -915,7 +920,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     score = std::clamp(score, min_score, max_score);
 
-    // Step 18: Update transposition table
+    // Step 19: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
