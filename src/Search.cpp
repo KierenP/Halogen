@@ -283,7 +283,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with
     // permission from Koivisto authors. The condition > 100 is used because the 100th move could give checkmate.
-    if (position.CheckForRep(distance_from_root, 3) || position.Board().fifty_move_count > 100)
+    if (position.is_repitition(distance_from_root) || position.Board().fifty_move_count > 100)
     {
         return 8 - (local.nodes & 0b1111);
     }
@@ -408,11 +408,11 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval };
 }
 
-std::optional<Score> tt_cutoff_node(const GameState& position, const int distance_from_root, const Score tt_score,
-    const SearchResultType tt_cutoff, const Score alpha, const Score beta)
+std::optional<Score> tt_cutoff_node(const GameState& position, const Score tt_score, const SearchResultType tt_cutoff,
+    const Score alpha, const Score beta)
 {
     // Don't take scores from the TT if there's a two-fold repitition
-    if (position.CheckForRep(distance_from_root, 2))
+    if (position.is_two_fold_repitition())
     {
         return std::nullopt;
     }
@@ -740,7 +740,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
-        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, alpha, beta))
+        if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
             return *value;
         }
@@ -951,7 +951,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
-        if (auto value = tt_cutoff_node(position, distance_from_root, tt_score, tt_cutoff, alpha, beta))
+        if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
             return *value;
         }
