@@ -171,11 +171,35 @@ void SearchSharedState::report_search_result(
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
-    if ((result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
-        && (!best_search_result_ || (best_search_result_->depth < result_data.depth)
-            || (best_search_result_->depth == result_data.depth && best_search_result_->score < result_data.score)))
+    if (result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
     {
-        best_search_result_ = result_data;
+        // no best result, so use this one
+        if (!best_search_result_)
+        {
+            best_search_result_ = result_data;
+        }
+
+        // higher depth results are always preferred
+        else if (result_data.depth > best_search_result_->depth)
+        {
+            best_search_result_ = result_data;
+        }
+
+        // it's possible for this to be false in multi-threaded searches
+        else if (result_data.depth == best_search_result_->depth)
+        {
+            if (result_data.score > best_search_result_->score)
+            {
+                best_search_result_ = result_data;
+            }
+
+            // if the best search result is a lower bound, and this is an exact result, we want to use this one
+            else if (best_search_result_->type == SearchResultType::LOWER_BOUND
+                && result_data.type == SearchResultType::EXACT)
+            {
+                best_search_result_ = result_data;
+            }
+        }
     }
 
     // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
