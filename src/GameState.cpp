@@ -81,8 +81,11 @@ void GameState::RevertMove()
 void GameState::ApplyNullMove()
 {
     previousStates.push_back(previousStates.back());
-
     MutableBoard().ApplyNullMove();
+
+    const int i = previousStates.size() - 1;
+    previousStates[i].three_fold_rep = false;
+    previousStates[i].repitition = std::nullopt;
 }
 
 void GameState::RevertNullMove()
