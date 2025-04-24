@@ -848,8 +848,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             ? local.loud_history.get(position, ss, move)
             : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 10
-            && !see_ge(position.Board(), move, -64 * depth - history / 128))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
+            && !see_ge(position.Board(), move, -111 * depth - history / 168))
         {
             continue;
         }
