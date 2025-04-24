@@ -11,14 +11,10 @@ constexpr int TO_MASK = 0b111111 << 6; // 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0
 constexpr int FLAG_MASK = 0b1111 << 12; // 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
 
 Move::Move(Square from, Square to, MoveFlag flag)
-    : data(0)
+    : data(from | (to << 6) | (flag << 12))
 {
     assert(from < 64);
     assert(to < 64);
-
-    SetFrom(from);
-    SetTo(to);
-    SetFlag(flag);
 }
 
 Move::Move(uint16_t data_)
@@ -89,24 +85,6 @@ std::ostream& operator<<(std::ostream& os, Move m)
     }
 
     return os << buffer;
-}
-
-void Move::SetFrom(Square from)
-{
-    data &= ~FROM_MASK;
-    data |= from;
-}
-
-void Move::SetTo(Square to)
-{
-    data &= ~TO_MASK;
-    data |= to << 6;
-}
-
-void Move::SetFlag(MoveFlag flag)
-{
-    data &= ~FLAG_MASK;
-    data |= flag << 12;
 }
 
 std::ostream& operator<<(std::ostream& os, format_chess960 f)
