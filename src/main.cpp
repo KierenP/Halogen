@@ -3,7 +3,7 @@
 
 #include "uci/uci.h"
 
-constexpr std::string_view version = "12.15.0";
+constexpr std::string_view version = "12.15.1";
 
 void PrintVersion()
 {
