@@ -41,4 +41,6 @@ private:
     BoardState& MutableBoard();
 
     std::vector<BoardState> previousStates;
+
+    void update_current_position_repitition();
 };
