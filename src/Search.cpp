@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <optional>
 #include <thread>
 #include <tuple>
@@ -703,6 +704,35 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     return { raw_eval, adjusted_eval };
 }
 
+void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
+{
+    // upcoming_rep should return true iff there is a legal move that will lead to a repetition.
+    // It's possible to have a zobrist hash collision, so this isn't a perfect test. But the likelihood of this
+    // happening is very low.
+
+    bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
+    bool is_draw = false;
+    BasicMoveList moves;
+    LegalMoves(position.Board(), moves);
+
+    for (const auto& move : moves)
+    {
+        position.ApplyMove(move);
+        if (position.is_repitition(distance_from_root + 1))
+        {
+            is_draw = true;
+        }
+        position.RevertMove();
+    }
+
+    if (has_upcoming_rep != is_draw)
+    {
+        std::cout << "Upcoming rep: " << has_upcoming_rep << " != " << is_draw << std::endl;
+        std::cout << position.Board() << std::endl;
+        position.upcoming_rep(distance_from_root);
+    }
+}
+
 template <SearchType search_type>
 Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     int depth, Score alpha, Score beta)
@@ -730,6 +760,19 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     auto score = std::numeric_limits<Score>::min();
     auto max_score = std::numeric_limits<Score>::max();
     auto min_score = std::numeric_limits<Score>::min();
+
+#ifdef TEST_UPCOMING_CYCLE_DETECTION
+    TestUpcomingCycleDetection(position, distance_from_root);
+#endif
+
+    if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
+    {
+        alpha = 0;
+        if (alpha >= beta)
+        {
+            return alpha;
+        }
+    }
 
     // If we are in a singular move search, we don't want to do any early pruning
 
