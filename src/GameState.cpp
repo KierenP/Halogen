@@ -7,7 +7,9 @@
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
+#include "Cuckoo.h"
 #include "Move.h"
+#include "Zobrist.h"
 
 GameState::GameState()
 {
@@ -157,7 +159,7 @@ void GameState::update_current_position_repitition()
     previousStates[i].three_fold_rep = false;
     previousStates[i].repitition = std::nullopt;
 
-    const int max_ply = std::min<int>(previousStates.size() - 1, previousStates[i].fifty_move_count);
+    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
 
     for (int ply = 4; ply <= max_ply; ply += 2)
     {
@@ -168,4 +170,56 @@ void GameState::update_current_position_repitition()
             break;
         }
     }
+}
+
+bool GameState::upcoming_rep(int distanceFromRoot) const
+{
+    const int i = previousStates.size() - 1;
+    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
+
+    // Enough reversible moves played
+    if (max_ply < 3)
+    {
+        return false;
+    }
+
+    const auto& stm_key = Zobrist::ZobristTable[12 * 64];
+    uint64_t other = previousStates[i].GetZobristKey() ^ previousStates[i - 1].GetZobristKey() ^ stm_key;
+    uint64_t occ = previousStates[i].GetAllPieces();
+
+    for (int ply = 3; ply <= max_ply; ply += 2)
+    {
+        other ^= previousStates[i - (ply - 1)].GetZobristKey() ^ previousStates[i - ply].GetZobristKey() ^ stm_key;
+
+        if (other != 0)
+        {
+            // Opponent pieces must have reverted
+            continue;
+        }
+
+        // 'diff' is a single move
+        uint64_t diff = previousStates[i].GetZobristKey() ^ previousStates[i - ply].GetZobristKey();
+        int hash = cuckoo::H1(diff);
+
+        if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))
+        {
+            const auto move = cuckoo::move_table[hash];
+            if ((occ & betweenArray[move.GetFrom()][move.GetTo()]) == EMPTY)
+            {
+                // two fold rep after root
+                if (ply < distanceFromRoot)
+                {
+                    return true;
+                }
+
+                // three fold rep
+                if (previousStates[i - ply].repitition)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
 }

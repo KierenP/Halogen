@@ -41,11 +41,11 @@ public:
         return Generate(board) == key;
     }
 
-private:
-    static uint64_t Generate(const BoardState& board);
-
     // 12 pieces * 64 squares, 1 for side to move, 16 for casteling rights and 8 for ep squares
     const static std::array<uint64_t, 12 * 64 + 1 + 16 + 8> ZobristTable;
+
+private:
+    static uint64_t Generate(const BoardState& board);
 
     uint64_t key = EMPTY;
 };
