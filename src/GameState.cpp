@@ -141,8 +141,7 @@ BoardState& GameState::MutableBoard()
 bool GameState::is_repitition(int distance_from_root) const
 {
     return Board().three_fold_rep
-        || (Board().repitition.has_value()
-            && Board().repitition.value() < distance_from_root - 1); // -1 is to match behaviour of old bug
+        || (Board().repitition.has_value() && Board().repitition.value() < distance_from_root);
 }
 
 bool GameState::is_two_fold_repitition() const
