@@ -3,6 +3,8 @@
 #include <array>
 #include <cstdint>
 #include <iosfwd>
+#include <limits>
+#include <optional>
 #include <string_view>
 
 #include "BitBoardDefine.h"
@@ -27,6 +29,10 @@ public:
 
     Players stm = N_PLAYERS;
     uint64_t castle_squares;
+
+    // number of plys since last repitition
+    std::optional<int> repitition;
+    bool three_fold_rep = false;
 
     Pieces GetSquare(Square square) const;
 

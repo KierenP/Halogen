@@ -17,6 +17,7 @@ GameState::GameState()
 void GameState::ApplyMove(Move move)
 {
     previousStates.emplace_back(previousStates.back()).ApplyMove(move);
+    update_current_position_repitition();
 }
 
 void GameState::ApplyMove(std::string_view strmove)
@@ -67,8 +68,8 @@ void GameState::RevertMove()
 void GameState::ApplyNullMove()
 {
     previousStates.push_back(previousStates.back());
-
     MutableBoard().ApplyNullMove();
+    update_current_position_repitition();
 }
 
 void GameState::RevertNullMove()
@@ -119,31 +120,6 @@ bool GameState::InitialiseFromFen(std::string_view fen)
     return InitialiseFromFen(splitFen);
 }
 
-bool GameState::CheckForRep(int distanceFromRoot, int maxReps) const
-{
-    int totalRep = 1;
-    uint64_t current = Board().GetZobristKey();
-
-    // check every second key from the back, skipping the last (current) key
-    for (int i = static_cast<int>(previousStates.size()) - 3; i >= 0; i -= 2)
-    {
-        if (previousStates[i].GetZobristKey() == current)
-            totalRep++;
-
-        if (totalRep == maxReps)
-            return true; // maxReps (usually 3) reps is always a draw
-        if (totalRep == 2 && static_cast<int>(previousStates.size() - i) < distanceFromRoot)
-            return true; // Don't allow 2 reps if its in the local search history (not part of the actual played game)
-
-        // the fifty move count is reset when a irreversible move is made. As such, we can stop here
-        // and know no repitition has taken place. Becuase we move by two at a time, we stop at 0 or 1.
-        if (previousStates[i].fifty_move_count <= 1)
-            break;
-    }
-
-    return false;
-}
-
 const BoardState& GameState::Board() const
 {
     assert(previousStates.size() >= 1);
@@ -160,4 +136,36 @@ BoardState& GameState::MutableBoard()
 {
     assert(previousStates.size() >= 1);
     return previousStates.back();
+}
+
+bool GameState::is_repitition(int distance_from_root) const
+{
+    return Board().three_fold_rep
+        || (Board().repitition.has_value() && Board().repitition.value() < distance_from_root);
+}
+
+bool GameState::is_two_fold_repitition() const
+{
+    return Board().repitition.has_value();
+}
+
+void GameState::update_current_position_repitition()
+{
+    assert(previousStates.size() >= 1);
+
+    const int i = previousStates.size() - 1;
+    previousStates[i].three_fold_rep = false;
+    previousStates[i].repitition = std::nullopt;
+
+    const int max_ply = std::min<int>(previousStates.size() - 1, previousStates[i].fifty_move_count);
+
+    for (int ply = 4; ply <= max_ply; ply += 2)
+    {
+        if (previousStates[i].GetZobristKey() == previousStates[i - ply].GetZobristKey())
+        {
+            previousStates[i].repitition = ply;
+            previousStates[i].three_fold_rep = (bool)previousStates[i - ply].repitition;
+            break;
+        }
+    }
 }
