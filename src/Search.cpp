@@ -765,13 +765,14 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     TestUpcomingCycleDetection(position, distance_from_root);
 #endif
 
-    if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
+    if (!root_node && position.upcoming_rep(distance_from_root))
     {
-        min_score = alpha = 0;
+        alpha = std::max(alpha, Score::draw());
         if (alpha >= beta)
         {
             return alpha;
         }
+        min_score = 0;
     }
 
     // If we are in a singular move search, we don't want to do any early pruning
