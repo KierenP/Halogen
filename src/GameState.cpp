@@ -9,7 +9,6 @@
 #include "BoardState.h"
 #include "Cuckoo.h"
 #include "Move.h"
-#include "Zobrist.h"
 
 GameState::GameState()
 {
@@ -183,20 +182,10 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         return false;
     }
 
-    const auto& stm_key = Zobrist::ZobristTable[12 * 64];
-    uint64_t other = previousStates[i].GetZobristKey() ^ previousStates[i - 1].GetZobristKey() ^ stm_key;
     uint64_t occ = previousStates[i].GetAllPieces();
 
     for (int ply = 3; ply <= max_ply; ply += 2)
     {
-        other ^= previousStates[i - (ply - 1)].GetZobristKey() ^ previousStates[i - ply].GetZobristKey() ^ stm_key;
-
-        if (other != 0)
-        {
-            // Opponent pieces must have reverted
-            continue;
-        }
-
         // 'diff' is a single move
         uint64_t diff = previousStates[i].GetZobristKey() ^ previousStates[i - ply].GetZobristKey();
         int hash = cuckoo::H1(diff);
