@@ -767,7 +767,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
     {
-        alpha = 0;
+        min_score = alpha = 0;
         if (alpha >= beta)
         {
             return alpha;
