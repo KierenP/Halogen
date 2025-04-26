@@ -101,4 +101,33 @@ uint64_t pawn_key(const BoardState& board)
     return key;
 }
 
+constexpr size_t fifty_move_buckets = 10;
+const std::array<uint64_t, fifty_move_buckets> fifty_move_hash = []()
+{
+    std::array<uint64_t, fifty_move_buckets> table;
+    std::mt19937_64 gen(0);
+    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+    for (size_t i = 0; i < fifty_move_buckets; i++)
+    {
+        table[i] = dist(gen);
+    }
+    return table;
+}();
+
+size_t get_fifty_move_bucket(int fifty_move_count)
+{
+    assert(0 <= fifty_move_count && fifty_move_count <= 100);
+    return (fifty_move_count * 1024) / ((101 * 1024) / fifty_move_buckets);
+}
+
+uint64_t get_fifty_move_hash(int fifty_move_count)
+{
+    return fifty_move_hash[get_fifty_move_bucket(fifty_move_count)];
+}
+
+uint64_t get_fifty_move_adj_key(const BoardState& board)
+{
+    return board.GetZobristKey() ^ get_fifty_move_hash(board.fifty_move_count);
+}
+
 } // namespace Zobrist

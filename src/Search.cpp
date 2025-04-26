@@ -32,6 +32,7 @@
 #include "TTEntry.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
+#include "Zobrist.h"
 #include "atomic.h"
 #include "uci/uci.h"
 
@@ -344,7 +345,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
                 || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
             {
-                tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), tb_score, depth,
+                tTable.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()), tb_score, depth,
                     position.Board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
                 return tb_score;
             }
@@ -399,8 +400,8 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     const GameState& position, const int distance_from_root)
 {
     // copy the values out of the table that we want, to avoid race conditions
-    auto* tt_entry
-        = tTable.GetEntry(position.Board().GetZobristKey(), distance_from_root, position.Board().half_turn_count);
+    const auto adjusted_key = get_fifty_move_adj_key(position.Board());
+    auto* tt_entry = tTable.GetEntry(adjusted_key, distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth : 0;
     const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
@@ -682,6 +683,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         if (tt_eval != SCORE_UNDEFINED)
         {
             raw_eval = tt_eval;
+            // tt_eval_hits++;
         }
         else
         {
@@ -705,7 +707,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         raw_eval = Evaluate(position.Board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
-        tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
+        tTable.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
 
@@ -936,7 +938,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
-        tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
+        tTable.PreFetch(get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
@@ -991,8 +993,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     }
 
     // Step 21: Update transposition table
-    tTable.AddEntry(bestMove, position.Board().GetZobristKey(), score, depth, position.Board().half_turn_count,
-        distance_from_root, bound, raw_eval);
+    tTable.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
+        position.Board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
 }
@@ -1100,8 +1102,8 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
                                                : SearchResultType::EXACT;
 
     // Step 7: Update transposition table
-    tTable.AddEntry(bestmove, position.Board().GetZobristKey(), score, depth, position.Board().half_turn_count,
-        distance_from_root, bound, raw_eval);
+    tTable.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
+        position.Board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
 }
