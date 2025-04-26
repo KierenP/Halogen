@@ -1026,7 +1026,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     bool no_legal_moves = true;
     auto original_alpha = alpha;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, !in_check);
+    StagedMoveGenerator gen(position, ss, local, tt_move, !in_check);
     Move move;
 
     while (gen.Next(move))
@@ -1034,13 +1034,14 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         no_legal_moves = false;
 
         // delta pruning
-        if (!in_check && !move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !move.IsPromotion()
+            && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;
         }
 
         // prune underpromotions
-        if (!in_check && move.IsPromotion()
+        if (score > Score::tb_loss_in(MAX_DEPTH) && move.IsPromotion()
             && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
             continue;
