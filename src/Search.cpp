@@ -987,6 +987,15 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         return *value;
     }
 
+    if (alpha < 0 && position.upcoming_rep(distance_from_root))
+    {
+        alpha = 0;
+        if (alpha >= beta)
+        {
+            return alpha;
+        }
+    }
+
     // Step 2: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
 
