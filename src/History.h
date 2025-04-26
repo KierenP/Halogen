@@ -79,7 +79,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 // equivalent 2 ply or 6 ply continuations
 struct ContinuationHistory
 {
-    static constexpr int cont_hist_depth = 2;
+    static constexpr int cont_hist_depth = 3;
     PieceMoveHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
     static std::array<PieceMoveHistory*, cont_hist_depth> get_subtables(const SearchStackState* ss);
     void add(const GameState& position, const SearchStackState* ss, Move move, int change);
