@@ -683,7 +683,6 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         if (tt_eval != SCORE_UNDEFINED)
         {
             raw_eval = tt_eval;
-            // tt_eval_hits++;
         }
         else
         {
