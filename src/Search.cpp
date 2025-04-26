@@ -745,7 +745,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     const bool InCheck = IsInCheck(position.Board());
 
     // Step 1: Drop into q-search
-    if (depth <= 0 && !InCheck)
+    if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
@@ -848,7 +848,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
@@ -1011,31 +1011,37 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
 
     const auto [raw_eval, eval]
         = get_search_eval<true>(position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root);
+    const bool in_check = IsInCheck(position.Board());
+    auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
-    // score
-    alpha = std::max(alpha, eval);
+    // score. This does not apply when in check.
+    alpha = std::max(alpha, score);
     if (alpha >= beta)
     {
         return alpha;
     }
 
     Move bestmove = Move::Uninitialized;
-    auto score = eval;
+    bool no_legal_moves = true;
     auto original_alpha = alpha;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
+    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, !in_check);
     Move move;
 
     while (gen.Next(move))
     {
-        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
+        no_legal_moves = false;
+
+        // delta pruning
+        if (!in_check && !move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;
         }
 
         // prune underpromotions
-        if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
+        if (!in_check && move.IsPromotion()
+            && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
         {
             continue;
         }
@@ -1062,7 +1068,13 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         }
     }
 
-    // Step 6: Update transposition table
+    // Step 6: Handle checkmate
+    if (in_check && no_legal_moves)
+    {
+        return Score::mated_in(distance_from_root);
+    }
+
+    // Step 7: Update transposition table
     if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
     {
         AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);

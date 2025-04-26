@@ -15,14 +15,14 @@
 #include "StaticExchangeEvaluation.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
     : position(Position)
     , local(Local)
     , ss(SS)
-    , quiescence(Quiescence)
+    , good_loud_only(good_loud_only_)
     , TTmove(tt_move)
 {
-    if (quiescence)
+    if (good_loud_only)
         stage = Stage::GEN_LOUD;
     else
         stage = Stage::TT_MOVE;
@@ -66,7 +66,7 @@ bool StagedMoveGenerator::Next(Move& move)
             }
         }
 
-        if (quiescence)
+        if (good_loud_only)
             return false;
 
         current = bad_loudMoves.begin();
