@@ -31,7 +31,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || move.IsCapture() || move.IsPromotion()) && MoveIsLegal(position.Board(), TTmove))
+        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion()) && MoveIsLegal(position.Board(), TTmove))
         {
             move = TTmove;
             return true;
