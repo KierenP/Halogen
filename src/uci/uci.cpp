@@ -20,6 +20,7 @@
 #include "BoardState.h"
 #include "EGTB.h"
 #include "GameState.h"
+#include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
@@ -243,6 +244,10 @@ auto Uci::options_handler()
         string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         combo_option {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
+
+        tuneable_int(PawnCorrHistory::correction_max, 16, 1, std::numeric_limits<int>::max()),
+        tuneable_int(PawnCorrHistory::depth_scale, 32, 0, std::numeric_limits<int>::max()),
+        tuneable_int(PawnCorrHistory::correction_max_adjustment_scale, 64, 0, std::numeric_limits<int>::max()),
     };
 
 #undef tuneable_int

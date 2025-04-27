@@ -102,11 +102,13 @@ void PawnCorrHistory::add(const GameState& position, int depth, int eval_diff)
 {
     auto* entry = get(position);
 
-    int change = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale / 4, correction_max * eval_scale / 4);
-    *entry += change - *entry * abs(change) / (correction_max * eval_scale);
+    int change = std::clamp(eval_diff * depth * depth_scale / 256,
+        -correction_max * eval_scale() * correction_max_adjustment_scale / 256,
+        correction_max * eval_scale() * correction_max_adjustment_scale / 256);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
 }
 
 Score PawnCorrHistory::get_correction_score(const GameState& position) const
 {
-    return *get(position) / eval_scale;
+    return *get(position) / eval_scale();
 }

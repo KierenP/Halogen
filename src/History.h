@@ -11,6 +11,7 @@
 #include "BitBoardDefine.h"
 #include "Move.h"
 #include "Score.h"
+#include "SearchConstants.h"
 
 class GameState;
 struct SearchStackState;
@@ -97,7 +98,10 @@ struct PawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t pawn_hash_table_size = 16384;
-    static constexpr int correction_max = 16;
+
+    static TUNEABLE_CONSTANT int correction_max = 16;
+    static TUNEABLE_CONSTANT int depth_scale = 32;
+    static TUNEABLE_CONSTANT int correction_max_adjustment_scale = 64;
 
     int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
 
@@ -113,7 +117,10 @@ struct PawnCorrHistory
     }
 
 private:
-    static constexpr int eval_scale = 16384 / correction_max;
+    static int eval_scale()
+    {
+        return 16384 / correction_max;
+    };
 };
 
 template <typename... tables>
