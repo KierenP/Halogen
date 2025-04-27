@@ -20,12 +20,9 @@ StagedMoveGenerator::StagedMoveGenerator(
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
-    if (quiescence)
-        stage = Stage::GEN_LOUD;
-    else
-        stage = Stage::TT_MOVE;
 }
 
 bool StagedMoveGenerator::Next(Move& move)
