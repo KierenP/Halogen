@@ -99,6 +99,7 @@ void SearchLocalState::ResetNewGame()
     quiet_history.reset();
     loud_history.reset();
     cont_hist.reset();
+    pawn_corr_hist.reset();
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)
