@@ -1024,7 +1024,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     auto score = eval;
     auto original_alpha = alpha;
 
-    StagedMoveGenerator gen(position, ss, local, Move::Uninitialized, true);
+    StagedMoveGenerator gen(position, ss, local, tt_move, true);
     Move move;
 
     while (gen.Next(move))
