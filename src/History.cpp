@@ -140,5 +140,12 @@ void PieceMoveCorrHistory::add(const GameState& position, const SearchStackState
 
 Score PieceMoveCorrHistory::get_correction_score(const GameState& position, const SearchStackState* ss)
 {
-    return *get(position, ss) / eval_scale;
+    auto* entry = get(position, ss);
+
+    if (!entry)
+    {
+        return 0;
+    }
+
+    return *entry / eval_scale;
 }

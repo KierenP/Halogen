@@ -652,25 +652,16 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto scale_eval_50_move = [&position](Score eval)
     {
-        // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
-        // return false mate scores
-        auto adjusted = eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
-        return std::clamp<Score>(adjusted, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
+        // rescale and skew the raw eval based on the 50 move rule.
+        return eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
     };
 
     auto eval_corr_history = [&](Score eval)
     {
         eval += local.pawn_corr_hist.get_correction_score(position);
-
-        if ((ss - 2)->piece_move_corr_hist_table)
-        {
-            auto* corr_hist = (ss - 2)->piece_move_corr_hist_table->get(position, ss);
-            if (corr_hist)
-            {
-                eval += *corr_hist;
-            }
-        }
-
+        eval += (ss - 2)->piece_move_corr_hist_table
+            ? (ss - 2)->piece_move_corr_hist_table->get_correction_score(position, ss)
+            : 0;
         return eval;
     };
 
@@ -706,6 +697,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
 
+    adjusted_eval = std::clamp<Score>(adjusted_eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
     return { raw_eval, adjusted_eval };
 }
 
