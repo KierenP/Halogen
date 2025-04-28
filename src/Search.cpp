@@ -435,6 +435,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
     ss->cont_hist_subtable = nullptr;
+    ss->piece_move_corr_hist_table = nullptr;
     position.ApplyNullMove();
     local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
@@ -657,7 +658,21 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         return std::clamp<Score>(adjusted, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
     };
 
-    auto eval_corr_history = [&](Score eval) { return eval + local.pawn_corr_hist.get_correction_score(position); };
+    auto eval_corr_history = [&](Score eval)
+    {
+        eval += local.pawn_corr_hist.get_correction_score(position);
+
+        if ((ss - 2)->piece_move_corr_hist_table)
+        {
+            auto* corr_hist = (ss - 2)->piece_move_corr_hist_table->get(position, ss);
+            if (corr_hist)
+            {
+                eval += *corr_hist;
+            }
+        }
+
+        return eval;
+    };
 
     if (tt_entry)
     {
@@ -916,6 +931,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
+        ss->piece_move_corr_hist_table
+            = &local.cont_corr_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         tTable.PreFetch(position.Board().GetZobristKey()); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
@@ -969,6 +986,11 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
     {
         local.pawn_corr_hist.add(position, depth, score.value() - raw_eval.value());
+
+        if ((ss - 2)->piece_move_corr_hist_table)
+        {
+            (ss - 2)->piece_move_corr_hist_table->add(position, ss, depth, score.value() - raw_eval.value());
+        }
     }
 
     // Step 21: Update transposition table
@@ -1050,6 +1072,8 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
+        ss->piece_move_corr_hist_table
+            = &local.cont_corr_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         // TODO: prefetch
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);

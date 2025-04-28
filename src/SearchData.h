@@ -65,6 +65,8 @@ struct SearchStackState
     PieceMoveHistory* cont_hist_subtable = nullptr;
     std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
 
+    PieceMoveCorrHistory* piece_move_corr_hist_table = nullptr;
+
     Accumulator acc;
 };
 
@@ -118,6 +120,7 @@ public:
     LoudHistory loud_history;
     ContinuationHistory cont_hist;
     PawnCorrHistory pawn_corr_hist;
+    ContCorrHistory cont_corr_hist;
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;

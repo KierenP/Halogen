@@ -34,6 +34,7 @@ void SearchStackState::reset()
     acc = {};
     cont_hist_subtable = nullptr;
     cont_hist_subtables = {};
+    piece_move_corr_hist_table = nullptr;
 }
 
 const SearchStackState* SearchStack::root() const
@@ -100,6 +101,7 @@ void SearchLocalState::ResetNewGame()
     loud_history.reset();
     cont_hist.reset();
     pawn_corr_hist.reset();
+    cont_corr_hist.reset();
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)

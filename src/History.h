@@ -116,6 +116,33 @@ private:
     static constexpr int eval_scale = 16384 / correction_max;
 };
 
+struct PieceMoveCorrHistory
+{
+    static constexpr int correction_max = 16;
+
+    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+
+    int16_t* get(const GameState& position, const SearchStackState* ss);
+    void add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position, const SearchStackState* ss);
+
+private:
+    static constexpr int eval_scale = 16384 / correction_max;
+};
+
+struct ContCorrHistory
+{
+    PieceMoveCorrHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+
+    void add(const GameState& position, const SearchStackState* ss, Move move, int change);
+    int32_t get(const GameState& position, const SearchStackState* ss, Move move);
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+};
+
 template <typename... tables>
 class History
 {

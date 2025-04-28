@@ -110,3 +110,35 @@ Score PawnCorrHistory::get_correction_score(const GameState& position) const
 {
     return *get(position) / eval_scale;
 }
+
+int16_t* PieceMoveCorrHistory::get(const GameState& position, const SearchStackState* ss)
+{
+    if ((ss - 1)->move == Move::Uninitialized)
+    {
+        return nullptr;
+    }
+
+    const auto& stm = position.Board().stm;
+    const auto piece = GetPieceType((ss - 1)->moved_piece);
+    const auto to = (ss - 1)->move.GetTo();
+
+    return &table[stm][piece][to];
+}
+
+void PieceMoveCorrHistory::add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff)
+{
+    auto* entry = get(position, ss);
+
+    if (!entry)
+    {
+        return;
+    }
+
+    int change = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale / 4, correction_max * eval_scale / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale);
+}
+
+Score PieceMoveCorrHistory::get_correction_score(const GameState& position, const SearchStackState* ss)
+{
+    return *get(position, ss) / eval_scale;
+}
