@@ -299,20 +299,6 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     return std::nullopt;
 }
 
-void AddScoreToTable(Score score, Score alphaOriginal, const BoardState& board, int depthRemaining,
-    int distanceFromRoot, Score beta, Move bestMove, Score static_eval)
-{
-    if (score <= alphaOriginal)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::UPPER_BOUND, static_eval);
-    else if (score >= beta)
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::LOWER_BOUND, static_eval);
-    else
-        tTable.AddEntry(bestMove, board.GetZobristKey(), score, depthRemaining, board.half_turn_count, distanceFromRoot,
-            SearchResultType::EXACT, static_eval);
-}
-
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchLocalState& local,
     SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
@@ -344,8 +330,8 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
                 || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
             {
-                AddScoreToTable(tb_score, alpha, position.Board(), depth, distance_from_root, beta, Move::Uninitialized,
-                    SCORE_UNDEFINED);
+                tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), tb_score, depth,
+                    position.Board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
                 return tb_score;
             }
         }
@@ -671,6 +657,8 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         return std::clamp<Score>(adjusted, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
     };
 
+    auto eval_corr_history = [&](Score eval) { return eval + local.pawn_corr_hist.get_correction_score(position); };
+
     if (tt_entry)
     {
         if (tt_eval != SCORE_UNDEFINED)
@@ -683,6 +671,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         }
 
         adjusted_eval = scale_eval_50_move(raw_eval);
+        adjusted_eval = eval_corr_history(adjusted_eval);
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
@@ -697,6 +686,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     {
         raw_eval = Evaluate(position.Board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
+        adjusted_eval = eval_corr_history(adjusted_eval);
         tTable.AddEntry(Move::Uninitialized, position.Board().GetZobristKey(), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
@@ -963,11 +953,27 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     score = std::clamp(score, min_score, max_score);
 
-    // Step 19: Update transposition table
-    if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
+    // Step 19: Return early when in a singular extension root search
+    if (local.aborting_search || ss->singular_exclusion != Move::Uninitialized)
     {
-        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestMove, raw_eval);
+        return score;
     }
+
+    const auto bound = score <= original_alpha ? SearchResultType::UPPER_BOUND
+        : score >= beta                        ? SearchResultType::LOWER_BOUND
+                                               : SearchResultType::EXACT;
+
+    // Step 20: Adjust eval correction history
+    if (!InCheck && (bestMove != Move::Uninitialized || (!bestMove.IsCapture() && !bestMove.IsPromotion()))
+        && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
+        && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
+    {
+        local.pawn_corr_hist.add(position, depth, score.value() - raw_eval.value());
+    }
+
+    // Step 21: Update transposition table
+    tTable.AddEntry(bestMove, position.Board().GetZobristKey(), score, depth, position.Board().half_turn_count,
+        distance_from_root, bound, raw_eval);
 
     return score;
 }
@@ -1075,11 +1081,19 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         return Score::mated_in(distance_from_root);
     }
 
-    // Step 7: Update transposition table
-    if (!local.aborting_search && ss->singular_exclusion == Move::Uninitialized)
+    // Step 7: Return early when in a singular extension root search
+    if (local.aborting_search || ss->singular_exclusion != Move::Uninitialized)
     {
-        AddScoreToTable(score, original_alpha, position.Board(), depth, distance_from_root, beta, bestmove, raw_eval);
+        return score;
     }
+
+    const auto bound = score <= original_alpha ? SearchResultType::UPPER_BOUND
+        : score >= beta                        ? SearchResultType::LOWER_BOUND
+                                               : SearchResultType::EXACT;
+
+    // Step 7: Update transposition table
+    tTable.AddEntry(bestmove, position.Board().GetZobristKey(), score, depth, position.Board().half_turn_count,
+        distance_from_root, bound, raw_eval);
 
     return score;
 }

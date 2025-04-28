@@ -5,10 +5,12 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <tuple>
 
 #include "BitBoardDefine.h"
 #include "Move.h"
+#include "Score.h"
 
 class GameState;
 struct SearchStackState;
@@ -89,6 +91,29 @@ struct ContinuationHistory
     {
         memset(table, 0, sizeof(table));
     }
+};
+
+struct PawnCorrHistory
+{
+    // must be a power of 2, for fast hash lookup
+    static constexpr size_t pawn_hash_table_size = 16384;
+    static constexpr int correction_max = 16;
+
+    int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
+
+    int16_t* get(const GameState& position);
+    const int16_t* get(const GameState& position) const;
+
+    void add(const GameState& position, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position) const;
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+
+private:
+    static constexpr int eval_scale = 16384 / correction_max;
 };
 
 template <typename... tables>

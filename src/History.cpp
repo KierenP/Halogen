@@ -83,3 +83,30 @@ int32_t ContinuationHistory::get(const GameState& position, const SearchStackSta
 
     return sum;
 }
+
+int16_t* PawnCorrHistory::get(const GameState& position)
+{
+    const auto& stm = position.Board().stm;
+    const auto pawn_hash = position.Board().GetPawnKey();
+    return &table[stm][pawn_hash % pawn_hash_table_size];
+}
+
+const int16_t* PawnCorrHistory::get(const GameState& position) const
+{
+    const auto& stm = position.Board().stm;
+    const auto pawn_hash = position.Board().GetPawnKey();
+    return &table[stm][pawn_hash % pawn_hash_table_size];
+}
+
+void PawnCorrHistory::add(const GameState& position, int depth, int eval_diff)
+{
+    auto* entry = get(position);
+
+    int change = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale / 4, correction_max * eval_scale / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale);
+}
+
+Score PawnCorrHistory::get_correction_score(const GameState& position) const
+{
+    return *get(position) / eval_scale;
+}

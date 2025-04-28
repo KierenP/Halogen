@@ -20,12 +20,9 @@ StagedMoveGenerator::StagedMoveGenerator(
     , local(Local)
     , ss(SS)
     , good_loud_only(good_loud_only_)
+    , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
-    if (good_loud_only)
-        stage = Stage::GEN_LOUD;
-    else
-        stage = Stage::TT_MOVE;
 }
 
 bool StagedMoveGenerator::Next(Move& move)
@@ -34,7 +31,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if (MoveIsLegal(position.Board(), TTmove))
+        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion()) && MoveIsLegal(position.Board(), TTmove))
         {
             move = TTmove;
             return true;
