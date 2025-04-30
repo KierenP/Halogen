@@ -183,13 +183,13 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         return false;
     }
 
-    const auto& stm_key = Zobrist::ZobristTable[12 * 64];
-    uint64_t other = previousStates[i].GetZobristKey() ^ previousStates[i - 1].GetZobristKey() ^ stm_key;
+    uint64_t other = previousStates[i].GetZobristKey() ^ previousStates[i - 1].GetZobristKey() ^ Zobrist::stm();
     uint64_t occ = previousStates[i].GetAllPieces();
 
     for (int ply = 3; ply <= max_ply; ply += 2)
     {
-        other ^= previousStates[i - (ply - 1)].GetZobristKey() ^ previousStates[i - ply].GetZobristKey() ^ stm_key;
+        other
+            ^= previousStates[i - (ply - 1)].GetZobristKey() ^ previousStates[i - ply].GetZobristKey() ^ Zobrist::stm();
 
         if (other != 0)
         {

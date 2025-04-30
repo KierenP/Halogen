@@ -80,7 +80,7 @@ public:
 
     void Reset();
     bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
-    void UpdateCastleRights(Move move, Zobrist& zobrist_key);
+    void UpdateCastleRights(Move move);
 
     void ApplyMove(Move move);
     void ApplyNullMove();
@@ -91,13 +91,10 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
-    void AddPieceAndUpdate(Square square, Pieces piece);
-    void RemovePieceAndUpdate(Square square, Pieces piece);
-    void ClearSquareAndUpdate(Square square);
     void RecalculateWhiteBlackBoards();
 
-    Zobrist key;
-    PawnKey pawn_key;
+    uint64_t key;
+    uint64_t pawn_key;
 
     std::array<uint64_t, N_PIECES> board = {};
     std::array<uint64_t, 2> side_bb;

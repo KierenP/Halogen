@@ -58,7 +58,6 @@ void init()
     // loop through all valid and reversible moves. The only reversible moves are QUIET non-pawn moves. We can half the
     // table size by considering from-to and to-from as the same move. It is known that we expect exactly 3668 moves.
 
-    const auto& stm_key = Zobrist::ZobristTable[12 * 64];
     [[maybe_unused]] int count = 0;
 
     for (int i = 0; i < N_PIECES; i++)
@@ -75,8 +74,8 @@ void init()
                     continue;
                 }
 
-                const uint64_t move_hash = Zobrist::ZobristTable[piece * 64 + move.GetFrom()]
-                    ^ Zobrist::ZobristTable[piece * 64 + move.GetTo()] ^ stm_key;
+                const uint64_t move_hash = Zobrist::piece_square(piece, move.GetFrom())
+                    ^ Zobrist::piece_square(piece, move.GetTo()) ^ Zobrist::stm();
                 insert(move_hash, move);
                 count++;
             }
