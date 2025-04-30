@@ -118,6 +118,7 @@ public:
     LoudHistory loud_history;
     ContinuationHistory cont_hist;
     PawnCorrHistory pawn_corr_hist;
+    MajorCorrHistory major_corr_hist;
     int sel_septh = 0;
     atomic_relaxed<int64_t> tb_hits = 0;
     atomic_relaxed<int64_t> nodes = 0;
