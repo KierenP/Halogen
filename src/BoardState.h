@@ -91,6 +91,9 @@ private:
 
     uint64_t key = 0;
     uint64_t pawn_key = 0;
+    std::array<uint64_t, 2> non_pawn_key {};
+    uint64_t minor_key = 0;
+    uint64_t major_key = 0;
 
     std::array<uint64_t, N_PIECES> board = {};
     std::array<uint64_t, 2> side_bb = {};
