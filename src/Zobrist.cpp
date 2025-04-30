@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <random>
 
 #include "BitBoardDefine.h"
@@ -96,6 +97,63 @@ uint64_t pawn_key(const BoardState& board)
     while (black != 0)
     {
         key ^= piece_square(BLACK_PAWN, LSBpop(black));
+    }
+
+    return key;
+}
+
+uint64_t non_pawn_key(const BoardState& board, Players side)
+{
+    uint64_t key = 0;
+
+    for (int i = KNIGHT; i <= KING; i++)
+    {
+        const auto piece = Piece(static_cast<PieceTypes>(i), side);
+        uint64_t bitboard = board.GetPieceBB(piece);
+        while (bitboard != 0)
+        {
+            key ^= piece_square(piece, LSBpop(bitboard));
+        }
+    }
+
+    return key;
+}
+
+uint64_t minor_key(const BoardState& board)
+{
+    uint64_t key = 0;
+
+    for (const auto side : { WHITE, BLACK })
+    {
+        for (const auto piece_type : { KNIGHT, BISHOP })
+        {
+            const auto piece = Piece(piece_type, side);
+            uint64_t bitboard = board.GetPieceBB(piece);
+            while (bitboard != 0)
+            {
+                key ^= piece_square(piece, LSBpop(bitboard));
+            }
+        }
+    }
+
+    return key;
+}
+
+uint64_t major_key(const BoardState& board)
+{
+    uint64_t key = 0;
+
+    for (const auto side : { WHITE, BLACK })
+    {
+        for (const auto piece_type : { ROOK, QUEEN })
+        {
+            const auto piece = Piece(piece_type, side);
+            uint64_t bitboard = board.GetPieceBB(piece);
+            while (bitboard != 0)
+            {
+                key ^= piece_square(piece, LSBpop(bitboard));
+            }
+        }
     }
 
     return key;
