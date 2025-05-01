@@ -374,6 +374,34 @@ constexpr auto betweenArray = []()
     return ret;
 }();
 
+constexpr auto RayBB = []()
+{
+    std::array<std::array<uint64_t, N_SQUARES>, N_SQUARES> ret {};
+    for (Square i = SQ_A1; i <= SQ_H8; ++i)
+    {
+        for (Square j = SQ_A1; j <= SQ_H8; ++j)
+        {
+            if (GetRank(i) == GetRank(j))
+            {
+                ret[i][j] = RankBB[GetRank(i)];
+            }
+            else if (GetFile(i) == GetFile(j))
+            {
+                ret[i][j] = FileBB[GetFile(i)];
+            }
+            else if (GetDiagonal(i) == GetDiagonal(j))
+            {
+                ret[i][j] = DiagonalBB[GetDiagonal(i)];
+            }
+            else if (GetAntiDiagonal(i) == GetAntiDiagonal(j))
+            {
+                ret[i][j] = AntiDiagonalBB[GetAntiDiagonal(i)];
+            }
+        }
+    }
+    return ret;
+}();
+
 constexpr auto KnightAttacks = []()
 {
     std::array<uint64_t, N_SQUARES> ret {};

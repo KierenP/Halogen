@@ -33,13 +33,9 @@ void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned, uint64_t t
 template <bool capture, Players STM, typename T>
 void GenerateKnightMoves(const BoardState& board, T& moves, Square square);
 template <bool capture, Players STM, typename T>
-void GenerateBishopMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
-template <bool capture, Players STM, typename T>
-void GenerateRookMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
-template <bool capture, Players STM, typename T>
-void GenerateQueenMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
-template <bool capture, Players STM, typename T>
 void GenerateKingMoves(const BoardState& board, T& moves, Square from);
+template <PieceTypes piece, bool capture, Players STM, typename T>
+void GenerateSlidingMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
 
 // misc
 template <Players STM, typename T>
@@ -123,11 +119,11 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
         GenerateKingMoves<true, STM>(board, moves, king);
 
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
-            GenerateQueenMoves<true, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<QUEEN, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
-            GenerateRookMoves<true, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<ROOK, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateBishopMoves<true, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<BISHOP, true, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>() & ~pinned; pieces != 0;)
             GenerateKnightMoves<true, STM>(board, moves, LSBpop(pieces));
     }
@@ -174,11 +170,11 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
         CastleMoves<STM>(board, moves, pinned);
 
         for (uint64_t pieces = board.GetPieceBB<QUEEN, STM>(); pieces != 0;)
-            GenerateQueenMoves<false, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<QUEEN, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<ROOK, STM>(); pieces != 0;)
-            GenerateRookMoves<false, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<ROOK, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<BISHOP, STM>(); pieces != 0;)
-            GenerateBishopMoves<false, STM>(board, moves, LSBpop(pieces), pinned, king);
+            GenerateSlidingMoves<BISHOP, false, STM>(board, moves, LSBpop(pieces), pinned, king);
         for (uint64_t pieces = board.GetPieceBB<KNIGHT, STM>() & ~pinned; pieces != 0;)
             GenerateKnightMoves<false, STM>(board, moves, LSBpop(pieces));
 
@@ -524,75 +520,20 @@ void GenerateKnightMoves(const BoardState& board, T& moves, Square square)
     AppendLegalMoves<STM>(square, targets, flag, moves);
 }
 
-template <bool capture, Players STM, typename T>
-void GenerateBishopMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
+template <PieceTypes piece, bool capture, Players STM, typename T>
+void GenerateSlidingMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
 {
     const uint64_t occupied = board.GetAllPieces();
-    const uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<BISHOP>(square, occupied);
+    const uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<piece>(square, occupied);
     const auto flag = capture ? CAPTURE : QUIET;
 
     if (!(pinned & SquareBB[square]))
     {
         AppendLegalMoves<STM>(square, targets, flag, moves);
-    }
-    else if (GetDiagonal(king) == GetDiagonal(square))
-    {
-        AppendLegalMoves<STM>(square, targets & DiagonalBB[GetDiagonal(square)], flag, moves);
-    }
-    else if (GetAntiDiagonal(king) == GetAntiDiagonal(square))
-    {
-        AppendLegalMoves<STM>(square, targets & AntiDiagonalBB[GetAntiDiagonal(square)], flag, moves);
-    }
-}
-
-template <bool capture, Players STM, typename T>
-void GenerateRookMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
-{
-    const uint64_t occupied = board.GetAllPieces();
-    const uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<ROOK>(square, occupied);
-    const auto flag = capture ? CAPTURE : QUIET;
-
-    if (!(pinned & SquareBB[square]))
-    {
-        AppendLegalMoves<STM>(square, targets, flag, moves);
-    }
-    else if (GetRank(king) == GetRank(square))
-    {
-        AppendLegalMoves<STM>(square, targets & RankBB[GetRank(square)], flag, moves);
-    }
-    else if (GetFile(king) == GetFile(square))
-    {
-        AppendLegalMoves<STM>(square, targets & FileBB[GetFile(square)], flag, moves);
-    }
-}
-
-template <bool capture, Players STM, typename T>
-void GenerateQueenMoves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
-{
-    const uint64_t occupied = board.GetAllPieces();
-    const uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<QUEEN>(square, occupied);
-    const auto flag = capture ? CAPTURE : QUIET;
-
-    if (!(pinned & SquareBB[square]))
-    {
-        AppendLegalMoves<STM>(square, targets, flag, moves);
-    }
-    else if (GetRank(king) == GetRank(square))
-    {
-        AppendLegalMoves<STM>(square, targets & RankBB[GetRank(square)], flag, moves);
-    }
-    else if (GetFile(king) == GetFile(square))
-    {
-        AppendLegalMoves<STM>(square, targets & FileBB[GetFile(square)], flag, moves);
-    }
-    else if (GetDiagonal(king) == GetDiagonal(square))
-    {
-        AppendLegalMoves<STM>(square, targets & DiagonalBB[GetDiagonal(square)], flag, moves);
     }
     else
     {
-        assert(GetAntiDiagonal(king) == GetAntiDiagonal(square));
-        AppendLegalMoves<STM>(square, targets & AntiDiagonalBB[GetAntiDiagonal(square)], flag, moves);
+        AppendLegalMoves<STM>(square, targets & RayBB[king][square], flag, moves);
     }
 }
 
