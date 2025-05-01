@@ -97,7 +97,7 @@ struct PawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t pawn_hash_table_size = 16384;
-    static constexpr int correction_max = 16;
+    static constexpr int correction_max = 32;
 
     int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
 
