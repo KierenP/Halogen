@@ -969,7 +969,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
                                                : SearchResultType::EXACT;
 
     // Step 20: Adjust eval correction history
-    if (!InCheck && (bestMove != Move::Uninitialized || (!bestMove.IsCapture() && !bestMove.IsPromotion()))
+    if (!InCheck && !(bestMove.IsCapture() || bestMove.IsPromotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
     {
