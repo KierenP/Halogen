@@ -79,11 +79,11 @@ void QuiescenceMoves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return AddQuiescenceMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuiescenceMoves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return AddQuiescenceMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuiescenceMoves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -132,11 +132,11 @@ void QuietMoves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return AddQuietMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuietMoves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return AddQuietMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuietMoves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -748,7 +748,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
     {
         StaticVector<Move, 4> moves;
-        CastleMoves<STM>(board, moves, PinnedMask<STM>(board));
+        CastleMoves<STM>(board, moves, board.pinned_pieces[STM]);
         for (size_t i = 0; i < moves.size(); i++)
         {
             if (moves[i] == move)
