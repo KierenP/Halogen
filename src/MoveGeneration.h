@@ -25,3 +25,7 @@ uint64_t ThreatMask(const BoardState& board, Players colour);
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceTypes pieceType>
 uint64_t AttackBB(Square sq, uint64_t occupied = EMPTY);
+
+// Returns a bitmask of all pinned pieces of the given player
+template <Players STM>
+uint64_t PinnedMask(const BoardState& board);

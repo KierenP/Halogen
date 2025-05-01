@@ -140,3 +140,31 @@ auto test14 = []()
     test_see(position, Move(SQ_B6, SQ_E3, QUIET), -PieceValues[BISHOP] + PieceValues[KNIGHT]);
     return true;
 }();
+
+// pinned piece (simple recapture)
+
+auto test15 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("3b2k1/1b6/8/3R2p1/4K3/5N2/8/8 w - - 0 1");
+    test_see(position, Move(SQ_F3, SQ_G5, CAPTURE), PieceValues[PAWN] - PieceValues[KNIGHT]);
+    return true;
+}();
+
+auto test16 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("8/8/4k3/3br3/4N3/1B6/4Q3/7K b - - 0 1");
+    test_see(position, Move(SQ_E5, SQ_E4, CAPTURE), PieceValues[KNIGHT] - PieceValues[ROOK]);
+    return true;
+}();
+
+// pinned piece on king ray can recapture
+
+auto test17 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("8/7K/6B1/4N3/8/3b4/k1q5/8 w - - 0 1");
+    test_see(position, Move(SQ_E5, SQ_D3, CAPTURE), PieceValues[BISHOP]);
+    return true;
+}();

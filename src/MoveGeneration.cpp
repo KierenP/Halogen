@@ -48,8 +48,6 @@ template <Players STM>
 bool EnPassantIsLegal(const BoardState& board, const Move& move);
 template <Players STM>
 bool KingMoveIsLegal(const BoardState& board, const Move& move);
-template <Players STM>
-uint64_t PinnedMask(const BoardState& board);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Players colour>
 bool IsSquareThreatened(const BoardState& board, Square square);
@@ -1017,3 +1015,6 @@ template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveL
 
 template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+
+template uint64_t PinnedMask<WHITE>(const BoardState& board);
+template uint64_t PinnedMask<BLACK>(const BoardState& board);
