@@ -90,6 +90,8 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
+    std::array<uint64_t, N_PLAYERS> pinned_pieces;
+
 private:
     void RecalculateWhiteBlackBoards();
 

@@ -61,8 +61,8 @@ int see(const BoardState& board, Move move)
 
     uint64_t attack_def = AttackersToSq(board, to, occ);
 
-    const auto white_pinned = PinnedMask<WHITE>(board);
-    const auto black_pinned = PinnedMask<BLACK>(board);
+    const auto white_pinned = board.pinned_pieces[WHITE];
+    const auto black_pinned = board.pinned_pieces[BLACK];
     const auto white_king_to_ray = RayBB[to][board.GetKing(WHITE)];
     const auto black_king_to_ray = RayBB[to][board.GetKing(BLACK)];
     const auto allowed = ~(white_pinned & ~white_king_to_ray) & ~(black_pinned & ~black_king_to_ray);
@@ -131,8 +131,8 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     uint64_t attack_def = AttackersToSq(board, to, occ);
     attack_def ^= SquareBB[from];
 
-    const auto white_pinned = PinnedMask<WHITE>(board);
-    const auto black_pinned = PinnedMask<BLACK>(board);
+    const auto white_pinned = board.pinned_pieces[WHITE];
+    const auto black_pinned = board.pinned_pieces[BLACK];
     const auto white_king_to_ray = RayBB[to][board.GetKing(WHITE)];
     const auto black_king_to_ray = RayBB[to][board.GetKing(BLACK)];
     const auto allowed = ~(white_pinned & ~white_king_to_ray) & ~(black_pinned & ~black_king_to_ray);
