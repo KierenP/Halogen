@@ -921,10 +921,6 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (IsInCheck(position.Board()))
-        {
-            extensions += 1;
-        }
 
         // Step 16: Late move reductions
         int r = reduction<pv_node>(depth, seen_moves, history);
