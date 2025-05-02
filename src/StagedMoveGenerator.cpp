@@ -66,7 +66,6 @@ bool StagedMoveGenerator::Next(Move& move)
         if (quiescence)
             return false;
 
-        current = bad_loudMoves.begin();
         stage = Stage::GIVE_KILLER_1;
     }
 
@@ -85,26 +84,12 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GIVE_KILLER_2)
     {
         Killer2 = ss->killers[1];
-        stage = Stage::GIVE_BAD_LOUD;
+        stage = Stage::GEN_QUIET;
 
         if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
         {
             move = Killer2;
             return true;
-        }
-    }
-
-    if (stage == Stage::GIVE_BAD_LOUD)
-    {
-        if (current != bad_loudMoves.end())
-        {
-            move = current->move;
-            ++current;
-            return true;
-        }
-        else
-        {
-            stage = Stage::GEN_QUIET;
         }
     }
 
@@ -126,6 +111,23 @@ bool StagedMoveGenerator::Next(Move& move)
             move = current->move;
             ++current;
             return true;
+        }
+
+        current = bad_loudMoves.begin();
+        stage = Stage::GIVE_BAD_LOUD;
+    }
+
+    if (stage == Stage::GIVE_BAD_LOUD)
+    {
+        if (current != bad_loudMoves.end())
+        {
+            move = current->move;
+            ++current;
+            return true;
+        }
+        else
+        {
+            stage = Stage::GEN_QUIET;
         }
     }
 
