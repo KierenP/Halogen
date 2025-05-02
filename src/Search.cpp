@@ -902,8 +902,11 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7 && tt_depth + 3 >= depth
-            && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED)
+        bool candidate_singular_move = !root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7
+            && tt_depth + 3 >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
+            && tt_score != SCORE_UNDEFINED;
+
+        if (candidate_singular_move)
         {
             if (auto value
                 = singular_extensions<pv_node>(position, ss, local, shared, depth, tt_score, tt_move, beta, extensions))
@@ -921,7 +924,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (IsInCheck(position.Board()))
+        if (!candidate_singular_move && IsInCheck(position.Board()))
         {
             extensions += 1;
         }
