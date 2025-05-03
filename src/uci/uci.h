@@ -12,7 +12,7 @@
 
 class Move;
 
-enum class OutputLevel
+enum class OutputLevel : uint8_t
 {
     None,
     Minimal,

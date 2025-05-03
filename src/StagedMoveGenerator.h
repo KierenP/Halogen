@@ -6,7 +6,7 @@ class GameState;
 struct SearchLocalState;
 struct SearchStackState;
 
-enum class Stage
+enum class Stage : uint8_t
 {
     TT_MOVE,
     GEN_LOUD,
