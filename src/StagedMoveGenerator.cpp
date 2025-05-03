@@ -20,9 +20,9 @@ StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const Search
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , checkers(checkers_)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
-    , checkers(checkers_)
 {
 }
 

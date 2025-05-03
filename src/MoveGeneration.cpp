@@ -250,12 +250,12 @@ void AppendLegalMoves(uint64_t from, Square to, MoveFlag flag, T& moves)
 }
 
 template <bool capture, Players STM, typename T>
-void KingEvasions(const BoardState& board, T& moves, Square from, uint64_t threats)
+void KingEvasions(const BoardState& board, T& moves, Square from, [[maybe_unused]] uint64_t threats)
 {
     const uint64_t occupied = board.GetAllPieces();
     const auto flag = capture ? CAPTURE : QUIET;
-    const auto sliding_threats = threats
-        & (board.GetPieceBB<QUEEN, !STM>() | board.GetPieceBB<ROOK, !STM>() | board.GetPieceBB<BISHOP, !STM>());
+    // const auto sliding_threats = threats
+    //     & (board.GetPieceBB<QUEEN, !STM>() | board.GetPieceBB<ROOK, !STM>() | board.GetPieceBB<BISHOP, !STM>());
 
     uint64_t targets = (capture ? board.GetPieces<!STM>() : ~occupied) & AttackBB<KING>(from, occupied);
 
