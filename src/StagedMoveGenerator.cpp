@@ -34,7 +34,7 @@ bool StagedMoveGenerator::Next(Move& move)
         stage = Stage::GEN_LOUD;
 
         if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion())
-            && MoveIsPsudolegal(position.Board(), TTmove, checkers))
+            && MoveIsPsudolegal(position.Board(), TTmove, pinned, checkers))
         {
             move = TTmove;
             return true;
@@ -78,7 +78,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (Killer1 != TTmove && MoveIsPsudolegal(position.Board(), Killer1, checkers))
+        if (Killer1 != TTmove && MoveIsPsudolegal(position.Board(), Killer1, pinned, checkers))
         {
             move = Killer1;
             return true;
@@ -90,7 +90,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (Killer2 != TTmove && MoveIsPsudolegal(position.Board(), Killer2, checkers))
+        if (Killer2 != TTmove && MoveIsPsudolegal(position.Board(), Killer2, pinned, checkers))
         {
             move = Killer2;
             return true;

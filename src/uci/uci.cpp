@@ -90,7 +90,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
         for (int i = 0; i < UINT16_MAX; i++)
         {
             Move move(i);
-            bool legal = MoveIsPsudolegal(position.Board(), move, checkers);
+            bool legal = MoveIsPsudolegal(position.Board(), move, pinned, checkers);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
@@ -106,7 +106,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        if (!MoveIsLegal(position.Board(), moves[i], pinned))
+        if (!MoveIsLegal(position.Board(), moves[i], pinned, checkers))
         {
             continue;
         }
@@ -194,7 +194,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        if (!MoveIsLegal(position.Board(), moves[i], pinned))
+        if (!MoveIsLegal(position.Board(), moves[i], pinned, checkers))
         {
             continue;
         }

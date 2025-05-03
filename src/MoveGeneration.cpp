@@ -59,9 +59,9 @@ bool IsSquareThreatened(const BoardState& board, Square square);
 template <Players colour>
 uint64_t GetThreats(const BoardState& board, Square square);
 template <Players STM>
-bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t checkers);
+bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers);
 template <Players STM>
-bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned);
+bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers);
 
 // special generators for when in check
 template <bool capture, Players STM, typename T>
@@ -333,7 +333,7 @@ void BlockThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t p
 }
 
 template <Players STM, typename T>
-void PawnPushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
+void PawnPushes(const BoardState& board, T& moves, [[maybe_unused]] uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     const uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
@@ -635,20 +635,20 @@ uint64_t GetThreats(const BoardState& board, Square square)
     return threats;
 }
 
-bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned)
+bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers)
 {
     if (board.stm == WHITE)
     {
-        return MoveIsPsudolegal<WHITE>(board, move, pinned);
+        return MoveIsPsudolegal<WHITE>(board, move, pinned, checkers);
     }
     else
     {
-        return MoveIsPsudolegal<BLACK>(board, move, pinned);
+        return MoveIsPsudolegal<BLACK>(board, move, pinned, checkers);
     }
 }
 
 template <Players STM>
-bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned)
+bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, [[maybe_unused]] uint64_t checkers)
 {
     /*Obvious check first*/
     if (move == Move::Uninitialized)
@@ -869,21 +869,21 @@ bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
     return false;
 }
 
-bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned)
+bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers)
 {
     if (board.stm == WHITE)
     {
-        return MoveIsLegal<WHITE>(board, move, pinned);
+        return MoveIsLegal<WHITE>(board, move, pinned, checkers);
     }
     else
     {
-        return MoveIsLegal<BLACK>(board, move, pinned);
+        return MoveIsLegal<BLACK>(board, move, pinned, checkers);
     }
 }
 
 template <Players STM>
-bool MoveIsLegal(
-    [[maybe_unused]] const BoardState& board, [[maybe_unused]] const Move& move, [[maybe_unused]] uint64_t pinned)
+bool MoveIsLegal([[maybe_unused]] const BoardState& board, [[maybe_unused]] const Move& move,
+    [[maybe_unused]] uint64_t pinned, [[maybe_unused]] uint64_t checkers)
 {
     return true;
 }

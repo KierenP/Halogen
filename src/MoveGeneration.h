@@ -16,8 +16,8 @@ void QuietMoves(const BoardState& board, T& moves, uint64_t pinned, uint64_t che
 bool IsInCheck(const BoardState& board, Players colour);
 bool IsInCheck(const BoardState& board);
 
-bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t checkers);
-bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned);
+bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers);
+bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers);
 bool EnPassantIsLegal(const BoardState& board, const Move& move);
 
 // Returns a threat mask that only contains winning captures (RxQ, B/NxR/Q, Px!P)

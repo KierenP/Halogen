@@ -69,8 +69,8 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     const auto pinned = PinnedMask(position.Board(), position.Board().stm);
     BasicMoveList moves;
     LegalMoves(position.Board(), moves, pinned, checkers);
-    auto legal_moves = std::count_if(
-        moves.begin(), moves.end(), [&](const Move& move) { return MoveIsLegal(position.Board(), move, pinned); });
+    auto legal_moves = std::count_if(moves.begin(), moves.end(),
+        [&](const Move& move) { return MoveIsLegal(position.Board(), move, pinned, checkers); });
     multi_pv = std::min<int>(multi_pv, legal_moves);
 
     // Probe TB at root
@@ -852,7 +852,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
     {
-        if (!MoveIsLegal(position.Board(), move, pinned))
+        if (!MoveIsLegal(position.Board(), move, pinned, checkers))
         {
             continue;
         }
@@ -1049,7 +1049,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
 
     while (gen.Next(move))
     {
-        if (!MoveIsLegal(position.Board(), move, pinned))
+        if (!MoveIsLegal(position.Board(), move, pinned, checkers))
         {
             continue;
         }
