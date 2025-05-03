@@ -411,8 +411,7 @@ void PawnEnPassant(const BoardState& board, T& moves)
         {
             const Square source = LSBpop(potentialAttackers);
             const Move move(source, board.en_passant, EN_PASSANT);
-            if (EnPassantIsLegal<STM>(board, move))
-                moves.emplace_back(move);
+            moves.emplace_back(move);
         }
     }
 }
@@ -468,17 +467,6 @@ bool CheckCastleMove(
     if ((betweenArray[king_start_sq][king_end_sq] | SquareBB[king_end_sq]) & blockers)
     {
         return false;
-    }
-
-    uint64_t king_path = betweenArray[king_start_sq][king_end_sq] | SquareBB[king_start_sq] | SquareBB[king_end_sq];
-
-    while (king_path)
-    {
-        Square sq = LSBpop(king_path);
-        if (IsSquareThreatened<STM>(board, sq))
-        {
-            return false;
-        }
     }
 
     return true;
@@ -654,6 +642,28 @@ bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned
     if (move == Move::Uninitialized)
         return false;
 
+    /*For castle moves, just generate them and see if we find a match*/
+    if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
+    {
+        if (checkers)
+        {
+            // can't castle out of check
+            return false;
+        }
+
+        StaticVector<Move, 2> moves;
+        CastleMoves<STM>(board, moves, pinned);
+        return std::find(moves.begin(), moves.end(), move) != moves.end();
+    }
+
+    // Same for EP, it's easier to just generate the moves
+    if (move.GetFlag() == EN_PASSANT)
+    {
+        StaticVector<Move, 2> moves;
+        PawnEnPassant<STM>(board, moves);
+        return std::find(moves.begin(), moves.end(), move) != moves.end();
+    }
+
     const Pieces piece = board.GetSquare(move.GetFrom());
 
     /*Make sure there's a piece to be moved*/
@@ -758,19 +768,6 @@ bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned
     {
         if ((SquareBB[move.GetTo()] & QueenAttacks[move.GetFrom()]) == 0)
             return false;
-    }
-
-    /*For castle moves, just generate them and see if we find a match*/
-    if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
-    {
-        StaticVector<Move, 4> moves;
-        CastleMoves<STM>(board, moves, pinned);
-        for (size_t i = 0; i < moves.size(); i++)
-        {
-            if (moves[i] == move)
-                return true;
-        }
-        return false;
     }
 
     //-----------------------------
@@ -885,6 +882,30 @@ template <Players STM>
 bool MoveIsLegal([[maybe_unused]] const BoardState& board, [[maybe_unused]] const Move& move,
     [[maybe_unused]] uint64_t pinned, [[maybe_unused]] uint64_t checkers)
 {
+    if (move.IsCastle())
+    {
+        const Square king_start = move.GetFrom();
+        const Square king_end
+            = GetPosition(move.GetFlag() == A_SIDE_CASTLE ? FILE_C : FILE_G, STM == WHITE ? RANK_1 : RANK_8);
+        uint64_t king_path = betweenArray[king_start][king_end] | SquareBB[king_start] | SquareBB[king_end];
+
+        while (king_path)
+        {
+            Square sq = LSBpop(king_path);
+            if (IsSquareThreatened<STM>(board, sq))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    if (move.GetFlag() == EN_PASSANT)
+    {
+        return EnPassantIsLegal<STM>(board, move);
+    }
+
     return true;
 }
 
