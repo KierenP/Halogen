@@ -56,8 +56,8 @@ public:
     }
 
 private:
-    void OrderQuietMoves(ExtendedMoveList& moves);
-    void OrderLoudMoves(ExtendedMoveList& moves);
+    void ScoreQuietMoves(ExtendedMoveList& moves);
+    void ScoreLoudMoves(ExtendedMoveList& moves);
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
@@ -71,6 +71,7 @@ private:
     // Data uses for keeping track of internal values
     Stage stage;
     ExtendedMoveList::iterator current;
+    ExtendedMoveList::iterator sorted_end;
 
     const Move TTmove = Move::Uninitialized;
     Move Killer1 = Move::Uninitialized;

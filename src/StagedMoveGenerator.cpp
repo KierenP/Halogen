@@ -10,6 +10,7 @@
 #include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
+#include "MoveList.h"
 #include "Score.h"
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
@@ -23,6 +24,15 @@ StagedMoveGenerator::StagedMoveGenerator(
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
+}
+
+void selection_sort(
+    ExtendedMoveList::iterator begin, ExtendedMoveList::iterator sort_end, ExtendedMoveList::iterator end)
+{
+    for (auto it = begin; it != sort_end; ++it)
+    {
+        std::iter_swap(it, std::max_element(it, end));
+    }
 }
 
 bool StagedMoveGenerator::Next(Move& move)
@@ -41,8 +51,8 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GEN_LOUD)
     {
         QuiescenceMoves(position.Board(), loudMoves);
-        OrderLoudMoves(loudMoves);
-        current = loudMoves.begin();
+        ScoreLoudMoves(loudMoves);
+        current = sorted_end = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
     }
 
@@ -50,6 +60,13 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
+            // rather than sorting the whole list, we sort in chunks at a time
+            if (current >= sorted_end)
+            {
+                sorted_end = std::min(sorted_end + 5, loudMoves.end());
+                selection_sort(current, sorted_end, loudMoves.end());
+            }
+
             if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0))
             {
                 move = current->move;
@@ -114,8 +131,8 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GEN_QUIET)
     {
         QuietMoves(position.Board(), quietMoves);
-        OrderQuietMoves(quietMoves);
-        current = quietMoves.begin();
+        ScoreQuietMoves(quietMoves);
+        current = sorted_end = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
     }
 
@@ -123,6 +140,13 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         if (current != quietMoves.end())
         {
+            // rather than sorting the whole list, we sort in chunks at a time
+            if (current >= sorted_end)
+            {
+                sorted_end = std::min(sorted_end + 5, quietMoves.end());
+                selection_sort(current, sorted_end, quietMoves.end());
+            }
+
             move = current->move;
             ++current;
             return true;
@@ -170,15 +194,7 @@ void StagedMoveGenerator::SkipQuiets()
     skipQuiets = true;
 }
 
-void selection_sort(ExtendedMoveList& v)
-{
-    for (auto it = v.begin(); it != v.end(); ++it)
-    {
-        std::iter_swap(it, std::max_element(it, v.end()));
-    }
-}
-
-void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::ScoreQuietMoves(ExtendedMoveList& moves)
 {
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -211,11 +227,9 @@ void StagedMoveGenerator::OrderQuietMoves(ExtendedMoveList& moves)
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
     }
-
-    selection_sort(moves);
 }
 
-void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::ScoreLoudMoves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
     static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
@@ -250,6 +264,4 @@ void StagedMoveGenerator::OrderLoudMoves(ExtendedMoveList& moves)
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
     }
-
-    selection_sort(moves);
 }
