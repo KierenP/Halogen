@@ -344,12 +344,17 @@ void PawnPushes(const BoardState& board, T& moves, [[maybe_unused]] uint64_t pin
     {
         const Square end = LSBpop(pawnPushes);
         const Square start = end - foward;
-        moves.emplace_back(start, end, QUIET);
+
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if (!(pinned & SquareBB[start]) || (GetFile(start) == GetFile(board.GetKing(STM))))
+        {
+            moves.emplace_back(start, end, QUIET);
+        }
     }
 }
 
 template <Players STM, typename T>
-void PawnPromotions(const BoardState& board, T& moves, [[maybe_unused]] uint64_t pinned, uint64_t target_squares)
+void PawnPromotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     const uint64_t pawnSquares = board.GetPieceBB<PAWN, STM>();
@@ -360,6 +365,11 @@ void PawnPromotions(const BoardState& board, T& moves, [[maybe_unused]] uint64_t
     {
         const Square end = LSBpop(pawnPromotions);
         const Square start = end - foward;
+
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if ((pinned & SquareBB[start]) && (GetFile(start) != GetFile(board.GetKing(STM))))
+            continue;
+
         moves.emplace_back(start, end, KNIGHT_PROMOTION);
         moves.emplace_back(start, end, ROOK_PROMOTION);
         moves.emplace_back(start, end, BISHOP_PROMOTION);
@@ -368,7 +378,7 @@ void PawnPromotions(const BoardState& board, T& moves, [[maybe_unused]] uint64_t
 }
 
 template <Players STM, typename T>
-void PawnDoublePushes(const BoardState& board, T& moves, [[maybe_unused]] uint64_t pinned, uint64_t target_squares)
+void PawnDoublePushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward2 = STM == WHITE ? Shift::NN : Shift::SS;
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
@@ -383,7 +393,10 @@ void PawnDoublePushes(const BoardState& board, T& moves, [[maybe_unused]] uint64
     {
         const Square end = LSBpop(targets);
         const Square start = end - foward2;
-        moves.emplace_back(start, end, PAWN_DOUBLE_MOVE);
+
+        // If we are pinned, the move is legal iff we are on the same file as the king
+        if (!(pinned & SquareBB[start]) || (GetFile(start) == GetFile(board.GetKing(STM))))
+            moves.emplace_back(start, end, PAWN_DOUBLE_MOVE);
     }
 }
 
@@ -404,7 +417,7 @@ void PawnEnPassant(const BoardState& board, T& moves)
 }
 
 template <Players STM, typename T>
-void PawnCaptures(const BoardState& board, T& moves, [[maybe_unused]] uint64_t pinned, uint64_t target_squares)
+void PawnCaptures(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SE;
     constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SW;
@@ -413,12 +426,16 @@ void PawnCaptures(const BoardState& board, T& moves, [[maybe_unused]] uint64_t p
     const uint64_t leftAttack = shift_bb<fowardleft>(pawnSquares) & board.GetPieces<!STM>() & target_squares;
     const uint64_t rightAttack = shift_bb<fowardright>(pawnSquares) & board.GetPieces<!STM>() & target_squares;
 
-    auto generate_attacks = [&](uint64_t attacks, Shift forward)
+    auto generate_attacks = [&](uint64_t attacks, Shift forward, auto get_cardinal)
     {
         while (attacks != 0)
         {
             const Square end = LSBpop(attacks);
             const Square start = end - forward;
+
+            // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
+            if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.GetKing(STM))))
+                continue;
 
             if (GetRank(end) == RANK_1 || GetRank(end) == RANK_8)
             {
@@ -432,8 +449,8 @@ void PawnCaptures(const BoardState& board, T& moves, [[maybe_unused]] uint64_t p
         }
     };
 
-    generate_attacks(leftAttack, fowardleft);
-    generate_attacks(rightAttack, fowardright);
+    generate_attacks(leftAttack, fowardleft, GetAntiDiagonal);
+    generate_attacks(rightAttack, fowardright, GetDiagonal);
 }
 
 template <Players STM>
@@ -619,7 +636,7 @@ bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned
 }
 
 template <Players STM>
-bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, uint64_t checkers)
+bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned, [[maybe_unused]] uint64_t checkers)
 {
     /*Obvious check first*/
     if (move == Move::Uninitialized)
@@ -797,30 +814,6 @@ bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t pinned
     }
     //-----------------------------
 
-    if (GetPieceType(piece) == PAWN)
-    {
-        // MoveIsLegal makes some assumptions about moves generated when in check. We ensure those here.
-        if (checkers)
-        {
-            if (GetBitCount(checkers) == 2)
-            {
-                // in double check, we only generate king moves, so if we reach this branch we know the move is not
-                // legal
-                return false;
-            }
-            else
-            {
-                // in single check, we can block or capture the threat
-                if (!(SquareBB[move.GetTo()] & (checkers | betweenArray[LSB(checkers)][board.GetKing(STM)])))
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     /*Move puts me in check*/
     if (MovePutsSelfInCheck<STM>(board, move))
         return false;
@@ -886,8 +879,8 @@ bool MoveIsLegal(const BoardState& board, const Move& move, uint64_t pinned, uin
 }
 
 template <Players STM>
-bool MoveIsLegal(
-    const BoardState& board, const Move& move, [[maybe_unused]] uint64_t pinned, [[maybe_unused]] uint64_t checkers)
+bool MoveIsLegal([[maybe_unused]] const BoardState& board, [[maybe_unused]] const Move& move,
+    [[maybe_unused]] uint64_t pinned, [[maybe_unused]] uint64_t checkers)
 {
     if (move.IsCastle())
     {
@@ -911,19 +904,6 @@ bool MoveIsLegal(
     if (move.GetFlag() == EN_PASSANT)
     {
         return EnPassantIsLegal<STM>(board, move);
-    }
-
-    if (GetPieceType(board.GetSquare(move.GetFrom())) == PAWN)
-    {
-        if (pinned & SquareBB[move.GetFrom()])
-        {
-            // A pinned piece must stay on the king ray
-            return RayBB[board.GetKing(STM)][move.GetFrom()] & SquareBB[move.GetTo()];
-        }
-        else
-        {
-            return true;
-        }
     }
 
     return true;
