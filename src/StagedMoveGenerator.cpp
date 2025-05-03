@@ -14,17 +14,16 @@
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
+    Move tt_move, bool Quiescence, uint64_t checkers_)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
-    , checkers(Checkers(Position.Board()))
+    , checkers(checkers_)
 {
-    // todo pass checkers from search
 }
 
 bool StagedMoveGenerator::Next(Move& move)
