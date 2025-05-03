@@ -52,7 +52,8 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         QuiescenceMoves(position.Board(), loudMoves);
         ScoreLoudMoves(loudMoves);
-        current = sorted_end = loudMoves.begin();
+        current = loudMoves.begin();
+        selection_sort(current, loudMoves.end(), loudMoves.end());
         stage = Stage::GIVE_GOOD_LOUD;
     }
 
@@ -60,13 +61,6 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            // rather than sorting the whole list, we sort in chunks at a time
-            if (current >= sorted_end)
-            {
-                sorted_end = std::min(sorted_end + 5, loudMoves.end());
-                selection_sort(current, sorted_end, loudMoves.end());
-            }
-
             if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0))
             {
                 move = current->move;
