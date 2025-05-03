@@ -595,6 +595,13 @@ bool MoveIsPsudolegal(const BoardState& board, const Move& move, uint64_t checke
     if (move == Move::Uninitialized)
         return false;
 
+    if (move.GetFlag() == EN_PASSANT)
+    {
+        StaticVector<Move, 2> moves;
+        PawnEnPassant<STM>(board, moves);
+        return std::find(moves.begin(), moves.end(), move) != moves.end();
+    }
+
     const Pieces piece = board.GetSquare(move.GetFrom());
 
     /*Make sure there's a piece to be moved*/
