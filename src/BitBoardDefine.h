@@ -14,7 +14,7 @@ enum class SearchResultType : uint8_t
     UPPER_BOUND,
 };
 
-enum Square
+enum Square : uint8_t
 {
     // clang-format off
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -37,7 +37,7 @@ constexpr Square& operator++(Square& sq)
     return sq;
 }
 
-enum Players
+enum Players : uint8_t
 {
     BLACK,
     WHITE,
@@ -50,7 +50,7 @@ constexpr Players operator!(const Players& val)
     return val == WHITE ? BLACK : WHITE;
 }
 
-enum Pieces
+enum Pieces : uint8_t
 {
     BLACK_PAWN,
     BLACK_KNIGHT,
@@ -69,7 +69,7 @@ enum Pieces
     N_PIECES
 };
 
-enum PieceTypes
+enum PieceTypes : uint8_t
 {
     PAWN,
     KNIGHT,
@@ -81,7 +81,7 @@ enum PieceTypes
     N_PIECE_TYPES
 };
 
-enum Rank
+enum Rank : uint8_t
 {
     RANK_1,
     RANK_2,
@@ -108,7 +108,7 @@ constexpr Rank& operator++(Rank& rank)
     return rank;
 }
 
-enum File
+enum File : uint8_t
 {
     FILE_A,
     FILE_B,
@@ -129,7 +129,7 @@ constexpr File& operator++(File& file)
     return file;
 }
 
-enum Diagonal
+enum Diagonal : uint8_t
 {
     DIAG_A8A8,
     DIAG_A7B8,
@@ -157,7 +157,7 @@ constexpr Diagonal& operator++(Diagonal& diagonal)
     return diagonal;
 }
 
-enum AntiDiagonal
+enum AntiDiagonal : uint8_t
 {
     DIAG_H8H8,
     DIAG_G8H7,
@@ -545,7 +545,7 @@ constexpr bool mayMove(Square from, Square to, uint64_t pieces)
 
 const int MAX_DEPTH = 100;
 
-enum class Shift
+enum class Shift : int8_t
 {
     // clang-format off
             NN = 16,

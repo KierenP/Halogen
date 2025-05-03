@@ -35,7 +35,7 @@
 #include "atomic.h"
 #include "uci/uci.h"
 
-enum class SearchType
+enum class SearchType : uint8_t
 {
     ROOT,
     PV,
