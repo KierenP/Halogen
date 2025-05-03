@@ -80,9 +80,10 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
         return 1;
 
     uint64_t nodeCount = 0;
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
     const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves, checkers);
+    LegalMoves(position.Board(), moves, pinned, checkers);
 
     if (check_legality)
     {
@@ -102,8 +103,6 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
             }
         }
     }
-
-    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -188,11 +187,10 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     auto before = std::chrono::steady_clock::now();
 
     uint64_t nodeCount = 0;
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
     const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves, checkers);
-
-    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    LegalMoves(position.Board(), moves, pinned, checkers);
 
     for (size_t i = 0; i < moves.size(); i++)
     {

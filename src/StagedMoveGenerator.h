@@ -32,7 +32,7 @@ class StagedMoveGenerator
 {
 public:
     StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
-        bool Quiescence, uint64_t checkers);
+        bool Quiescence, uint64_t pinned, uint64_t checkers);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
@@ -67,7 +67,8 @@ private:
     ExtendedMoveList loudMoves;
     ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
-    uint64_t checkers;
+    const uint64_t pinned;
+    const uint64_t checkers;
 
     // Data uses for keeping track of internal values
     Stage stage;

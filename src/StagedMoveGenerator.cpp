@@ -15,11 +15,12 @@
 #include "StaticExchangeEvaluation.h"
 
 StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
-    Move tt_move, bool Quiescence, uint64_t checkers_)
+    Move tt_move, bool Quiescence, uint64_t pinned_, uint64_t checkers_)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , pinned(pinned_)
     , checkers(checkers_)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
@@ -42,8 +43,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        // todo pass checkers
-        QuiescenceMoves(position.Board(), loudMoves, checkers);
+        QuiescenceMoves(position.Board(), loudMoves, pinned, checkers);
         OrderLoudMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
@@ -116,7 +116,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves, checkers);
+        QuietMoves(position.Board(), quietMoves, pinned, checkers);
         OrderQuietMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
