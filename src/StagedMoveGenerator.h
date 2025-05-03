@@ -67,6 +67,7 @@ private:
     ExtendedMoveList loudMoves;
     ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
+    uint64_t checkers;
 
     // Data uses for keeping track of internal values
     Stage stage;

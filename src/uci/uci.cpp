@@ -77,7 +77,7 @@ std::optional<OutputLevel> to_enum<OutputLevel>(std::string_view str)
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 {
     if (depth == 0)
-        return 1; // if perftdivide is called with 1 this is necesary
+        return 1;
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
@@ -85,10 +85,12 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
     if (check_legality)
     {
+        uint64_t checkers = Checkers(position.Board());
+
         for (int i = 0; i < UINT16_MAX; i++)
         {
             Move move(i);
-            bool legal = MoveIsLegal(position.Board(), move);
+            bool legal = MoveIsPsudolegal(position.Board(), move, checkers);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
@@ -102,11 +104,22 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
         }
     }
 
-    if (depth == 1)
-        return moves.size();
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
+        if (!MoveIsLegal(position.Board(), moves[i], pinned))
+        {
+            continue;
+        }
+
+        // semi-bulk counting
+        if (depth == 1)
+        {
+            nodeCount++;
+            continue;
+        }
+
         position.ApplyMove(moves[i]);
         nodeCount += Perft(depth - 1, position, check_legality);
         position.RevertMove();
@@ -179,8 +192,15 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     BasicMoveList moves;
     LegalMoves(position.Board(), moves);
 
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+
     for (size_t i = 0; i < moves.size(); i++)
     {
+        if (!MoveIsLegal(position.Board(), moves[i], pinned))
+        {
+            continue;
+        }
+
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();

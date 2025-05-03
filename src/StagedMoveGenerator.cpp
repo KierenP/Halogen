@@ -22,7 +22,9 @@ StagedMoveGenerator::StagedMoveGenerator(
     , quiescence(Quiescence)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
+    , checkers(Checkers(Position.Board()))
 {
+    // todo pass checkers from search
 }
 
 bool StagedMoveGenerator::Next(Move& move)
@@ -31,7 +33,8 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion()) && MoveIsLegal(position.Board(), TTmove))
+        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion())
+            && MoveIsPsudolegal(position.Board(), TTmove, checkers))
         {
             move = TTmove;
             return true;
@@ -40,6 +43,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
+        // todo pass checkers
         QuiescenceMoves(position.Board(), loudMoves);
         OrderLoudMoves(loudMoves);
         current = loudMoves.begin();
@@ -75,7 +79,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
+        if (Killer1 != TTmove && MoveIsPsudolegal(position.Board(), Killer1, checkers))
         {
             move = Killer1;
             return true;
@@ -87,7 +91,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
+        if (Killer2 != TTmove && MoveIsPsudolegal(position.Board(), Killer2, checkers))
         {
             move = Killer2;
             return true;

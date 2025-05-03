@@ -67,7 +67,10 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
     LegalMoves(position.Board(), moves);
-    multi_pv = std::min<int>(multi_pv, moves.size());
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    auto legal_moves = std::count_if(
+        moves.begin(), moves.end(), [&](const Move& move) { return MoveIsLegal(position.Board(), move, pinned); });
+    multi_pv = std::min<int>(multi_pv, legal_moves);
 
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position.Board());
@@ -841,10 +844,16 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
     {
+        if (!MoveIsLegal(position.Board(), move, pinned))
+        {
+            continue;
+        }
+
         noLegalMoves = false;
 
         if (move == ss->singular_exclusion || (root_node && local.RootExcludeMove(move)))
@@ -1032,9 +1041,15 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
 
     StagedMoveGenerator gen(position, ss, local, tt_move, true);
     Move move;
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
 
     while (gen.Next(move))
     {
+        if (!MoveIsLegal(position.Board(), move, pinned))
+        {
+            continue;
+        }
+
         if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;
