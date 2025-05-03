@@ -43,7 +43,7 @@ bool StagedMoveGenerator::Next(Move& move)
     if (stage == Stage::GEN_LOUD)
     {
         // todo pass checkers
-        QuiescenceMoves(position.Board(), loudMoves);
+        QuiescenceMoves(position.Board(), loudMoves, checkers);
         OrderLoudMoves(loudMoves);
         current = loudMoves.begin();
         stage = Stage::GIVE_GOOD_LOUD;
@@ -116,7 +116,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
+        QuietMoves(position.Board(), quietMoves, checkers);
         OrderQuietMoves(quietMoves);
         current = quietMoves.begin();
         stage = Stage::GIVE_QUIET;

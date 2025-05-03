@@ -12,9 +12,9 @@
 #include "StaticVector.h"
 
 template <Players STM, typename T>
-void AddQuiescenceMoves(const BoardState& board, T& moves); // captures and/or promotions
+void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t checkers); // captures and/or promotions
 template <Players STM, typename T>
-void AddQuietMoves(const BoardState& board, T& moves);
+void AddQuietMoves(const BoardState& board, T& moves, uint64_t checkers);
 
 // Pawn moves
 template <Players STM, typename T>
@@ -69,45 +69,44 @@ template <Players STM, typename T>
 void BlockThreat(const BoardState& board, T& moves, uint64_t threats);
 
 template <typename T>
-void LegalMoves(const BoardState& board, T& moves)
+void LegalMoves(const BoardState& board, T& moves, uint64_t checkers)
 {
-    QuiescenceMoves(board, moves);
-    QuietMoves(board, moves);
+    QuiescenceMoves(board, moves, checkers);
+    QuietMoves(board, moves, checkers);
 }
 
 template <typename T>
-void QuiescenceMoves(const BoardState& board, T& moves)
+void QuiescenceMoves(const BoardState& board, T& moves, uint64_t checkers)
 {
     if (board.stm == WHITE)
     {
-        return AddQuiescenceMoves<WHITE>(board, moves);
+        return AddQuiescenceMoves<WHITE>(board, moves, checkers);
     }
     else
     {
-        return AddQuiescenceMoves<BLACK>(board, moves);
+        return AddQuiescenceMoves<BLACK>(board, moves, checkers);
     }
 }
 
 template <Players STM, typename T>
-void AddQuiescenceMoves(const BoardState& board, T& moves)
+void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t checkers)
 {
     const Square king = board.GetKing(STM);
-    const uint64_t threats = GetThreats<STM>(board, king);
-    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
+    assert(GetBitCount(checkers) <= 2); // triple or more check is impossible
 
-    if (GetBitCount(threats) == 2)
+    if (GetBitCount(checkers) == 2)
     {
         // double check
-        KingEvasions<true, STM>(board, moves, king, threats);
+        KingEvasions<true, STM>(board, moves, king, checkers);
     }
-    else if (GetBitCount(threats) == 1)
+    else if (GetBitCount(checkers) == 1)
     {
         // single check
-        PawnCaptures<STM>(board, moves, threats);
+        PawnCaptures<STM>(board, moves, checkers);
         PawnEnPassant<STM>(board, moves);
-        PawnPromotions<STM>(board, moves, betweenArray[LSB(threats)][king]);
-        KingEvasions<true, STM>(board, moves, king, threats);
-        CaptureThreat<STM>(board, moves, threats);
+        PawnPromotions<STM>(board, moves, betweenArray[LSB(checkers)][king]);
+        KingEvasions<true, STM>(board, moves, king, checkers);
+        CaptureThreat<STM>(board, moves, checkers);
     }
     else
     {
@@ -129,38 +128,37 @@ void AddQuiescenceMoves(const BoardState& board, T& moves)
 }
 
 template <typename T>
-void QuietMoves(const BoardState& board, T& moves)
+void QuietMoves(const BoardState& board, T& moves, uint64_t checkers)
 {
     if (board.stm == WHITE)
     {
-        return AddQuietMoves<WHITE>(board, moves);
+        return AddQuietMoves<WHITE>(board, moves, checkers);
     }
     else
     {
-        return AddQuietMoves<BLACK>(board, moves);
+        return AddQuietMoves<BLACK>(board, moves, checkers);
     }
 }
 
 template <Players STM, typename T>
-void AddQuietMoves(const BoardState& board, T& moves)
+void AddQuietMoves(const BoardState& board, T& moves, uint64_t checkers)
 {
     const Square king = board.GetKing(STM);
-    const uint64_t threats = GetThreats<STM>(board, king);
-    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
+    assert(GetBitCount(checkers) <= 2); // triple or more check is impossible
 
-    if (GetBitCount(threats) == 2)
+    if (GetBitCount(checkers) == 2)
     {
         // double check
-        KingEvasions<false, STM>(board, moves, king, threats);
+        KingEvasions<false, STM>(board, moves, king, checkers);
     }
-    else if (GetBitCount(threats) == 1)
+    else if (GetBitCount(checkers) == 1)
     {
         // single check
-        const auto block_squares = betweenArray[LSB(threats)][king];
+        const auto block_squares = betweenArray[LSB(checkers)][king];
         PawnPushes<STM>(board, moves, block_squares);
         PawnDoublePushes<STM>(board, moves, block_squares);
-        KingEvasions<false, STM>(board, moves, king, threats);
-        BlockThreat<STM>(board, moves, threats);
+        KingEvasions<false, STM>(board, moves, king, checkers);
+        BlockThreat<STM>(board, moves, checkers);
     }
     else
     {
@@ -1015,11 +1013,11 @@ uint64_t AttackBB<KING>(Square sq, uint64_t)
 }
 
 // Explicit template instantiation
-template void LegalMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void LegalMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void LegalMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t checkers);
+template void LegalMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t checkers);
 
-template void QuiescenceMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void QuiescenceMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t checkers);
+template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t checkers);
 
-template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t checkers);
+template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t checkers);

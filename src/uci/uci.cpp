@@ -80,13 +80,12 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
         return 1;
 
     uint64_t nodeCount = 0;
+    const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, checkers);
 
     if (check_legality)
     {
-        uint64_t checkers = Checkers(position.Board());
-
         for (int i = 0; i < UINT16_MAX; i++)
         {
             Move move(i);
@@ -189,8 +188,9 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     auto before = std::chrono::steady_clock::now();
 
     uint64_t nodeCount = 0;
+    const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, checkers);
 
     const auto pinned = PinnedMask(position.Board(), position.Board().stm);
 

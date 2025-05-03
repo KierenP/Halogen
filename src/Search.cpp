@@ -65,9 +65,10 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
-    BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    const auto checkers = Checkers(position.Board());
     const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    BasicMoveList moves;
+    LegalMoves(position.Board(), moves, checkers);
     auto legal_moves = std::count_if(
         moves.begin(), moves.end(), [&](const Move& move) { return MoveIsLegal(position.Board(), move, pinned); });
     multi_pv = std::min<int>(multi_pv, legal_moves);
@@ -697,7 +698,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     return { raw_eval, adjusted_eval };
 }
 
-void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
+void TestUpcomingCycleDetection(GameState& position, int distance_from_root, uint64_t checkers)
 {
     // upcoming_rep should return true iff there is a legal move that will lead to a repetition.
     // It's possible to have a zobrist hash collision, so this isn't a perfect test. But the likelihood of this
@@ -706,7 +707,7 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
     bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
     bool is_draw = false;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, checkers);
 
     for (const auto& move : moves)
     {
@@ -755,7 +756,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     auto min_score = std::numeric_limits<Score>::min();
 
 #ifdef TEST_UPCOMING_CYCLE_DETECTION
-    TestUpcomingCycleDetection(position, distance_from_root);
+    TestUpcomingCycleDetection(position, distance_from_root, checkers);
 #endif
 
     if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))

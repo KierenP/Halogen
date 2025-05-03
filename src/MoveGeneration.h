@@ -7,11 +7,11 @@ class BoardState;
 class Move;
 
 template <typename T>
-void LegalMoves(const BoardState& board, T& moves);
+void LegalMoves(const BoardState& board, T& moves, uint64_t checkers);
 template <typename T>
-void QuiescenceMoves(const BoardState& board, T& moves);
+void QuiescenceMoves(const BoardState& board, T& moves, uint64_t checkers);
 template <typename T>
-void QuietMoves(const BoardState& board, T& moves);
+void QuietMoves(const BoardState& board, T& moves, uint64_t checkers);
 
 bool IsInCheck(const BoardState& board, Players colour);
 bool IsInCheck(const BoardState& board);
