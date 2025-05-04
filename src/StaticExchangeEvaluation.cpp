@@ -34,7 +34,7 @@ uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, P
     return 0;
 }
 
-int see(const BoardState& board, Move move)
+int see(const BoardState& board, Move move, uint64_t white_pinned, uint64_t black_pinned)
 {
     Square from = move.GetFrom();
     Square to = move.GetTo();
@@ -59,6 +59,12 @@ int see(const BoardState& board, Move move)
     }
 
     uint64_t attack_def = AttackersToSq(board, to, occ);
+
+    const auto white_king_to_ray = RayBB[to][board.GetKing(WHITE)];
+    const auto black_king_to_ray = RayBB[to][board.GetKing(BLACK)];
+    const auto allowed = ~(white_pinned & ~white_king_to_ray) & ~(black_pinned & ~black_king_to_ray);
+
+    attack_def &= allowed;
     scores[index] = PieceValues[captured];
 
     do
@@ -71,6 +77,7 @@ int see(const BoardState& board, Move move)
         occ ^= from_set;
 
         attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
+        attack_def &= allowed;
         from_set = GetLeastValuableAttacker(board, attack_def, capturing, Players(attacker));
     } while (from_set);
     while (--index)
@@ -80,7 +87,7 @@ int see(const BoardState& board, Move move)
     return scores[0];
 }
 
-bool see_ge(const BoardState& board, Move move, Score threshold)
+bool see_ge(const BoardState& board, Move move, Score threshold, uint64_t white_pinned, uint64_t black_pinned)
 {
     Square from = move.GetFrom();
     Square to = move.GetTo();
@@ -121,6 +128,12 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     uint64_t attack_def = AttackersToSq(board, to, occ);
     attack_def ^= SquareBB[from];
 
+    const auto white_king_to_ray = RayBB[to][board.GetKing(WHITE)];
+    const auto black_king_to_ray = RayBB[to][board.GetKing(BLACK)];
+    const auto allowed = ~(white_pinned & ~white_king_to_ray) & ~(black_pinned & ~black_king_to_ray);
+
+    attack_def &= allowed;
+
     while (true)
     {
         stm = !stm;
@@ -145,7 +158,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[LSB(pawns)];
-                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                attack_def |= occ & bishop_queen & AttackBB<BISHOP>(to, occ) & RayBB[to][LSB(pawns)];
                 continue;
             }
         }
@@ -170,7 +183,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[LSB(bishops)];
-                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                attack_def |= occ & bishop_queen & AttackBB<BISHOP>(to, occ) & RayBB[to][LSB(bishops)];
                 continue;
             }
         }
@@ -183,7 +196,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[LSB(rooks)];
-                attack_def |= occ & (rook_queen & AttackBB<ROOK>(to, occ));
+                attack_def |= occ & rook_queen & AttackBB<ROOK>(to, occ) & RayBB[to][LSB(rooks)];
                 continue;
             }
         }
@@ -196,8 +209,9 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[LSB(queens)];
-                attack_def
-                    |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
+                attack_def |= occ
+                    & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)))
+                    & RayBB[to][LSB(queens)];
                 continue;
             }
         }

@@ -182,6 +182,18 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
     }
 }
 
+uint64_t PinnedMask(const BoardState& board, Players side)
+{
+    if (side == WHITE)
+    {
+        return PinnedMask<WHITE>(board);
+    }
+    else
+    {
+        return PinnedMask<BLACK>(board);
+    }
+}
+
 template <Players STM>
 uint64_t PinnedMask(const BoardState& board)
 {

@@ -31,8 +31,8 @@ enum class Stage : uint8_t
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(
-        const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool Quiescence);
+    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
+        bool Quiescence, uint64_t white_pinned, uint64_t black_pinned);
 
     // Returns false if no more legal moves
     bool Next(Move& move);
@@ -67,6 +67,8 @@ private:
     ExtendedMoveList loudMoves;
     ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
+    const uint64_t white_pinned;
+    const uint64_t black_pinned;
 
     // Data uses for keeping track of internal values
     Stage stage;

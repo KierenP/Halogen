@@ -838,7 +838,9 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    const auto white_pinned = PinnedMask(position.Board(), WHITE);
+    const auto black_pinned = PinnedMask(position.Board(), BLACK);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false, white_pinned, black_pinned);
     Move move;
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
@@ -887,7 +889,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
-            && !see_ge(position.Board(), move, -111 * depth - history / 168))
+            && !see_ge(position.Board(), move, -111 * depth - history / 168, white_pinned, black_pinned))
         {
             continue;
         }
@@ -1029,13 +1031,14 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     Move bestmove = Move::Uninitialized;
     auto score = eval;
     auto original_alpha = alpha;
-
-    StagedMoveGenerator gen(position, ss, local, tt_move, true);
+    const auto white_pinned = PinnedMask(position.Board(), WHITE);
+    const auto black_pinned = PinnedMask(position.Board(), BLACK);
+    StagedMoveGenerator gen(position, ss, local, tt_move, true, white_pinned, black_pinned);
     Move move;
 
     while (gen.Next(move))
     {
-        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
+        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280, white_pinned, black_pinned))
         {
             continue;
         }

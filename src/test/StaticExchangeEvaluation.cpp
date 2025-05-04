@@ -3,15 +3,17 @@
 #include "BitBoardDefine.h"
 #include "GameState.h"
 #include "Move.h"
+#include "MoveGeneration.h"
 #include "Score.h"
 #include "StaticExchangeEvaluation.h"
 
-auto test_see
-    = []([[maybe_unused]] const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)
+auto test_see = [](const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)
 {
-    assert(see(position.Board(), move) == expected_value.value());
-    assert(see_ge(position.Board(), move, expected_value));
-    assert(!see_ge(position.Board(), move, expected_value + 1));
+    [[maybe_unused]] const auto white_pinned = PinnedMask(position.Board(), WHITE);
+    [[maybe_unused]] const auto black_pinned = PinnedMask(position.Board(), BLACK);
+    assert(see(position.Board(), move, white_pinned, black_pinned) == expected_value.value());
+    assert(see_ge(position.Board(), move, expected_value, white_pinned, black_pinned));
+    assert(!see_ge(position.Board(), move, expected_value + 1, white_pinned, black_pinned));
 };
 
 auto test1 = []()
@@ -138,5 +140,33 @@ auto test14 = []()
     GameState position;
     position.InitialiseFromFen("3k4/8/1B6/5n2/8/8/5P2/3K4 w - - 0 1");
     test_see(position, Move(SQ_B6, SQ_E3, QUIET), -PieceValues[BISHOP] + PieceValues[KNIGHT]);
+    return true;
+}();
+
+// pinned piece (simple recapture)
+
+auto test15 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("3b2k1/1b6/8/3R2p1/4K3/5N2/8/8 w - - 0 1");
+    test_see(position, Move(SQ_F3, SQ_G5, CAPTURE), PieceValues[PAWN] - PieceValues[KNIGHT]);
+    return true;
+}();
+
+auto test16 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("8/8/4k3/3br3/4N3/1B6/4Q3/7K b - - 0 1");
+    test_see(position, Move(SQ_E5, SQ_E4, CAPTURE), PieceValues[KNIGHT] - PieceValues[ROOK]);
+    return true;
+}();
+
+// pinned piece on king ray can recapture
+
+auto test17 = []()
+{
+    GameState position;
+    position.InitialiseFromFen("8/7K/6B1/4N3/8/3b4/k1q5/8 w - - 0 1");
+    test_see(position, Move(SQ_E5, SQ_D3, CAPTURE), PieceValues[BISHOP]);
     return true;
 }();

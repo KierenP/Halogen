@@ -15,12 +15,14 @@
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
+    Move tt_move, bool Quiescence, uint64_t white_pinned_, uint64_t black_pinned_)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , white_pinned(white_pinned_)
+    , black_pinned(black_pinned_)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
@@ -61,7 +63,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0))
+            if (current->move.IsPromotion() || see_ge(position.Board(), current->move, 0, white_pinned, black_pinned))
             {
                 move = current->move;
                 ++current;
