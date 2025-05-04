@@ -81,7 +81,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, PinnedMask(position.Board(), position.Board().stm));
 
     if (check_legality)
     {
@@ -177,7 +177,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, PinnedMask(position.Board(), position.Board().stm));
 
     for (size_t i = 0; i < moves.size(); i++)
     {

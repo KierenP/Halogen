@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -70,22 +71,22 @@ template <Players STM, typename T>
 void BlockThreat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
 
 template <typename T>
-void LegalMoves(const BoardState& board, T& moves)
+void LegalMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
-    QuiescenceMoves(board, moves);
-    QuietMoves(board, moves);
+    QuiescenceMoves(board, moves, pinned);
+    QuietMoves(board, moves, pinned);
 }
 
 template <typename T>
-void QuiescenceMoves(const BoardState& board, T& moves)
+void QuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     if (board.stm == WHITE)
     {
-        return AddQuiescenceMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuiescenceMoves<WHITE>(board, moves, pinned);
     }
     else
     {
-        return AddQuiescenceMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuiescenceMoves<BLACK>(board, moves, pinned);
     }
 }
 
@@ -130,15 +131,15 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
 }
 
 template <typename T>
-void QuietMoves(const BoardState& board, T& moves)
+void QuietMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     if (board.stm == WHITE)
     {
-        return AddQuietMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuietMoves<WHITE>(board, moves, pinned);
     }
     else
     {
-        return AddQuietMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuietMoves<BLACK>(board, moves, pinned);
     }
 }
 
@@ -1021,11 +1022,11 @@ uint64_t AttackBB<KING>(Square sq, uint64_t)
 }
 
 // Explicit template instantiation
-template void LegalMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void LegalMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void LegalMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t pinned);
+template void LegalMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t pinned);
 
-template void QuiescenceMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void QuiescenceMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t pinned);
+template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t pinned);
 
-template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
-template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves, uint64_t pinned);
+template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves, uint64_t pinned);

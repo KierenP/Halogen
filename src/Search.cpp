@@ -66,7 +66,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, PinnedMask(position.Board(), position.Board().stm));
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root
@@ -703,7 +703,7 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
     bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
     bool is_draw = false;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, PinnedMask(position.Board(), position.Board().stm));
 
     for (const auto& move : moves)
     {

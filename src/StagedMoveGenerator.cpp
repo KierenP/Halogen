@@ -52,7 +52,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.Board(), loudMoves);
+        QuiescenceMoves(position.Board(), loudMoves, position.Board().stm == WHITE ? white_pinned : black_pinned);
         ScoreLoudMoves(loudMoves);
         current = loudMoves.begin();
         selection_sort(current, loudMoves.end(), loudMoves.end());
@@ -126,7 +126,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
+        QuietMoves(position.Board(), quietMoves, position.Board().stm == WHITE ? white_pinned : black_pinned);
         ScoreQuietMoves(quietMoves);
         current = sorted_end = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
