@@ -29,6 +29,7 @@ void BoardState::Reset()
     RecalculateWhiteBlackBoards();
     key = Zobrist::key(*this);
     pawn_key = Zobrist::pawn_key(*this);
+    pinned_pieces = {};
 }
 
 bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
@@ -142,6 +143,8 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
     RecalculateWhiteBlackBoards();
     key = Zobrist::key(*this);
     pawn_key = Zobrist::pawn_key(*this);
+    pinned_pieces[WHITE] = PinnedMask<WHITE>(*this);
+    pinned_pieces[BLACK] = PinnedMask<BLACK>(*this);
     return true;
 }
 
@@ -617,6 +620,8 @@ void BoardState::ApplyMove(Move move)
 
     assert(key == Zobrist::key(*this));
     assert(pawn_key == Zobrist::pawn_key(*this));
+    pinned_pieces[WHITE] = PinnedMask<WHITE>(*this);
+    pinned_pieces[BLACK] = PinnedMask<BLACK>(*this);
 }
 
 void BoardState::ApplyNullMove()

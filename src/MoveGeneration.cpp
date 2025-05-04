@@ -48,8 +48,6 @@ template <Players STM>
 bool EnPassantIsLegal(const BoardState& board, const Move& move);
 template <Players STM>
 bool KingMoveIsLegal(const BoardState& board, const Move& move);
-template <Players STM>
-uint64_t PinnedMask(const BoardState& board);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Players colour>
 bool IsSquareThreatened(const BoardState& board, Square square);
@@ -81,11 +79,11 @@ void QuiescenceMoves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return AddQuiescenceMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuiescenceMoves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return AddQuiescenceMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuiescenceMoves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -134,11 +132,11 @@ void QuietMoves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return AddQuietMoves<WHITE>(board, moves, PinnedMask<WHITE>(board));
+        return AddQuietMoves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return AddQuietMoves<BLACK>(board, moves, PinnedMask<BLACK>(board));
+        return AddQuietMoves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -750,7 +748,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
     {
         StaticVector<Move, 4> moves;
-        CastleMoves<STM>(board, moves, PinnedMask<STM>(board));
+        CastleMoves<STM>(board, moves, board.pinned_pieces[STM]);
         for (size_t i = 0; i < moves.size(); i++)
         {
             if (moves[i] == move)
@@ -1017,3 +1015,6 @@ template void QuiescenceMoves<BasicMoveList>(const BoardState& board, BasicMoveL
 
 template void QuietMoves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void QuietMoves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+
+template uint64_t PinnedMask<WHITE>(const BoardState& board);
+template uint64_t PinnedMask<BLACK>(const BoardState& board);
