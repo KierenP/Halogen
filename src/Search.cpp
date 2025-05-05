@@ -614,7 +614,7 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
 
     while (reductions >= 4)
     {
-        reductions -= 2;
+        reductions /= 2;
         search_score
             = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha);
 
