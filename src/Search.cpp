@@ -596,8 +596,7 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 
 template <bool pv_node>
 Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    const int depth, const int extensions, const int reductions, const Score alpha, const Score beta,
-    const int seen_moves)
+    const int depth, const int extensions, int reductions, const Score alpha, const Score beta, const int seen_moves)
 {
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
@@ -613,10 +612,11 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
         }
     }
 
-    if (reductions >= 4)
+    while (reductions >= 4)
     {
-        search_score = -NegaScout<SearchType::ZW>(
-            position, ss + 1, local, shared, new_depth - reductions / 2, -(alpha + 1), -alpha);
+        reductions -= 2;
+        search_score
+            = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha);
 
         if (search_score <= alpha)
         {
