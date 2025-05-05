@@ -613,6 +613,17 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
         }
     }
 
+    if (reductions >= 4)
+    {
+        search_score = -NegaScout<SearchType::ZW>(
+            position, ss + 1, local, shared, new_depth - reductions / 2, -(alpha + 1), -alpha);
+
+        if (search_score <= alpha)
+        {
+            return search_score;
+        }
+    }
+
     // If the reduced depth search was skipped or failed high, we do a full depth zero width search
     if (!pv_node || seen_moves > 1)
     {
