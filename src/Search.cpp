@@ -65,9 +65,13 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
+    const auto checkers = Checkers(position.Board());
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
-    multi_pv = std::min<int>(multi_pv, moves.size());
+    LegalMoves(position.Board(), moves, pinned, checkers);
+    auto legal_moves = std::count_if(moves.begin(), moves.end(),
+        [&](const Move& move) { return MoveIsLegal(position.Board(), move, pinned, checkers); });
+    multi_pv = std::min<int>(multi_pv, legal_moves);
 
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position.Board());
@@ -699,7 +703,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     return { raw_eval, adjusted_eval };
 }
 
-void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
+void TestUpcomingCycleDetection(GameState& position, int distance_from_root, uint64_t pinned, uint64_t checkers)
 {
     // upcoming_rep should return true iff there is a legal move that will lead to a repetition.
     // It's possible to have a zobrist hash collision, so this isn't a perfect test. But the likelihood of this
@@ -708,7 +712,7 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
     bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
     bool is_draw = false;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, pinned, checkers);
 
     for (const auto& move : moves)
     {
@@ -737,10 +741,10 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     const auto distance_from_root = ss->distance_from_root;
-    const bool InCheck = IsInCheck(position.Board());
+    const auto checkers = Checkers(position.Board());
 
     // Step 1: Drop into q-search
-    if (depth <= 0 && !InCheck)
+    if (depth <= 0 && !checkers)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
@@ -757,7 +761,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     auto min_score = std::numeric_limits<Score>::min();
 
 #ifdef TEST_UPCOMING_CYCLE_DETECTION
-    TestUpcomingCycleDetection(position, distance_from_root);
+    TestUpcomingCycleDetection(
+        position, distance_from_root, PinnedMask(position.Board(), position.Board().stm), checkers);
 #endif
 
     if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
@@ -800,7 +805,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8 && eval - 93 * depth >= beta)
+    if (!pv_node && !checkers && ss->singular_exclusion == Move::Uninitialized && depth < 8
+        && eval - 93 * depth >= beta)
     {
         return beta;
     }
@@ -810,7 +816,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
+    if (!pv_node && !checkers && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
         && distance_from_root >= ss->nmp_verification_depth && eval > beta
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
@@ -843,13 +849,19 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    StagedMoveGenerator gen(position, ss, local, tt_move, false, pinned, checkers);
     Move move;
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
     {
+        if (!MoveIsLegal(position.Board(), move, pinned, checkers))
+        {
+            continue;
+        }
+
         noLegalMoves = false;
 
         if (move == ss->singular_exclusion || (root_node && local.RootExcludeMove(move)))
@@ -871,7 +883,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
+        if (!pv_node && !checkers && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
@@ -969,7 +981,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
                                                : SearchResultType::EXACT;
 
     // Step 20: Adjust eval correction history
-    if (!InCheck && !(bestMove.IsCapture() || bestMove.IsPromotion())
+    if (!checkers && !(bestMove.IsCapture() || bestMove.IsPromotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
     {
@@ -1036,12 +1048,19 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     Move bestmove = Move::Uninitialized;
     auto score = eval;
     auto original_alpha = alpha;
+    const auto checkers = Checkers(position.Board());
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, true);
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    StagedMoveGenerator gen(position, ss, local, tt_move, true, pinned, checkers);
     Move move;
 
     while (gen.Next(move))
     {
+        if (!MoveIsLegal(position.Board(), move, pinned, checkers))
+        {
+            continue;
+        }
+
         if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
         {
             continue;

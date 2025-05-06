@@ -77,18 +77,20 @@ std::optional<OutputLevel> to_enum<OutputLevel>(std::string_view str)
 uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 {
     if (depth == 0)
-        return 1; // if perftdivide is called with 1 this is necesary
+        return 1;
 
     uint64_t nodeCount = 0;
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, pinned, checkers);
 
     if (check_legality)
     {
         for (int i = 0; i < UINT16_MAX; i++)
         {
             Move move(i);
-            bool legal = MoveIsLegal(position.Board(), move);
+            bool legal = MoveIsPsudolegal(position.Board(), move, pinned, checkers);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
@@ -102,11 +104,20 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
         }
     }
 
-    if (depth == 1)
-        return moves.size();
-
     for (size_t i = 0; i < moves.size(); i++)
     {
+        if (!MoveIsLegal(position.Board(), moves[i], pinned, checkers))
+        {
+            continue;
+        }
+
+        // semi-bulk counting
+        if (depth == 1)
+        {
+            nodeCount++;
+            continue;
+        }
+
         position.ApplyMove(moves[i]);
         nodeCount += Perft(depth - 1, position, check_legality);
         position.RevertMove();
@@ -176,11 +187,18 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     auto before = std::chrono::steady_clock::now();
 
     uint64_t nodeCount = 0;
+    const auto pinned = PinnedMask(position.Board(), position.Board().stm);
+    const auto checkers = Checkers(position.Board());
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.Board(), moves, pinned, checkers);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
+        if (!MoveIsLegal(position.Board(), moves[i], pinned, checkers))
+        {
+            continue;
+        }
+
         position.ApplyMove(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.RevertMove();

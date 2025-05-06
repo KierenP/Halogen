@@ -15,12 +15,14 @@
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 
-StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+StagedMoveGenerator::StagedMoveGenerator(const GameState& Position, const SearchStackState* SS, SearchLocalState& Local,
+    Move tt_move, bool Quiescence, uint64_t pinned_, uint64_t checkers_)
     : position(Position)
     , local(Local)
     , ss(SS)
     , quiescence(Quiescence)
+    , pinned(pinned_)
+    , checkers(checkers_)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
@@ -41,7 +43,8 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion()) && MoveIsLegal(position.Board(), TTmove))
+        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion())
+            && MoveIsPsudolegal(position.Board(), TTmove, pinned, checkers))
         {
             move = TTmove;
             return true;
@@ -50,7 +53,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.Board(), loudMoves);
+        QuiescenceMoves(position.Board(), loudMoves, pinned, checkers);
         ScoreLoudMoves(loudMoves);
         current = loudMoves.begin();
         selection_sort(current, loudMoves.end(), loudMoves.end());
@@ -86,7 +89,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (Killer1 != TTmove && MoveIsLegal(position.Board(), Killer1))
+        if (Killer1 != TTmove && MoveIsPsudolegal(position.Board(), Killer1, pinned, checkers))
         {
             move = Killer1;
             return true;
@@ -98,7 +101,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (Killer2 != TTmove && MoveIsLegal(position.Board(), Killer2))
+        if (Killer2 != TTmove && MoveIsPsudolegal(position.Board(), Killer2, pinned, checkers))
         {
             move = Killer2;
             return true;
@@ -124,7 +127,7 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.Board(), quietMoves);
+        QuietMoves(position.Board(), quietMoves, pinned, checkers);
         ScoreQuietMoves(quietMoves);
         current = sorted_end = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
