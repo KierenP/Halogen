@@ -282,10 +282,24 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
         return 0;
     }
 
-    // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7 with
-    // permission from Koivisto authors. The condition > 100 is used because the 100th move could give checkmate.
-    if (position.is_repitition(distance_from_root) || position.Board().fifty_move_count > 100)
+    // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
+    if (position.is_repitition(distance_from_root))
     {
+        return 8 - (local.nodes & 0b1111);
+    }
+
+    if (position.Board().fifty_move_count >= 100)
+    {
+        if (IsInCheck(position.Board()))
+        {
+            BasicMoveList moves;
+            LegalMoves(position.Board(), moves);
+            if (moves.empty())
+            {
+                return Score::mated_in(distance_from_root);
+            }
+        }
+
         return 8 - (local.nodes & 0b1111);
     }
 
