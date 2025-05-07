@@ -3,8 +3,8 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/feefcc3817f7e9b0fd8a94dbb9756ce8b805a73a/6913d330.nn?raw=true
-EVALFILE = $(BUILD_DIR)/6913d330.nn
+EVALURL = https://github.com/KierenP/Halogen-Networks/blob/bf5d52a57e22f5f3d0b7736039e705458a029c1a/87b3ca62.nn?raw=true
+EVALFILE = $(BUILD_DIR)/87b3ca62.nn
 
 SRCS := \
 	BoardState.cpp \
