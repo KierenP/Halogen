@@ -18,7 +18,7 @@ struct alignas(64) network
 {
     std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
     std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
+    std::array<std::array<int16_t, HIDDEN_NEURONS>, OUTPUT_BUCKETS> outputWeights = {};
     std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
@@ -86,6 +86,23 @@ void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
     {
         int16_t partial = other[i] * weights[i + SIZE];
         output += partial * other[i];
+    }
+}
+
+template <typename T_out, typename T_in, size_t SIZE>
+void DotProductPairwiseMul(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
+    const std::array<T_in, SIZE>& weights, T_out& output)
+{
+    for (size_t i = 0; i < SIZE / 2; i++)
+    {
+        int16_t partial = stm[i] * weights[i];
+        output += partial * stm[i + SIZE / 2];
+    }
+
+    for (size_t i = 0; i < SIZE / 2; i++)
+    {
+        int16_t partial = other[i] * weights[i + SIZE / 2];
+        output += partial * other[i + SIZE / 2];
     }
 }
 
@@ -582,7 +599,7 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     int32_t output = 0;
-    DotProductSCReLU(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
+    DotProductPairwiseMul(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
     return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
         / L2_SCALE;
 }
