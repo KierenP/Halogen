@@ -103,7 +103,7 @@ uint64_t pawn_key(const BoardState& board)
 
 constexpr size_t fifty_move_buckets = 10;
 
-const std::array<uint64_t, fifty_move_buckets> fifty_move_hash = []()
+const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
 {
     std::array<uint64_t, fifty_move_buckets> table;
     std::mt19937_64 gen(0);
@@ -115,30 +115,30 @@ const std::array<uint64_t, fifty_move_buckets> fifty_move_hash = []()
     return table;
 }();
 
-constexpr size_t calculate_get_fifty_move_bucket(int fifty_move_count)
+size_t calculate_fifty_move_bucket(int fifty_move_count)
 {
     return (fifty_move_count * 1024) / ((101 * 1024) / fifty_move_buckets);
 }
 
-constexpr auto get_fifty_move_bucket = []()
+uint64_t calculate_fifty_move_hash(int fifty_move_count)
+{
+    return fifty_move_bucket_hash[calculate_fifty_move_bucket(fifty_move_count)];
+}
+
+const auto fifty_move_hash = []()
 {
     std::array<size_t, 101> buckets = {};
     for (int i = 0; i <= 100; i++)
     {
-        buckets[i] = calculate_get_fifty_move_bucket(i);
+        buckets[i] = calculate_fifty_move_hash(i);
     }
     return buckets;
 }();
 
-uint64_t get_fifty_move_hash(int fifty_move_count)
-{
-    assert(0 <= fifty_move_count && fifty_move_count <= 100);
-    return fifty_move_hash[get_fifty_move_bucket[fifty_move_count]];
-}
-
 uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
-    return board.GetZobristKey() ^ get_fifty_move_hash(board.fifty_move_count);
+    assert(0 <= fifty_move_count && fifty_move_count <= 100);
+    return board.GetZobristKey() ^ fifty_move_hash[board.fifty_move_count];
 }
 
 } // namespace Zobrist
