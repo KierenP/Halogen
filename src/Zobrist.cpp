@@ -137,7 +137,7 @@ const auto fifty_move_hash = []()
 
 uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
-    assert(0 <= fifty_move_count && fifty_move_count <= 100);
+    assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
     return board.GetZobristKey() ^ fifty_move_hash[board.fifty_move_count];
 }
 
