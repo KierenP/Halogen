@@ -15,4 +15,6 @@ uint64_t castle(Square square);
 
 uint64_t key(const BoardState& board);
 uint64_t pawn_key(const BoardState& board);
+
+uint64_t get_fifty_move_adj_key(const BoardState& board);
 }
