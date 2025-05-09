@@ -102,6 +102,7 @@ uint64_t pawn_key(const BoardState& board)
 }
 
 constexpr size_t fifty_move_buckets = 10;
+
 const std::array<uint64_t, fifty_move_buckets> fifty_move_hash = []()
 {
     std::array<uint64_t, fifty_move_buckets> table;
@@ -114,15 +115,25 @@ const std::array<uint64_t, fifty_move_buckets> fifty_move_hash = []()
     return table;
 }();
 
-size_t get_fifty_move_bucket(int fifty_move_count)
+constexpr size_t calculate_get_fifty_move_bucket(int fifty_move_count)
 {
-    assert(0 <= fifty_move_count && fifty_move_count <= 100);
     return (fifty_move_count * 1024) / ((101 * 1024) / fifty_move_buckets);
 }
 
+constexpr auto get_fifty_move_bucket = []()
+{
+    std::array<size_t, 101> buckets = {};
+    for (int i = 0; i <= 100; i++)
+    {
+        buckets[i] = calculate_get_fifty_move_bucket(i);
+    }
+    return buckets;
+}();
+
 uint64_t get_fifty_move_hash(int fifty_move_count)
 {
-    return fifty_move_hash[get_fifty_move_bucket(fifty_move_count)];
+    assert(0 <= fifty_move_count && fifty_move_count <= 100);
+    return fifty_move_hash[get_fifty_move_bucket[fifty_move_count]];
 }
 
 uint64_t get_fifty_move_adj_key(const BoardState& board)

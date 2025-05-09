@@ -400,7 +400,7 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     const GameState& position, const int distance_from_root)
 {
     // copy the values out of the table that we want, to avoid race conditions
-    const auto adjusted_key = get_fifty_move_adj_key(position.Board());
+    const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.Board());
     auto* tt_entry = tTable.GetEntry(adjusted_key, distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth : 0;
@@ -937,7 +937,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
-        tTable.PreFetch(get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
+        tTable.PreFetch(
+            Zobrist::get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
