@@ -33,6 +33,30 @@ struct alignas(64) network
     return true;
 }();
 
+/*auto verify_quant = []
+{
+    // loop through all weights/biases and print the min/max values
+    // the arrays are multidimensional, so we need to use std::ranges::join
+    // to flatten them into a single range
+
+    auto print_min_max = [](const auto& arr)
+    {
+        auto [min, max] = std::minmax_element(arr.begin(), arr.end());
+        std::cout << "Min: " << *min << ", Max: " << *max << '\n';
+    };
+
+    print_min_max(net.ft_weight | std::views::join);
+    print_min_max(net.ft_bias);
+    print_min_max(net.l1_weight | std::views::join | std::views::join);
+    print_min_max(net.l1_bias | std::views::join);
+    print_min_max(net.l2_weight | std::views::join | std::views::join);
+    print_min_max(net.l2_bias | std::views::join);
+    print_min_max(net.out_weight | std::views::join);
+    print_min_max(net.out_bias);
+
+    return true;
+}();*/
+
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
@@ -603,7 +627,7 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
 
     for (size_t i = 0; i < L1_SIZE; i++)
     {
-        l1[i] = net.l1_bias[output_bucket][i];
+        l1[i] = net.l1_bias[output_bucket][i] * FT_SCALE;
 
         for (size_t j = 0; j < FT_SIZE; j++)
         {
@@ -621,15 +645,20 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     l1 = CReLU<int32_t, L1_SIZE, FT_SCALE * FT_SCALE * L1_SCALE>(l1);
 
     // from here on, we use float values
+    std::array<float, L1_SIZE> l1_float;
+    for (size_t i = 0; i < L1_SIZE; i++)
+    {
+        l1_float[i] = float(l1[i]) / FT_SCALE / FT_SCALE / L1_SCALE;
+    }
+
     std::array<float, L2_SIZE> l2 = net.l2_bias[output_bucket];
 
     for (size_t i = 0; i < L2_SIZE; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            l2[i] += l1[j] * net.l2_weight[output_bucket][i][j];
+            l2[i] += l1_float[j] * net.l2_weight[output_bucket][i][j];
         }
-        l2[i] /= FT_SCALE * FT_SCALE * L1_SCALE;
     }
 
     l2 = CReLU<float, L2_SIZE, 1.f>(l2);
