@@ -628,21 +628,20 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     for (size_t i = 0; i < L1_SIZE; i++)
     {
         l1[i] = net.l1_bias[output_bucket][i] * FT_SCALE;
+        DotProductSCReLU(stm_acc, nstm_acc, net.l1_weight[output_bucket][i], l1[i]);
 
-        for (size_t j = 0; j < FT_SIZE; j++)
+        /*for (size_t j = 0; j < FT_SIZE; j++)
         {
-            int16_t partial = stm_acc[i] * net.l1_weight[output_bucket][i][j];
-            l1[i] += partial * stm_acc[i];
+            int16_t partial = stm_acc[j] * net.l1_weight[output_bucket][i][j];
+            l1[i] += partial * stm_acc[j];
         }
 
         for (size_t j = 0; j < FT_SIZE; j++)
         {
-            int16_t partial = nstm_acc[i] * net.l1_weight[output_bucket][i][j + FT_SIZE];
-            l1[i] += partial * nstm_acc[i];
-        }
+            int16_t partial = nstm_acc[j] * net.l1_weight[output_bucket][i][j + FT_SIZE];
+            l1[i] += partial * nstm_acc[j];
+        }*/
     }
-
-    l1 = CReLU<int32_t, L1_SIZE, FT_SCALE * FT_SCALE * L1_SCALE>(l1);
 
     // from here on, we use float values
     std::array<float, L1_SIZE> l1_float;
@@ -651,14 +650,16 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
         l1_float[i] = float(l1[i]) / FT_SCALE / FT_SCALE / L1_SCALE;
     }
 
+    l1_float = CReLU<float, L1_SIZE, 1.f>(l1_float);
     std::array<float, L2_SIZE> l2 = net.l2_bias[output_bucket];
 
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        for (size_t j = 0; j < L1_SIZE; j++)
+        DotProduct(l1_float, net.l2_weight[output_bucket][i], l2[i]);
+        /*for (size_t j = 0; j < L1_SIZE; j++)
         {
             l2[i] += l1_float[j] * net.l2_weight[output_bucket][i][j];
-        }
+        }*/
     }
 
     l2 = CReLU<float, L2_SIZE, 1.f>(l2);
@@ -666,10 +667,10 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     float output = net.out_bias[output_bucket];
     DotProduct(l2, net.out_weight[output_bucket], output);
 
-    for (size_t j = 0; j < L2_SIZE; j++)
+    /*for (size_t j = 0; j < L2_SIZE; j++)
     {
         output += l2[j] * net.out_weight[output_bucket][j];
-    }
+    }*/
 
     return output * SCALE_FACTOR;
 }
