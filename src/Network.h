@@ -56,7 +56,7 @@ struct InputPair
 // stored the accumulated first layer values for each side
 struct Accumulator
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, N_PLAYERS> side = {};
+    alignas(64) std::array<std::array<float, FT_SIZE>, N_PLAYERS> side = {};
 
     bool operator==(const Accumulator& rhs) const
     {

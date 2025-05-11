@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <iostream>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
@@ -17,10 +18,10 @@ INCBIN(Net, EVALFILE);
 
 struct alignas(64) network
 {
-    std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
-    std::array<int16_t, FT_SIZE> ft_bias = {};
-    std::array<std::array<std::array<int16_t, FT_SIZE * 2>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
-    std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    std::array<std::array<float, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    std::array<float, FT_SIZE> ft_bias = {};
+    std::array<std::array<std::array<float, FT_SIZE * 2>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    std::array<std::array<float, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> out_weight = {};
@@ -57,9 +58,9 @@ struct alignas(64) network
     return true;
 }();*/
 
-constexpr int16_t FT_SCALE = 255;
-constexpr int16_t L1_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
+// constexpr float FT_SCALE = 255;
+// constexpr float L1_SCALE = 64;
+constexpr float SCALE_FACTOR = 160;
 
 template <typename T, size_t SIZE>
 [[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
@@ -107,13 +108,13 @@ void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 
     for (size_t i = 0; i < SIZE; i++)
     {
-        int16_t partial = stm[i] * weights[i];
+        T_in partial = stm[i] * weights[i];
         output += partial * stm[i];
     }
 
     for (size_t i = 0; i < SIZE; i++)
     {
-        int16_t partial = other[i] * weights[i + SIZE];
+        T_in partial = other[i] * weights[i + SIZE];
         output += partial * other[i];
     }
 }
@@ -619,58 +620,34 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
-    const auto& stm_acc = CReLU<int16_t, FT_SIZE, FT_SCALE>(acc.side[stm]);
-    const auto& nstm_acc = CReLU<int16_t, FT_SIZE, FT_SCALE>(acc.side[!stm]);
+    const auto& stm_acc = SCReLU<float, FT_SIZE, 1.f>(acc.side[stm]);
+    const auto& nstm_acc = SCReLU<float, FT_SIZE, 1.f>(acc.side[!stm]);
 
-    // l1 is scaled by FT_SCALE * FT_SCALE * L1_SCALE
-    std::array<int32_t, L1_SIZE> l1 = {};
+    std::array<float, L1_SIZE> l1 = {};
 
     for (size_t i = 0; i < L1_SIZE; i++)
     {
-        l1[i] = net.l1_bias[output_bucket][i] * FT_SCALE;
-        DotProductSCReLU(stm_acc, nstm_acc, net.l1_weight[output_bucket][i], l1[i]);
-
-        /*for (size_t j = 0; j < FT_SIZE; j++)
-        {
-            int16_t partial = stm_acc[j] * net.l1_weight[output_bucket][i][j];
-            l1[i] += partial * stm_acc[j];
-        }
+        l1[i] = net.l1_bias[output_bucket][i];
 
         for (size_t j = 0; j < FT_SIZE; j++)
         {
-            int16_t partial = nstm_acc[j] * net.l1_weight[output_bucket][i][j + FT_SIZE];
-            l1[i] += partial * nstm_acc[j];
-        }*/
+            l1[i] += stm_acc[j] * net.l1_weight[output_bucket][i][j];
+            l1[i] += nstm_acc[j] * net.l1_weight[output_bucket][i][j + FT_SIZE];
+        }
     }
 
-    // from here on, we use float values
-    std::array<float, L1_SIZE> l1_float;
-    for (size_t i = 0; i < L1_SIZE; i++)
-    {
-        l1_float[i] = float(l1[i]) / FT_SCALE / FT_SCALE / L1_SCALE;
-    }
-
-    l1_float = CReLU<float, L1_SIZE, 1.f>(l1_float);
+    l1 = CReLU<float, L1_SIZE, 1.f>(l1);
     std::array<float, L2_SIZE> l2 = net.l2_bias[output_bucket];
 
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        DotProduct(l1_float, net.l2_weight[output_bucket][i], l2[i]);
-        /*for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            l2[i] += l1_float[j] * net.l2_weight[output_bucket][i][j];
-        }*/
+        DotProduct(l1, net.l2_weight[output_bucket][i], l2[i]);
     }
 
     l2 = CReLU<float, L2_SIZE, 1.f>(l2);
 
     float output = net.out_bias[output_bucket];
     DotProduct(l2, net.out_weight[output_bucket], output);
-
-    /*for (size_t j = 0; j < L2_SIZE; j++)
-    {
-        output += l2[j] * net.out_weight[output_bucket][j];
-    }*/
 
     return output * SCALE_FACTOR;
 }
