@@ -41,7 +41,7 @@ inline void store_si(void* ptr, const vec& v)
 #elif defined(USE_AVX2)
     return _mm256_store_si256(reinterpret_cast<vec*>(ptr), v);
 #elif defined(USE_SSE4)
-    return _mm_store_si128(reinterpret_cast<const vec*>(ptr), v);
+    return _mm_store_si128(reinterpret_cast<vec*>(ptr), v);
 #endif
 }
 

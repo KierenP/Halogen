@@ -20,8 +20,8 @@ void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
     static_assert(SIZE % stride == 0);
-    const auto zero = _mm256_setzero_si256();
-    const auto one = _mm256_set1_epi16(L1_SCALE);
+    const auto zero = SIMD::setzero_si();
+    const auto one = SIMD::set1_epi16(L1_SCALE);
     auto result = zero;
     for (size_t i = 0; i < SIZE; i += stride)
     {
