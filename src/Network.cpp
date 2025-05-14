@@ -9,17 +9,19 @@
 #include "BoardState.h"
 #include "Move.h"
 #include "incbin/incbin.h"
+#include "nn/Accumulator.hpp"
+#include "nn/Features.hpp"
 
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
 
-struct alignas(64) network
+struct network
 {
-    std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
-    std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
-    std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
+    alignas(64) std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
+    alignas(64) std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
@@ -122,10 +124,8 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
 
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j];
-    }
+    NN::Accumulator::add1sub1(
+        next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index]);
 }
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
@@ -141,11 +141,8 @@ void Add1Sub2(
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
-            - net.hiddenWeights[sub2_index][j];
-    }
+    NN::Accumulator::add1sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
+        net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
 }
 
 void Add1Sub2(
@@ -165,11 +162,8 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        next.side[view][j] = prev.side[view][j] + net.hiddenWeights[add1_index][j] - net.hiddenWeights[sub1_index][j]
-            + net.hiddenWeights[add2_index][j] - net.hiddenWeights[sub2_index][j];
-    }
+    NN::Accumulator::add2sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
+        net.hiddenWeights[add2_index], net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
@@ -190,11 +184,7 @@ void Accumulator::AddInput(const InputPair& input)
 void Accumulator::AddInput(const Input& input, Players view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        side[view][j] += net.hiddenWeights[side_index][j];
-    }
+    NN::Accumulator::add1(side[view], net.hiddenWeights[side_index]);
 }
 
 void Accumulator::SubInput(const InputPair& input)
@@ -206,11 +196,7 @@ void Accumulator::SubInput(const InputPair& input)
 void Accumulator::SubInput(const Input& input, Players view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-
-    for (size_t j = 0; j < HIDDEN_NEURONS; j++)
-    {
-        side[view][j] -= net.hiddenWeights[side_index][j];
-    }
+    NN::Accumulator::sub1(side[view], net.hiddenWeights[side_index]);
 }
 
 void Accumulator::Recalculate(const BoardState& board_)
@@ -582,7 +568,8 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     int32_t output = 0;
-    DotProductSCReLU(CReLU(acc.side[stm]), CReLU(acc.side[!stm]), net.outputWeights[output_bucket], output);
+    NN::Features::DotProductSCReLU(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);
+
     return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
         / L2_SCALE;
 }

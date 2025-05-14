@@ -116,13 +116,17 @@ endif
 
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512_VNNI
-else ifneq ($(findstring __AVX512__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX512__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512
-else ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX2
-else ifneq ($(findstring __AVX__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX
-else ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_SSE4
 endif
 
