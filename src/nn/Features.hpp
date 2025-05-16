@@ -76,15 +76,15 @@ void DotProductSCReLU(const std::array<int16_t, SIZE>& stm, const std::array<int
     for (size_t i = 0; i < SIZE; i++)
     {
         int16_t crelu = std::clamp(stm[i], int16_t(0), L1_SCALE);
-        uint8_t screlu = (crelu * crelu) >> 8;
-        output += screlu * int8_t(weights[i]);
+        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
+        output += screlu * weights[i];
     }
 
     for (size_t i = 0; i < SIZE; i++)
     {
         int16_t crelu = std::clamp(nstm[i], int16_t(0), L1_SCALE);
-        uint8_t screlu = (crelu * crelu) >> 8;
-        output += screlu * int8_t(weights[i + SIZE]);
+        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
+        output += screlu * weights[i + SIZE];
     }
 #endif
 }
