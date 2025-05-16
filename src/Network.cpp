@@ -119,66 +119,42 @@ int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Players view)
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1, Players view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    size_t add1_index = index(add1.king[view], add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king[view], sub1.piece_sq, sub1.piece, view);
 
     NN::Accumulator::add1sub1(
         next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index]);
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
+void Add1Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1,
+    const InputPair& sub2, Players view)
 {
-    Add1Sub1(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
-    Add1Sub1(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
-}
-
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Players view)
-{
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    size_t add1_index = index(add1.king[view], add1.piece_sq, add1.piece, view);
+    size_t sub1_index = index(sub1.king[view], sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king[view], sub2.piece_sq, sub2.piece, view);
 
     NN::Accumulator::add1sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
         net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
 }
 
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1, const InputPair& sub2)
+void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
+    const InputPair& sub1, const InputPair& sub2, Players view)
 {
-    Add1Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
-        { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add1Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
-        { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
-}
-
-void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
-    const Input& sub2, Players view)
-{
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    size_t add1_index = index(add1.king[view], add1.piece_sq, add1.piece, view);
+    size_t add2_index = index(add2.king[view], add2.piece_sq, add2.piece, view);
+    size_t sub1_index = index(sub1.king[view], sub1.piece_sq, sub1.piece, view);
+    size_t sub2_index = index(sub2.king[view], sub2.piece_sq, sub2.piece, view);
 
     NN::Accumulator::add2sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
         net.hiddenWeights[add2_index], net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
 }
 
-void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
-    const InputPair& sub1, const InputPair& sub2)
-{
-    Add2Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
-        { sub1.w_king, sub1.piece_sq, sub1.piece }, { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add2Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
-        { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
-}
-
 void Accumulator::AddInput(const InputPair& input)
 {
-    AddInput({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    AddInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    AddInput({ input.king[WHITE], input.piece_sq, input.piece }, WHITE);
+    AddInput({ input.king[BLACK], input.piece_sq, input.piece }, BLACK);
 }
 
 void Accumulator::AddInput(const Input& input, Players view)
@@ -189,8 +165,8 @@ void Accumulator::AddInput(const Input& input, Players view)
 
 void Accumulator::SubInput(const InputPair& input)
 {
-    SubInput({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    SubInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    SubInput({ input.king[WHITE], input.piece_sq, input.piece }, WHITE);
+    SubInput({ input.king[BLACK], input.piece_sq, input.piece }, BLACK);
 }
 
 void Accumulator::SubInput(const Input& input, Players view)
@@ -203,7 +179,7 @@ void Accumulator::Recalculate(const BoardState& board_)
 {
     Recalculate(board_, WHITE);
     Recalculate(board_, BLACK);
-    acc_is_valid = true;
+    acc_is_valid = { true, true };
 }
 
 void Accumulator::Recalculate(const BoardState& board_, Players view)
@@ -286,8 +262,9 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
     expected.side = { net.hiddenBias, net.hiddenBias };
-    auto w_king = board.GetKing(WHITE);
-    auto b_king = board.GetKing(BLACK);
+    std::array<Square, N_PLAYERS> king;
+    king[WHITE] = board.GetKing(WHITE);
+    king[BLACK] = board.GetKing(BLACK);
 
     for (int i = 0; i < N_PIECES; i++)
     {
@@ -297,7 +274,7 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
         while (bb)
         {
             Square sq = LSBpop(bb);
-            expected.AddInput({ w_king, b_king, sq, piece });
+            expected.AddInput({ king, sq, piece });
         }
     }
 
@@ -307,9 +284,8 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
 void Network::StoreLazyUpdates(
     const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move)
 {
-    acc.acc_is_valid = false;
-    acc.white_requires_recalculation = false;
-    acc.black_requires_recalculation = false;
+    acc.acc_is_valid = { false, false };
+    acc.requires_recalculation = { false, false };
     acc.adds = {};
     acc.n_adds = 0;
     acc.subs = {};
@@ -328,23 +304,16 @@ void Network::StoreLazyUpdates(
     auto to_piece = post_move_board.GetSquare(to_sq);
     auto cap_piece = prev_move_board.GetSquare(to_sq);
 
-    auto w_king = post_move_board.GetKing(WHITE);
-    auto b_king = post_move_board.GetKing(BLACK);
+    std::array<Square, N_PLAYERS> king;
+    king[WHITE] = post_move_board.GetKing(WHITE);
+    king[BLACK] = post_move_board.GetKing(BLACK);
 
     if (from_piece == Piece(KING, stm))
     {
         if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm)
             || ((GetFile(from_sq) <= FILE_D) ^ (GetFile(to_sq) <= FILE_D)))
         {
-            if (stm == WHITE)
-            {
-                acc.white_requires_recalculation = true;
-            }
-            else
-            {
-                acc.black_requires_recalculation = true;
-            }
-
+            acc.requires_recalculation[stm] = true;
             acc.board = post_move_board;
 
             if (move.IsCastle())
@@ -359,30 +328,30 @@ void Network::StoreLazyUpdates(
                 acc.n_adds = 2;
                 acc.n_subs = 2;
 
-                acc.adds[0] = { w_king, b_king, king_end, from_piece };
-                acc.adds[1] = { w_king, b_king, rook_end, cap_piece };
+                acc.adds[0] = { king, king_end, from_piece };
+                acc.adds[1] = { king, rook_end, cap_piece };
 
-                acc.subs[0] = { w_king, b_king, king_start, from_piece };
-                acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
+                acc.subs[0] = { king, king_start, from_piece };
+                acc.subs[1] = { king, rook_start, cap_piece };
             }
             else if (move.IsCapture())
             {
                 acc.n_adds = 1;
                 acc.n_subs = 2;
 
-                acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+                acc.adds[0] = { king, to_sq, from_piece };
 
-                acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-                acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
+                acc.subs[0] = { king, from_sq, from_piece };
+                acc.subs[1] = { king, to_sq, cap_piece };
             }
             else
             {
                 acc.n_adds = 1;
                 acc.n_subs = 1;
 
-                acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+                acc.adds[0] = { king, to_sq, from_piece };
 
-                acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+                acc.subs[0] = { king, from_sq, from_piece };
             }
         }
         else if (move.IsCastle())
@@ -397,30 +366,30 @@ void Network::StoreLazyUpdates(
             acc.n_adds = 2;
             acc.n_subs = 2;
 
-            acc.adds[0] = { w_king, b_king, king_end, from_piece };
-            acc.adds[1] = { w_king, b_king, rook_end, cap_piece };
+            acc.adds[0] = { king, king_end, from_piece };
+            acc.adds[1] = { king, rook_end, cap_piece };
 
-            acc.subs[0] = { w_king, b_king, king_start, from_piece };
-            acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
+            acc.subs[0] = { king, king_start, from_piece };
+            acc.subs[1] = { king, rook_start, cap_piece };
         }
         else if (move.IsCapture())
         {
             acc.n_adds = 1;
             acc.n_subs = 2;
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+            acc.adds[0] = { king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
+            acc.subs[1] = { king, to_sq, cap_piece };
         }
         else
         {
             acc.n_adds = 1;
             acc.n_subs = 1;
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+            acc.adds[0] = { king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
         }
     }
     else
@@ -430,19 +399,19 @@ void Network::StoreLazyUpdates(
             acc.n_adds = 1;
             acc.n_subs = 2;
 
-            acc.adds[0] = { w_king, b_king, to_sq, to_piece };
+            acc.adds[0] = { king, to_sq, to_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
+            acc.subs[1] = { king, to_sq, cap_piece };
         }
         else if (move.IsPromotion())
         {
             acc.n_adds = 1;
             acc.n_subs = 1;
 
-            acc.adds[0] = { w_king, b_king, to_sq, to_piece };
+            acc.adds[0] = { king, to_sq, to_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
@@ -451,110 +420,68 @@ void Network::StoreLazyUpdates(
             acc.n_adds = 1;
             acc.n_subs = 2;
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+            acc.adds[0] = { king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) };
+            acc.subs[0] = { king, from_sq, from_piece };
+            acc.subs[1] = { king, ep_capture_sq, Piece(PAWN, !stm) };
         }
         else if (move.IsCapture())
         {
             acc.n_adds = 1;
             acc.n_subs = 2;
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+            acc.adds[0] = { king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
+            acc.subs[1] = { king, to_sq, cap_piece };
         }
         else
         {
             acc.n_adds = 1;
             acc.n_subs = 1;
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+            acc.adds[0] = { king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+            acc.subs[0] = { king, from_sq, from_piece };
         }
     }
 }
 
-void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc)
+void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc, Players view)
 {
-    if (next_acc.acc_is_valid)
+    if (next_acc.acc_is_valid[view])
     {
         return;
     }
 
-    assert(!(next_acc.white_requires_recalculation && next_acc.black_requires_recalculation));
+    assert(!(next_acc.requires_recalculation[WHITE] && next_acc.requires_recalculation[BLACK]));
 
-    if (next_acc.white_requires_recalculation)
+    if (next_acc.requires_recalculation[view])
     {
-        table.Recalculate(next_acc, next_acc.board, WHITE, next_acc.board.GetKing(WHITE));
-
-        if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
-        {
-            Add1Sub1(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, BLACK);
-        }
-        else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
-        {
-            Add1Sub2(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].b_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK);
-        }
-        else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
-        {
-            Add2Sub2(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.adds[1].b_king, next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
-                { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].b_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK);
-        }
-    }
-    else if (next_acc.black_requires_recalculation)
-    {
-        table.Recalculate(next_acc, next_acc.board, BLACK, next_acc.board.GetKing(BLACK));
-
-        if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
-        {
-            Add1Sub1(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, WHITE);
-        }
-        else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
-        {
-            Add1Sub2(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].w_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE);
-        }
-        else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
-        {
-            Add2Sub2(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.adds[1].w_king, next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
-                { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].w_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE);
-        }
+        table.Recalculate(next_acc, next_acc.board, view, next_acc.board.GetKing(view));
     }
     else
     {
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
-            Add1Sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0]);
+            Add1Sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], view);
         }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
         {
-            Add1Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1]);
+            Add1Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1], view);
         }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
         {
-            Add2Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1]);
+            Add2Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1], view);
         }
         else if (next_acc.n_adds == 0 && next_acc.n_subs == 0)
         {
             // null move
-            next_acc.side = prev_acc.side;
+            next_acc.side[view] = prev_acc.side[view];
         }
     }
 
-    next_acc.acc_is_valid = true;
+    next_acc.acc_is_valid[view] = true;
 }
 
 int calculate_output_bucket(int pieces)

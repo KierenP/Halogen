@@ -45,8 +45,7 @@ struct Input
 // represents a pair of inputs (one on each accumulator side)
 struct InputPair
 {
-    Square w_king;
-    Square b_king;
+    std::array<Square, N_PLAYERS> king;
     Square piece_sq;
     Pieces piece;
 };
@@ -71,9 +70,8 @@ struct Accumulator
     void Recalculate(const BoardState& board, Players side);
 
     // data for lazy updates
-    bool acc_is_valid = false;
-    bool white_requires_recalculation = false;
-    bool black_requires_recalculation = false;
+    std::array<bool, N_PLAYERS> acc_is_valid = { false, false };
+    std::array<bool, N_PLAYERS> requires_recalculation = { false, false };
     std::array<InputPair, 2> adds = {};
     size_t n_adds = 0;
     std::array<InputPair, 2> subs = {};
@@ -117,7 +115,7 @@ public:
     void StoreLazyUpdates(
         const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
 
-    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
+    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc, Players view);
 
 private:
     AccumulatorTable table;
