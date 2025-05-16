@@ -100,6 +100,17 @@ inline vec madd_epi16(const vec& a, const vec& b)
 #endif
 }
 
+inline vec maddubs_epi16(const vec& a, const vec& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_maddubs_epi16(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_maddubs_epi16(a, b);
+#elif defined(USE_SSE4)
+    return _mm_maddubs_epi16(a, b);
+#endif
+}
+
 inline vec max_epi16(const vec& a, const vec& b)
 {
 #if defined(USE_AVX512)
@@ -141,6 +152,51 @@ inline vec set1_epi16(int16_t a)
     return _mm256_set1_epi16(a);
 #elif defined(USE_SSE4)
     return _mm_set1_epi16(a);
+#endif
+}
+
+inline vec slli_epi16(const vec& a, int imm)
+{
+#if defined(USE_AVX512)
+    return _mm512_slli_epi16(a, imm);
+#elif defined(USE_AVX2)
+    return _mm256_slli_epi16(a, imm);
+#elif defined(USE_SSE4)
+    return _mm_slli_epi16(a, imm);
+#endif
+}
+
+inline vec mulhi_epi16(const vec& a, const vec& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_mulhi_epi16(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_mulhi_epi16(a, b);
+#elif defined(USE_SSE4)
+    return _mm_mulhi_epi16(a, b);
+#endif
+}
+
+inline vec packus_epi16(const vec& a, const vec& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_packus_epi16(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_packus_epi16(a, b);
+#elif defined(USE_SSE4)
+    return _mm_packus_epi16(a, b);
+#endif
+}
+
+template <int imm>
+inline vec shuffle_epi32(const vec& a)
+{
+#if defined(USE_AVX512)
+    return _mm512_shuffle_epi32(a, imm);
+#elif defined(USE_AVX2)
+    return _mm256_shuffle_epi32(a, imm);
+#elif defined(USE_SSE4)
+    return _mm_shuffle_epi32(a, imm);
 #endif
 }
 
