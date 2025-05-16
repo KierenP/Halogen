@@ -29,7 +29,7 @@ struct raw_network
 
 [[maybe_unused]] auto verify_network_size = []
 {
-    assert(sizeof(network) == gNetSize);
+    assert(sizeof(raw_network) == gNetSize);
     return true;
 }();
 
