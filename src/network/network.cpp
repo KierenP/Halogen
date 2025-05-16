@@ -45,7 +45,26 @@ struct network
     shuffled_net.hiddenWeights = raw_net.hiddenWeights;
     shuffled_net.hiddenBias = raw_net.hiddenBias;
 
-    // TODO: permute for avx2 and avx512
+#if defined(USE_AVX2)
+
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < HIDDEN_NEURONS * 2; j += sizeof(SIMD::vec) / sizeof(int8_t))
+        {
+#if defined(USE_AVX512)
+            constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
+#else
+            constexpr std::array mapping = { 0, 2, 1, 3 };
+#endif
+            for (size_t k = 0; k < sizeof(SIMD::vec) / sizeof(int8_t); k++)
+            {
+                shuffled_net.outputWeights[i][j + k]
+                    = static_cast<int8_t>(raw_net.outputWeights[i][j + mapping[k / 8] * 8 + k % 8]);
+            }
+        }
+    }
+
+#else
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < HIDDEN_NEURONS * 2; j++)
@@ -53,6 +72,8 @@ struct network
             shuffled_net.outputWeights[i][j] = static_cast<int8_t>(raw_net.outputWeights[i][j]);
         }
     }
+
+#endif
 
     shuffled_net.outputBias = raw_net.outputBias;
     return shuffled_net;
