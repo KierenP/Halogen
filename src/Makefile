@@ -46,8 +46,11 @@ DFLAGS = -O0 $(AFLAGS) -Werror
 
 LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
 
-# Different instruction sets targeting different architectures. For the AVX sets, we consider them a series where each level contains
-# all previous sets instructions
+# Different instruction sets targeting different architectures.
+
+# AMD processors before Zen 3 implement PEXT in microcode, so we support bmi as a optional orthogonal configuration for AVX2
+# For AVX512 and above, we use PEXT as a default instruction set
+PEXTFLAGS = -DUSE_PEXT -mbmi -mbmi2
 
 # Nehalem (2008)
 SSE4FLAGS = -DUSE_SSE4 -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2
@@ -56,12 +59,9 @@ AVXFLAGS = -DUSE_AVX $(SSE4FLAGS) -mavx -mfma
 # Haswell (2013)
 AVX2FLAGS = -DUSE_AVX2 $(AVXFLAGS) -mavx2 -DUSE_POPCNT -mpopcnt
 # Skylake (2017)
-AVX512FLAGS = -DUSE_AVX512 $(AVX2FLAGS) -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
+AVX512FLAGS = -DUSE_AVX512 $(PEXTFLAGS) $(AVX2FLAGS) -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
 # Skylake (2019)
-AVX512VNNIFLAGS = -DUSE_AVX512_VNNI $(AVX512FLAGS) -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
-
-# AMD processors before Zen 3 implement PEXT in microcode, so we support bmi as a optional orthogonal configuration, on AVX2 and newer
-PEXTFLAGS = -DUSE_PEXT -mbmi -mbmi2
+AVX512VNNIFLAGS = -DUSE_AVX512_VNNI $(PEXTFLAGS) $(AVX512FLAGS) -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
 
 #----------------------------------------------------------------------------------------------------------------------
 # OS and compiler specific flags
@@ -116,13 +116,17 @@ endif
 
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512_VNNI
-else ifneq ($(findstring __AVX512__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX512__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512
-else ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX2
-else ifneq ($(findstring __AVX__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __AVX__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX
-else ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
+endif
+ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_SSE4
 endif
 
@@ -211,34 +215,22 @@ avx2: EXE = $(BINARY_DIR)/Halogen-avx2
 avx2: binary
 
 .PHONY: avx2-pext
-avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
+avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
 avx2-pext: LDFLAGS += -flto -static 
 avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
 avx2-pext: binary
 
 .PHONY: avx512
-avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS)
+avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
 avx512: LDFLAGS += -flto -static 
 avx512: EXE = $(BINARY_DIR)/Halogen-avx512
 avx512: binary
 
-.PHONY: avx512-pext
-avx512-pext: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
-avx512-pext: LDFLAGS += -flto -static 
-avx512-pext: EXE = $(BINARY_DIR)/Halogen-avx512-pext
-avx512-pext: binary
-
 .PHONY: avx512vnni
-avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS)
+avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
 avx512vnni: LDFLAGS += -flto -static 
 avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni
 avx512vnni: binary
-
-.PHONY: avx512vnni-pext
-avx512vnni-pext: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
-avx512vnni-pext: LDFLAGS += -flto -static 
-avx512vnni-pext: EXE = $(BINARY_DIR)/Halogen-avx512vnni-pext
-avx512vnni-pext: binary
 
 .PHONY: release
 release:
@@ -248,9 +240,7 @@ release:
 	$(MAKE) avx2
 	$(MAKE) avx2-pext
 	$(MAKE) avx512
-	$(MAKE) avx512-pext
 	$(MAKE) avx512vnni
-	$(MAKE) avx512vnni-pext
 
 #----------------------------------------------------------------------------------------------------------------------
 
