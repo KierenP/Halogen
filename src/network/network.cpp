@@ -19,13 +19,13 @@ namespace NN
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
 
-struct network
+struct raw_network
 {
     alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
     alignas(64) std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
     alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
     alignas(64) std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
-} const& net = reinterpret_cast<const network&>(*gNetData);
+} const& raw_net = reinterpret_cast<const raw_network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
 {
@@ -33,6 +33,30 @@ struct network
     return true;
 }();
 
+struct network
+{
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
+    alignas(64) std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
+    alignas(64) std::array<std::array<int8_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
+    alignas(64) std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
+} const& net = []
+{
+    network shuffled_net;
+    shuffled_net.hiddenWeights = raw_net.hiddenWeights;
+    shuffled_net.hiddenBias = raw_net.hiddenBias;
+
+    // TODO: permute for avx2 and avx512
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < HIDDEN_NEURONS * 2; j++)
+        {
+            shuffled_net.outputWeights[i][j] = static_cast<int8_t>(raw_net.outputWeights[i][j]);
+        }
+    }
+
+    shuffled_net.outputBias = raw_net.outputBias;
+    return shuffled_net;
+}();
 constexpr int16_t L2_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
@@ -562,8 +586,11 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     int32_t output = 0;
     inference_output(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);
 
-    return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
-        / L2_SCALE;
+    // within DotProductSCReLU, we scaled down the FT activations to 0..127, hence the output needs to be scaled up
+    output *= L1_SCALE;
+    output /= 127;
+
+    return (output + net.outputBias[output_bucket]) * SCALE_FACTOR / L1_SCALE / L2_SCALE;
 }
 
 Score Network::slow_eval(const BoardState& board)
