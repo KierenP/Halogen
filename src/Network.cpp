@@ -87,12 +87,12 @@ struct network
 
 #endif
 
-    // l1 activations are stores as int32_t, so it makes it easier if the bias is also int32_t
+    // rescale l1 bias to account for FT_activation adjusting to 0-127 scale
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            shuffled_net.l1_bias[i][j] = raw_net.l1_bias[i][j];
+            shuffled_net.l1_bias[i][j] = raw_net.l1_bias[i][j] * 127 / FT_SCALE;
         }
     }
 
