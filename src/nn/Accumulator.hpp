@@ -51,7 +51,7 @@ void sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b)
         SIMD::store_si(&a[i + stride], a_vec2);
     }
 #else
-    for (size_t i = 0; i < HIDDEN_NEURONS; i++)
+    for (size_t i = 0; i < SIZE; i++)
     {
         a[i] -= b[i];
     }

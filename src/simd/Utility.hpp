@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <immintrin.h>
+#include <iostream>
+#include <simd/Definitions.hpp>
 
 namespace SIMD
 {
@@ -34,6 +36,19 @@ inline int32_t hsum_epi32(__m512i v)
 {
     auto sum256 = _mm256_add_epi32(_mm512_castsi512_si256(v), _mm512_extracti64x4_epi64(v, 1));
     return hsum_epi32(sum256);
+}
+#endif
+
+#if defined(SIMD_ENABLED)
+template <class T, class R>
+inline void Log(const R& value)
+{
+    const size_t n = sizeof(R) / sizeof(T);
+    T buffer[n];
+    SIMD::store_si((R*)buffer, value);
+    for (size_t i = 0; i < n; i++)
+        std::cout << (int)buffer[i] << " ";
+    std::cout << std::endl;
 }
 #endif
 
