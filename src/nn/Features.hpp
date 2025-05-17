@@ -9,7 +9,7 @@
 #include <immintrin.h>
 #include <iostream>
 
-constexpr int16_t FT_SCALE = 255;
+constexpr int16_t FT_SCALE = 362;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
@@ -33,12 +33,12 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to achieve
         // this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16 bits. With an
-        // appropriate initial left shift, 255 * 255 * 2^7 / 2^16 = 127.00 we can calculate the screlu and then get a
+        // appropriate initial left shift, 362 * 362 * 2^6 / 2^16 = 127.97 we can calculate the screlu and then get a
         // value that fits into a int8 for the dense layer. This value when multiplied by the weights will give a result
         // of 127.00 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
 
-        auto p1 = SIMD::slli_epi16(stm_vec1, 7);
-        auto p2 = SIMD::slli_epi16(stm_vec2, 7);
+        auto p1 = SIMD::slli_epi16(stm_vec1, 6);
+        auto p2 = SIMD::slli_epi16(stm_vec2, 6);
         p1 = SIMD::mulhi_epi16(p1, stm_vec1);
         p2 = SIMD::mulhi_epi16(p2, stm_vec2);
 
@@ -52,8 +52,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         auto nstm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride]));
         nstm_vec1 = SIMD::max_epi16(zero, nstm_vec1);
         nstm_vec2 = SIMD::max_epi16(zero, nstm_vec2);
-        auto p1 = SIMD::slli_epi16(nstm_vec1, 7);
-        auto p2 = SIMD::slli_epi16(nstm_vec2, 7);
+        auto p1 = SIMD::slli_epi16(nstm_vec1, 6);
+        auto p2 = SIMD::slli_epi16(nstm_vec2, 6);
         p1 = SIMD::mulhi_epi16(p1, nstm_vec1);
         p2 = SIMD::mulhi_epi16(p2, nstm_vec2);
         p1 = SIMD::packus_epi16(p1, p2);
@@ -63,14 +63,14 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     for (size_t i = 0; i < FT_SIZE; i++)
     {
         int16_t crelu = std::clamp(stm[i], int16_t(0), FT_SCALE);
-        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
+        uint8_t screlu = (crelu * (crelu << 6)) >> 16;
         output[i] = screlu;
     }
 
     for (size_t i = 0; i < FT_SIZE; i++)
     {
         int16_t crelu = std::clamp(nstm[i], int16_t(0), FT_SCALE);
-        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
+        uint8_t screlu = (crelu * (crelu << 6)) >> 16;
         output[i + FT_SIZE] = screlu;
     }
 #endif
