@@ -11,7 +11,7 @@
 class Move;
 
 constexpr size_t INPUT_NEURONS = 12 * 64;
-constexpr size_t HIDDEN_NEURONS = 1024;
+constexpr size_t HIDDEN_NEURONS = 1536;
 
 constexpr size_t OUTPUT_BUCKETS = 8;
 
