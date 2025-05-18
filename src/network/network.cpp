@@ -28,8 +28,8 @@ struct raw_network
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> out_weight = {};
-    alignas(64) std::array<float, OUTPUT_BUCKETS> out_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& raw_net = reinterpret_cast<const raw_network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
@@ -46,8 +46,8 @@ struct network
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> out_weight = {};
-    alignas(64) std::array<float, OUTPUT_BUCKETS> out_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = []
 {
     network shuffled_net;
@@ -101,78 +101,12 @@ struct network
 
     shuffled_net.l2_weight = raw_net.l2_weight;
     shuffled_net.l2_bias = raw_net.l2_bias;
-    shuffled_net.out_weight = raw_net.out_weight;
-    shuffled_net.out_bias = raw_net.out_bias;
+    shuffled_net.l3_weight = raw_net.l3_weight;
+    shuffled_net.l3_bias = raw_net.l3_bias;
     return shuffled_net;
 }();
 constexpr int16_t L2_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
-
-template <typename T, size_t SIZE>
-[[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-        ret[i] = std::max(T(0), source[i]);
-
-    return ret;
-}
-
-template <typename T, size_t SIZE, T SCALE>
-[[nodiscard]] std::array<T, SIZE> CReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-        ret[i] = std::clamp(source[i], T(0), SCALE);
-
-    return ret;
-}
-
-template <typename T, size_t SIZE, T SCALE>
-[[nodiscard]] std::array<T, SIZE> SCReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        ret[i] = std::clamp(source[i], T(0), SCALE);
-        ret[i] = ret[i] * ret[i] / SCALE;
-    }
-
-    return ret;
-}
-
-template <typename T_out, typename T_in, size_t SIZE>
-void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
-    const std::array<T_in, SIZE * 2>& weights, T_out& output)
-{
-    // This uses the lizard-SCReLU trick: Given stm[i] < 255, and weights[i] < 126, we want to compute stm[i] * stm[i] *
-    // weights[i] to do the SCReLU dot product. By first doing stm[i] * weights[i], the result fits within the int16_t
-    // type. Then multiply by stm[i] and accumulate.
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        T_in partial = stm[i] * weights[i];
-        output += partial * stm[i];
-    }
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        T_in partial = other[i] * weights[i + SIZE];
-        output += partial * other[i];
-    }
-}
-
-template <typename T_out, typename T1_in, typename T2_in, size_t SIZE>
-void DotProduct(const std::array<T1_in, SIZE>& a, const std::array<T2_in, SIZE>& b, T_out& output)
-{
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        output += a[i] * b[i];
-    }
-}
 
 int get_king_bucket(Square king_sq, Side view)
 {
@@ -642,38 +576,19 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
 
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
     NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation);
-
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<int32_t, L1_SIZE> l1_activation = net.l1_bias[output_bucket];
     NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], l1_activation);
-
     assert(
         std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 127 * L1_SCALE; }));
 
-    // from here on, we use float activations
-    // TODO: SIMD
-    std::array<float, L1_SIZE> l1_float;
+    alignas(64) std::array<float, L2_SIZE> l2_activation = net.l2_bias[output_bucket];
+    NN::Features::L2_activation(l1_activation, net.l2_weight[output_bucket], l2_activation);
+    assert(std::all_of(l2_activation.begin(), l2_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
 
-    for (size_t i = 0; i < L1_SIZE; i++)
-    {
-        // 127 to match FT_activation adjustment
-        l1_float[i] = float(l1_activation[i]) * (1.f / 127 / L1_SCALE);
-    }
-
-    assert(std::all_of(l1_float.begin(), l1_float.end(), [](auto x) { return 0 <= x && x <= 1; }));
-
-    std::array<float, L2_SIZE> l2 = net.l2_bias[output_bucket];
-
-    for (size_t i = 0; i < L2_SIZE; i++)
-    {
-        DotProduct(l1_float, net.l2_weight[output_bucket][i], l2[i]);
-    }
-
-    l2 = CReLU<float, L2_SIZE, 1.f>(l2);
-
-    float output = net.out_bias[output_bucket];
-    DotProduct(l2, net.out_weight[output_bucket], output);
+    float output = net.l3_bias[output_bucket];
+    NN::Features::L3_activation(l2_activation, net.l3_weight[output_bucket], output);
 
     return output * SCALE_FACTOR;
 }
