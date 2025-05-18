@@ -21,7 +21,7 @@ struct raw_network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE * 2>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
@@ -39,7 +39,7 @@ struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<std::array<int8_t, FT_SIZE * 2>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
@@ -53,11 +53,11 @@ struct network
 
 #if defined(USE_AVX2)
 
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    for (size_t i = 0; i < raw_net.l1_weight.size(); i++)
     {
-        for (size_t j = 0; j < L1_SIZE; j++)
+        for (size_t j = 0; j < raw_net.l1_weight[i].size(); j++)
         {
-            for (size_t k = 0; k < FT_SIZE * 2; k += sizeof(SIMD::vec) / sizeof(int8_t))
+            for (size_t k = 0; k < raw_net.l1_weight[i][j].size(); k += sizeof(SIMD::vec) / sizeof(int8_t))
             {
 #if defined(USE_AVX512)
                 constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
@@ -644,7 +644,7 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
-    alignas(64) std::array<uint8_t, FT_SIZE * 2> ft_activation;
+    alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
     NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation);
 
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
