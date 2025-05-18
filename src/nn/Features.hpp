@@ -17,19 +17,24 @@ namespace NN::Features
 {
 
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int16_t, FT_SIZE>& nstm,
-    std::array<uint8_t, FT_SIZE * 2>& output)
+    std::array<uint8_t, FT_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
     static_assert(FT_SIZE % (stride * 2) == 0);
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi16(FT_SCALE);
-    for (size_t i = 0; i < FT_SIZE; i += stride * 2)
+    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 2)
     {
+        // TODO: skip max trick
         auto stm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&stm[i]));
         auto stm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride]));
+        auto stm_vec3 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2]));
+        auto stm_vec4 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride + FT_SIZE / 2]));
         stm_vec1 = SIMD::max_epi16(zero, stm_vec1);
         stm_vec2 = SIMD::max_epi16(zero, stm_vec2);
+        stm_vec3 = SIMD::max_epi16(zero, stm_vec3);
+        stm_vec4 = SIMD::max_epi16(zero, stm_vec4);
 
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to achieve
         // this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16 bits. With an
@@ -39,54 +44,61 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
         auto p1 = SIMD::slli_epi16(stm_vec1, 7);
         auto p2 = SIMD::slli_epi16(stm_vec2, 7);
-        p1 = SIMD::mulhi_epi16(p1, stm_vec1);
-        p2 = SIMD::mulhi_epi16(p2, stm_vec2);
+        p1 = SIMD::mulhi_epi16(p1, stm_vec3);
+        p2 = SIMD::mulhi_epi16(p2, stm_vec4);
 
         // We permute the weights at startup to match the packus.
         p1 = SIMD::packus_epi16(p1, p2);
         SIMD::store_si(&output[i], p1);
     }
-    for (size_t i = 0; i < FT_SIZE; i += stride * 2)
+    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 2)
     {
+        // TODO: skip max trick
         auto nstm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i]));
         auto nstm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride]));
+        auto nstm_vec3 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2]));
+        auto nstm_vec4 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride + FT_SIZE / 2]));
         nstm_vec1 = SIMD::max_epi16(zero, nstm_vec1);
         nstm_vec2 = SIMD::max_epi16(zero, nstm_vec2);
+        nstm_vec3 = SIMD::max_epi16(zero, nstm_vec3);
+        nstm_vec4 = SIMD::max_epi16(zero, nstm_vec4);
         auto p1 = SIMD::slli_epi16(nstm_vec1, 7);
         auto p2 = SIMD::slli_epi16(nstm_vec2, 7);
-        p1 = SIMD::mulhi_epi16(p1, nstm_vec1);
-        p2 = SIMD::mulhi_epi16(p2, nstm_vec2);
+        p1 = SIMD::mulhi_epi16(p1, nstm_vec3);
+        p2 = SIMD::mulhi_epi16(p2, nstm_vec4);
         p1 = SIMD::packus_epi16(p1, p2);
-        SIMD::store_si(&output[i + FT_SIZE], p1);
+        SIMD::store_si(&output[i + FT_SIZE / 2], p1);
     }
 #else
-    for (size_t i = 0; i < FT_SIZE; i++)
+    for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t crelu = std::clamp(stm[i], int16_t(0), FT_SCALE);
-        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
-        output[i] = screlu;
+        int16_t a = std::clamp(stm[i], int16_t(0), FT_SCALE);
+        int16_t b = std::clamp(stm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
+        uint8_t mul = (a * (b << 7)) >> 16;
+        output[i] = mul;
     }
 
-    for (size_t i = 0; i < FT_SIZE; i++)
+    for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t crelu = std::clamp(nstm[i], int16_t(0), FT_SCALE);
-        uint8_t screlu = (crelu * (crelu << 7)) >> 16;
-        output[i + FT_SIZE] = screlu;
+        int16_t a = std::clamp(nstm[i], int16_t(0), FT_SCALE);
+        int16_t b = std::clamp(nstm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
+        uint8_t mul = (a * (b << 7)) >> 16;
+        output[i + FT_SIZE / 2] = mul;
     }
 #endif
 }
 
-void L1_activation(const std::array<uint8_t, FT_SIZE * 2>& ft_activation,
-    const std::array<std::array<int8_t, FT_SIZE * 2>, L1_SIZE>& l1_weight, std::array<int32_t, L1_SIZE>& output)
+void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
+    const std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>& l1_weight, std::array<int32_t, L1_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
     for (size_t i = 0; i < L1_SIZE; i++)
     {
         constexpr auto stride = SIMD::vec_size / sizeof(int8_t);
-        static_assert((FT_SIZE * 2) % stride == 0);
+        static_assert(FT_SIZE % stride == 0);
         const auto madd_helper = SIMD::set1_epi16(1);
         auto r1 = SIMD::setzero_si();
-        for (size_t j = 0; j < FT_SIZE * 2; j += stride)
+        for (size_t j = 0; j < FT_SIZE; j += stride)
         {
             // dpbusd_epi32 would be nice to use here (VNNI), and would also allow us to double the values in the
             // temporary int16 without overflow?
@@ -101,7 +113,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE * 2>& ft_activation,
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
     {
-        for (size_t j = 0; j < FT_SIZE * 2; j++)
+        for (size_t j = 0; j < FT_SIZE; j++)
         {
             output[i] += ft_activation[j] * l1_weight[i][j];
         }
