@@ -174,4 +174,35 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 #endif
 }
 
+void L2_activation(const std::array<int32_t, L1_SIZE>& l1_activation,
+    const std::array<std::array<float, L1_SIZE>, L2_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
+{
+    // TODO: SIMD
+    std::array<float, L1_SIZE> l1_float;
+    for (size_t i = 0; i < L1_SIZE; i++)
+    {
+        // 127 to match FT_activation adjustment
+        l1_float[i] = float(l1_activation[i]) * (1.f / 127 / L1_SCALE);
+    }
+
+    for (size_t i = 0; i < L2_SIZE; i++)
+    {
+        for (size_t j = 0; j < L1_SIZE; j++)
+        {
+            output[i] += l1_float[j] * l2_weight[i][j];
+        }
+
+        output[i] = std::clamp(output[i], 0.f, 1.f);
+    }
+}
+
+void L3_activation(
+    const std::array<float, L2_SIZE>& l2_activation, const std::array<float, L2_SIZE>& l3_weight, float& output)
+{
+    // TODO: SIMD
+    for (size_t i = 0; i < L2_SIZE; i++)
+    {
+        output += l2_activation[i] * l3_weight[i];
+    }
+}
 }
