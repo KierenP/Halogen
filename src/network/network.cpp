@@ -658,7 +658,7 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     for (size_t i = 0; i < L1_SIZE; i++)
     {
         // 127 to match FT_activation adjustment
-        l1_float[i] = float(l1_activation[i]) / (127 * L1_SCALE);
+        l1_float[i] = float(l1_activation[i]) * (1.f / 127 / L1_SCALE);
     }
 
     assert(std::all_of(l1_float.begin(), l1_float.end(), [](auto x) { return 0 <= x && x <= 1; }));
