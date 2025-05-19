@@ -39,7 +39,7 @@ struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
@@ -51,8 +51,10 @@ struct network
     shuffled_net.ft_weight = raw_net.ft_weight;
     shuffled_net.ft_bias = raw_net.ft_bias;
 
-#if defined(USE_AVX2)
+    std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight;
 
+#if defined(USE_AVX2)
+    // shuffle around l1 weights to match packus interleaving
     for (size_t i = 0; i < raw_net.l1_weight.size(); i++)
     {
         for (size_t j = 0; j < raw_net.l1_weight[i].size(); j++)
@@ -66,25 +68,23 @@ struct network
 #endif
                 for (size_t x = 0; x < sizeof(SIMD::vec) / sizeof(int8_t); x++)
                 {
-                    shuffled_net.l1_weight[i][j][k + x]
+                    l1_weight[i][j][k + x]
                         = static_cast<int8_t>(raw_net.l1_weight[i][j][k + mapping[x / 8] * 8 + x % 8]);
                 }
             }
         }
     }
-
 #else
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            for (size_t k = 0; k < FT_SIZE * 2; k++)
+            for (size_t k = 0; k < FT_SIZE; k++)
             {
-                shuffled_net.l1_weight[i][j][k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+                l1_weight[i][j][k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
             }
         }
     }
-
 #endif
 
     // rescale l1 bias to account for FT_activation adjusting to 0-127 scale
@@ -95,6 +95,34 @@ struct network
             shuffled_net.l1_bias[i][j] = raw_net.l1_bias[i][j] * 127 / FT_SCALE;
         }
     }
+
+#if defined(SIMD_ENABLED)
+    // transpose and interleave the weights in blocks of 4 FT activations
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < L1_SIZE; j++)
+        {
+            for (size_t k = 0; k < FT_SIZE; k++)
+            {
+                // we want something that looks like:
+                //[bucket][nibble][output][4]
+                shuffled_net.l1_weight[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)]
+                    = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+            }
+        }
+    }
+#else
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < L1_SIZE; j++)
+        {
+            for (size_t k = 0; k < FT_SIZE; k++)
+            {
+                shuffled_net.l1_weight[i][j * FT_SIZE + k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+            }
+        }
+    }
+#endif
 
     shuffled_net.l2_weight = raw_net.l2_weight;
     shuffled_net.l2_bias = raw_net.l2_bias;
@@ -579,11 +607,14 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
 
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
-    NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation);
+    alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
+    size_t sparse_nibbles_size = 0;
+    NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<int32_t, L1_SIZE> l1_activation = net.l1_bias[output_bucket];
-    NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], l1_activation);
+    NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], sparse_ft_nibbles, sparse_nibbles_size,
+        l1_activation, raw_net.l1_weight[output_bucket]);
     assert(
         std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 127 * L1_SCALE; }));
 

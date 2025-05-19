@@ -1,12 +1,13 @@
 #pragma once
 
+#include "BitBoardDefine.h"
 #include "Network.h"
+#include "StaticVector.h"
 #include "simd/Definitions.hpp"
 #include "simd/Utility.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <immintrin.h>
 #include <iostream>
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
@@ -20,28 +21,69 @@ constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
+// For the expensive FT -> L1 matmul, we want to do a sparse multiplication. The naive approach would be to construct a
+// vector of non zero FT activations, and then multiply by the corresponding L1 weights. Because we want to accumulate
+// u8*i8 into i32 using two madd instructions, it makes it much easier if we work in groups of 4 FT activations at a
+// time (called a FT nibble). Hence, we check blocks of 4 adjacent FT activations in a stride and omit any blocks of 4
+// zeros.
+//
+// In order to efficiently encode the sparse FT nibbles, we process them in blocks of 8 at a time (8 * 4 = 32). Using a
+// movemask instruction along with a greater than, we can extract one byte at a time to represent the sparsity of 8 FT
+// nibbles. We precompute a 256 entry lookup table to map to the corresponding mask. For example, if we the mask is
+// 0b10001001, then we would extract indicies = { 0, 3, 7 }. We store each index in a u16, so that 8 of them occupy
+// a _m128i register. This allows us to very quickly apply a offset using a add_epi16 to efficiently map the indicies to
+// the correct FT nibbles.
+struct SparseAffineEntry
+{
+    alignas(16) std::array<uint16_t, 8> indicies;
+    size_t count;
+};
+
+struct SparseAffineTable
+{
+    SparseAffineTable()
+    {
+        for (uint64_t i = 0; i < 256; i++)
+        {
+            uint64_t bits = i;
+            size_t idx = 0;
+            while (bits)
+            {
+                entry[i].indicies[idx++] = LSBpop(bits);
+            }
+            entry[i].count = idx;
+        }
+    }
+
+    std::array<SparseAffineEntry, 256> entry;
+};
+
 namespace NN::Features
 {
 
+const static SparseAffineTable sparse_affine_table;
+
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int16_t, FT_SIZE>& nstm,
-    std::array<uint8_t, FT_SIZE>& output)
+    std::array<uint8_t, FT_SIZE>& output, std::array<int16_t, FT_SIZE / 4>& sparse_nibbles, size_t& sparse_nibbles_size)
 {
 #if defined(SIMD_ENABLED)
-    // manually unrolled and interleaved x2, 10 max registers in use
+    // manually unrolled and interleaved x2, TODO max registers in use
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
     static_assert((FT_SIZE / 2) % (stride * 4) == 0);
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi16(FT_SCALE);
+    auto sparse_nibble_offset = _mm_set1_epi16(0);
+    const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
-        // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to achieve
-        // this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16 bits. With an
-        // appropriate initial left shift, 255 * 255 * 2^7 / 2^16 = 127.00 we can calculate the screlu and then get a
-        // value that fits into a int8 for the dense layer. This value when multiplied by the weights will give a result
-        // of 127.00 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
+        // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to
+        // achieve this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16
+        // bits. With an appropriate initial left shift, 255 * 255 * 2^7 / 2^16 = 127.00 we can calculate the screlu
+        // and then get a value that fits into a int8 for the dense layer. This value when multiplied by the weights
+        // will give a result of 127.00 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
 
-        // Another clever trick from Alexandria is we can skip two max_epi16 calls (one on each pairwise mul). This is
-        // because mulhi_epi16 preserves the sign of the multiplication, meaning that after the packus we get the
+        // Another clever trick from Alexandria is we can skip two max_epi16 calls (one on each pairwise mul). This
+        // is because mulhi_epi16 preserves the sign of the multiplication, meaning that after the packus we get the
         // correct result in all cases. For this to work, we need to make sure the int32 won't overflow, with
         // (-255 * 2) * 1.98 * (32+1) * 255 * 2^7 = -1B we are safe.
 
@@ -71,6 +113,34 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec3 = SIMD::packus_epi16(stm_vec3, stm_vec4);
         SIMD::store_si(&output[i], stm_vec1);
         SIMD::store_si(&output[i + stride * 2], stm_vec3);
+
+        // Cache the nonzero nibbles for sparse affine l1
+        auto mask1 = SIMD::cmpgt_epi32_mask(stm_vec1);
+        auto mask2 = SIMD::cmpgt_epi32_mask(stm_vec3);
+#if defined(USE_AVX512)
+        uint32_t mask = mask1 | (mask2 << 16);
+#elif defined(USE_AVX2)
+        uint16_t mask = mask1 | (mask2 << 8);
+#else
+        uint8_t mask = mask1 | (mask2 << 4);
+#endif
+        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
+        for (size_t j = 0; j < sizeof(mask); j++)
+        {
+            // TODO: we process one byte at a time using 128 bit registers, but could we process two bytes at a time
+            // using avx2 and a 16k lookup table?
+            // Also, we could add a branch to sparse_nibble_offset increment to skip in cases where bytemask is zero,
+            // and save a store_si above in that case
+            uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
+            const auto& entry = sparse_affine_table.entry[bytemask];
+            auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
+            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
+            _mm_storeu_si128(sparse_nibbles_end, indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        }
     }
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
@@ -94,12 +164,31 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::mulhi_epi16(nstm_vec2, nstm_vec6);
         nstm_vec3 = SIMD::mulhi_epi16(nstm_vec3, nstm_vec7);
         nstm_vec4 = SIMD::mulhi_epi16(nstm_vec4, nstm_vec8);
-
-        // We permute the weights at startup to match the packus.
         nstm_vec1 = SIMD::packus_epi16(nstm_vec1, nstm_vec2);
         nstm_vec3 = SIMD::packus_epi16(nstm_vec3, nstm_vec4);
         SIMD::store_si(&output[i + FT_SIZE / 2], nstm_vec1);
         SIMD::store_si(&output[i + FT_SIZE / 2 + stride * 2], nstm_vec3);
+        auto mask1 = SIMD::cmpgt_epi32_mask(nstm_vec1);
+        auto mask2 = SIMD::cmpgt_epi32_mask(nstm_vec3);
+#if defined(USE_AVX512)
+        uint32_t mask = mask1 | (mask2 << 16);
+#elif defined(USE_AVX2)
+        uint32_t mask = mask1 | (mask2 << 8);
+#else
+        uint32_t mask = mask1 | (mask2 << 4);
+#endif
+        for (size_t j = 0; j < sizeof(SIMD::vec) / sizeof(uint32_t) / 8 * 2; j++)
+        {
+            uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
+            const auto& entry = sparse_affine_table.entry[bytemask];
+            auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
+            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
+            _mm_storeu_si128(sparse_nibbles_end, indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        }
     }
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
@@ -121,45 +210,38 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 }
 
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
-    const std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>& l1_weight, std::array<int32_t, L1_SIZE>& output)
+    const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
+    const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output,
+    std::array<std::array<int16_t, FT_SIZE>, L1_SIZE> raw_l1_weight)
 {
 #if defined(SIMD_ENABLED)
     const auto madd_helper = SIMD::set1_epi16(1);
-    for (size_t i = 0; i < L1_SIZE; i++)
+    constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
+    SIMD::vec output_reg[L1_SIZE / stride] {};
+    const auto zero = SIMD::setzero_si();
+    const auto one = SIMD::set1_epi16(127 * L1_SCALE);
+
+    for (size_t i = 0; i < sparse_nibbles_size; i++)
     {
-        // manually unrolled and interleaved x4, max 9 registers in use
-        constexpr auto stride = SIMD::vec_size / sizeof(int8_t);
-        static_assert(FT_SIZE % (stride * 4) == 0);
-        auto r1 = SIMD::setzero_si();
-        auto r2 = SIMD::setzero_si();
-        auto r3 = SIMD::setzero_si();
-        auto r4 = SIMD::setzero_si();
-        for (size_t j = 0; j < FT_SIZE; j += stride * 4)
+        const auto& nibble_idx = sparse_nibbles[i];
+        const auto ft_nibble = *(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx);
+        const auto ft_vec = SIMD::set1_epi32(ft_nibble);
+        static_assert(L1_SIZE % (stride) == 0);
+        for (size_t j = 0; j < L1_SIZE; j += stride)
         {
-            // dpbusd_epi32 would be nice to use here (VNNI), and would also allow us to double the values in the
-            // temporary int16 without overflow?
-            auto vec1 = SIMD::load_si(&ft_activation[j]);
-            auto vec2 = SIMD::load_si(&ft_activation[j + stride]);
-            auto vec3 = SIMD::load_si(&ft_activation[j + stride * 2]);
-            auto vec4 = SIMD::load_si(&ft_activation[j + stride * 3]);
-            vec1 = SIMD::maddubs_epi16(vec1, SIMD::load_si(&l1_weight[i][j]));
-            vec2 = SIMD::maddubs_epi16(vec2, SIMD::load_si(&l1_weight[i][j + stride]));
-            vec3 = SIMD::maddubs_epi16(vec3, SIMD::load_si(&l1_weight[i][j + stride * 2]));
-            vec4 = SIMD::maddubs_epi16(vec4, SIMD::load_si(&l1_weight[i][j + stride * 3]));
-            vec1 = SIMD::madd_epi16(vec1, madd_helper);
-            vec2 = SIMD::madd_epi16(vec2, madd_helper);
-            vec3 = SIMD::madd_epi16(vec3, madd_helper);
-            vec4 = SIMD::madd_epi16(vec4, madd_helper);
-            r1 = SIMD::add_epi32(r1, vec1);
-            r2 = SIMD::add_epi32(r2, vec2);
-            r3 = SIMD::add_epi32(r3, vec3);
-            r4 = SIMD::add_epi32(r4, vec4);
+            auto dot = SIMD::maddubs_epi16(ft_vec, SIMD::load_si(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
+            dot = SIMD::madd_epi16(dot, madd_helper);
+            output_reg[j / stride] = SIMD::add_epi32(dot, output_reg[j / stride]);
         }
-        r1 = SIMD::add_epi32(r1, r2);
-        r3 = SIMD::add_epi32(r3, r4);
-        r1 = SIMD::add_epi32(r1, r3);
-        output[i] += SIMD::hsum_epi32(r1);
-        output[i] = std::clamp(output[i], int32_t(0), int32_t(127 * L1_SCALE));
+    }
+
+    for (size_t i = 0; i < L1_SIZE; i += stride)
+    {
+        auto bias = SIMD::load_si(&output[i]);
+        output_reg[i / stride] = SIMD::add_epi32(output_reg[i / stride], bias);
+        output_reg[i / stride] = SIMD::max_epi32(zero, output_reg[i / stride]);
+        output_reg[i / stride] = SIMD::min_epi16(one, output_reg[i / stride]);
+        SIMD::store_si(&output[i], output_reg[i / stride]);
     }
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
