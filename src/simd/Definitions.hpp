@@ -1,6 +1,7 @@
 #pragma once
 
 // SSE4 or higher is required for SIMD
+#include <cstdint>
 #if defined(USE_SSE4)
 #define SIMD_ENABLED
 #endif
@@ -122,6 +123,17 @@ inline vec max_epi16(const vec& a, const vec& b)
 #endif
 }
 
+inline vec max_epi32(const vec& a, const vec& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_max_epi32(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_max_epi32(a, b);
+#elif defined(USE_SSE4)
+    return _mm_max_epi32(a, b);
+#endif
+}
+
 inline vec min_epi16(const vec& a, const vec& b)
 {
 #if defined(USE_AVX512)
@@ -130,6 +142,17 @@ inline vec min_epi16(const vec& a, const vec& b)
     return _mm256_min_epi16(a, b);
 #elif defined(USE_SSE4)
     return _mm_min_epi16(a, b);
+#endif
+}
+
+inline vec min_epi32(const vec& a, const vec& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_min_epi32(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_min_epi32(a, b);
+#elif defined(USE_SSE4)
+    return _mm_min_epi32(a, b);
 #endif
 }
 
@@ -152,6 +175,17 @@ inline vec set1_epi16(int16_t a)
     return _mm256_set1_epi16(a);
 #elif defined(USE_SSE4)
     return _mm_set1_epi16(a);
+#endif
+}
+
+inline vec set1_epi32(int32_t a)
+{
+#if defined(USE_AVX512)
+    return _mm512_set1_epi32(a);
+#elif defined(USE_AVX2)
+    return _mm256_set1_epi32(a);
+#elif defined(USE_SSE4)
+    return _mm_set1_epi32(a);
 #endif
 }
 
@@ -197,6 +231,17 @@ inline vec shuffle_epi32(const vec& a)
     return _mm256_shuffle_epi32(a, imm);
 #elif defined(USE_SSE4)
     return _mm_shuffle_epi32(a, imm);
+#endif
+}
+
+inline uint16_t cmpgt_epi32_mask(const vec& a)
+{
+#if defined(USE_AVX512)
+    return _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512());
+#elif defined(USE_AVX2)
+    return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())));
+#elif defined(USE_SSE4)
+    TODO
 #endif
 }
 
