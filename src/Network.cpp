@@ -20,7 +20,7 @@ struct network
 {
     alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
     alignas(64) std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, OUTPUT_BUCKETS> outputWeights = {};
     alignas(64) std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
