@@ -71,7 +71,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         SIMD::store_si(&output[i], stm_vec1);
         SIMD::store_si(&output[i + stride * 2], stm_vec3);
     }
-    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 2)
+    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
         auto nstm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i]));
         auto nstm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride]));
