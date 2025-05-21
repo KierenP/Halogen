@@ -241,7 +241,7 @@ inline uint16_t cmpgt_epi32_mask(const vec& a)
 #elif defined(USE_AVX2)
     return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())));
 #elif defined(USE_SSE4)
-    TODO
+    return _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())));
 #endif
 }
 

@@ -47,11 +47,11 @@ struct network
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = []
 {
-    network shuffled_net;
-    shuffled_net.ft_weight = raw_net.ft_weight;
-    shuffled_net.ft_bias = raw_net.ft_bias;
+    network final_net;
+    final_net.ft_weight = raw_net.ft_weight;
+    final_net.ft_bias = raw_net.ft_bias;
 
-    std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight;
+    std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> packus_adjusted_l1w;
 
 #if defined(USE_AVX2)
     // shuffle around l1 weights to match packus interleaving
@@ -68,7 +68,7 @@ struct network
 #endif
                 for (size_t x = 0; x < sizeof(SIMD::vec) / sizeof(int8_t); x++)
                 {
-                    l1_weight[i][j][k + x]
+                    packus_adjusted_l1w[i][j][k + x]
                         = static_cast<int8_t>(raw_net.l1_weight[i][j][k + mapping[x / 8] * 8 + x % 8]);
                 }
             }
@@ -81,7 +81,7 @@ struct network
         {
             for (size_t k = 0; k < FT_SIZE; k++)
             {
-                l1_weight[i][j][k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+                packus_adjusted_l1w[i][j][k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
             }
         }
     }
@@ -92,7 +92,7 @@ struct network
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            shuffled_net.l1_bias[i][j] = raw_net.l1_bias[i][j] * 127 / FT_SCALE;
+            final_net.l1_bias[i][j] = raw_net.l1_bias[i][j] * 127 / FT_SCALE;
         }
     }
 
@@ -106,8 +106,8 @@ struct network
             {
                 // we want something that looks like:
                 //[bucket][nibble][output][4]
-                shuffled_net.l1_weight[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)]
-                    = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+                final_net.l1_weight[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)]
+                    = static_cast<int8_t>(packus_adjusted_l1w[i][j][k]);
             }
         }
     }
@@ -118,17 +118,17 @@ struct network
         {
             for (size_t k = 0; k < FT_SIZE; k++)
             {
-                shuffled_net.l1_weight[i][j * FT_SIZE + k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+                final_net.l1_weight[i][j * FT_SIZE + k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
             }
         }
     }
 #endif
 
-    shuffled_net.l2_weight = raw_net.l2_weight;
-    shuffled_net.l2_bias = raw_net.l2_bias;
-    shuffled_net.l3_weight = raw_net.l3_weight;
-    shuffled_net.l3_bias = raw_net.l3_bias;
-    return shuffled_net;
+    final_net.l2_weight = raw_net.l2_weight;
+    final_net.l2_bias = raw_net.l2_bias;
+    final_net.l3_weight = raw_net.l3_weight;
+    final_net.l3_bias = raw_net.l3_bias;
+    return final_net;
 }();
 
 Square MirrorVertically(Square sq)
@@ -613,8 +613,8 @@ Score Network::Eval(const BoardState& board, const Accumulator& acc)
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<int32_t, L1_SIZE> l1_activation = net.l1_bias[output_bucket];
-    NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], sparse_ft_nibbles, sparse_nibbles_size,
-        l1_activation, raw_net.l1_weight[output_bucket]);
+    NN::Features::L1_activation(
+        ft_activation, net.l1_weight[output_bucket], sparse_ft_nibbles, sparse_nibbles_size, l1_activation);
     assert(
         std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 127 * L1_SCALE; }));
 
