@@ -175,11 +175,11 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #if defined(USE_AVX512)
         uint32_t mask = mask1 | (mask2 << 16);
 #elif defined(USE_AVX2)
-        uint32_t mask = mask1 | (mask2 << 8);
+        uint16_t mask = mask1 | (mask2 << 8);
 #else
-        uint32_t mask = mask1 | (mask2 << 4);
+        uint8_t mask = mask1 | (mask2 << 4);
 #endif
-        for (size_t j = 0; j < sizeof(SIMD::vec) / sizeof(uint32_t) / 8 * 2; j++)
+        for (size_t j = 0; j < sizeof(mask); j++)
         {
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
             const auto& entry = sparse_affine_table.entry[bytemask];
@@ -213,20 +213,20 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
-    const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output,
-    std::array<std::array<int16_t, FT_SIZE>, L1_SIZE> raw_l1_weight)
+    const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
     const auto madd_helper = SIMD::set1_epi16(1);
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     SIMD::vec output_reg[L1_SIZE / stride] {};
     const auto zero = SIMD::setzero_si();
-    const auto one = SIMD::set1_epi16(127 * L1_SCALE);
+    const auto one = SIMD::set1_epi32(127 * L1_SCALE);
 
     for (size_t i = 0; i < sparse_nibbles_size; i++)
     {
         const auto& nibble_idx = sparse_nibbles[i];
-        const auto ft_nibble = *(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx);
+        assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
+        const auto ft_nibble = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_idx);
         const auto ft_vec = SIMD::set1_epi32(ft_nibble);
         static_assert(L1_SIZE % (stride) == 0);
         for (size_t j = 0; j < L1_SIZE; j += stride)
@@ -242,7 +242,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         auto bias = SIMD::load_si(&output[i]);
         output_reg[i / stride] = SIMD::add_epi32(output_reg[i / stride], bias);
         output_reg[i / stride] = SIMD::max_epi32(zero, output_reg[i / stride]);
-        output_reg[i / stride] = SIMD::min_epi16(one, output_reg[i / stride]);
+        output_reg[i / stride] = SIMD::min_epi32(one, output_reg[i / stride]);
         SIMD::store_si(&output[i], output_reg[i / stride]);
     }
 #else
