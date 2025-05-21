@@ -69,7 +69,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     std::array<uint8_t, FT_SIZE>& output, std::array<int16_t, FT_SIZE / 4>& sparse_nibbles, size_t& sparse_nibbles_size)
 {
 #if defined(SIMD_ENABLED)
-    // manually unrolled and interleaved x2, TODO max registers in use
+    // manually unrolled and interleaved x2, 13 max registers in use
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
     static_assert((FT_SIZE / 2) % (stride * 4) == 0);
     const auto zero = SIMD::setzero_si();
@@ -216,11 +216,12 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
-    const auto madd_helper = SIMD::set1_epi16(1);
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
+    static_assert(L1_SIZE % stride == 0);
     SIMD::vec output_reg[L1_SIZE / stride] {};
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi32(127 * L1_SCALE);
+    const auto madd_helper = SIMD::set1_epi16(1);
 
     for (size_t i = 0; i < sparse_nibbles_size; i++)
     {
