@@ -38,23 +38,9 @@ struct raw_network
     return true;
 }();
 
-struct network
+decltype(raw_network::l1_weight) adjust_for_packus(const decltype(raw_network::l1_weight)& input)
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
-    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
-    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
-    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
-} const& net = []
-{
-    network final_net;
-    final_net.ft_weight = raw_net.ft_weight;
-    final_net.ft_bias = raw_net.ft_bias;
-
-    std::array<std::array<std::array<int8_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> packus_adjusted_l1w;
+    decltype(raw_network::l1_weight) output;
 
 #if defined(USE_AVX2)
     // shuffle around l1 weights to match packus interleaving
@@ -71,33 +57,36 @@ struct network
 #endif
                 for (size_t x = 0; x < sizeof(SIMD::vec) / sizeof(int8_t); x++)
                 {
-                    packus_adjusted_l1w[i][j][k + x]
-                        = static_cast<int8_t>(raw_net.l1_weight[i][j][k + mapping[x / 8] * 8 + x % 8]);
+                    output[i][j][k + x] = input[i][j][k + mapping[x / 8] * 8 + x % 8];
                 }
             }
         }
     }
 #else
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            for (size_t k = 0; k < FT_SIZE; k++)
-            {
-                packus_adjusted_l1w[i][j][k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
-            }
-        }
-    }
+    output = input;
 #endif
+    return output;
+}
+
+auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
+{
+    decltype(raw_network::l1_bias) output;
 
     // rescale l1 bias to account for FT_activation adjusting to 0-127 scale
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            final_net.l1_bias[i][j] = raw_net.l1_bias[i][j] * 127 / FT_SCALE;
+            output[i][j] = input[i][j] * 127 / FT_SCALE;
         }
     }
+
+    return output;
+}
+
+auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
+{
+    std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> output;
 
 #if defined(SIMD_ENABLED)
     // transpose and interleave the weights in blocks of 4 FT activations
@@ -109,8 +98,7 @@ struct network
             {
                 // we want something that looks like:
                 //[bucket][nibble][output][4]
-                final_net.l1_weight[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)]
-                    = static_cast<int8_t>(packus_adjusted_l1w[i][j][k]);
+                output[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)] = input[i][j][k];
             }
         }
     }
@@ -121,12 +109,65 @@ struct network
         {
             for (size_t k = 0; k < FT_SIZE; k++)
             {
-                final_net.l1_weight[i][j * FT_SIZE + k] = static_cast<int8_t>(raw_net.l1_weight[i][j][k]);
+                output[i][j * FT_SIZE + k] = input[i][j][k];
             }
         }
     }
 #endif
+    return output;
+}
 
+auto cast_l1_weight_int8(const std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>& input)
+{
+    std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> output;
+
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < FT_SIZE * L1_SIZE; j++)
+        {
+            output[i][j] = static_cast<int8_t>(input[i][j]);
+        }
+    }
+
+    return output;
+}
+
+auto cast_l1_bias_int32(const decltype(raw_network::l1_bias)& input)
+{
+    std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> output;
+
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < L1_SIZE; j++)
+        {
+            output[i][j] = static_cast<int32_t>(input[i][j]);
+        }
+    }
+
+    return output;
+}
+
+struct network
+{
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
+} const& net = []
+{
+    auto l1_weight = adjust_for_packus(raw_net.l1_weight);
+    auto l1_weight_2 = interleave_for_l1_sparsity(l1_weight);
+    auto l1_bias = rescale_l1_bias(raw_net.l1_bias);
+
+    network final_net;
+    final_net.ft_weight = raw_net.ft_weight;
+    final_net.ft_bias = raw_net.ft_bias;
+    final_net.l1_weight = cast_l1_weight_int8(l1_weight_2);
+    final_net.l1_bias = cast_l1_bias_int32(l1_bias);
     final_net.l2_weight = raw_net.l2_weight;
     final_net.l2_bias = raw_net.l2_bias;
     final_net.l3_weight = raw_net.l3_weight;
