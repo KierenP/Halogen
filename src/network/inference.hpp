@@ -15,11 +15,8 @@
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
-//  - accumulator (int16_t) overflow: (255 * 2 * 1.98) * (32 + 1) = 33323.4
-//      [note that the *2 appears because of the factoriser. I need to train a network with lower weights to account for
-//      this]. But the risk of overflow is very rare]
-//  - l1 activation overflow (int16_t): (127 * 64 * 1.98) * 2 = 32186.88
-//      [When doing maddubs_epi16, we must be able to take two adjacent FT activations * l1 weights]
+//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
+//  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
@@ -89,7 +86,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         // Another clever trick from Alexandria is we can skip two max_epi16 calls (one on each pairwise mul). This
         // is because mulhi_epi16 preserves the sign of the multiplication, meaning that after the packus we get the
         // correct result in all cases. For this to work, we need to make sure the int32 won't overflow, with
-        // (-255 * 2) * 1.98 * (32+1) * 255 * 2^7 = -1B we are safe.
+        // (-255) * 1.98 * (32+1) * 255 * 2^7 = -500M we are safe.
 
         auto stm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&stm[i]));
         auto stm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride]));
