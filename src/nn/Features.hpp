@@ -5,6 +5,7 @@
 #include "StaticVector.h"
 #include "simd/Definitions.hpp"
 #include "simd/Utility.hpp"
+#include "tools/sparse_shuffle.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -64,7 +65,8 @@ namespace NN::Features
 const static SparseAffineTable sparse_affine_table;
 
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int16_t, FT_SIZE>& nstm,
-    std::array<uint8_t, FT_SIZE>& output, std::array<int16_t, FT_SIZE / 4>& sparse_nibbles, size_t& sparse_nibbles_size)
+    std::array<uint8_t, FT_SIZE>& output, [[maybe_unused]] std::array<int16_t, FT_SIZE / 4>& sparse_nibbles,
+    [[maybe_unused]] size_t& sparse_nibbles_size)
 {
 #if defined(SIMD_ENABLED)
     // manually unrolled and interleaved x2, 13 max registers in use
@@ -209,10 +211,19 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 }
 
+// SparseL1Shuffle data;
+// inline size_t block_count = 0;
+// inline size_t block_nnz = 0;
+// inline size_t neuron_count = 0;
+// inline size_t neuron_nnz = 0;
+
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
-    const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
-    const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output)
+    const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight,
+    [[maybe_unused]] const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
+    [[maybe_unused]] const size_t sparse_nibbles_size, std::array<int32_t, L1_SIZE>& output)
 {
+    // data.report_ft_activations(ft_activation);
+
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
@@ -220,6 +231,17 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi32(127 * L1_SCALE);
     const auto madd_helper = SIMD::set1_epi16(1);
+
+    /*block_count += FT_SIZE / 4;
+    block_nnz += sparse_nibbles_size;
+    neuron_count += FT_SIZE;
+    neuron_nnz += std::count_if(ft_activation.begin(), ft_activation.end(), [](auto val) { return val > 0; });
+
+    if (block_count % (FT_SIZE / 4 * 1024) == 0)
+    {
+        std::cout << "Average block NNZ: " << float(block_nnz) / float(block_count) * 100 << "%\n";
+        std::cout << "Average neuron NNZ: " << float(neuron_nnz) / float(neuron_count) * 100 << "%\n";
+    }*/
 
     for (size_t i = 0; i < sparse_nibbles_size; i++)
     {
@@ -249,7 +271,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     {
         for (size_t j = 0; j < FT_SIZE; j++)
         {
-            output[i] += ft_activation[j] * l1_weight[i][j];
+            output[i] += ft_activation[j] * l1_weight[i * FT_SIZE + j];
         }
 
         // 127 to match the FT_activation adjustment
