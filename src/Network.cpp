@@ -5,12 +5,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
 
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "incbin/incbin.h"
 #include "nn/Accumulator.hpp"
+#include "nn/Arch.hpp"
 #include "nn/Features.hpp"
 
 #undef INCBIN_ALIGNMENT
@@ -35,9 +37,9 @@ struct raw_network
     return true;
 }();
 
-decltype(raw_network::l1_weight) adjust_for_packus(const decltype(raw_network::l1_weight)& input)
+auto adjust_for_packus(const decltype(raw_network::l1_weight)& input)
 {
-    decltype(raw_network::l1_weight) output;
+    auto output = std::make_unique<decltype(raw_network::l1_weight)>();
 
 #if defined(USE_AVX2)
     // shuffle around l1 weights to match packus interleaving
@@ -54,27 +56,27 @@ decltype(raw_network::l1_weight) adjust_for_packus(const decltype(raw_network::l
 #endif
                 for (size_t x = 0; x < sizeof(SIMD::vec) / sizeof(int8_t); x++)
                 {
-                    output[i][j][k + x] = input[i][j][k + mapping[x / 8] * 8 + x % 8];
+                    (*output)[i][j][k + x] = input[i][j][k + mapping[x / 8] * 8 + x % 8];
                 }
             }
         }
     }
 #else
-    output = input;
+    (*output) = input;
 #endif
     return output;
 }
 
 auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
 {
-    decltype(raw_network::l1_bias) output;
+    auto output = std::make_unique<decltype(raw_network::l1_bias)>();
 
     // rescale l1 bias to account for FT_activation adjusting to 0-127 scale
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            output[i][j] = input[i][j] * 127 / FT_SCALE;
+            (*output)[i][j] = input[i][j] * 127 / FT_SCALE;
         }
     }
 
@@ -83,7 +85,7 @@ auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
 
 auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
 {
-    std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> output;
+    auto output = std::make_unique<std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>>();
 
 #if defined(SIMD_ENABLED)
     // transpose and interleave the weights in blocks of 4 FT activations
@@ -95,7 +97,7 @@ auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
             {
                 // we want something that looks like:
                 //[bucket][nibble][output][4]
-                output[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)] = input[i][j][k];
+                (*output)[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)] = input[i][j][k];
             }
         }
     }
@@ -106,7 +108,7 @@ auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
         {
             for (size_t k = 0; k < FT_SIZE; k++)
             {
-                output[i][j * FT_SIZE + k] = input[i][j][k];
+                (*output)[i][j * FT_SIZE + k] = input[i][j][k];
             }
         }
     }
@@ -116,13 +118,13 @@ auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
 
 auto cast_l1_weight_int8(const std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>& input)
 {
-    std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> output;
+    auto output = std::make_unique<std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>>();
 
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < FT_SIZE * L1_SIZE; j++)
         {
-            output[i][j] = static_cast<int8_t>(input[i][j]);
+            (*output)[i][j] = static_cast<int8_t>(input[i][j]);
         }
     }
 
@@ -131,17 +133,79 @@ auto cast_l1_weight_int8(const std::array<std::array<int16_t, FT_SIZE * L1_SIZE>
 
 auto cast_l1_bias_int32(const decltype(raw_network::l1_bias)& input)
 {
-    std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> output;
+    auto output = std::make_unique<std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS>>();
 
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
         for (size_t j = 0; j < L1_SIZE; j++)
         {
-            output[i][j] = static_cast<int32_t>(input[i][j]);
+            (*output)[i][j] = static_cast<int32_t>(input[i][j]);
         }
     }
 
     return output;
+}
+
+auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
+    const decltype(raw_network::ft_bias)& ft_bias, const decltype(raw_network::l1_weight)& l1_weight)
+{
+    // Based on some heuristic, we want to sort the FT neurons to maximize the benefit of the l1 sparsity.
+
+    // clang-format off
+    [[maybe_unused]] constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = { 413, 285, 429, 127, 234, 104, 16, 14,
+        214, 235, 328, 380, 90, 65, 88, 399, 424, 398, 389, 392, 354, 355, 28, 314, 417, 240, 250, 368, 286, 251, 189,
+        443, 174, 247, 319, 276, 448, 397, 357, 366, 236, 358, 306, 498, 493, 2, 148, 488, 71, 439, 406, 20, 302, 164,
+        363, 39, 220, 263, 462, 432, 1, 139, 401, 226, 21, 160, 415, 69, 479, 141, 30, 270, 186, 304, 331, 434, 291,
+        309, 68, 486, 396, 425, 273, 185, 468, 338, 308, 13, 183, 77, 118, 42, 371, 267, 175, 353, 388, 177, 18, 93,
+        121, 503, 239, 289, 79, 269, 343, 147, 191, 38, 386, 51, 142, 162, 451, 501, 351, 497, 58, 411, 473, 326, 9,
+        502, 0, 261, 307, 374, 387, 223, 483, 83, 268, 178, 477, 435, 116, 203, 280, 19, 109, 323, 115, 126, 258, 315,
+        255, 407, 508, 257, 145, 455, 459, 230, 143, 34, 476, 92, 295, 381, 444, 102, 221, 17, 505, 81, 37, 329, 31, 73,
+        157, 487, 152, 131, 149, 350, 205, 153, 206, 442, 409, 334, 305, 485, 100, 176, 199, 412, 382, 25, 181, 377,
+        457, 266, 342, 5, 129, 252, 422, 489, 408, 198, 74, 225, 322, 3, 446, 101, 167, 395, 490, 200, 155, 404, 82,
+        367, 210, 478, 204, 420, 215, 456, 299, 298, 84, 324, 344, 212, 265, 161, 430, 400, 53, 144, 228, 480, 313, 45,
+        369, 256, 372, 390, 201, 244, 370, 303, 452, 85, 180, 356, 272, 391, 378, 458, 274, 80, 173, 290, 482, 310, 327,
+        492, 321, 504, 113, 332, 242, 196, 359, 67, 238, 494, 156, 26, 193, 427, 172, 474, 146, 163, 171, 182, 213, 506,
+        46, 433, 246, 348, 402, 277, 275, 279, 405, 237, 301, 29, 376, 41, 453, 336, 60, 447, 169, 12, 346, 194, 44,
+        166, 262, 195, 248, 91, 373, 491, 32, 8, 454, 379, 495, 449, 423, 333, 150, 393, 97, 54, 418, 170, 511, 219,
+        253, 151, 154, 75, 254, 231, 340, 50, 192, 179, 27, 188, 232, 428, 437, 463, 123, 4, 105, 61, 99, 132, 339, 260,
+        159, 76, 283, 207, 471, 59, 509, 292, 484, 450, 86, 325, 352, 117, 470, 341, 120, 108, 467, 460, 300, 89, 229,
+        500, 385, 431, 410, 52, 103, 130, 441, 48, 133, 496, 318, 63, 296, 49, 445, 233, 22, 70, 507, 241, 137, 294, 43,
+        222, 282, 466, 287, 111, 35, 87, 320, 361, 128, 33, 375, 134, 349, 110, 347, 202, 249, 245, 217, 281, 40, 165,
+        465, 394, 278, 414, 218, 190, 23, 224, 312, 293, 426, 15, 436, 94, 64, 107, 72, 384, 216, 98, 184, 335, 187,
+        140, 365, 227, 197, 66, 211, 62, 416, 136, 464, 112, 383, 124, 362, 135, 403, 360, 316, 11, 47, 57, 317, 114,
+        119, 481, 472, 499, 345, 311, 7, 271, 337, 421, 330, 106, 56, 364, 10, 440, 158, 209, 510, 95, 259, 24, 6, 122,
+        208, 419, 438, 125, 96, 297, 55, 475, 168, 36, 284, 288, 78, 264, 243, 469, 461, 138,
+    };
+    // clang-format on
+
+    auto ft_weight_output = std::make_unique<decltype(raw_network::ft_weight)>();
+    auto ft_bias_output = std::make_unique<decltype(raw_network::ft_bias)>();
+    auto l1_weight_output = std::make_unique<decltype(raw_network::l1_weight)>();
+
+    for (size_t i = 0; i < FT_SIZE / 2; i++)
+    {
+        auto old_idx = shuffle_order[i];
+
+        (*ft_bias_output)[i] = ft_bias[old_idx];
+        (*ft_bias_output)[i + FT_SIZE / 2] = ft_bias[old_idx + FT_SIZE / 2];
+
+        for (size_t j = 0; j < INPUT_SIZE * KING_BUCKET_COUNT; j++)
+        {
+            (*ft_weight_output)[j][i] = ft_weight[j][old_idx];
+            (*ft_weight_output)[j][i + FT_SIZE / 2] = ft_weight[j][old_idx + FT_SIZE / 2];
+        }
+
+        for (size_t j = 0; j < OUTPUT_BUCKETS; j++)
+        {
+            for (size_t k = 0; k < L1_SIZE; k++)
+            {
+                (*l1_weight_output)[j][k][i] = l1_weight[j][k][old_idx];
+                (*l1_weight_output)[j][k][i + FT_SIZE / 2] = l1_weight[j][k][old_idx + FT_SIZE / 2];
+            }
+        }
+    }
+
+    return std::make_tuple(std::move(ft_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
 }
 
 struct network
@@ -156,20 +220,22 @@ struct network
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = []
 {
-    auto l1_weight = adjust_for_packus(raw_net.l1_weight);
-    auto l1_weight_2 = interleave_for_l1_sparsity(l1_weight);
-    auto l1_bias = rescale_l1_bias(raw_net.l1_bias);
+    auto [ft_weight, ft_bias, l1_weight] = shuffle_ft_neurons(raw_net.ft_weight, raw_net.ft_bias, raw_net.l1_weight);
 
-    network final_net;
-    final_net.ft_weight = raw_net.ft_weight;
-    final_net.ft_bias = raw_net.ft_bias;
-    final_net.l1_weight = cast_l1_weight_int8(l1_weight_2);
-    final_net.l1_bias = cast_l1_bias_int32(l1_bias);
-    final_net.l2_weight = raw_net.l2_weight;
-    final_net.l2_bias = raw_net.l2_bias;
-    final_net.l3_weight = raw_net.l3_weight;
-    final_net.l3_bias = raw_net.l3_bias;
-    return final_net;
+    auto l1_weight_2 = adjust_for_packus(*l1_weight);
+    auto l1_bias = rescale_l1_bias(raw_net.l1_bias);
+    auto l1_weight_3 = interleave_for_l1_sparsity(*l1_weight_2);
+
+    auto final_net = std::make_unique<network>();
+    final_net->ft_weight = *ft_weight;
+    final_net->ft_bias = *ft_bias;
+    final_net->l1_weight = *cast_l1_weight_int8(*l1_weight_3);
+    final_net->l1_bias = *cast_l1_bias_int32(*l1_bias);
+    final_net->l2_weight = raw_net.l2_weight;
+    final_net->l2_bias = raw_net.l2_bias;
+    final_net->l3_weight = raw_net.l3_weight;
+    final_net->l3_bias = raw_net.l3_bias;
+    return *final_net;
 }();
 
 Square MirrorVertically(Square sq)
