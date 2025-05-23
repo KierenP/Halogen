@@ -126,8 +126,6 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         // 1 byte for SSE, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
-            // TODO: we process one byte at a time using 128 bit registers, but could we process two bytes at a time
-            // using avx2 and a 16k lookup table?
             // Also, we could add a branch to sparse_nibble_offset increment to skip in cases where bytemask is zero,
             // and save a store_si above in that case
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
