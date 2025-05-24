@@ -14,7 +14,7 @@
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
 //  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
-//  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
+//  - l1 activation overflow (int16_t): (127 * round(64 * 0.99)) * 4 = 32004
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
@@ -238,13 +238,35 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         std::cout << "Average neuron NNZ: " << float(neuron_nnz) / float(neuron_count) * 100 << "%\n";
     }*/
 
-    for (size_t i = 0; i < sparse_nibbles_size; i++)
+    int i = 0;
+
+    // process two at a time and combine with add_epi16 for speed
+    for (; i < (int)sparse_nibbles_size - 1; i += 2)
+    {
+        const auto& nibble_1 = sparse_nibbles[i];
+        const auto& nibble_2 = sparse_nibbles[i + 1];
+        assert(0 <= nibble_1 && nibble_1 <= (int)FT_SIZE / 4);
+        assert(0 <= nibble_2 && nibble_2 <= (int)FT_SIZE / 4);
+        const auto ft_nibble_1 = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_1);
+        const auto ft_nibble_2 = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_2);
+        const auto ft_vec_1 = SIMD::set1_epi32(ft_nibble_1);
+        const auto ft_vec_2 = SIMD::set1_epi32(ft_nibble_2);
+        for (size_t j = 0; j < L1_SIZE; j += stride)
+        {
+            auto dot1 = SIMD::maddubs_epi16(ft_vec_1, SIMD::load_si(&l1_weight[nibble_1 * (4 * L1_SIZE) + j * 4]));
+            auto dot2 = SIMD::maddubs_epi16(ft_vec_2, SIMD::load_si(&l1_weight[nibble_2 * (4 * L1_SIZE) + j * 4]));
+            dot1 = SIMD::add_epi16(dot1, dot2);
+            dot1 = SIMD::madd_epi16(dot1, madd_helper);
+            output_reg[j / stride] = SIMD::add_epi32(dot1, output_reg[j / stride]);
+        }
+    }
+
+    if (i < (int)sparse_nibbles_size)
     {
         const auto& nibble_idx = sparse_nibbles[i];
         assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
         const auto ft_nibble = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_idx);
         const auto ft_vec = SIMD::set1_epi32(ft_nibble);
-        static_assert(L1_SIZE % (stride) == 0);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
             auto dot = SIMD::maddubs_epi16(ft_vec, SIMD::load_si(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
@@ -253,7 +275,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         }
     }
 
-    for (size_t i = 0; i < L1_SIZE; i += stride)
+    for (i = 0; i < (int)L1_SIZE; i += stride)
     {
         auto bias = SIMD::load_si(&output[i]);
         output_reg[i / stride] = SIMD::add_epi32(output_reg[i / stride], bias);
