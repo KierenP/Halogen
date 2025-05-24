@@ -13,9 +13,9 @@
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
-//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
+//  - accumulator (int16_t) overflow: round(362 * 1.98) * (32 + 1) = 23661
 //  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
-constexpr int16_t FT_SCALE = 255;
+constexpr int16_t FT_SCALE = 362;
 constexpr int16_t L1_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
@@ -77,14 +77,14 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     {
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to
         // achieve this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16
-        // bits. With an appropriate initial left shift, 255 * 255 * 2^7 / 2^16 = 127.00 we can calculate the screlu
+        // bits. With an appropriate initial left shift, 362 * 362 * 2^6 / 2^16 = 127.97 we can calculate the screlu
         // and then get a value that fits into a int8 for the dense layer. This value when multiplied by the weights
-        // will give a result of 127.00 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
+        // will give a result of 127 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
 
         // Another clever trick from Alexandria is we can skip two max_epi16 calls (one on each pairwise mul). This
         // is because mulhi_epi16 preserves the sign of the multiplication, meaning that after the packus we get the
         // correct result in all cases. For this to work, we need to make sure the int32 won't overflow, with
-        // (-255) * 1.98 * (32+1) * 255 * 2^7 = -500M we are safe.
+        // (-362) * 1.98 * (32+1) * 362 * 2^6 = -500M we are safe.
 
         auto stm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&stm[i]));
         auto stm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride]));
@@ -94,10 +94,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec2 = SIMD::max_epi16(zero, stm_vec2);
         stm_vec3 = SIMD::max_epi16(zero, stm_vec3);
         stm_vec4 = SIMD::max_epi16(zero, stm_vec4);
-        stm_vec1 = SIMD::slli_epi16(stm_vec1, 7);
-        stm_vec2 = SIMD::slli_epi16(stm_vec2, 7);
-        stm_vec3 = SIMD::slli_epi16(stm_vec3, 7);
-        stm_vec4 = SIMD::slli_epi16(stm_vec4, 7);
+        stm_vec1 = SIMD::slli_epi16(stm_vec1, 6);
+        stm_vec2 = SIMD::slli_epi16(stm_vec2, 6);
+        stm_vec3 = SIMD::slli_epi16(stm_vec3, 6);
+        stm_vec4 = SIMD::slli_epi16(stm_vec4, 6);
         auto stm_vec5 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2]));
         auto stm_vec6 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2 + stride * 2]));
@@ -149,10 +149,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::max_epi16(zero, nstm_vec2);
         nstm_vec3 = SIMD::max_epi16(zero, nstm_vec3);
         nstm_vec4 = SIMD::max_epi16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::slli_epi16(nstm_vec1, 7);
-        nstm_vec2 = SIMD::slli_epi16(nstm_vec2, 7);
-        nstm_vec3 = SIMD::slli_epi16(nstm_vec3, 7);
-        nstm_vec4 = SIMD::slli_epi16(nstm_vec4, 7);
+        nstm_vec1 = SIMD::slli_epi16(nstm_vec1, 6);
+        nstm_vec2 = SIMD::slli_epi16(nstm_vec2, 6);
+        nstm_vec3 = SIMD::slli_epi16(nstm_vec3, 6);
+        nstm_vec4 = SIMD::slli_epi16(nstm_vec4, 6);
         auto nstm_vec5 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2]));
         auto nstm_vec6 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2 + stride * 2]));
@@ -192,7 +192,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     {
         int16_t a = std::clamp(stm[i], int16_t(0), FT_SCALE);
         int16_t b = std::clamp(stm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
-        uint8_t mul = (a * (b << 7)) >> 16;
+        uint8_t mul = (a * (b << 6)) >> 16;
         output[i] = mul;
     }
 
@@ -200,7 +200,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     {
         int16_t a = std::clamp(nstm[i], int16_t(0), FT_SCALE);
         int16_t b = std::clamp(nstm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
-        uint8_t mul = (a * (b << 7)) >> 16;
+        uint8_t mul = (a * (b << 6)) >> 16;
         output[i + FT_SIZE / 2] = mul;
     }
 #endif
