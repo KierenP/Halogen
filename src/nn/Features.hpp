@@ -3,6 +3,7 @@
 #include "BitBoardDefine.h"
 #include "Network.h"
 #include "StaticVector.h"
+#include "nn/Arch.hpp"
 #include "simd/Definitions.hpp"
 #include "simd/Utility.hpp"
 #include "tools/sparse_shuffle.hpp"
@@ -276,19 +277,20 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 }
 
 void L2_activation(const std::array<int32_t, L1_SIZE>& l1_activation,
-    const std::array<std::array<float, L1_SIZE>, L2_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
+    const std::array<std::array<float, L1_SIZE * 2>, L2_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
 {
     // TODO: SIMD
-    std::array<float, L1_SIZE> l1_float;
+    std::array<float, L1_SIZE * 2> l1_float;
     for (size_t i = 0; i < L1_SIZE; i++)
     {
         // 127 to match FT_activation adjustment
         l1_float[i] = float(l1_activation[i]) * (1.f / 127 / L1_SCALE);
+        l1_float[i + L1_SIZE] = l1_float[i] * l1_float[i];
     }
 
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        for (size_t j = 0; j < L1_SIZE; j++)
+        for (size_t j = 0; j < L1_SIZE * 2; j++)
         {
             output[i] += l1_float[j] * l2_weight[i][j];
         }
