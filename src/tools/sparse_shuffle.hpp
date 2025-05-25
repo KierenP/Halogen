@@ -7,7 +7,7 @@
 class SparseL1Shuffle
 {
 public:
-#ifdef USE_SSE4
+#if defined(USE_SSE4) and not defined(USE_AVX2)
     void report_ft_activations(const std::array<uint8_t, FT_SIZE>& ft_activation)
     {
         // We need to remember we do a pairwise mul (so each activation refers to a pair of ft neurons), we have a duel
