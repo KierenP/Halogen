@@ -232,7 +232,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     neuron_count += FT_SIZE;
     neuron_nnz += std::count_if(ft_activation.begin(), ft_activation.end(), [](auto val) { return val > 0; });
 
-    if (block_count % (FT_SIZE / 4 * 1024) == 0)
+    if (block_count % (FT_SIZE / 4 * 1024 * 1024) == 0)
     {
         std::cout << "Average block NNZ: " << float(block_nnz) / float(block_count) * 100 << "%\n";
         std::cout << "Average neuron NNZ: " << float(neuron_nnz) / float(neuron_count) * 100 << "%\n";
