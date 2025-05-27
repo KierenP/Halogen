@@ -18,6 +18,9 @@
 namespace NN
 {
 
+#include "network/Features.hpp"
+#include "simd/Definitions.hpp"
+
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
@@ -50,14 +53,14 @@ auto adjust_for_packus(const decltype(raw_network::l1_weight)& input)
     {
         for (size_t j = 0; j < raw_net.l1_weight[i].size(); j++)
         {
-            for (size_t k = 0; k < raw_net.l1_weight[i][j].size(); k += sizeof(SIMD::vec) / sizeof(int8_t))
+            for (size_t k = 0; k < raw_net.l1_weight[i][j].size(); k += SIMD::vec_size)
             {
 #if defined(USE_AVX512)
                 constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
 #else
                 constexpr std::array mapping = { 0, 2, 1, 3 };
 #endif
-                for (size_t x = 0; x < sizeof(SIMD::vec) / sizeof(int8_t); x++)
+                for (size_t x = 0; x < SIMD::vec_size; x++)
                 {
                     (*output)[i][j][k + x] = input[i][j][k + mapping[x / 8] * 8 + x % 8];
                 }
@@ -211,13 +214,31 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
     return std::make_tuple(std::move(ft_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
 }
 
+auto transpose_l2_weights(const decltype(raw_net.l2_weight)& input)
+{
+    auto output = std::make_unique<std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS>>();
+
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < L1_SIZE; j++)
+        {
+            for (size_t k = 0; k < L2_SIZE; k++)
+            {
+                (*output)[i][j][k] = input[i][k][j];
+            }
+        }
+    }
+
+    return output;
+}
+
 struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
@@ -234,7 +255,7 @@ struct network
     final_net->ft_bias = *ft_bias;
     final_net->l1_weight = *cast_l1_weight_int8(*l1_weight_3);
     final_net->l1_bias = *cast_l1_bias_int32(*l1_bias);
-    final_net->l2_weight = raw_net.l2_weight;
+    final_net->l2_weight = *transpose_l2_weights(raw_net.l2_weight);
     final_net->l2_bias = raw_net.l2_bias;
     final_net->l3_weight = raw_net.l3_weight;
     final_net->l3_bias = raw_net.l3_bias;
