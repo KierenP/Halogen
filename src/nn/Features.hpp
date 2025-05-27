@@ -222,7 +222,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
-    SIMD::vec output_reg[L1_SIZE / stride] {};
+    SIMD::veci output_reg[L1_SIZE / stride] {};
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi32(127 * L1_SCALE);
     const auto madd_helper = SIMD::set1_epi16(1);
@@ -276,9 +276,53 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 }
 
 void L2_activation(const std::array<int32_t, L1_SIZE>& l1_activation,
-    const std::array<std::array<float, L1_SIZE>, L2_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
+    const std::array<std::array<float, L2_SIZE>, L1_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
 {
-    // TODO: SIMD
+#if defined(SIMD_ENABLED)
+    constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
+    static_assert(L1_SIZE % stride == 0);
+    alignas(64) std::array<float, L1_SIZE> l1_float;
+    SIMD::vecs l2_reg[L2_SIZE / stride];
+    const auto one_reciprocal = SIMD::set1_ps(1.f / (127.f * L1_SCALE)); // 127 to match FT_activation adjustment
+
+    for (size_t i = 0; i < L1_SIZE; i += stride)
+    {
+        auto veci = SIMD::load_si(&l1_activation[i]);
+        auto vecs = SIMD::cvtepi32_ps(veci);
+        vecs = SIMD::mul_ps(vecs, one_reciprocal);
+        SIMD::store_ps(&l1_float[i], vecs);
+    }
+
+    for (size_t i = 0; i < L2_SIZE; i += stride)
+    {
+        l2_reg[i / stride] = SIMD::load_ps(&output[i]);
+    }
+
+    // We would normally calculate a vector-matrix product by calculating the dot product of each row. In this case, the
+    // number of outputs is small enough that it is more efficient to transpose the weights, and hold the accumulated
+    // outputs in temporary registers as we go. It also makes the activation much simpler with a simple max/min_ps.
+    for (size_t i = 0; i < L1_SIZE; i++)
+    {
+        auto input = SIMD::set1_ps(l1_float[i]);
+        for (size_t j = 0; j < L2_SIZE; j += stride)
+        {
+            auto mul = SIMD::mul_ps(input, SIMD::load_ps(&l2_weight[i][j]));
+            l2_reg[j / stride] = SIMD::add_ps(l2_reg[j / stride], mul);
+        }
+    }
+
+    const auto zero = SIMD::setzero_ps();
+    const auto one = SIMD::set1_ps(1.f);
+
+    for (size_t i = 0; i < L2_SIZE; i += stride)
+    {
+        auto result = l2_reg[i / stride];
+        result = SIMD::max_ps(result, zero);
+        result = SIMD::min_ps(result, one);
+        SIMD::store_ps(&output[i], result);
+    }
+
+#else
     std::array<float, L1_SIZE> l1_float;
     for (size_t i = 0; i < L1_SIZE; i++)
     {
@@ -295,15 +339,30 @@ void L2_activation(const std::array<int32_t, L1_SIZE>& l1_activation,
 
         output[i] = std::clamp(output[i], 0.f, 1.f);
     }
+#endif
 }
 
 void L3_activation(
     const std::array<float, L2_SIZE>& l2_activation, const std::array<float, L2_SIZE>& l3_weight, float& output)
 {
-    // TODO: SIMD
+#if defined(SIMD_ENABLED)
+    constexpr auto stride = SIMD::vec_size / sizeof(float);
+    static_assert(L2_SIZE % stride == 0);
+
+    auto result = SIMD::setzero_ps();
+    for (size_t i = 0; i < L2_SIZE; i += stride)
+    {
+        auto vec = SIMD::load_ps(&l2_activation[i]);
+        vec = SIMD::mul_ps(vec, SIMD::load_ps(&l3_weight[i]));
+        result = SIMD::add_ps(result, vec);
+    }
+
+    output += SIMD::hsum_ps(result);
+#else
     for (size_t i = 0; i < L2_SIZE; i++)
     {
         output += l2_activation[i] * l3_weight[i];
     }
+#endif
 }
 }
