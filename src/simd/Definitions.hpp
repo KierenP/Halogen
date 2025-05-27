@@ -14,39 +14,42 @@ namespace SIMD
 {
 
 #if defined(USE_AVX512)
-using vec = __m512i;
+using veci = __m512i;
+using vecs = __m512;
 constexpr size_t vec_size = 64;
 #elif defined(USE_AVX2)
-using vec = __m256i;
+using veci = __m256i;
+using vecs = __m256;
 constexpr size_t vec_size = 32;
 #elif defined(USE_SSE4)
-using vec = __m128i;
+using veci = __m128i;
+using vecs = __m128;
 constexpr size_t vec_size = 16;
 #endif
 
-inline vec load_si(const void* ptr)
+inline veci load_si(const void* ptr)
 {
 #if defined(USE_AVX512)
     return _mm512_load_si512(ptr);
 #elif defined(USE_AVX2)
-    return _mm256_load_si256(reinterpret_cast<const vec*>(ptr));
+    return _mm256_load_si256(reinterpret_cast<const veci*>(ptr));
 #elif defined(USE_SSE4)
-    return _mm_load_si128(reinterpret_cast<const vec*>(ptr));
+    return _mm_load_si128(reinterpret_cast<const veci*>(ptr));
 #endif
 }
 
-inline void store_si(void* ptr, const vec& v)
+inline void store_si(void* ptr, const veci& v)
 {
 #if defined(USE_AVX512)
     return _mm512_store_si512(ptr, v);
 #elif defined(USE_AVX2)
-    return _mm256_store_si256(reinterpret_cast<vec*>(ptr), v);
+    return _mm256_store_si256(reinterpret_cast<veci*>(ptr), v);
 #elif defined(USE_SSE4)
-    return _mm_store_si128(reinterpret_cast<vec*>(ptr), v);
+    return _mm_store_si128(reinterpret_cast<veci*>(ptr), v);
 #endif
 }
 
-inline vec add_epi16(const vec& a, const vec& b)
+inline veci add_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_add_epi16(a, b);
@@ -57,7 +60,7 @@ inline vec add_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec add_epi32(const vec& a, const vec& b)
+inline veci add_epi32(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_add_epi32(a, b);
@@ -68,7 +71,7 @@ inline vec add_epi32(const vec& a, const vec& b)
 #endif
 }
 
-inline vec sub_epi16(const vec& a, const vec& b)
+inline veci sub_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_sub_epi16(a, b);
@@ -79,7 +82,7 @@ inline vec sub_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec mullo_epi16(const vec& a, const vec& b)
+inline veci mullo_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_mullo_epi16(a, b);
@@ -90,7 +93,7 @@ inline vec mullo_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec madd_epi16(const vec& a, const vec& b)
+inline veci madd_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_madd_epi16(a, b);
@@ -101,7 +104,7 @@ inline vec madd_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec maddubs_epi16(const vec& a, const vec& b)
+inline veci maddubs_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_maddubs_epi16(a, b);
@@ -112,7 +115,7 @@ inline vec maddubs_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec max_epi16(const vec& a, const vec& b)
+inline veci max_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_max_epi16(a, b);
@@ -123,7 +126,7 @@ inline vec max_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec max_epi32(const vec& a, const vec& b)
+inline veci max_epi32(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_max_epi32(a, b);
@@ -134,7 +137,7 @@ inline vec max_epi32(const vec& a, const vec& b)
 #endif
 }
 
-inline vec min_epi16(const vec& a, const vec& b)
+inline veci min_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_min_epi16(a, b);
@@ -145,7 +148,7 @@ inline vec min_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec min_epi32(const vec& a, const vec& b)
+inline veci min_epi32(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_min_epi32(a, b);
@@ -156,7 +159,7 @@ inline vec min_epi32(const vec& a, const vec& b)
 #endif
 }
 
-inline vec setzero_si()
+inline veci setzero_si()
 {
 #if defined(USE_AVX512)
     return _mm512_setzero_si512();
@@ -167,7 +170,7 @@ inline vec setzero_si()
 #endif
 }
 
-inline vec set1_epi16(int16_t a)
+inline veci set1_epi16(int16_t a)
 {
 #if defined(USE_AVX512)
     return _mm512_set1_epi16(a);
@@ -178,7 +181,7 @@ inline vec set1_epi16(int16_t a)
 #endif
 }
 
-inline vec set1_epi32(int32_t a)
+inline veci set1_epi32(int32_t a)
 {
 #if defined(USE_AVX512)
     return _mm512_set1_epi32(a);
@@ -189,7 +192,7 @@ inline vec set1_epi32(int32_t a)
 #endif
 }
 
-inline vec slli_epi16(const vec& a, int imm)
+inline veci slli_epi16(const veci& a, int imm)
 {
 #if defined(USE_AVX512)
     return _mm512_slli_epi16(a, imm);
@@ -200,7 +203,7 @@ inline vec slli_epi16(const vec& a, int imm)
 #endif
 }
 
-inline vec mulhi_epi16(const vec& a, const vec& b)
+inline veci mulhi_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_mulhi_epi16(a, b);
@@ -211,7 +214,7 @@ inline vec mulhi_epi16(const vec& a, const vec& b)
 #endif
 }
 
-inline vec packus_epi16(const vec& a, const vec& b)
+inline veci packus_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
     return _mm512_packus_epi16(a, b);
@@ -223,7 +226,7 @@ inline vec packus_epi16(const vec& a, const vec& b)
 }
 
 template <int imm>
-inline vec shuffle_epi32(const vec& a)
+inline veci shuffle_epi32(const veci& a)
 {
 #if defined(USE_AVX512)
     return _mm512_shuffle_epi32(a, imm);
@@ -234,7 +237,7 @@ inline vec shuffle_epi32(const vec& a)
 #endif
 }
 
-inline uint16_t cmpgt_epi32_mask(const vec& a)
+inline uint16_t cmpgt_epi32_mask(const veci& a)
 {
 #if defined(USE_AVX512)
     return _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512());
@@ -242,6 +245,105 @@ inline uint16_t cmpgt_epi32_mask(const vec& a)
     return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())));
 #elif defined(USE_SSE4)
     return _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())));
+#endif
+}
+
+inline vecs cvtepi32_ps(const veci& a)
+{
+#if defined(USE_AVX512)
+    return _mm512_cvtepi32_ps(a);
+#elif defined(USE_AVX2)
+    return _mm256_cvtepi32_ps(a);
+#elif defined(USE_SSE4)
+    return _mm_cvtepi32_ps(a);
+#endif
+}
+
+inline vecs setzero_ps()
+{
+#if defined(USE_AVX512)
+    return _mm512_setzero_ps();
+#elif defined(USE_AVX2)
+    return _mm256_setzero_ps();
+#elif defined(USE_SSE4)
+    return _mm_setzero_ps();
+#endif
+}
+
+inline vecs set1_ps(float a)
+{
+#if defined(USE_AVX512)
+    return _mm512_set1_ps(a);
+#elif defined(USE_AVX2)
+    return _mm256_set1_ps(a);
+#elif defined(USE_SSE4)
+    return _mm_set1_ps(a);
+#endif
+}
+
+inline vecs mul_ps(const vecs& a, const vecs& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_mul_ps(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_mul_ps(a, b);
+#elif defined(USE_SSE4)
+    return _mm_mul_ps(a, b);
+#endif
+}
+
+inline void store_ps(float* ptr, const vecs& v)
+{
+#if defined(USE_AVX512)
+    return _mm512_store_ps(ptr, v);
+#elif defined(USE_AVX2)
+    return _mm256_store_ps(ptr, v);
+#elif defined(USE_SSE4)
+    return _mm_store_ps(ptr, v);
+#endif
+}
+
+inline vecs add_ps(const vecs& a, const vecs& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_add_ps(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_add_ps(a, b);
+#elif defined(USE_SSE4)
+    return _mm_add_ps(a, b);
+#endif
+}
+
+inline vecs load_ps(const float* ptr)
+{
+#if defined(USE_AVX512)
+    return _mm512_load_ps(ptr);
+#elif defined(USE_AVX2)
+    return _mm256_load_ps(ptr);
+#elif defined(USE_SSE4)
+    return _mm_load_ps(ptr);
+#endif
+}
+
+inline vecs max_ps(const vecs& a, const vecs& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_max_ps(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_max_ps(a, b);
+#elif defined(USE_SSE4)
+    return _mm_max_ps(a, b);
+#endif
+}
+
+inline vecs min_ps(const vecs& a, const vecs& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_min_ps(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_min_ps(a, b);
+#elif defined(USE_SSE4)
+    return _mm_min_ps(a, b);
 #endif
 }
 
