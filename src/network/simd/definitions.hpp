@@ -1,6 +1,7 @@
 #pragma once
 
 // SSE4 or higher is required for SIMD
+#include <cmath>
 #include <cstdint>
 #if defined(USE_SSE4)
 #define SIMD_ENABLED
@@ -344,6 +345,18 @@ inline vecs min_ps(const vecs& a, const vecs& b)
     return _mm256_min_ps(a, b);
 #elif defined(USE_SSE4)
     return _mm_min_ps(a, b);
+#endif
+}
+
+inline vecs fmadd_ps(const vecs& a, const vecs& b, const vecs& c)
+{
+#if defined(USE_AVX512)
+    return _mm512_fmadd_ps(a, b, c);
+#elif defined(USE_AVX2)
+    return _mm256_fmadd_ps(a, b, c);
+#elif defined(USE_SSE4)
+    // TODO: this is AVX only, SSE4 needs to do separate mul/add
+    return _mm_fmadd_ps(a, b, c);
 #endif
 }
 
