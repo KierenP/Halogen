@@ -266,6 +266,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         output_reg[i / stride] = SIMD::min_epi32(one, output_reg[i / stride]);
         auto vec = SIMD::cvtepi32_ps(output_reg[i / stride]);
         vec = SIMD::mul_ps(vec, one_reciprocal);
+        vec = SIMD::mul_ps(vec, vec);
         SIMD::store_ps(&output[i], vec);
     }
 #else
@@ -317,6 +318,7 @@ void L2_activation(const std::array<float, L1_SIZE>& l1_activation,
         auto result = l2_reg[i / stride];
         result = SIMD::max_ps(result, zero);
         result = SIMD::min_ps(result, one);
+        result = SIMD::mul_ps(result, result);
         SIMD::store_ps(&output[i], result);
     }
 
