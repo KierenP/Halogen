@@ -197,6 +197,12 @@ tune: LDFLAGS += -flto
 tune: EXE = $(BINARY_DIR)/Halogen-tune
 tune: binary
 
+.PHONY: shuffle
+shuffle: CXXFLAGS += $(RFLAGS) $(AVXFLAGS) -DNETWORK_SHUFFLE
+shuffle: LDFLAGS += -flto
+shuffle: EXE = $(BINARY_DIR)/Halogen-shuffle
+shuffle: binary
+
 #----------------------------------------------------------------------------------------------------------------------
 # Release builds that are statically linked and target specific instruction sets
 

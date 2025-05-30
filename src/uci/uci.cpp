@@ -35,6 +35,7 @@
 #include "search/thread.h"
 #include "search/transposition/table.h"
 #include "spsa/tuneable.h"
+#include "tools/sparse_shuffle.hpp"
 #include "uci/options.h"
 #include "uci/parse.h"
 #include "utility/atomic.h"
@@ -595,6 +596,7 @@ void Uci::process_input(std::string_view command)
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
         Consume { "probe", Invoke { [this] { handle_probe(); } } },
+        consume { "shuffle_network", invoke { [this] { handle_shuffle_network(); } } },
         Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
              Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
@@ -735,4 +737,54 @@ void UciOutput::print_error(const std::string& error_str)
     std::cout << "info string Error: " << error_str << std::endl;
 }
 
+void Uci::handle_print()
+{
+    std::cout << position.Board() << std::endl;
+}
+
+void Uci::handle_spsa()
+{
+    options_handler().spsa_input_print(std::cout);
+}
+
+void Uci::handle_eval()
+{
+    std::cout << position.Board() << std::endl;
+    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
+}
+
+void Uci::handle_probe()
+{
+    std::cout << position.Board() << std::endl;
+    auto probe = Syzygy::probe_dtz_root(position.Board());
+
+    if (!probe)
+    {
+        std::cout << "Failed probe" << std::endl;
+        return;
+    }
+
+    std::cout << " move |   rank\n";
+    std::cout << "------+---------\n";
+
+    for (const auto& [move, tb_rank] : probe->root_moves)
+    {
+        std::cout << std::setw(5) << move << " | " << std::setw(7) << tb_rank << "\n";
+    }
+
+    std::cout << std::endl;
+}
+
+void Uci::handle_shuffle_network()
+{
+#ifdef NETWORK_SHUFFLE
+    handle_bench(10);
+    auto result = shuffle_network_data.GroupNeuronsByCoactivation();
+    std::cout << "[";
+    for (const auto& idx : result)
+    {
+        std::cout << idx << ", ";
+    }
+    std::cout << "]\n";
+#endif
 }
