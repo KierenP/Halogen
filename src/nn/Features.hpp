@@ -206,29 +206,23 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 }
 
-// SparseL1Shuffle data;
-// inline size_t block_count = 0;
-// inline size_t block_nnz = 0;
-// inline size_t neuron_count = 0;
-// inline size_t neuron_nnz = 0;
-
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int32_t, L1_SIZE>& l1_bias,
     [[maybe_unused]] const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
     [[maybe_unused]] const size_t sparse_nibbles_size, std::array<float, L1_SIZE>& output)
 {
-    // data.report_ft_activations(ft_activation);
-
-    /*block_count += FT_SIZE / 4;
+#ifdef NETWORK_SHUFFLE
+    shuffle_network_data.report_ft_activations(ft_activation);
+    block_count += FT_SIZE / 4;
     block_nnz += sparse_nibbles_size;
     neuron_count += FT_SIZE;
     neuron_nnz += std::count_if(ft_activation.begin(), ft_activation.end(), [](auto val) { return val > 0; });
-
-    if (block_count % (FT_SIZE / 4 * 1024 * 1024) == 0)
+    if (block_count % (FT_SIZE / 4 * 1024) == 0)
     {
         std::cout << "Average block NNZ: " << float(block_nnz) / float(block_count) * 100 << "%\n";
         std::cout << "Average neuron NNZ: " << float(neuron_nnz) / float(neuron_count) * 100 << "%\n";
-    }*/
+    }
+#endif
 
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
