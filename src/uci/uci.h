@@ -68,6 +68,7 @@ public:
     void handle_print();
     void handle_eval();
     void handle_probe();
+    void handle_shuffle_network();
 
 private:
     void join_search_thread();

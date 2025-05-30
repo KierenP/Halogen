@@ -32,6 +32,7 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "atomic.h"
+#include "tools/sparse_shuffle.hpp"
 #include "uci/options.h"
 #include "uci/parse.h"
 
@@ -491,7 +492,8 @@ void Uci::process_input(std::string_view command)
         consume { "print", invoke { [this] { handle_print(); } } },
         consume { "spsa", invoke { [this] { handle_spsa(); } } },
         consume { "eval", invoke { [this] { handle_eval(); } } },
-        consume { "probe", invoke { [this] { handle_probe(); } } } },
+        consume { "probe", invoke { [this] { handle_probe(); } } },
+        consume { "shuffle_network", invoke { [this] { handle_shuffle_network(); } } } },
     end_command{}
     };
     // clang-format on
@@ -610,4 +612,18 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
+void Uci::handle_shuffle_network()
+{
+#ifdef NETWORK_SHUFFLE
+    handle_bench(10);
+    auto result = shuffle_network_data.GroupNeuronsByCoactivation();
+    std::cout << "[";
+    for (const auto& idx : result)
+    {
+        std::cout << idx << ", ";
+    }
+    std::cout << "]\n";
+#endif
 }
