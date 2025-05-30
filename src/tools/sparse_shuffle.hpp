@@ -40,8 +40,8 @@ public:
     std::vector<int> GroupNeuronsByCoactivation()
     {
         constexpr static size_t group_size = 4;
-        constexpr static size_t num_groups = FT_SIZE / group_size;
-        static_assert(group_size * num_groups == FT_SIZE);
+        constexpr static size_t num_groups = (FT_SIZE / 2) / group_size;
+        static_assert(group_size * num_groups == (FT_SIZE / 2));
         std::vector<bool> used(FT_SIZE / 2, false);
         std::vector<std::vector<int>> groups;
 
