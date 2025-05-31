@@ -618,12 +618,6 @@ void Uci::handle_shuffle_network()
 {
 #ifdef NETWORK_SHUFFLE
     handle_bench(10);
-    auto result = shuffle_network_data.GroupNeuronsByCoactivation();
-    std::cout << "[";
-    for (const auto& idx : result)
-    {
-        std::cout << idx << ", ";
-    }
-    std::cout << "]\n";
+    shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
 }
