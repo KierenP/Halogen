@@ -1,12 +1,12 @@
 #pragma once
 
 #include "nn/Arch.hpp"
+#include <chrono>
 #include <iostream>
 #include <limits>
 #include <optional>
 #include <vector>
 
-// Scheme inspired by the Integral chess engine
 class SparseL1Shuffle
 {
 public:
@@ -16,119 +16,94 @@ public:
         // perspective net (so each ft_activation array is really 2 observations for each ft neuron). We also ensure we
         // are using sse4 mode so that we don't need to adjust for the packus shuffling.
 
-        for (size_t i = 0; i < FT_SIZE; i++)
+        std::array<bool, FT_SIZE / 2> stm;
+        std::array<bool, FT_SIZE / 2> nstm;
+
+        for (size_t i = 0; i < FT_SIZE / 2; i++)
         {
-            if (!ft_activation[i])
-            {
-                continue;
-            }
-
-            activation[i]++;
-
-            for (size_t j = 0; j < FT_SIZE; ++j)
-            {
-                if (!ft_activation[j])
-                {
-                    continue;
-                }
-
-                coactivation[i % (FT_SIZE / 2)][j % (FT_SIZE / 2)]++;
-            }
+            stm[i] = ft_activation[i] > 0;
+            nstm[i] = ft_activation[i + FT_SIZE / 2] > 0;
         }
+
+        activation.push_back(stm);
+        activation.push_back(nstm);
     }
 
-    std::vector<int> GroupNeuronsByCoactivation()
+    constexpr static size_t group_size = 4;
+    constexpr static size_t num_groups = (FT_SIZE / 2) / group_size;
+    static_assert(group_size * num_groups == (FT_SIZE / 2));
+
+    void GroupNeuronsByCoactivation()
     {
-        constexpr static size_t group_size = 4;
-        constexpr static size_t num_groups = (FT_SIZE / 2) / group_size;
-        static_assert(group_size * num_groups == (FT_SIZE / 2));
         std::vector<bool> used(FT_SIZE / 2, false);
+
         std::vector<std::vector<int>> groups;
 
-        std::cout << "Creating groups..." << std::endl;
-
-        for (size_t g = 0; g < num_groups; ++g)
+        for (size_t i = 0; i < num_groups; i++)
         {
-            std::vector<int> group;
-
-            // greedly pick the next most active neuron to form a group
-            std::optional<int> seed;
-            int64_t max_sum = std::numeric_limits<int64_t>::min();
-
-            for (size_t i = 0; i < FT_SIZE / 2; i++)
+            auto& group = groups.emplace_back();
+            for (size_t j = 0; j < group_size; j++)
             {
-                if (used[i])
-                {
-                    continue;
-                }
-
-                if (activation[i] > max_sum)
-                {
-                    max_sum = activation[i];
-                    seed = i;
-                }
+                group.push_back(i * 4 + j);
             }
-
-            used[*seed] = true;
-            group.push_back(*seed);
-
-            // greedly pick remaining neurons to maximize coactivation with current group
-            for (size_t k = 0; k < group_size - 1; ++k)
-            {
-                std::optional<int> best;
-                int64_t best_score = std::numeric_limits<int64_t>::min();
-                for (size_t j = 0; j < FT_SIZE / 2; ++j)
-                {
-                    if (used[j])
-                    {
-                        continue;
-                    }
-                    int score = 0;
-                    for (int m : group)
-                        score += coactivation[m][j];
-                    if (score > best_score)
-                    {
-                        best_score = score;
-                        best = j;
-                    }
-                }
-
-                used[*best] = true;
-                group.push_back(*best);
-            }
-
-            groups.push_back(std::move(group));
         }
 
-        std::cout << "Finished creating groups" << std::endl;
-
         RefineGroups(groups);
-
-        // Flatten the refined groups into a sorted neuron list
-        std::vector<int> result;
-        for (const auto& group : groups)
-            result.insert(result.end(), group.begin(), group.end());
-
-        return result;
+        PrintCurrentBest(groups);
     }
 
 private:
     int64_t GroupScore(const std::vector<int>& group)
     {
+        // Count the number of times this group would result in a zero block.
         int64_t score = 0;
-        for (size_t i = 0; i < group.size(); ++i)
+#pragma omp parallel for reduction(+ : score)
+        for (size_t i = 0; i < activation.size(); i++)
         {
-            for (size_t j = i + 1; j < group.size(); ++j)
+            if (!activation[i][group[0]] && !activation[i][group[1]] && !activation[i][group[2]]
+                && !activation[i][group[3]])
             {
-                score += coactivation[group[i]][group[j]];
+                score++;
             }
         }
         return score;
     }
 
+    void EstimateNNZ(std::vector<std::vector<int>>& groups)
+    {
+        int64_t total = num_groups * activation.size();
+        int64_t nnz = 0;
+
+#pragma omp parallel for reduction(+ : nnz)
+        for (size_t i = 0; i < activation.size(); i++)
+        {
+            for (size_t j = 0; j < groups.size(); j++)
+            {
+                if (activation[i][groups[j][0]] || activation[i][groups[j][1]] || activation[i][groups[j][2]]
+                    || activation[i][groups[j][3]])
+                {
+                    nnz++;
+                }
+            }
+        }
+
+        std::cout << "Estimated nnz: " << float(nnz) / float(total) * 100 << "%" << std::endl;
+    }
+
     void RefineGroups(std::vector<std::vector<int>>& groups)
     {
         std::cout << "Refining groups..." << std::endl;
+
+        auto UpdateBest = [&, last_update = std::chrono::high_resolution_clock::now()]() mutable
+        {
+            auto now = std::chrono::high_resolution_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_update).count() > 10)
+            {
+                last_update = now;
+                EstimateNNZ(groups);
+                PrintCurrentBest(groups);
+            }
+        };
 
         bool improved = true;
         while (improved)
@@ -156,6 +131,7 @@ private:
                                 groups[g1] = std::move(g1_copy);
                                 groups[g2] = std::move(g2_copy);
                                 improved = true;
+                                UpdateBest();
                             }
                         }
                     }
@@ -166,8 +142,16 @@ private:
         std::cout << "Finished refining groups" << std::endl;
     }
 
-    std::array<int64_t, FT_SIZE / 2> activation = {};
-    std::array<std::array<int64_t, FT_SIZE / 2>, FT_SIZE / 2> coactivation = {};
+    void PrintCurrentBest(std::vector<std::vector<int>>& groups)
+    {
+        std::cout << "[";
+        for (const auto& group : groups)
+            for (const auto& val : group)
+                std::cout << val << ", ";
+        std::cout << "]" << std::endl;
+    }
+
+    std::vector<std::array<bool, FT_SIZE / 2>> activation = {};
 };
 
 #ifdef NETWORK_SHUFFLE
