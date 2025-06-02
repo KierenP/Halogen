@@ -912,9 +912,12 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         int history = is_loud_move
             ? local.loud_history.get(position, ss, move)
             : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
+        std::array<Score, 2> see_pruning_margin;
+        see_pruning_margin[false] = -111 * depth - history / 168;
+        see_pruning_margin[true] = -35 * depth * depth - history / 168;
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
-            && !see_ge(position.Board(), move, -111 * depth - history / 168))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= 6
+            && !see_ge(position.Board(), move, see_pruning_margin[is_loud_move]))
         {
             continue;
         }
