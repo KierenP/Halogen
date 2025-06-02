@@ -795,7 +795,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
-        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED
+        && (cut_node == (tt_score >= beta) || depth > 5))
     {
         if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
