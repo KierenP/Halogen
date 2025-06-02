@@ -754,7 +754,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     assert(!(pv_node && cut_node));
-    const bool allNode = !(pv_node || cut_node);
+    [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = IsInCheck(position.Board());
 
@@ -795,7 +795,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
-        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED && (cut_node || tt_score < beta))
     {
         if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
