@@ -757,7 +757,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     assert(!(pv_node && cut_node));
-    const bool allNode = !(pv_node || cut_node);
+    [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = IsInCheck(position.Board());
 
