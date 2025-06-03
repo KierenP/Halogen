@@ -3,6 +3,7 @@
 #include "BitBoardDefine.h"
 #include "Network.h"
 #include "StaticVector.h"
+#include "nn/Arch.hpp"
 #include "simd/Definitions.hpp"
 #include "simd/Utility.hpp"
 #include "tools/sparse_shuffle.hpp"
@@ -209,7 +210,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int32_t, L1_SIZE>& l1_bias,
     [[maybe_unused]] const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
-    [[maybe_unused]] const size_t sparse_nibbles_size, std::array<float, L1_SIZE>& output)
+    [[maybe_unused]] const size_t sparse_nibbles_size, std::array<float, L1_SIZE * 2>& output)
 {
 #ifdef NETWORK_SHUFFLE
     shuffle_network_data.report_ft_activations(ft_activation);
@@ -250,17 +251,20 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         }
     }
 
-    const auto zero = SIMD::setzero_si();
-    const auto one = SIMD::set1_epi32(127.f * L1_SCALE);
+    const auto zero = SIMD::setzero_ps();
+    const auto one = SIMD::set1_ps(1);
     const auto one_reciprocal = SIMD::set1_ps(1.f / (127.f * L1_SCALE)); // 127 to match FT_activation adjustment
 
     for (size_t i = 0; i < L1_SIZE; i += stride)
     {
-        output_reg[i / stride] = SIMD::max_epi32(zero, output_reg[i / stride]);
-        output_reg[i / stride] = SIMD::min_epi32(one, output_reg[i / stride]);
         auto vec = SIMD::cvtepi32_ps(output_reg[i / stride]);
         vec = SIMD::mul_ps(vec, one_reciprocal);
+        auto sqr = SIMD::mul_ps(vec, vec);
+        vec = SIMD::max_ps(zero, vec);
+        vec = SIMD::min_ps(one, vec);
+        sqr = SIMD::min_ps(one, sqr);
         SIMD::store_ps(&output[i], vec);
+        SIMD::store_ps(&output[i + L1_SIZE], sqr);
     }
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
@@ -278,8 +282,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 #endif
 }
 
-void L2_activation(const std::array<float, L1_SIZE>& l1_activation,
-    const std::array<std::array<float, L2_SIZE>, L1_SIZE>& l2_weight, std::array<float, L2_SIZE>& output)
+void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
+    const std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>& l2_weight, std::array<float, L2_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(float);
@@ -294,7 +298,7 @@ void L2_activation(const std::array<float, L1_SIZE>& l1_activation,
     // We would normally calculate a vector-matrix product by calculating the dot product of each row. In this case, the
     // number of outputs is small enough that it is more efficient to transpose the weights, and hold the accumulated
     // outputs in temporary registers as we go. It also makes the activation much simpler with a simple max/min_ps.
-    for (size_t i = 0; i < L1_SIZE; i++)
+    for (size_t i = 0; i < L1_SIZE * 2; i++)
     {
         auto input = SIMD::set1_ps(l1_activation[i]);
         for (size_t j = 0; j < L2_SIZE; j += stride)
