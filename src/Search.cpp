@@ -993,10 +993,10 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     // Step 20: Adjust eval correction history
     if (!InCheck && !(bestMove.IsCapture() || bestMove.IsPromotion())
-        && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
-        && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
+        && !(bound == SearchResultType::LOWER_BOUND && score <= eval)
+        && !(bound == SearchResultType::UPPER_BOUND && score >= eval))
     {
-        local.pawn_corr_hist.add(position, depth, score.value() - raw_eval.value());
+        local.pawn_corr_hist.add(position, depth, score.value() - eval.value());
     }
 
     // Step 21: Update transposition table
