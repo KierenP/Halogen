@@ -116,6 +116,27 @@ private:
     static constexpr int eval_scale = 16384 / correction_max;
 };
 
+struct NonPawnCorrHistory
+{
+    // must be a power of 2, for fast hash lookup
+    static constexpr size_t hash_table_size = 16384;
+    static constexpr int correction_max = 16;
+
+    int16_t table[N_PLAYERS][hash_table_size] = {};
+
+    int16_t* get(const GameState& position, Players side);
+    void add(const GameState& position, Players side, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position, Players side);
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+
+private:
+    static constexpr int eval_scale = 16384 / correction_max;
+};
+
 template <typename... tables>
 class History
 {
