@@ -30,7 +30,6 @@ void SearchStackState::reset()
     moved_piece = N_PIECES;
     threat_mask = EMPTY;
     singular_exclusion = Move::Uninitialized;
-    multiple_extensions = 0;
     acc = {};
     cont_hist_subtable = nullptr;
     cont_hist_subtables = {};

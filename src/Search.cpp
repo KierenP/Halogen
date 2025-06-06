@@ -304,8 +304,6 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
         return 8 - (local.nodes & 0b1111);
     }
 
-    ss->multiple_extensions = (ss - 1)->multiple_extensions;
-
     if (!ss->nmp_verification_root)
     {
         ss->nmp_verification_depth = (ss - 1)->nmp_verification_depth;
@@ -500,14 +498,10 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 
     ss->singular_exclusion = Move::Uninitialized;
 
-    // Extending the SE idea, if the score is far below sbeta we extend by two. To avoid extending too much down
-    // forced lines we limit the number of multiple_extensions down one line. We focus on non_pv nodes becuase
-    // in particular we want to verify cut nodes which rest on a single good move and ensure we haven't
-    // overlooked a potential non-pv line.
-    if (!pv_node && se_score < sbeta - 11 && ss->multiple_extensions < 7)
+    // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
+    if (!pv_node && se_score < sbeta - 11)
     {
         extensions += 2;
-        ss->multiple_extensions++;
     }
     else if (se_score < sbeta)
     {
