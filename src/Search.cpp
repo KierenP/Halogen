@@ -1053,7 +1053,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     alpha = std::max(alpha, eval);
     if (alpha >= beta)
     {
-        return alpha;
+        return (alpha.value() + beta.value()) / 2;
     }
 
     Move bestmove = Move::Uninitialized;
