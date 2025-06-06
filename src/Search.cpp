@@ -1123,6 +1123,11 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         return score;
     }
 
+    if (score >= beta)
+    {
+        score = (score.value() + beta.value()) / 2;
+    }
+
     const auto bound = score <= original_alpha ? SearchResultType::UPPER_BOUND
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
