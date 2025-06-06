@@ -53,6 +53,7 @@ struct SearchStackState
     Move move = Move::Uninitialized;
     Pieces moved_piece = N_PIECES;
     uint64_t threat_mask = EMPTY;
+    Score adjusted_eval = SCORE_UNDEFINED;
 
     Move singular_exclusion = Move::Uninitialized;
     int multiple_extensions = 0;
