@@ -996,7 +996,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
-        local.pawn_corr_hist.add(position, depth, score.value() - ss->adjusted_eval.value());
+        local.pawn_corr_hist.add(position, depth, score.value() - (ss->adjusted_eval.value() + raw_eval.value()) / 2);
     }
 
     // Step 21: Update transposition table
