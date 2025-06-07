@@ -117,7 +117,7 @@ endif
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512_VNNI
 endif
-ifneq ($(findstring __AVX512__, $(SUPPORTED)),)
+ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512
 endif
 ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
