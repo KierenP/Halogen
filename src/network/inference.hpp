@@ -230,7 +230,6 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
     SIMD::veci output_reg[L1_SIZE / stride];
-    const auto madd_helper = SIMD::set1_epi16(1);
 
     for (size_t i = 0; i < L1_SIZE; i += stride)
     {
@@ -246,9 +245,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         static_assert(L1_SIZE % (stride) == 0);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
-            auto dot = SIMD::maddubs_epi16(ft_vec, SIMD::load_si(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
-            dot = SIMD::madd_epi16(dot, madd_helper);
-            output_reg[j / stride] = SIMD::add_epi32(dot, output_reg[j / stride]);
+            output_reg[j / stride] = SIMD::dpbusd_epi32(
+                output_reg[j / stride], ft_vec, SIMD::load_si(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
         }
     }
 
