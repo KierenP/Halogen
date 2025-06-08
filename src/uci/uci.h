@@ -77,6 +77,7 @@ public:
     void handle_datagen(const datagen_ctx& ctx);
     void handle_syzygy_rescore(const file_io_ctx& ctx);
     void handle_filter(const file_io_ctx& ctx);
+    void handle_viribinpack_convert(const file_io_ctx& ctx);
 
     // private:
     void join_search_thread();

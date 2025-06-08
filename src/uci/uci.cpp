@@ -6,11 +6,13 @@
 #include "../MoveGeneration.h"
 #include "../SearchConstants.h"
 #include "../SearchData.h"
+#include "../datagen/convert_to_viribinpack.h"
 #include "../datagen/datagen.h"
 #include "../datagen/filter.h"
 #include "../datagen/syzygy_rescore.h"
 #include "options.h"
 #include "parse.h"
+
 
 #include <chrono>
 #include <fstream>
@@ -491,7 +493,12 @@ void Uci::process_input(std::string_view command)
              repeat { one_of {
                 consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
                 consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
-            invoke { [this](auto& ctx) { handle_filter(ctx); } } } } } },
+            invoke { [this](auto& ctx) { handle_filter(ctx); } } } } },
+        consume { "viribinpack_convert", with_context { file_io_ctx{}, sequence {
+            repeat { one_of {
+                consume { "input", next_token { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                consume { "output", next_token { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            invoke { [this](auto& ctx) { handle_viribinpack_convert(ctx); } } } } } },
     end_command{}
     };
     // clang-format on
@@ -620,4 +627,9 @@ void Uci::handle_syzygy_rescore(const file_io_ctx& ctx)
 void Uci::handle_filter(const file_io_ctx& ctx)
 {
     filter(ctx.input_path, ctx.output_path);
+}
+
+void Uci::handle_viribinpack_convert(const file_io_ctx& ctx)
+{
+    convert_to_viribinpack(ctx.input_path, ctx.output_path);
 }

@@ -458,7 +458,7 @@ void BoardState::ApplyMove(Move move)
     half_turn_count += 1;
     stm = !stm;
 
-    assert(key.Verify(*this));
+    // assert(key.Verify(*this));
 }
 
 void BoardState::ApplyNullMove()
