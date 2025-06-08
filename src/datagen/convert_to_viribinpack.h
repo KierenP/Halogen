@@ -136,6 +136,7 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
         {
             auto sq = LSBpop(occ);
             auto encoded_piece = ((data.pcs[piece / 2] >> (4 * (piece % 2))) & 0xF);
+            // std::cout << "Decoding piece " << (int)encoded_piece << " on square " << (int)sq << std::endl;
             auto piece_type = static_cast<PieceTypes>(encoded_piece & 0x7);
             auto color = !static_cast<Players>(encoded_piece >> 3);
             if (perspective == BLACK)
@@ -143,6 +144,9 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
                 color = !color;
                 sq = flip_square(sq);
             }
+            // std::cout << "Placing piece " << (int)piece_type << " of color " << (int)color << " on square " <<
+            // (int)sq
+            //           << std::endl;
             board.SetSquare(sq, Piece(piece_type, color));
             piece++;
         }
@@ -181,7 +185,7 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
         const auto king = board.GetPieceBB<KING>();
         const auto castle_squares = board.castle_squares;
 
-        MarlinFormat format;
+        MarlinFormat format {};
         format.occ = white | black;
 
         auto idx = 0;
@@ -205,6 +209,9 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
             uint8_t colour = (white & SquareBB[sq]) != 0 ? 0 : (black & SquareBB[sq]) != 0 ? 1 : 2;
             assert(colour != 2);
             auto encoded_piece = ((colour << 3) | piece_type);
+            // std::cout << "Encoding piece " << (int)piece_type << " of color " << (int)colour << " on square " <<
+            // (int)sq
+            //           << std::endl;
             format.pcs[idx / 2] |= encoded_piece << (4 * (idx & 1));
             idx++;
         }
@@ -302,6 +309,10 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
             prev_board.ApplyMove(data.best_move);
         }
     }
+
+    // Terminate the last game
+    uint8_t terminator[4] = { 0, 0, 0, 0 };
+    output.write(reinterpret_cast<const char*>(terminator), sizeof(terminator));
 
     std::cout << "Converted " << number_of_games << " games with " << number_of_training_data
               << " training data points." << std::endl;
