@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../BitBoardDefine.h"
+#include "../BoardState.h"
 #include "../Move.h"
 #include "../MoveGeneration.h"
 #include "../MoveList.h"
@@ -121,15 +123,13 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
     BoardState prev_board;
     bool first_game = true;
 
-    auto construct_board = [](const training_data& data) -> BoardState
+    auto construct_board = [](const training_data& data, Players perspective) -> BoardState
     {
-        // setup the position. For simplicity, assume STM is white
         BoardState board;
         board.en_passant = N_SQUARES;
-        board.castle_squares = EMPTY;
         board.fifty_move_count = 0;
         board.half_turn_count = 1;
-        board.stm = WHITE;
+        board.stm = perspective;
         auto occ = data.occ;
         int piece = 0;
         while (occ)
@@ -138,9 +138,16 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
             auto encoded_piece = ((data.pcs[piece / 2] >> (4 * (piece % 2))) & 0xF);
             auto piece_type = static_cast<PieceTypes>(encoded_piece & 0x7);
             auto color = !static_cast<Players>(encoded_piece >> 3);
+            if (perspective == BLACK)
+            {
+                color = !color;
+                sq = flip_square(sq);
+            }
             board.SetSquare(sq, Piece(piece_type, color));
             piece++;
         }
+        board.castle_squares
+            = (RankBB[RANK_1] & board.GetPieceBB<WHITE_ROOK>()) | (RankBB[RANK_8] & board.GetPieceBB<BLACK_ROOK>());
         return board;
     };
 
@@ -256,7 +263,11 @@ inline void convert_to_viribinpack(const std::string& input_file, const std::str
     training_data data;
     while (input.read((char*)(&data), sizeof(training_data)))
     {
-        auto curr_board = construct_board(data);
+        auto curr_board = construct_board(data, first_game ? WHITE : prev_board.stm);
+        // due to a oversight in the original code, the best move is always from white's board perspective.
+        data.best_move = curr_board.stm == WHITE ? data.best_move
+                                                 : Move(flip_square(data.best_move.GetFrom()),
+                                                       flip_square(data.best_move.GetTo()), data.best_move.GetFlag());
 
         if (has_game_continued(curr_board))
         {
