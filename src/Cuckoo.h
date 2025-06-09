@@ -1,9 +1,7 @@
 #pragma once
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
-#include "Zobrist.h"
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck

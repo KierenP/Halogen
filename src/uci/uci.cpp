@@ -600,13 +600,12 @@ void Uci::handle_probe()
         return;
     }
 
-    std::cout << " move |   score   |   rank\n";
-    std::cout << "------+-----------+---------\n";
+    std::cout << " move |   rank\n";
+    std::cout << "------+---------\n";
 
-    for (const auto& [move, tb_score, tb_rank] : probe->root_moves)
+    for (const auto& [move, tb_rank] : probe->root_moves)
     {
-        std::cout << std::setw(5) << move << " | " << std::setw(6) << tb_score << "  | " << std::setw(7) << tb_rank
-                  << "\n";
+        std::cout << std::setw(5) << move << " | " << std::setw(7) << tb_rank << "\n";
     }
 
     std::cout << std::endl;

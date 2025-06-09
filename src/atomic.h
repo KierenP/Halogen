@@ -10,10 +10,10 @@ class atomic_relaxed : public std::atomic<T>
 public:
     using std::atomic<T>::atomic;
 
-    T operator=(T desired) noexcept
+    auto& operator=(T desired) noexcept
     {
         this->store(desired, std::memory_order_relaxed);
-        return desired;
+        return *this;
     }
 
     operator T() const noexcept
@@ -30,10 +30,10 @@ class atomic_rel_acq : public std::atomic<T>
 public:
     using std::atomic<T>::atomic;
 
-    T operator=(T desired) noexcept
+    auto& operator=(T desired) noexcept
     {
         this->store(desired, std::memory_order_release);
-        return desired;
+        return *this;
     }
 
     operator T() const noexcept

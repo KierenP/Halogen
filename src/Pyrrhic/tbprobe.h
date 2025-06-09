@@ -2,7 +2,7 @@
  * Copyright (c) 2013-2020 Ronald de Man
  * Copyright (c) 2015 Basil, all rights reserved,
  * Modifications Copyright (c) 2016-2019 by Jon Dart
- * Modifications Copyright (c) 2020-2020 by Andrew Grant
+ * Modifications Copyright (c) 2020-2024 by Andrew Grant
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,25 +31,32 @@
 
 #include "tbconfig.h"
 
+/// Definitions for PyrrhicMoves
+
+#define PYRRHIC_FLAG_NONE   0x0
+#define PYRRHIC_FLAG_QPROMO 0x1
+#define PYRRHIC_FLAG_RPROMO 0x2
+#define PYRRHIC_FLAG_BPROMO 0x3
+#define PYRRHIC_FLAG_NPROMO 0x4
+#define PYRRHIC_FLAG_ENPASS 0x8
+
+#define PYRRHIC_SHIFT_TO    0
+#define PYRRHIC_SHIFT_FROM  6
+#define PYRRHIC_SHIFT_FLAGS 12
+
+#define PYRRHIC_MASK_TO          0x3F
+#define PYRRHIC_MASK_FROM        0x3F
+#define PYRRHIC_MASK_FLAGS       0x0F
+#define PYRRHIC_MASK_PROMO_FLAGS 0x07
+
+#define PYRRHIC_MOVE_FLAGS(x) (((x) >> PYRRHIC_SHIFT_FLAGS) & PYRRHIC_MASK_FLAGS)
+
 /****************************************************************************/
 /* MAIN API                                                                 */
 /****************************************************************************/
 
-#define TB_MAX_MOVES                256
 #define TB_MAX_CAPTURES             64
 #define TB_MAX_PLY                  256
-
-#define TB_LOSS                     0       /* LOSS */
-#define TB_BLESSED_LOSS             1       /* LOSS but 50-move draw */
-#define TB_DRAW                     2       /* DRAW */
-#define TB_CURSED_WIN               3       /* WIN but 50-move draw  */
-#define TB_WIN                      4       /* WIN  */
-
-#define PYRRHIC_PROMOTES_NONE       0
-#define PYRRHIC_PROMOTES_QUEEN      1
-#define PYRRHIC_PROMOTES_ROOK       2
-#define PYRRHIC_PROMOTES_BISHOP     3
-#define PYRRHIC_PROMOTES_KNIGHT     4
 
 #define TB_RESULT_WDL_MASK          0x0000000F
 #define TB_RESULT_TO_MASK           0x000003F0
@@ -96,9 +103,10 @@
     (((_res) & ~TB_RESULT_DTZ_MASK) |           \
      (((_dtz) << TB_RESULT_DTZ_SHIFT) & TB_RESULT_DTZ_MASK))
 
-#define TB_RESULT_CHECKMATE         TB_SET_WDL(0, TB_WIN)
-#define TB_RESULT_STALEMATE         TB_SET_WDL(0, TB_DRAW)
-#define TB_RESULT_FAILED            0xFFFFFFFF
+
+typedef uint16_t PyrrhicMove;
+
+#include "api.h"
 
 /*
  * The tablebase can be probed for any position where #pieces <= TB_LARGEST.
@@ -107,160 +115,5 @@ extern int TB_LARGEST;
 extern int TB_NUM_WDL;
 extern int TB_NUM_DTM;
 extern int TB_NUM_DTZ;
-
-/*
- * Initialize the tablebase.
- *
- * PARAMETERS:
- * - path:
- *   The tablebase PATH string.
- *
- * RETURN:
- * - true=succes, false=failed.  The TB_LARGEST global will also be
- *   initialized.  If no tablebase files are found, then `true' is returned
- *   and TB_LARGEST is set to zero.
- */
-bool tb_init(const char *_path);
-
-/*
- * Free any resources allocated by tb_init
- */
-void tb_free(void);
-
-/*
- * Probe the Win-Draw-Loss (WDL) table.
- *
- * PARAMETERS:
- * - white, black, kings, queens, rooks, bishops, knights, pawns:
- *   The current position (bitboards).
- * - ep:
- *   The en passant square (if exists).  Set to zero if there is no en passant
- *   square.
- * - turn:
- *   true=white, false=black
- *
- * RETURN:
- * - One of {TB_LOSS, TB_BLESSED_LOSS, TB_DRAW, TB_CURSED_WIN, TB_WIN}.
- *   Otherwise returns TB_RESULT_FAILED if the probe failed.
- *
- * NOTES:
- * - Engines should use this function during search.
- * - This function is thread safe assuming TB_NO_THREADS is disabled.
- */
-unsigned tb_probe_wdl(
-    uint64_t white,     uint64_t black,
-    uint64_t kings,     uint64_t queens,
-    uint64_t rooks,     uint64_t bishops,
-    uint64_t knights,   uint64_t pawns,
-    unsigned ep,        bool     turn);
-
-/*
- * Probe the Distance-To-Zero (DTZ) table.
- *
- * PARAMETERS:
- * - white, black, kings, queens, rooks, bishops, knights, pawns:
- *   The current position (bitboards).
- * - rule50:
- *   The 50-move half-move clock.
- * - castling:
- *   Castling rights.  Set to zero if no castling is possible.
- * - ep:
- *   The en passant square (if exists).  Set to zero if there is no en passant
- *   square.
- * - turn:
- *   true=white, false=black
- * - results (OPTIONAL):
- *   Alternative results, one for each possible legal move.  The passed array
- *   must be TB_MAX_MOVES in size.
- *   If alternative results are not desired then set results=NULL.
- *
- * RETURN:
- * - A TB_RESULT value comprising:
- *   1) The WDL value (TB_GET_WDL)
- *   2) The suggested move (TB_GET_FROM, TB_GET_TO, TB_GET_PROMOTES, TB_GET_EP)
- *   3) The DTZ value (TB_GET_DTZ)
- *   The suggested move is guaranteed to preserved the WDL value.
- *
- *   Otherwise:
- *   1) TB_RESULT_STALEMATE is returned if the position is in stalemate.
- *   2) TB_RESULT_CHECKMATE is returned if the position is in checkmate.
- *   3) TB_RESULT_FAILED is returned if the probe failed.
- *
- *   If results!=NULL, then a TB_RESULT for each legal move will be generated
- *   and stored in the results array.  The results array will be terminated
- *   by TB_RESULT_FAILED.
- *
- * NOTES:
- * - Engines can use this function to probe at the root.  This function should
- *   not be used during search.
- * - DTZ tablebases can suggest unnatural moves, especially for losing
- *   positions.  Engines may prefer to traditional search combined with WDL
- *   move filtering using the alternative results array.
- * - This function is NOT thread safe.  For engines this function should only
- *   be called once at the root per search.
- */
-unsigned tb_probe_root(
-    uint64_t white,    uint64_t black,
-    uint64_t kings,    uint64_t queens,
-    uint64_t rooks,    uint64_t bishops,
-    uint64_t knights,  uint64_t pawns,
-    unsigned rule50,   unsigned ep,
-    bool     turn,     unsigned *results);
-
-
-typedef uint16_t PyrrhicMove;
-
-struct TbRootMove {
-  PyrrhicMove move;
-  PyrrhicMove pv[TB_MAX_PLY];
-  unsigned pvSize;
-  int32_t tbScore, tbRank;
-};
-
-struct TbRootMoves {
-  unsigned size;
-  struct TbRootMove moves[TB_MAX_MOVES];
-};
-
-/*
- * Use the DTZ tables to rank and score all root moves.
- * INPUT: as for tb_probe_root
- * OUTPUT: TbRootMoves structure is filled in. This contains
- * an array of TbRootMove structures.
- * Each structure instance contains a rank, a score, and a
- * predicted principal variation.
- * RETURN VALUE:
- *   non-zero if ok, 0 means not all probes were successful
- *
- */
-int tb_probe_root_dtz(
-    uint64_t white,    uint64_t black,
-    uint64_t kings,    uint64_t queens,
-    uint64_t rooks,    uint64_t bishops,
-    uint64_t knights,  uint64_t pawns,
-    unsigned rule50,   unsigned ep,
-    bool     turn,     bool hasRepeated,
-    bool useRule50,    struct TbRootMoves *results);
-
-/*
-// Use the WDL tables to rank and score all root moves.
-// This is a fallback for the case that some or all DTZ tables are missing.
- * INPUT: as for tb_probe_root
- * OUTPUT: TbRootMoves structure is filled in. This contains
- * an array of TbRootMove structures.
- * Each structure instance contains a rank, a score, and a
- * predicted principal variation.
- * RETURN VALUE:
- *   non-zero if ok, 0 means not all probes were successful
- *
- */
-int tb_probe_root_wdl(
-    uint64_t white,    uint64_t black,
-    uint64_t kings,    uint64_t queens,
-    uint64_t rooks,    uint64_t bishops,
-    uint64_t knights,  uint64_t pawns,
-    unsigned rule50,   unsigned ep,
-    bool     turn,     bool useRule50,
-    struct TbRootMoves *_results);
 
 #endif

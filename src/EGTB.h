@@ -16,7 +16,6 @@ public:
     struct RootMove
     {
         Move move;
-        Score tb_score;
         int32_t tb_rank;
     };
 

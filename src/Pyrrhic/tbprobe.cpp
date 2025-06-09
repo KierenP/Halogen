@@ -2,7 +2,7 @@
  * Copyright (c) 2013-2020 Ronald de Man
  * Copyright (c) 2015 Basil, all rights reserved,
  * Modifications Copyright (c) 2016-2019 by Jon Dart
- * Modifications Copyright (c) 2020-2020 by Andrew Grant
+ * Modifications Copyright (c) 2020-2024 by Andrew Grant
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -345,7 +345,7 @@ static void init_indices(void);
 static int probe_wdl(PyrrhicPosition *pos, int *success);
 static int probe_dtz(PyrrhicPosition *pos, int *success);
 int root_probe_wdl(const PyrrhicPosition *pos, bool useRule50, struct TbRootMoves *rm);
-int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50, struct TbRootMoves *rm);
+int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, struct TbRootMoves *rm);
 static uint16_t probe_root(PyrrhicPosition *pos, int *score, unsigned *results);
 
 static unsigned dtz_to_wdl(int cnt50, int dtz) {
@@ -416,7 +416,7 @@ int tb_probe_root_dtz(
     uint64_t knights,   uint64_t pawns,
     unsigned rule50,    unsigned ep,
     bool turn,          bool hasRepeated,
-    bool useRule50,     struct TbRootMoves *results) {
+    struct TbRootMoves *results) {
 
     PyrrhicPosition pos = {
         white, black, kings,
@@ -425,7 +425,7 @@ int tb_probe_root_dtz(
         (uint8_t)ep, turn
     };
 
-    return root_probe_dtz(&pos, hasRepeated, useRule50, results);
+    return root_probe_dtz(&pos, hasRepeated, results);
 }
 
 int tb_probe_root_wdl(
@@ -794,6 +794,8 @@ void tb_free(void)
   tb_init("");
   free(pieceEntry);
   free(pawnEntry);
+  pieceEntry = NULL;
+  pawnEntry = NULL;
 }
 
 static const int8_t OffDiag[] = {
@@ -1891,16 +1893,12 @@ int probe_dtz(PyrrhicPosition *pos, int *success)
 
 // Use the DTZ tables to rank and score all root moves in the list.
 // A return value of 0 means that not all probes were successful.
-int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50, struct TbRootMoves *rm)
+int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, struct TbRootMoves *rm)
 {
   int v, success;
 
   // Obtain 50-move counter for the root position.
   int cnt50 = pos->rule50;
-
-  // The border between draw and win lies at rank 1 or rank 900, depending
-  // on whether the 50-move rule is used.
-  int bound = useRule50 ? (TB_MAX_DTZ - 100) : 1;
 
   // Probe, rank and score each move.
   PyrrhicMove rootMoves[TB_MAX_MOVES];
@@ -1940,15 +1938,6 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
            : v < 0 ? (-v * 2 + cnt50 < 100 ? -TB_MAX_DTZ : -TB_MAX_DTZ + (-v + cnt50))
            : 0;
     m->tbRank = r;
-
-    // Determine the score to be displayed for this move. Assign at least
-    // 1 cp to cursed wins and let it grow to 49 cp as the position gets
-    // closer to a real win.
-    m->tbScore =  r >= bound ? PYRRHIC_VALUE_MATE - PYRRHIC_MAX_MATE_PLY - 1
-                : r >  0     ? TB_MAX( 3, r - (TB_MAX_DTZ - 200)) * PYRRHIC_VALUE_PAWN / 200
-                : r == 0     ? PYRRHIC_VALUE_DRAW
-                : r > -bound ? TB_MIN(-3, r + (TB_MAX_DTZ - 200)) * PYRRHIC_VALUE_PAWN / 200
-                :             -PYRRHIC_VALUE_MATE + PYRRHIC_MAX_MATE_PLY + 1;
   }
   return 1;
 }
@@ -1959,13 +1948,6 @@ int root_probe_dtz(const PyrrhicPosition *pos, bool hasRepeated, bool useRule50,
 int root_probe_wdl(const PyrrhicPosition *pos, bool useRule50, struct TbRootMoves *rm)
 {
   static int WdlToRank[] = { -TB_MAX_DTZ, -TB_MAX_DTZ + 101, 0, TB_MAX_DTZ - 101, TB_MAX_DTZ };
-  static int WdlToValue[] = {
-    -PYRRHIC_VALUE_MATE + PYRRHIC_MAX_MATE_PLY + 1,
-    PYRRHIC_VALUE_DRAW - 2,
-    PYRRHIC_VALUE_DRAW,
-    PYRRHIC_VALUE_DRAW + 2,
-    PYRRHIC_VALUE_MATE - PYRRHIC_MAX_MATE_PLY - 1
-  };
 
   int v, success;
 
@@ -1983,7 +1965,6 @@ int root_probe_wdl(const PyrrhicPosition *pos, bool useRule50, struct TbRootMove
     if (!useRule50)
       v = v > 0 ? 2 : v < 0 ? -2 : 0;
     m->tbRank = WdlToRank[v + 2];
-    m->tbScore = WdlToValue[v + 2];
   }
 
   return 1;

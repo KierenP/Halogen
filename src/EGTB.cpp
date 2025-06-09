@@ -13,30 +13,25 @@
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
 {
-    auto pyrrhic_move_from = [](PyrrhicMove m) { return (m >> 6) & 0x3F; };
-    auto pyrrhic_move_to = [](PyrrhicMove m) { return (m >> 0) & 0x3F; };
-    auto pyrrhic_move_promotes = [](PyrrhicMove m) { return (m >> 12) & 0x07; };
-
-    const auto from = static_cast<Square>(pyrrhic_move_from(move));
-    const auto to = static_cast<Square>(pyrrhic_move_to(move));
+    const auto from = static_cast<Square>(PYRRHIC_MOVE_FROM(move));
+    const auto to = static_cast<Square>(PYRRHIC_MOVE_TO(move));
     const auto flag = [&]()
     {
         auto flag_without_promo = board.GetMoveFlag(from, to);
-        const auto promo = pyrrhic_move_promotes(move);
 
-        if (promo == PYRRHIC_PROMOTES_KNIGHT)
+        if (PYRRHIC_MOVE_IS_NPROMO(move))
         {
             return (flag_without_promo == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_BISHOP)
+        if (PYRRHIC_MOVE_IS_BPROMO(move))
         {
             return (flag_without_promo == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_ROOK)
+        if (PYRRHIC_MOVE_IS_RPROMO(move))
         {
             return (flag_without_promo == CAPTURE ? ROOK_PROMOTION_CAPTURE : ROOK_PROMOTION);
         }
-        if (promo == PYRRHIC_PROMOTES_QUEEN)
+        if (PYRRHIC_MOVE_IS_QPROMO(move))
         {
             return (flag_without_promo == CAPTURE ? QUEEN_PROMOTION_CAPTURE : QUEEN_PROMOTION);
         }
@@ -44,7 +39,7 @@ Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
         return flag_without_promo;
     }();
 
-    return Move(from, to, flag);
+    return { from, to, flag };
 }
 
 void Syzygy::init(std::string_view path, bool print)
@@ -81,7 +76,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
         board.stm == WHITE);
     // clang-format on
 
-    if (probe == TB_RESULT_FAILED)
+    if (probe == TB_RESULT_FAILED || probe == TB_RESULT_STALEMATE || probe == TB_RESULT_CHECKMATE)
     {
         return std::nullopt;
     }
@@ -110,12 +105,11 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         return std::nullopt;
     }
 
-    TbRootMoves root_moves;
+    TbRootMoves root_moves {};
     static std::mutex tb_lock;
 
     /*
-    We currently don't use the hasRepeated argument, because Halogen doesn't readily store that information. Halogen's
-    search should see the upcoming draw by repitition, and choose an alternative root move.
+    TODO: Use the board cycle detection to correctly set the hasRepeated flag.
     */
 
     tb_lock.lock();
@@ -133,7 +127,6 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE,
         false,
-        true,
         &root_moves);
     // clang-format on
     tb_lock.unlock();
@@ -144,15 +137,13 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         return std::nullopt;
     }
 
-    std::stable_sort(root_moves.moves, root_moves.moves + root_moves.size,
-        [](const auto& lhs, const auto& rhs) { return lhs.tbRank > rhs.tbRank; });
-
+    std::ranges::stable_sort(root_moves.moves, std::greater<> {}, &TbRootMove::tbRank);
     RootProbeResult result;
 
     for (unsigned int i = 0; i < root_moves.size; i++)
     {
-        result.root_moves.emplace_back(extract_pyrrhic_move(board, root_moves.moves[i].move),
-            root_moves.moves[i].tbScore, root_moves.moves[i].tbRank);
+        result.root_moves.emplace_back(
+            extract_pyrrhic_move(board, root_moves.moves[i].move), root_moves.moves[i].tbRank);
     }
 
     return result;

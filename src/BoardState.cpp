@@ -10,30 +10,9 @@
 #include "MoveGeneration.h"
 #include "Zobrist.h"
 
-BoardState::BoardState()
-{
-    Reset();
-}
-
-void BoardState::Reset()
-{
-    en_passant = N_SQUARES;
-    fifty_move_count = 0;
-    half_turn_count = 1;
-
-    stm = N_PLAYERS;
-    castle_squares = EMPTY;
-
-    board = {};
-
-    RecalculateWhiteBlackBoards();
-    key = Zobrist::key(*this);
-    pawn_key = Zobrist::pawn_key(*this);
-}
-
 bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 {
-    Reset();
+    *this = BoardState(); // reset the board state
 
     size_t FenLetter = 0; // index within the string
     int square = 0; // index within the board
@@ -298,11 +277,11 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
 {
     os << "  A B C D E F G H";
 
-    char Letter[N_SQUARES];
+    std::array<char, N_SQUARES> Letter {};
 
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
     {
-        constexpr static char PieceChar[13] = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
+        constexpr static std::array PieceChar = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
         Letter[i] = PieceChar[b.GetSquare(i)];
     }
 
