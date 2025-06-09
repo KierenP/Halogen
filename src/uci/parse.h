@@ -176,7 +176,7 @@ struct tokens_until
         }
     }
 
-    const std::string_view delimiter_;
+    std::string_view delimiter_;
     T callback_;
 };
 
@@ -208,7 +208,7 @@ struct consume
     }
 
     T handler_;
-    const std::string_view token_;
+    std::string_view token_;
 };
 
 // Executes a series of handlers in order
@@ -313,8 +313,8 @@ template <typename new_Ctx, typename T>
 struct with_context
 {
     with_context(new_Ctx&& ctx, T&& handler)
-        : context_(std::forward<new_Ctx>(ctx))
-        , handler_(std::forward<T>(handler))
+        : context_(std::move(ctx))
+        , handler_(std::move(handler))
     {
     }
 

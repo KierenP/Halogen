@@ -42,8 +42,8 @@ struct check_option
         // do nothing
     }
 
-    const std::string_view name;
-    const bool default_value;
+    std::string_view name;
+    bool default_value;
     T on_change;
 };
 
@@ -96,10 +96,10 @@ struct spin_option
            << r_end << "\n";
     }
 
-    const std::string_view name;
-    const int default_value;
-    const int min_value;
-    const int max_value;
+    std::string_view name;
+    int default_value;
+    int min_value;
+    int max_value;
     T on_change;
 };
 
@@ -151,10 +151,10 @@ struct float_option
            << (max_value - min_value) / 20 << ", " << 0.002 << "\n";
     }
 
-    const std::string_view name;
-    const float default_value;
-    const float min_value;
-    const float max_value;
+    std::string_view name;
+    float default_value;
+    float min_value;
+    float max_value;
     T on_change;
 };
 
@@ -187,7 +187,7 @@ struct button_option
         // do nothing
     }
 
-    const std::string_view name;
+    std::string_view name;
     T on_change;
 };
 
@@ -222,8 +222,8 @@ struct string_option
         // do nothing
     }
 
-    const std::string_view name;
-    const std::string_view default_value;
+    std::string_view name;
+    std::string_view default_value;
     T on_change;
 };
 
@@ -282,8 +282,8 @@ struct combo_option
         // do nothing
     }
 
-    const std::string_view name;
-    const Enum default_value;
+    std::string_view name;
+    Enum default_value;
     T on_change;
 };
 

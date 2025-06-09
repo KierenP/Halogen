@@ -14,7 +14,7 @@ enum class SearchResultType : uint8_t
     UPPER_BOUND,
 };
 
-enum Square : uint8_t
+enum Square : int8_t
 {
     // clang-format off
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -37,7 +37,7 @@ constexpr Square& operator++(Square& sq)
     return sq;
 }
 
-enum Players : uint8_t
+enum Players : int8_t
 {
     BLACK,
     WHITE,
@@ -50,7 +50,7 @@ constexpr Players operator!(const Players& val)
     return val == WHITE ? BLACK : WHITE;
 }
 
-enum Pieces : uint8_t
+enum Pieces : int8_t
 {
     BLACK_PAWN,
     BLACK_KNIGHT,
@@ -69,7 +69,7 @@ enum Pieces : uint8_t
     N_PIECES
 };
 
-enum PieceTypes : uint8_t
+enum PieceTypes : int8_t
 {
     PAWN,
     KNIGHT,
@@ -81,7 +81,7 @@ enum PieceTypes : uint8_t
     N_PIECE_TYPES
 };
 
-enum Rank : uint8_t
+enum Rank : int8_t
 {
     RANK_1,
     RANK_2,
@@ -108,7 +108,7 @@ constexpr Rank& operator++(Rank& rank)
     return rank;
 }
 
-enum File : uint8_t
+enum File : int8_t
 {
     FILE_A,
     FILE_B,
@@ -129,7 +129,7 @@ constexpr File& operator++(File& file)
     return file;
 }
 
-enum Diagonal : uint8_t
+enum Diagonal : int8_t
 {
     DIAG_A8A8,
     DIAG_A7B8,
@@ -157,7 +157,7 @@ constexpr Diagonal& operator++(Diagonal& diagonal)
     return diagonal;
 }
 
-enum AntiDiagonal : uint8_t
+enum AntiDiagonal : int8_t
 {
     DIAG_H8H8,
     DIAG_G8H7,
@@ -258,7 +258,7 @@ constexpr auto abs_constexpr(T const& x) noexcept
     return x < 0 ? -x : x;
 }
 
-constexpr unsigned int AbsRankDiff(Square sq1, Square sq2)
+constexpr int AbsRankDiff(Square sq1, Square sq2)
 {
     assert(sq1 < N_SQUARES);
     assert(sq2 < N_SQUARES);
@@ -266,7 +266,7 @@ constexpr unsigned int AbsRankDiff(Square sq1, Square sq2)
     return abs_constexpr(static_cast<int>(GetRank(sq1)) - static_cast<int>(GetRank(sq2)));
 }
 
-constexpr unsigned int AbsFileDiff(Square sq1, Square sq2)
+constexpr int AbsFileDiff(Square sq1, Square sq2)
 {
     assert(sq1 < N_SQUARES);
     assert(sq2 < N_SQUARES);
@@ -296,7 +296,7 @@ constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 namespace Detail // so these don't polute the global scope
 {
 // Not my code, slightly modified
-constexpr uint64_t inBetween(unsigned int sq1, unsigned int sq2)
+constexpr uint64_t inBetween(int sq1, int sq2)
 {
     const uint64_t a2a7 = uint64_t(0x0001010101010100);
     const uint64_t b2g7 = uint64_t(0x0040201008040200);

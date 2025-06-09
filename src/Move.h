@@ -5,7 +5,7 @@
 
 #include "BitBoardDefine.h"
 
-enum MoveFlag : uint8_t
+enum MoveFlag : int8_t
 {
     QUIET,
     PAWN_DOUBLE_MOVE,

@@ -21,8 +21,8 @@ class BoardState
 {
 public:
     Square en_passant = N_SQUARES;
-    unsigned int fifty_move_count = 0;
-    unsigned int half_turn_count = 1;
+    int fifty_move_count = 0;
+    int half_turn_count = 1;
 
     Players stm = N_PLAYERS;
     uint64_t castle_squares = EMPTY;

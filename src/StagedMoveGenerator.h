@@ -34,6 +34,12 @@ public:
     StagedMoveGenerator(
         const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool Quiescence);
 
+    ~StagedMoveGenerator() = default;
+    StagedMoveGenerator(const StagedMoveGenerator&) = delete;
+    StagedMoveGenerator& operator=(const StagedMoveGenerator&) = delete;
+    StagedMoveGenerator(StagedMoveGenerator&&) = delete;
+    StagedMoveGenerator& operator=(StagedMoveGenerator&&) = delete;
+
     // Returns false if no more legal moves
     bool Next(Move& move);
 

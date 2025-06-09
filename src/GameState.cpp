@@ -155,11 +155,11 @@ void GameState::update_current_position_repetition()
 {
     assert(previousStates.size() >= 1);
 
-    const int i = previousStates.size() - 1;
+    const int i = (int)previousStates.size() - 1;
     previousStates[i].three_fold_rep = false;
     previousStates[i].repetition = std::nullopt;
 
-    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
+    const int max_ply = std::min(i, previousStates[i].fifty_move_count);
 
     for (int ply = 4; ply <= max_ply; ply += 2)
     {
@@ -174,8 +174,8 @@ void GameState::update_current_position_repetition()
 
 bool GameState::upcoming_rep(int distanceFromRoot) const
 {
-    const int i = previousStates.size() - 1;
-    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
+    const int i = (int)previousStates.size() - 1;
+    const int max_ply = std::min(i, previousStates[i].fifty_move_count);
 
     // Enough reversible moves played
     if (max_ply < 3)
@@ -199,7 +199,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
 
         // 'diff' is a single move
         uint64_t diff = previousStates[i].GetZobristKey() ^ previousStates[i - ply].GetZobristKey();
-        int hash = cuckoo::H1(diff);
+        auto hash = cuckoo::H1(diff);
 
         if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))
         {

@@ -12,7 +12,13 @@ struct TTBucket;
 class TranspositionTable
 {
 public:
+    TranspositionTable() = default;
     ~TranspositionTable();
+
+    TranspositionTable(const TranspositionTable&) = delete;
+    TranspositionTable& operator=(const TranspositionTable&) = delete;
+    TranspositionTable(TranspositionTable&&) = delete;
+    TranspositionTable& operator=(TranspositionTable&&) = delete;
 
     size_t GetSize() const
     {
