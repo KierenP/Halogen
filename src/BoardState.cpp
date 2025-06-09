@@ -121,6 +121,10 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
     RecalculateWhiteBlackBoards();
     key = Zobrist::key(*this);
     pawn_key = Zobrist::pawn_key(*this);
+    non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
+    non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
+    // minor_key = Zobrist::minor_key(*this);
+    // major_key = Zobrist::major_key(*this);
     return true;
 }
 
@@ -311,6 +315,8 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
 
 void BoardState::ApplyMove(Move move)
 {
+    // std::cout << *this << std::endl;
+
     key ^= Zobrist::stm();
 
     // undo the previous ep square
@@ -338,6 +344,21 @@ void BoardState::ApplyMove(Move move)
         {
             pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
             pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
+        }
+        else
+        {
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetFrom());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetTo());
+            if (GetPieceType(piece) == KNIGHT || GetPieceType(piece) == BISHOP)
+            {
+                // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
+                // minor_key ^= Zobrist::piece_square(piece, move.GetTo());
+            }
+            else if (GetPieceType(piece) == ROOK || GetPieceType(piece) == QUEEN)
+            {
+                // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
+                // major_key ^= Zobrist::piece_square(piece, move.GetTo());
+            }
         }
 
         break;
@@ -392,6 +413,12 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(Piece(KING, stm), king_end);
         key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
         key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(KING, stm), king_start);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(KING, stm), king_end);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
+        // major_key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
+        // major_key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -411,6 +438,12 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(Piece(KING, stm), king_end);
         key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
         key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(KING, stm), king_start);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(KING, stm), king_end);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
+        non_pawn_key[stm] ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
+        // major_key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_start);
+        // major_key ^= Zobrist::piece_square(Piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -423,7 +456,6 @@ void BoardState::ApplyMove(Move move)
         AddPiece(move.GetTo(), piece);
         RemovePiece(move.GetFrom(), piece);
 
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         key ^= Zobrist::piece_square(piece, move.GetFrom());
         key ^= Zobrist::piece_square(piece, move.GetTo());
         if (GetPieceType(piece) == PAWN)
@@ -431,9 +463,37 @@ void BoardState::ApplyMove(Move move)
             pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
             pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
         }
+        else
+        {
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetFrom());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetTo());
+            if (GetPieceType(piece) == KNIGHT || GetPieceType(piece) == BISHOP)
+            {
+                // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
+                // minor_key ^= Zobrist::piece_square(piece, move.GetTo());
+            }
+            else if (GetPieceType(piece) == ROOK || GetPieceType(piece) == QUEEN)
+            {
+                // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
+                // major_key ^= Zobrist::piece_square(piece, move.GetTo());
+            }
+        }
+        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         if (GetPieceType(cap_piece) == PAWN)
         {
             pawn_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
+        else
+        {
+            non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            if (GetPieceType(cap_piece) == KNIGHT || GetPieceType(cap_piece) == BISHOP)
+            {
+                // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            }
+            else if (GetPieceType(cap_piece) == ROOK || GetPieceType(cap_piece) == QUEEN)
+            {
+                // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            }
         }
 
         break;
@@ -469,6 +529,8 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
 
         break;
     }
@@ -483,6 +545,8 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
 
         break;
     }
@@ -497,6 +561,8 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
 
         break;
     }
@@ -511,6 +577,8 @@ void BoardState::ApplyMove(Move move)
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
 
         break;
     }
@@ -526,8 +594,19 @@ void BoardState::ApplyMove(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        if (GetPieceType(cap_piece) == KNIGHT || GetPieceType(cap_piece) == BISHOP)
+        {
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
+        else if (GetPieceType(cap_piece) == ROOK || GetPieceType(cap_piece) == QUEEN)
+        {
+            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
 
         break;
     }
@@ -543,8 +622,19 @@ void BoardState::ApplyMove(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        if (GetPieceType(cap_piece) == KNIGHT || GetPieceType(cap_piece) == BISHOP)
+        {
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
+        else if (GetPieceType(cap_piece) == ROOK || GetPieceType(cap_piece) == QUEEN)
+        {
+            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
 
         break;
     }
@@ -560,8 +650,19 @@ void BoardState::ApplyMove(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        if (GetPieceType(cap_piece) == KNIGHT || GetPieceType(cap_piece) == BISHOP)
+        {
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
+        else if (GetPieceType(cap_piece) == ROOK || GetPieceType(cap_piece) == QUEEN)
+        {
+            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
 
         break;
     }
@@ -577,8 +678,19 @@ void BoardState::ApplyMove(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        if (GetPieceType(cap_piece) == KNIGHT || GetPieceType(cap_piece) == BISHOP)
+        {
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
+        else if (GetPieceType(cap_piece) == ROOK || GetPieceType(cap_piece) == QUEEN)
+        {
+            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        }
 
         break;
     }
@@ -594,8 +706,15 @@ void BoardState::ApplyMove(Move move)
     half_turn_count += 1;
     stm = !stm;
 
+    // std::cout << *this << std::endl;
+    // std::cout << move << std::endl;
+
     assert(key == Zobrist::key(*this));
     assert(pawn_key == Zobrist::pawn_key(*this));
+    assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
+    assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
+    // assert(minor_key == Zobrist::minor_key(*this));
+    // assert(major_key == Zobrist::major_key(*this));
 }
 
 void BoardState::ApplyNullMove()
@@ -615,6 +734,10 @@ void BoardState::ApplyNullMove()
 
     assert(key == Zobrist::key(*this));
     assert(pawn_key == Zobrist::pawn_key(*this));
+    assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
+    assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
+    // assert(minor_key == Zobrist::minor_key(*this));
+    // assert(major_key == Zobrist::major_key(*this));
 }
 
 MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
