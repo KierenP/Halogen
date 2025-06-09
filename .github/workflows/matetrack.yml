@@ -11,7 +11,7 @@ on:
 jobs:
   Matetrack:
     name: Matetrack
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Halogen repo 
         uses: actions/checkout@v4.1.1
@@ -20,7 +20,7 @@ jobs:
 
       - name: Build Halogen
         working-directory: Halogen/src
-        run: make -j4
+        run: make -j
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4

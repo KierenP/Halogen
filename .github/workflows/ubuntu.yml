@@ -12,15 +12,15 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
         config:
-          - { compiler: g++-11, package: g++-11 }
-          - { compiler: clang++-12, package: clang-12 }
+          - { compiler: g++-13, packages: g++-13, profdata: NA }
+          - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
         # runners only seem to support up to avx2-pext
-        target: [legacy, sse4, avx, avx2, avx2-pext]
+        target: [pgo, legacy, sse4, avx, avx2, avx2-pext]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -32,12 +32,11 @@ jobs:
       - name: Install
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.config.package }}
+          sudo apt install ${{ matrix.config.packages }}
 
       - name: Create build
-        run: |
-         cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen -j4
+        working-directory: src
+        run: make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXE=../bin/Halogen -j
 
       - name: Check bench matches commit message
         run: |
