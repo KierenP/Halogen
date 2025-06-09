@@ -19,7 +19,7 @@ GameState::GameState()
 void GameState::ApplyMove(Move move)
 {
     previousStates.emplace_back(previousStates.back()).ApplyMove(move);
-    update_current_position_repitition();
+    update_current_position_repetition();
 }
 
 void GameState::ApplyMove(std::string_view strmove)
@@ -71,7 +71,7 @@ void GameState::ApplyNullMove()
 {
     previousStates.push_back(previousStates.back());
     MutableBoard().ApplyNullMove();
-    update_current_position_repitition();
+    update_current_position_repetition();
 }
 
 void GameState::RevertNullMove()
@@ -140,33 +140,33 @@ BoardState& GameState::MutableBoard()
     return previousStates.back();
 }
 
-bool GameState::is_repitition(int distance_from_root) const
+bool GameState::is_repetition(int distance_from_root) const
 {
     return Board().three_fold_rep
-        || (Board().repitition.has_value() && Board().repitition.value() < distance_from_root);
+        || (Board().repetition.has_value() && Board().repetition.value() < distance_from_root);
 }
 
-bool GameState::is_two_fold_repitition() const
+bool GameState::is_two_fold_repetition() const
 {
-    return Board().repitition.has_value();
+    return Board().repetition.has_value();
 }
 
-void GameState::update_current_position_repitition()
+void GameState::update_current_position_repetition()
 {
     assert(previousStates.size() >= 1);
 
-    const int i = previousStates.size() - 1;
+    const int i = (int)previousStates.size() - 1;
     previousStates[i].three_fold_rep = false;
-    previousStates[i].repitition = std::nullopt;
+    previousStates[i].repetition = std::nullopt;
 
-    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
+    const int max_ply = std::min(i, previousStates[i].fifty_move_count);
 
     for (int ply = 4; ply <= max_ply; ply += 2)
     {
         if (previousStates[i].GetZobristKey() == previousStates[i - ply].GetZobristKey())
         {
-            previousStates[i].repitition = ply;
-            previousStates[i].three_fold_rep = (bool)previousStates[i - ply].repitition;
+            previousStates[i].repetition = ply;
+            previousStates[i].three_fold_rep = (bool)previousStates[i - ply].repetition;
             break;
         }
     }
@@ -174,8 +174,8 @@ void GameState::update_current_position_repitition()
 
 bool GameState::upcoming_rep(int distanceFromRoot) const
 {
-    const int i = previousStates.size() - 1;
-    const int max_ply = std::min<int>(i, previousStates[i].fifty_move_count);
+    const int i = (int)previousStates.size() - 1;
+    const int max_ply = std::min(i, previousStates[i].fifty_move_count);
 
     // Enough reversible moves played
     if (max_ply < 3)
@@ -199,7 +199,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
 
         // 'diff' is a single move
         uint64_t diff = previousStates[i].GetZobristKey() ^ previousStates[i - ply].GetZobristKey();
-        int hash = cuckoo::H1(diff);
+        auto hash = cuckoo::H1(diff);
 
         if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))
         {
@@ -213,7 +213,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
                 }
 
                 // three fold rep
-                if (previousStates[i - ply].repitition)
+                if (previousStates[i - ply].repetition)
                 {
                     return true;
                 }

@@ -10,7 +10,7 @@ class Move;
 
 /*
 This class holds all the data required to define a state in a chess game,
-including all previous game states for the purposes of draw by repitition.
+including all previous game states for the purposes of draw by repetition.
 */
 
 class GameState
@@ -31,8 +31,8 @@ public:
     bool InitialiseFromFen(std::array<std::string_view, 6> fen);
     bool InitialiseFromFen(std::string_view fen);
 
-    bool is_repitition(int distance_from_root) const;
-    bool is_two_fold_repitition() const;
+    bool is_repetition(int distance_from_root) const;
+    bool is_two_fold_repetition() const;
     bool upcoming_rep(int distanceFromRoot) const;
 
     const BoardState& Board() const;
@@ -43,5 +43,5 @@ private:
 
     std::vector<BoardState> previousStates;
 
-    void update_current_position_repitition();
+    void update_current_position_repetition();
 };

@@ -27,6 +27,11 @@ public:
     Uci(std::string_view version);
     ~Uci();
 
+    Uci(const Uci&) = delete;
+    Uci& operator=(const Uci&) = delete;
+    Uci(Uci&&) = delete;
+    Uci& operator=(Uci&&) = delete;
+
     void process_input_stream(std::istream& is);
     void process_input(std::string_view command);
 

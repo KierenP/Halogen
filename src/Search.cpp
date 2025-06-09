@@ -36,7 +36,7 @@
 #include "atomic.h"
 #include "uci/uci.h"
 
-enum class SearchType : uint8_t
+enum class SearchType : int8_t
 {
     ROOT,
     PV,
@@ -76,7 +76,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     if (probe.has_value())
     {
         // filter out the results which preserve the tbRank
-        for (const auto& [move, _, tb_rank] : probe->root_moves)
+        for (const auto& [move, tb_rank] : probe->root_moves)
         {
             if (tb_rank != probe->root_moves[0].tb_rank)
             {
@@ -284,7 +284,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
-    if (position.is_repitition(distance_from_root))
+    if (position.is_repetition(distance_from_root))
     {
         return 8 - (local.nodes & 0b1111);
     }
@@ -413,8 +413,8 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
 std::optional<Score> tt_cutoff_node(const GameState& position, const Score tt_score, const SearchResultType tt_cutoff,
     const Score alpha, const Score beta)
 {
-    // Don't take scores from the TT if there's a two-fold repitition
-    if (position.is_two_fold_repitition())
+    // Don't take scores from the TT if there's a two-fold repetition
+    if (position.is_two_fold_repetition())
     {
         return std::nullopt;
     }
@@ -733,7 +733,7 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
     for (const auto& move : moves)
     {
         position.ApplyMove(move);
-        if (position.is_repitition(distance_from_root + 1))
+        if (position.is_repetition(distance_from_root + 1))
         {
             is_draw = true;
         }

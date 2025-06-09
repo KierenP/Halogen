@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdint>
 #include <iosfwd>
-#include <limits>
 #include <optional>
 #include <string_view>
 
@@ -21,17 +20,15 @@ It does not store the history of all previous moves applied to the board.
 class BoardState
 {
 public:
-    BoardState();
-
     Square en_passant = N_SQUARES;
-    unsigned int fifty_move_count;
-    unsigned int half_turn_count;
+    int fifty_move_count = 0;
+    int half_turn_count = 1;
 
     Players stm = N_PLAYERS;
-    uint64_t castle_squares;
+    uint64_t castle_squares = EMPTY;
 
-    // number of plys since last repitition
-    std::optional<int> repitition;
+    // number of plys since last repetition
+    std::optional<int> repetition;
     bool three_fold_rep = false;
 
     Pieces GetSquare(Square square) const;
@@ -78,7 +75,6 @@ public:
     void RemovePiece(Square square, Pieces piece);
     void ClearSquare(Square square);
 
-    void Reset();
     bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
     void UpdateCastleRights(Move move);
 
@@ -93,9 +89,9 @@ public:
 private:
     void RecalculateWhiteBlackBoards();
 
-    uint64_t key;
-    uint64_t pawn_key;
+    uint64_t key = 0;
+    uint64_t pawn_key = 0;
 
     std::array<uint64_t, N_PIECES> board = {};
-    std::array<uint64_t, 2> side_bb;
+    std::array<uint64_t, 2> side_bb = {};
 };

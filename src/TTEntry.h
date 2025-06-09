@@ -10,7 +10,7 @@ enum class SearchResultType : uint8_t;
 
 Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);
-uint8_t get_generation(int currentTurnCount, int distanceFromRoot);
+int8_t get_generation(int currentTurnCount, int distanceFromRoot);
 
 constexpr static int GENERATION_MAX = 1 << 6;
 

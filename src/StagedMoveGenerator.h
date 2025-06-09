@@ -6,7 +6,7 @@ class GameState;
 struct SearchLocalState;
 struct SearchStackState;
 
-enum class Stage : uint8_t
+enum class Stage : int8_t
 {
     TT_MOVE,
     GEN_LOUD,
@@ -33,6 +33,12 @@ class StagedMoveGenerator
 public:
     StagedMoveGenerator(
         const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool Quiescence);
+
+    ~StagedMoveGenerator() = default;
+    StagedMoveGenerator(const StagedMoveGenerator&) = delete;
+    StagedMoveGenerator& operator=(const StagedMoveGenerator&) = delete;
+    StagedMoveGenerator(StagedMoveGenerator&&) = delete;
+    StagedMoveGenerator& operator=(StagedMoveGenerator&&) = delete;
 
     // Returns false if no more legal moves
     bool Next(Move& move);

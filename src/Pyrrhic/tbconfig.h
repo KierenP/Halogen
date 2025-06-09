@@ -1,7 +1,7 @@
 /*
  * (c) 2015 basil, all rights reserved,
  * Modifications Copyright (c) 2016-2019 by Jon Dart
- * Modifications Copyright (c) 2020-2020 by Andrew Grant
+ * Modifications Copyright (c) 2020-2024 by Andrew Grant
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,16 +50,3 @@
 #define PYRRHIC_ROOK_ATTACKS(sq, occ)    (AttackBB<ROOK>(static_cast<Square>(sq), occ))
 #define PYRRHIC_QUEEN_ATTACKS(sq, occ)   (AttackBB<QUEEN>(static_cast<Square>(sq), occ))
 #define PYRRHIC_KING_ATTACKS(sq)         (AttackBB<KING>(static_cast<Square>(sq)))
-
-/*
- * Pyrrhic can produce scores for tablebase moves. These depend on the value
- * of a pawn, and the magnitude of mate scores, and will be engine specific.
- *
- * In Ethereal, I personally do not make use of these scores. They are to rank
- * moves. Without these values you are still able to detmine which moves Win,
- * Draw, and Lose. PYRRHIC_MAX_MATE_PLY should be your max search height.
- */
-#define PYRRHIC_VALUE_PAWN     (  100)
-#define PYRRHIC_VALUE_MATE     (32000)
-#define PYRRHIC_VALUE_DRAW     (    0)
-#define PYRRHIC_MAX_MATE_PLY   (  255)

@@ -25,7 +25,7 @@ Score convert_from_tt_score(Score val, int distance_from_root)
     return val;
 }
 
-uint8_t get_generation(int currentTurnCount, int distanceFromRoot)
+int8_t get_generation(int currentTurnCount, int distanceFromRoot)
 {
     return (currentTurnCount - distanceFromRoot) % GENERATION_MAX;
 }

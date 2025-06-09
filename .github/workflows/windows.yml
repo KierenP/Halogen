@@ -8,12 +8,13 @@ on:
 
 jobs:
   Windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     strategy:
       matrix:
-        config: 
+        config:
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
+          - { system: mingw64, package: x86_64-gcc, compiler: g++ }
         # runners only seem to support up to avx2-pext
         target: [pgo, legacy, sse4, avx, avx2, avx2-pext]
 
@@ -35,9 +36,8 @@ jobs:
 
       - name: Create build
         shell: msys2 {0}
-        run: |
-         cd src
-         make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j4
+        working-directory: src
+        run: make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j
 
       - name: Check bench matches commit message
         shell: msys2 {0}

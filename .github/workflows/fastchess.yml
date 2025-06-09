@@ -9,17 +9,22 @@ on:
   pull_request:
 
 jobs:
-  Matetrack:
-    name: Games
-    runs-on: ubuntu-24.04
+  FastChess:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [sanitize-address, sanitize-undefined, sanitize-thread]
+
     steps:
-      - name: Checkout
+      - name: Checkout Halogen repo 
         uses: actions/checkout@v4.1.1
+        with:
+          path: Halogen
 
       - name: Build
-        run: |
-          cd src
-          make debug EXE=../bin/Halogen -j4
+        working-directory: Halogen/src
+        run: make ${{ matrix.target }} EXE=../bin/Halogen -j
 
       - name: Checkout fast-chess repo
         uses: actions/checkout@v4.1.1
@@ -36,8 +41,8 @@ jobs:
         working-directory: fast-chess
         run: |
           ./fast-chess  -rounds 4 -games 2 -repeat -concurrency 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
-               -engine name=halogen1 cmd=../bin/Halogen\
-               -engine name=halogen2 cmd=../bin/Halogen\
+               -engine name=halogen1 cmd=../Halogen/bin/Halogen\
+               -engine name=halogen2 cmd=../Halogen/bin/Halogen\
                -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null

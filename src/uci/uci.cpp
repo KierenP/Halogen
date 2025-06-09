@@ -74,7 +74,7 @@ std::optional<OutputLevel> to_enum<OutputLevel>(std::string_view str)
     }
 }
 
-uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
+uint64_t Perft(int depth, GameState& position, bool check_legality)
 {
     if (depth == 0)
         return 1; // if perftdivide is called with 1 this is necesary
@@ -85,7 +85,7 @@ uint64_t Perft(unsigned int depth, GameState& position, bool check_legality)
 
     if (check_legality)
     {
-        for (int i = 0; i < UINT16_MAX; i++)
+        for (int i = 0; i < std::numeric_limits<uint16_t>::max(); i++)
         {
             Move move(i);
             bool legal = MoveIsLegal(position.Board(), move);
@@ -119,8 +119,8 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
 {
     std::ifstream infile(path);
 
-    unsigned int Perfts = 0;
-    unsigned int Correct = 0;
+    int Perfts = 0;
+    int Correct = 0;
     double Totalnodes = 0;
     GameState position;
     std::string line;
@@ -167,11 +167,11 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
 
     std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
     std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
-    std::cout << "\nNodes per second: " << static_cast<unsigned int>(Totalnodes / duration);
+    std::cout << "\nNodes per second: " << static_cast<int>(Totalnodes / duration);
     std::cout << std::endl;
 }
 
-uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legality)
+uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
 {
     auto before = std::chrono::steady_clock::now();
 
@@ -192,7 +192,7 @@ uint64_t PerftDivide(unsigned int depth, GameState& position, bool check_legalit
     auto duration = std::chrono::duration<double>(after - before).count();
 
     std::cout << "\nNodes searched: " << (nodeCount) << " in " << duration << " seconds ";
-    std::cout << "(" << static_cast<unsigned int>(nodeCount / duration) << " nps)" << std::endl;
+    std::cout << "(" << static_cast<int>(nodeCount / duration) << " nps)" << std::endl;
     return nodeCount;
 }
 
@@ -600,13 +600,12 @@ void Uci::handle_probe()
         return;
     }
 
-    std::cout << " move |   score   |   rank\n";
-    std::cout << "------+-----------+---------\n";
+    std::cout << " move |   rank\n";
+    std::cout << "------+---------\n";
 
-    for (const auto& [move, tb_score, tb_rank] : probe->root_moves)
+    for (const auto& [move, tb_rank] : probe->root_moves)
     {
-        std::cout << std::setw(5) << move << " | " << std::setw(6) << tb_score << "  | " << std::setw(7) << tb_rank
-                  << "\n";
+        std::cout << std::setw(5) << move << " | " << std::setw(7) << tb_rank << "\n";
     }
 
     std::cout << std::endl;

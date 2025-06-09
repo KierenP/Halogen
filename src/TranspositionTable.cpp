@@ -43,7 +43,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         entry.score = score;
         entry.static_eval = static_eval;
         entry.depth = Depth;
-        entry.meta = TTMeta { Cutoff, current_generation };
+        entry.meta = TTMeta { Cutoff, (uint8_t)current_generation };
     };
 
     for (size_t i = 0; i < TTBucket::size; i++)

@@ -1,7 +1,7 @@
 /*
  * (c) 2015 basil, all rights reserved,
  * Modifications Copyright (c) 2016-2019 by Jon Dart
- * Modifications Copyright (c) 2020-2020 by Andrew Grant
+ * Modifications Copyright (c) 2020-2024 by Andrew Grant
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 
 enum {
 
-    PYRRHIC_BLACK   = 0, PYRRHIC_WHITE   = 1,
     PYRRHIC_PAWN    = 1, PYRRHIC_KNIGHT  = 2,
     PYRRHIC_BISHOP  = 3, PYRRHIC_ROOK    = 4,
     PYRRHIC_QUEEN   = 5, PYRRHIC_KING    = 6,
@@ -63,9 +62,9 @@ typedef struct PyrrhicPosition {
     uint8_t rule50, ep; bool turn;
 } PyrrhicPosition;
 
-unsigned pyrrhic_move_from      (PyrrhicMove move) { return (move >>  6) & 0x3F; }
-unsigned pyrrhic_move_to        (PyrrhicMove move) { return (move >>  0) & 0x3F; }
-unsigned pyrrhic_move_promotes  (PyrrhicMove move) { return (move >> 12) & 0x07; }
+unsigned pyrrhic_move_to        (PyrrhicMove move) { return (move >> PYRRHIC_SHIFT_TO    ) & PYRRHIC_MASK_TO         ; }
+unsigned pyrrhic_move_from      (PyrrhicMove move) { return (move >> PYRRHIC_SHIFT_FROM  ) & PYRRHIC_MASK_FROM       ; }
+unsigned pyrrhic_move_promotes  (PyrrhicMove move) { return (move >> PYRRHIC_SHIFT_FLAGS ) & PYRRHIC_MASK_PROMO_FLAGS; }
 
 int pyrrhic_colour_of_piece     (uint8_t piece) { return !(piece >>  3); }
 int pyrrhic_type_of_piece       (uint8_t piece) { return  (piece & 0x7); }
@@ -162,24 +161,30 @@ uint64_t pyrrhic_do_bb_move(uint64_t bb, unsigned from, unsigned to) {
     return (((bb >> from) & 0x1) << to) | (bb & (~(1ull << from) & ~(1ull << to)));
 }
 
-PyrrhicMove pyrrhic_make_move(unsigned promote, unsigned from, unsigned to) {
-    return ((promote & 0x7) << 12) | ((from & 0x3F) << 6) | (to & 0x3F);
+PyrrhicMove pyrrhic_build_move(unsigned flags, unsigned from, unsigned to) {
+    return ((to    & PYRRHIC_MASK_TO    ) << PYRRHIC_SHIFT_TO    )
+         | ((from  & PYRRHIC_MASK_FROM  ) << PYRRHIC_SHIFT_FROM  )
+         | ((flags & PYRRHIC_MASK_FLAGS ) << PYRRHIC_SHIFT_FLAGS );
 }
 
-PyrrhicMove* pyrrhic_add_move(PyrrhicMove *moves, int promotes, unsigned from, unsigned to) {
+PyrrhicMove* pyrrhic_add_move(PyrrhicMove *moves, bool promotes, bool enpass, unsigned from, unsigned to) {
 
-    if (!promotes)
-        *moves++ = pyrrhic_make_move(PYRRHIC_PROMOTES_NONE, from, to);
+    if (enpass)
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_ENPASS, from, to);
 
-    else {
-        *moves++ = pyrrhic_make_move(PYRRHIC_PROMOTES_QUEEN,  from, to);
-        *moves++ = pyrrhic_make_move(PYRRHIC_PROMOTES_KNIGHT, from, to);
-        *moves++ = pyrrhic_make_move(PYRRHIC_PROMOTES_ROOK,   from, to);
-        *moves++ = pyrrhic_make_move(PYRRHIC_PROMOTES_BISHOP, from, to);
+    else if (promotes) {
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_QPROMO, from, to);
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_RPROMO, from, to);
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_BPROMO, from, to);
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_NPROMO, from, to);
     }
+
+    else
+        *moves++ = pyrrhic_build_move(PYRRHIC_FLAG_NONE, from, to);
 
     return moves;
 }
+
 
 PyrrhicMove* pyrrhic_gen_captures(const PyrrhicPosition *pos, PyrrhicMove *moves) {
 
@@ -190,33 +195,35 @@ PyrrhicMove* pyrrhic_gen_captures(const PyrrhicPosition *pos, PyrrhicMove *moves
     // Generate captures for the King
     for (b = us & pos->kings; b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_KING_ATTACKS(PYRRHIC_LSB(b)) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate captures for the Rooks & Queens
     for (b = us & (pos->rooks | pos->queens); b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_ROOK_ATTACKS(PYRRHIC_LSB(b), us | them) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate captures for the Bishops & Queens
     for (b = us & (pos->bishops | pos->queens); b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_BISHOP_ATTACKS(PYRRHIC_LSB(b), us | them) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate captures for the Knights
     for (b = us & pos->knights; b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_KNIGHT_ATTACKS(PYRRHIC_LSB(b)) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate captures for the Pawns
     for (b = us & pos->pawns; b; PYRRHIC_POPLSB(&b)) {
 
+        unsigned from = PYRRHIC_LSB(b);
+
         // Generate Enpassant Captures
-        if (pos->ep && pyrrhic_test_bit(PYRRHIC_PAWN_ATTACKS(PYRRHIC_LSB(b), pos->turn), pos->ep))
-            moves = pyrrhic_add_move(moves, false, PYRRHIC_LSB(b), pos->ep);
+        if (pos->ep && pyrrhic_test_bit(PYRRHIC_PAWN_ATTACKS(from, pos->turn), pos->ep))
+            moves = pyrrhic_add_move(moves, false, true, from, pos->ep);
 
         // Generate non-Enpassant Captures
-        for (att = PYRRHIC_PAWN_ATTACKS(PYRRHIC_LSB(b), pos->turn) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(PYRRHIC_LSB(att)), PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+        for (att = PYRRHIC_PAWN_ATTACKS(from, pos->turn) & them; att; PYRRHIC_POPLSB(&att))
+            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(PYRRHIC_LSB(att)), false, from, PYRRHIC_LSB(att));
     }
 
     return moves;
@@ -233,22 +240,22 @@ PyrrhicMove* pyrrhic_gen_moves(const PyrrhicPosition *pos, PyrrhicMove *moves) {
     // Generate moves for the King
     for (b = us & pos->kings; b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_KING_ATTACKS(PYRRHIC_LSB(b)) & ~us; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, 0, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate moves for the Rooks
     for (b = us & (pos->rooks | pos->queens); b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_ROOK_ATTACKS(PYRRHIC_LSB(b), us | them) & ~us; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, 0, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate moves for the Bishops
     for (b = us & (pos->bishops | pos->queens); b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_BISHOP_ATTACKS(PYRRHIC_LSB(b), us | them) & ~us; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, 0, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate moves for the Knights
     for (b = us & pos->knights; b; PYRRHIC_POPLSB(&b))
         for (att = PYRRHIC_KNIGHT_ATTACKS(PYRRHIC_LSB(b)) & ~us; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, 0, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, false, false, PYRRHIC_LSB(b), PYRRHIC_LSB(att));
 
     // Generate moves for the Pawns
     for (b = us & pos->pawns; b; PYRRHIC_POPLSB(&b)) {
@@ -257,21 +264,21 @@ PyrrhicMove* pyrrhic_gen_moves(const PyrrhicPosition *pos, PyrrhicMove *moves) {
 
         // Generate Enpassant Captures
         if (pos->ep && pyrrhic_test_bit(PYRRHIC_PAWN_ATTACKS(from, pos->turn), pos->ep))
-            moves = pyrrhic_add_move(moves, false, from, pos->ep);
+            moves = pyrrhic_add_move(moves, false, true, from, pos->ep);
 
         // Generate any single pawn pushes
         if (!pyrrhic_test_bit(us | them, from + Forward))
-            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(from + Forward), from, from + Forward);
+            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(from + Forward), false, from, from + Forward);
 
         // Generate any double pawn pushes
         if (    pyrrhic_pawn_start_square(pos->turn, from)
             && !pyrrhic_test_bit(us | them, from + Forward)
             && !pyrrhic_test_bit(us | them, from + 2 * Forward))
-            moves = pyrrhic_add_move(moves, false, from, from + 2 * Forward);
+            moves = pyrrhic_add_move(moves, false, false, from, from + 2 * Forward);
 
         // Generate non-Enpassant Captures
         for (att = PYRRHIC_PAWN_ATTACKS(from, pos->turn) & them; att; PYRRHIC_POPLSB(&att))
-            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(PYRRHIC_LSB(att)), from, PYRRHIC_LSB(att));
+            moves = pyrrhic_add_move(moves, pyrrhic_promo_square(PYRRHIC_LSB(att)), false, from, PYRRHIC_LSB(att));
     }
 
     return moves;
@@ -366,15 +373,15 @@ bool pyrrhic_do_move(PyrrhicPosition *pos, const PyrrhicPosition *pos0, PyrrhicM
     pos->ep      = 0;
 
     // Promotions reset the Fifty-Move Rule and add a piece
-    if (promotes != PYRRHIC_PROMOTES_NONE) {
+    if (promotes) {
 
         pyrrhic_disable_bit(&pos->pawns, to);
 
         switch (promotes) {
-            case PYRRHIC_PROMOTES_QUEEN:  pyrrhic_enable_bit(&pos->queens , to); break;
-            case PYRRHIC_PROMOTES_ROOK:   pyrrhic_enable_bit(&pos->rooks  , to); break;
-            case PYRRHIC_PROMOTES_BISHOP: pyrrhic_enable_bit(&pos->bishops, to); break;
-            case PYRRHIC_PROMOTES_KNIGHT: pyrrhic_enable_bit(&pos->knights, to); break;
+            case PYRRHIC_FLAG_QPROMO: pyrrhic_enable_bit(&pos->queens , to); break;
+            case PYRRHIC_FLAG_RPROMO: pyrrhic_enable_bit(&pos->rooks  , to); break;
+            case PYRRHIC_FLAG_BPROMO: pyrrhic_enable_bit(&pos->bishops, to); break;
+            case PYRRHIC_FLAG_NPROMO: pyrrhic_enable_bit(&pos->knights, to); break;
         }
 
         pos->rule50 = 0;

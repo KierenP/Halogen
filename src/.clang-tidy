@@ -1,0 +1,9 @@
+Checks: 
+    clang-diagnostic-*,
+    clang-analyzer-*,
+    cppcoreguidelines-*,
+        -cppcoreguidelines-avoid-magic-numbers,
+        -cppcoreguidelines-pro-bounds-constant-array-index,
+        -cppcoreguidelines-non-private-member-variables-in-classes,
+    modernize-*,
+        -modernize-use-trailing-return-type
