@@ -75,7 +75,6 @@ public:
     void RemovePiece(Square square, Pieces piece);
     void ClearSquare(Square square);
 
-    void Reset();
     bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
     void UpdateCastleRights(Move move);
 
