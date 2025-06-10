@@ -34,6 +34,8 @@ void SearchStackState::reset()
     acc = {};
     cont_hist_subtable = nullptr;
     cont_hist_subtables = {};
+    nmp_verification_depth = 0;
+    nmp_verification_root = false;
 }
 
 const SearchStackState* SearchStack::root() const
