@@ -829,7 +829,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // If the static score is far above beta we fail high.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8 && eval - 93 * depth >= beta)
     {
-        return beta;
+        return (beta.value() + eval.value()) / 2;
     }
 
     // Step 7: Null move pruning
