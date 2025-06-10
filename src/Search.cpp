@@ -668,6 +668,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 {
     if (in_check)
     {
+        ss->adjusted_eval = (ss - 2)->adjusted_eval;
         return { SCORE_UNDEFINED, SCORE_UNDEFINED };
     }
 
@@ -701,6 +702,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
+        ss->adjusted_eval = adjusted_eval;
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
         if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
@@ -716,6 +718,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         raw_eval = Evaluate(position.Board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
+        ss->adjusted_eval = adjusted_eval;
         tTable.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()), SCORE_UNDEFINED, depth,
             position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
     }
@@ -823,6 +826,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
+    const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -890,7 +894,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= 3 + 3 * depth && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < 6 && seen_moves >= 3 + 3 * depth * (1 + improving) && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.SkipQuiets();
         }
