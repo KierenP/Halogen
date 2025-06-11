@@ -66,6 +66,8 @@ struct SearchStackState
     std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
 
     Accumulator acc;
+
+    Score adjusted_eval = 0;
 };
 
 class SearchStack
