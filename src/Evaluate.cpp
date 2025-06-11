@@ -30,6 +30,13 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 
     assert(Network::Verify(board, ss->acc));
     Score eval = Network::Eval(board, ss->acc);
+
+    // Apply material scaling factor
+    const auto npMaterial = 450 * GetBitCount(board.GetPieceBB<KNIGHT>())
+        + 450 * GetBitCount(board.GetPieceBB<BISHOP>()) + 650 * GetBitCount(board.GetPieceBB<ROOK>())
+        + 1250 * GetBitCount(board.GetPieceBB<QUEEN>());
+    eval = eval.value() * (26500 + npMaterial) / 32768;
+
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
