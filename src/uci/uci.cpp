@@ -277,7 +277,7 @@ void Uci::handle_isready()
 void Uci::handle_ucinewgame()
 {
     position.StartingPosition();
-    tTable.Clear(shared.get_threads_setting());
+    shared.transposition_table.Clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
@@ -358,13 +358,13 @@ void Uci::handle_go(go_ctx& ctx)
 
 void Uci::handle_setoption_clear_hash()
 {
-    tTable.Clear(shared.get_threads_setting());
+    shared.transposition_table.Clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    tTable.SetSize(value, shared.get_threads_setting());
+    shared.transposition_table.SetSize(value, shared.get_threads_setting());
 }
 
 void Uci::handle_setoption_threads(int value)
@@ -531,7 +531,7 @@ void Uci::print_search_info(const SearchResults& data, bool final)
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
     auto node_count = shared.nodes();
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = tTable.GetCapacity(position.Board().half_turn_count);
+    auto hashfull = shared.transposition_table.GetCapacity(position.Board().half_turn_count);
 
     std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
               << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;

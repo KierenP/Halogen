@@ -315,8 +315,9 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 }
 
 template <bool root_node, bool pv_node>
-std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchLocalState& local,
-    SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
+std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchSharedState& shared,
+    SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
+    const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(position.Board(), distance_from_root);
     if (probe.has_value())
@@ -345,7 +346,8 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
                 || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
             {
-                tTable.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()), tb_score, depth,
+                shared.transposition_table.AddEntry(Move::Uninitialized,
+                    Zobrist::get_fifty_move_adj_key(position.Board()), tb_score, depth,
                     position.Board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
                 return tb_score;
             }
@@ -397,11 +399,12 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
 }
 
 std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
-    const GameState& position, const int distance_from_root)
+    SearchSharedState& shared, const GameState& position, const int distance_from_root)
 {
     // copy the values out of the table that we want, to avoid race conditions
     const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.Board());
-    auto* tt_entry = tTable.GetEntry(adjusted_key, distance_from_root, position.Board().half_turn_count);
+    auto* tt_entry
+        = shared.transposition_table.GetEntry(adjusted_key, distance_from_root, position.Board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth : 0;
     const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
@@ -662,9 +665,9 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 
 // { raw, adjusted }
 template <bool is_qsearch>
-std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchLocalState& local,
-    TTEntry* const tt_entry, const Score tt_eval, const Score tt_score, const SearchResultType tt_cutoff, int depth,
-    int distance_from_root, bool in_check)
+std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchSharedState& shared,
+    SearchLocalState& local, TTEntry* const tt_entry, const Score tt_eval, const Score tt_score,
+    const SearchResultType tt_cutoff, int depth, int distance_from_root, bool in_check)
 {
     if (in_check)
     {
@@ -719,8 +722,9 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;
-        tTable.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()), SCORE_UNDEFINED, depth,
-            position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY, raw_eval);
+        shared.transposition_table.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()),
+            SCORE_UNDEFINED, depth, position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY,
+            raw_eval);
     }
 
     adjusted_eval = std::clamp<Score>(adjusted_eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
@@ -802,7 +806,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // If we are in a singular move search, we don't want to do any early pruning
 
     // Step 3: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
+        = probe_tt(shared, position, distance_from_root);
 
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
@@ -818,14 +823,14 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, local, ss, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(
-        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
@@ -954,7 +959,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
-        tTable.PreFetch(
+        shared.transposition_table.PreFetch(
             Zobrist::get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
@@ -1013,7 +1018,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     }
 
     // Step 21: Update transposition table
-    tTable.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
+    shared.transposition_table.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
         position.Board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
@@ -1044,7 +1049,8 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     }
 
     // Step 2: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval] = probe_tt(position, distance_from_root);
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
+        = probe_tt(shared, position, distance_from_root);
 
     // Step 3: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
@@ -1059,7 +1065,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     // TODO: When q-search does check evasions we can fix this, for now, we pass in_check = false so we eval the
     // position
     const auto [raw_eval, eval] = get_search_eval<true>(
-        position, ss, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, false);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, false);
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
@@ -1122,7 +1128,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
                                                : SearchResultType::EXACT;
 
     // Step 7: Update transposition table
-    tTable.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
+    shared.transposition_table.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
         position.Board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;

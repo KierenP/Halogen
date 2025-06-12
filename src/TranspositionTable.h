@@ -46,6 +46,6 @@ private:
     TTBucket& GetBucket(uint64_t key) const;
 
     // raw array and memset allocates quicker than std::vector
-    TTBucket* table;
-    size_t size_;
+    TTBucket* table = nullptr;
+    size_t size_ = 0;
 };
