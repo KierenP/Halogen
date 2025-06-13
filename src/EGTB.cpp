@@ -76,7 +76,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
         board.stm == WHITE);
     // clang-format on
 
-    if (probe == TB_RESULT_FAILED || probe == TB_RESULT_STALEMATE || probe == TB_RESULT_CHECKMATE)
+    if (probe == TB_RESULT_FAILED)
     {
         return std::nullopt;
     }
