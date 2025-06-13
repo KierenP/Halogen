@@ -3,7 +3,8 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALFILE := ../network/b425ef8d.nn
+NETWORK = b425ef8d.nn
+EVALFILE := ../network/$(NETWORK)
 
 SRCS := \
 	BoardState.cpp \
@@ -250,7 +251,7 @@ $(EVALFILE):
 	@if test -f "$(EVALFILE)"; then \
         echo "Already available."; \
 	else \
-		git lfs pull --include "$(EVALFILE)"; \
+		git lfs pull --include "$(NETWORK)"; \
 	fi;
 
 #----------------------------------------------------------------------------------------------------------------------
