@@ -3,7 +3,7 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-NETWORK = b425ef8d.nn
+NETWORK = 4ed21ecb.nn
 EVALFILE := ../network/$(NETWORK)
 
 SRCS := \
