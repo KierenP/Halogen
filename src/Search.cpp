@@ -1090,7 +1090,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     {
         no_legal_moves = false;
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && seen_moves > 2)
+        if (score > Score::tb_loss_in(MAX_DEPTH) && seen_moves >= 2)
         {
             break;
         }
