@@ -1089,6 +1089,16 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     {
         no_legal_moves = false;
 
+        bool is_loud_move = move.IsCapture() || move.IsPromotion();
+        int history = is_loud_move
+            ? local.loud_history.get(position, ss, move)
+            : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
+
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && !see_ge(position.Board(), move, history / 168))
+        {
+            continue;
+        }
+
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
