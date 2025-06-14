@@ -3,8 +3,8 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/blob/f9832830c55ee68cf0c4a0663b9af58ef668ea4f/b425ef8d.nn?raw=true
-EVALFILE = $(BUILD_DIR)/b425ef8d.nn
+NETWORK = b425ef8d.nn
+EVALFILE := ../network/$(NETWORK)
 
 SRCS := \
 	BoardState.cpp \
@@ -248,16 +248,10 @@ release:
 $(EVALFILE):
 	@ mkdir -p $(dir $@)
 	@echo "net: $(EVALFILE)"
-	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
 	@if test -f "$(EVALFILE)"; then \
         echo "Already available."; \
 	else \
-		if [ "x$(curl_or_wget)" = "x" ]; then \
-			echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
-		else \
-			echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
-			echo "Download complete."; \
-		fi; \
+		git lfs pull --include "$(NETWORK)"; \
 	fi;
 
 #----------------------------------------------------------------------------------------------------------------------
