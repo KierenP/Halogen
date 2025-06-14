@@ -1082,12 +1082,18 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     Move bestmove = Move::Uninitialized;
     auto original_alpha = alpha;
     bool no_legal_moves = in_check;
+    int seen_moves = 0;
     StagedMoveGenerator gen(position, ss, local, tt_move, !in_check);
     Move move;
 
     while (gen.Next(move))
     {
         no_legal_moves = false;
+
+        if (score > Score::tb_loss_in(MAX_DEPTH) && seen_moves > 2)
+        {
+            break;
+        }
 
         bool is_loud_move = move.IsCapture() || move.IsPromotion();
         int history = is_loud_move
@@ -1098,6 +1104,8 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         {
             continue;
         }
+
+        seen_moves++;
 
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
