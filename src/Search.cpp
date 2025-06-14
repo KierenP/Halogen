@@ -1084,17 +1084,6 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
 
     while (gen.Next(move))
     {
-        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
-        {
-            continue;
-        }
-
-        // prune underpromotions
-        if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
-        {
-            continue;
-        }
-
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
