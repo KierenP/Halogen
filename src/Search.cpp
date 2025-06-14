@@ -774,7 +774,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     const bool InCheck = IsInCheck(position.Board());
 
     // Step 1: Drop into q-search
-    if (depth <= 0 && !InCheck)
+    if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
         return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
@@ -880,7 +880,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
     ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
@@ -1032,6 +1032,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
     constexpr bool pv_node = search_type != SearchType::ZW;
     const auto distance_from_root = ss->distance_from_root;
+    assert(ss->singular_exclusion == Move::Uninitialized);
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
@@ -1062,34 +1063,48 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         }
     }
 
-    // TODO: When q-search does check evasions we can fix this, for now, we pass in_check = false so we eval the
-    // position
+    const bool in_check = IsInCheck(position.Board());
     const auto [raw_eval, eval] = get_search_eval<true>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, false);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, in_check);
+    auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    alpha = std::max(alpha, eval);
-    if (alpha >= beta)
+    if (!in_check)
     {
-        return alpha;
+        alpha = std::max(alpha, eval);
+        if (alpha >= beta)
+        {
+            return alpha;
+        }
     }
 
     Move bestmove = Move::Uninitialized;
-    auto score = eval;
     auto original_alpha = alpha;
-
-    StagedMoveGenerator gen(position, ss, local, tt_move, true);
+    bool no_legal_moves = in_check;
+    StagedMoveGenerator gen(position, ss, local, tt_move, !in_check);
     Move move;
 
     while (gen.Next(move))
     {
+        no_legal_moves = false;
+
+        bool is_loud_move = move.IsCapture() || move.IsPromotion();
+        int history = is_loud_move
+            ? local.loud_history.get(position, ss, move)
+            : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
+
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && !see_ge(position.Board(), move, history / 168))
+        {
+            continue;
+        }
+
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
-        // TODO: prefetch
+        // TODO: prefetch?
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
         auto search_score = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
         position.RevertMove();
@@ -1106,7 +1121,13 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         }
     }
 
-    // Step 6: Return early when in a singular extension root search
+    // Step 6: Handle terminal node conditions
+    if (no_legal_moves)
+    {
+        return TerminalScore(position.Board(), distance_from_root);
+    }
+
+    // Step 7: Return early when in a singular extension root search
     if (local.aborting_search || ss->singular_exclusion != Move::Uninitialized)
     {
         return score;
@@ -1116,7 +1137,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
 
-    // Step 7: Update transposition table
+    // Step 8: Update transposition table
     shared.transposition_table.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
         position.Board().half_turn_count, distance_from_root, bound, raw_eval);
 
