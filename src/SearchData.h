@@ -18,6 +18,7 @@
 #include "SearchLimits.h"
 #include "StaticVector.h"
 #include "TimeManager.h"
+#include "TranspositionTable.h"
 #include "atomic.h"
 
 class TranspositionTable;
@@ -31,21 +32,12 @@ constexpr std::size_t hardware_constructive_interference_size = 64;
 constexpr std::size_t hardware_destructive_interference_size = 64;
 #endif
 
-extern TranspositionTable tTable;
-
 class Uci;
 
 // Holds information about the search state for a particular recursion depth.
 struct SearchStackState
 {
     SearchStackState(int distance_from_root_);
-
-    SearchStackState(const SearchStackState&) = delete;
-    SearchStackState& operator=(const SearchStackState&) = delete;
-    SearchStackState(SearchStackState&&) = delete;
-    SearchStackState& operator=(SearchStackState&&) = delete;
-
-    void reset();
 
     StaticVector<Move, MAX_DEPTH> pv = {};
     std::array<Move, 2> killers = {};
@@ -60,7 +52,7 @@ struct SearchStackState
     int nmp_verification_depth = 0;
     bool nmp_verification_root = false;
 
-    const int distance_from_root;
+    int distance_from_root;
 
     PieceMoveHistory* cont_hist_subtable = nullptr;
     std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
@@ -80,14 +72,8 @@ class SearchStack
 public:
     const SearchStackState* root() const;
     SearchStackState* root();
-    void reset();
 
     SearchStack() = default;
-
-    SearchStack(const SearchStack&) = delete;
-    SearchStack& operator=(const SearchStack&) = delete;
-    SearchStack(SearchStack&&) = delete;
-    SearchStack& operator=(SearchStack&&) = delete;
 
 private:
     std::array<SearchStackState, size> search_stack_array_ { generate(std::make_integer_sequence<int, size>()) };
@@ -105,16 +91,11 @@ struct alignas(hardware_destructive_interference_size) SearchLocalState
 public:
     SearchLocalState(int thread_id);
 
-    SearchLocalState(const SearchLocalState&) = delete;
-    SearchLocalState& operator=(const SearchLocalState&) = delete;
-    SearchLocalState(SearchLocalState&&) = delete;
-    SearchLocalState& operator=(SearchLocalState&&) = delete;
-
     bool RootExcludeMove(Move move);
     void ResetNewSearch();
     void ResetNewGame();
 
-    const int thread_id;
+    int thread_id;
     SearchStack search_stack;
     QuietHistory quiet_history;
     LoudHistory loud_history;
@@ -140,8 +121,8 @@ public:
 
     // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
-    BasicMoveList root_move_whitelist;
-    BasicMoveList root_move_blacklist;
+    BasicMoveList root_move_whitelist {};
+    BasicMoveList root_move_blacklist {};
 
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;
@@ -164,11 +145,6 @@ class SearchSharedState
 {
 public:
     SearchSharedState(Uci& uci);
-
-    SearchSharedState(const SearchSharedState&) = delete;
-    SearchSharedState& operator=(const SearchSharedState&) = delete;
-    SearchSharedState(SearchSharedState&&) = delete;
-    SearchSharedState& operator=(SearchSharedState&&) = delete;
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -203,6 +179,7 @@ public:
     Uci& uci_handler;
 
     atomic_relaxed<bool> stop_searching = false;
+    TranspositionTable transposition_table;
 
 private:
     mutable std::recursive_mutex lock_;

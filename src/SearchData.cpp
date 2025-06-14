@@ -15,25 +15,9 @@
 #include "TranspositionTable.h"
 #include "uci/uci.h"
 
-TranspositionTable tTable;
-
 SearchStackState::SearchStackState(int distance_from_root_)
     : distance_from_root(distance_from_root_)
 {
-}
-
-void SearchStackState::reset()
-{
-    pv = {};
-    killers = {};
-    move = Move::Uninitialized;
-    moved_piece = N_PIECES;
-    threat_mask = EMPTY;
-    singular_exclusion = Move::Uninitialized;
-    multiple_extensions = 0;
-    acc = {};
-    cont_hist_subtable = nullptr;
-    cont_hist_subtables = {};
 }
 
 const SearchStackState* SearchStack::root() const
@@ -44,14 +28,6 @@ const SearchStackState* SearchStack::root() const
 SearchStackState* SearchStack::root()
 {
     return &search_stack_array_[-min_access];
-}
-
-void SearchStack::reset()
-{
-    for (auto& sss : search_stack_array_)
-    {
-        sss.reset();
-    }
 }
 
 SearchLocalState::SearchLocalState(int thread_id_)
@@ -80,7 +56,7 @@ bool SearchLocalState::RootExcludeMove(Move move)
 void SearchLocalState::ResetNewSearch()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
-    search_stack.reset();
+    search_stack = {};
     tb_hits = 0;
     nodes = 0;
     sel_septh = 0;
@@ -93,17 +69,6 @@ void SearchLocalState::ResetNewSearch()
     limit_check_counter = 0;
 }
 
-void SearchLocalState::ResetNewGame()
-{
-    ResetNewSearch();
-    quiet_history.reset();
-    loud_history.reset();
-    cont_hist.reset();
-    pawn_corr_hist.reset();
-    non_pawn_corr[WHITE].reset();
-    non_pawn_corr[BLACK].reset();
-}
-
 SearchSharedState::SearchSharedState(Uci& uci)
     : uci_handler(uci)
 {
@@ -111,6 +76,8 @@ SearchSharedState::SearchSharedState(Uci& uci)
 
 void SearchSharedState::ResetNewSearch()
 {
+    search_timer.reset();
+
     for (auto& thread_results : search_results_)
     {
         for (auto& multi_pv_results : thread_results)
@@ -120,14 +87,17 @@ void SearchSharedState::ResetNewSearch()
     }
 
     best_search_result_ = {};
-    search_timer.reset();
     std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
 }
 
 void SearchSharedState::ResetNewGame()
 {
     ResetNewSearch();
-    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewGame(); });
+    search_local_states_.clear();
+    for (int i = 0; i < threads_setting; i++)
+    {
+        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
+    }
 }
 
 void SearchSharedState::set_multi_pv(int multi_pv)
