@@ -31,8 +31,8 @@ enum class Stage : int8_t
 class StagedMoveGenerator
 {
 public:
-    StagedMoveGenerator(
-        const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move, bool Quiescence);
+    StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
+        bool good_loud_only = false);
 
     ~StagedMoveGenerator() = default;
     StagedMoveGenerator(const StagedMoveGenerator&) = delete;
@@ -69,7 +69,7 @@ private:
     const GameState& position;
     SearchLocalState& local;
     const SearchStackState* ss;
-    bool quiescence;
+    bool good_loud_only;
     ExtendedMoveList loudMoves;
     ExtendedMoveList bad_loudMoves;
     ExtendedMoveList quietMoves;
