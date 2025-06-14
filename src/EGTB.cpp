@@ -76,7 +76,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
         board.stm == WHITE);
     // clang-format on
 
-    if (probe == TB_RESULT_FAILED || probe == TB_RESULT_STALEMATE || probe == TB_RESULT_CHECKMATE)
+    if (probe == TB_RESULT_FAILED)
     {
         return std::nullopt;
     }
@@ -137,13 +137,13 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         return std::nullopt;
     }
 
-    std::ranges::stable_sort(root_moves.moves, std::greater<> {}, &TbRootMove::tbRank);
+    auto probe_moves = std::ranges::subrange { root_moves.moves, root_moves.moves + root_moves.size };
+    std::ranges::stable_sort(probe_moves, std::greater<> {}, &TbRootMove::tbRank);
     RootProbeResult result;
 
-    for (unsigned int i = 0; i < root_moves.size; i++)
+    for (const auto& move : probe_moves)
     {
-        result.root_moves.emplace_back(
-            extract_pyrrhic_move(board, root_moves.moves[i].move), root_moves.moves[i].tbRank);
+        result.root_moves.emplace_back(extract_pyrrhic_move(board, move.move), move.tbRank);
     }
 
     return result;
