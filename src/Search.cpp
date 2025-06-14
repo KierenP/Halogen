@@ -1094,7 +1094,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
             ? local.loud_history.get(position, ss, move)
             : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && !see_ge(position.Board(), move, history / 168))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !see_ge(position.Board(), move, history / 168))
         {
             continue;
         }
