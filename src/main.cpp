@@ -4,7 +4,7 @@
 #include "Cuckoo.h"
 #include "uci/uci.h"
 
-constexpr std::string_view version = "12.31.2";
+constexpr std::string_view version = "12.31.3";
 
 void PrintVersion()
 {
