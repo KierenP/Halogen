@@ -100,4 +100,6 @@ public:
 private:
     AccumulatorTable table;
 };
+
+void permute_network();
 }
