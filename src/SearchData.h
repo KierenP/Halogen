@@ -85,6 +85,19 @@ private:
     }
 };
 
+struct RootMove
+{
+    RootMove() = default;
+    RootMove(Move move_)
+        : move(move_)
+    {
+    }
+
+    Move move = Move::Uninitialized;
+    int64_t nodes = 0;
+    Score score = SCORE_UNDEFINED;
+};
+
 // Data local to a particular thread
 struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
@@ -123,6 +136,8 @@ public:
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
     BasicMoveList root_move_whitelist {};
     BasicMoveList root_move_blacklist {};
+
+    StaticVector<RootMove, 256> root_moves;
 
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;

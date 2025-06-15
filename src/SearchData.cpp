@@ -67,6 +67,7 @@ void SearchLocalState::ResetNewSearch()
     root_move_blacklist = {};
     root_move_whitelist = {};
     limit_check_counter = 0;
+    root_moves = {};
 }
 
 SearchSharedState::SearchSharedState(Uci& uci)

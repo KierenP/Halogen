@@ -20,7 +20,7 @@ class SearchTimeManager
 public:
     SearchTimeManager(chess_clock_t::duration soft_limit, chess_clock_t::duration hard_limit);
 
-    bool ShouldContinueSearch() const;
+    bool ShouldContinueSearch(float factor) const;
     bool ShouldAbortSearch() const;
 
 private:

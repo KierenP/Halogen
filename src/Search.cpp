@@ -102,6 +102,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
         local.net.Reset(position.Board(), local.search_stack.root()->acc);
+        std::ranges::copy(moves, std::back_inserter(local.root_moves));
         threads.emplace_back(
             std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
     }
@@ -110,6 +111,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         auto& local = shared.get_local_state(0);
         local.root_move_whitelist = root_move_whitelist;
         local.net.Reset(position.Board(), local.search_stack.root()->acc);
+        std::ranges::copy(moves, std::back_inserter(local.root_moves));
         SearchPosition(position, local, shared);
     }
 
@@ -142,12 +144,6 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
             local.curr_multi_pv = multi_pv;
-
-            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch())
-            {
-                shared.report_thread_wants_to_stop(local.thread_id);
-            }
-
             auto score = AspirationWindowSearch(position, ss, local, shared, mid_score);
 
             if (local.aborting_search)
@@ -162,6 +158,16 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
 
             local.root_move_blacklist.push_back(ss->pv[0]);
             shared.report_search_result(ss, local, score, SearchResultType::EXACT);
+
+            // node based time management
+            const auto idx = std::ranges::distance(
+                local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
+            const auto node_factor = 0.5f + 2.f * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
+
+            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch(node_factor))
+            {
+                shared.report_thread_wants_to_stop(local.thread_id);
+            }
         }
 
         if (shared.limits.mate && Score::Limits::MATE - abs(mid_score.value()) <= shared.limits.mate.value() * 2)
@@ -888,6 +894,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     while (gen.Next(move))
     {
         noLegalMoves = false;
+        const int64_t prev_nodes = local.nodes;
 
         if (move == ss->singular_exclusion || (root_node && local.RootExcludeMove(move)))
         {
@@ -979,6 +986,14 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         if (local.aborting_search)
         {
             return SCORE_UNDEFINED;
+        }
+
+        if (root_node)
+        {
+            const auto idx = std::ranges::distance(
+                local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
+            local.root_moves[idx].nodes += local.nodes - prev_nodes;
+            local.root_moves[idx].score = search_score;
         }
 
         // Step 17: Update history/killer move tables and check for fail-high
