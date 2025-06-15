@@ -493,7 +493,8 @@ void Uci::process_input(std::string_view command)
         consume { "spsa", invoke { [this] { handle_spsa(); } } },
         consume { "eval", invoke { [this] { handle_eval(); } } },
         consume { "probe", invoke { [this] { handle_probe(); } } },
-        consume { "shuffle_network", invoke { [this] { handle_shuffle_network(); } } } },
+        consume { "shuffle_network", invoke { [this] { handle_shuffle_network(); } } },
+        consume { "permute_network", invoke { [this] { handle_permute_network(); } } } },
     end_command{}
     };
     // clang-format on
@@ -619,4 +620,9 @@ void Uci::handle_shuffle_network()
     handle_bench(10);
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
+}
+
+void Uci::handle_permute_network()
+{
+    permute_network();
 }

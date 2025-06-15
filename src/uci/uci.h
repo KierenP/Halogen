@@ -74,6 +74,7 @@ public:
     void handle_eval();
     void handle_probe();
     void handle_shuffle_network();
+    void handle_permute_network();
 
 private:
     void join_search_thread();
