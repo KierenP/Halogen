@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
 #include <initializer_list>
 #include <memory>
 
@@ -159,39 +160,8 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
     auto ft_bias_output = std::make_unique<decltype(raw_network::ft_bias)>();
     auto l1_weight_output = std::make_unique<decltype(raw_network::l1_weight)>();
 
-#ifdef NETWORK_SHUFFLE
-    (*ft_weight_output) = ft_weight;
-    (*ft_bias_output) = ft_bias;
-    (*l1_weight_output) = l1_weight;
-#else
-    // Based on some heuristic, we want to sort the FT neurons to maximize the benefit of the l1 sparsity.
-
-    // clang-format off
-    [[maybe_unused]] constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = { 211, 489, 325, 208, 151, 44, 94, 452,
-        143, 491, 98, 149, 473, 468, 222, 409, 113, 285, 139, 38, 499, 174, 351, 144, 24, 298, 6, 400, 283, 403, 58,
-        299, 434, 427, 243, 185, 308, 170, 83, 304, 252, 482, 41, 241, 424, 183, 376, 309, 488, 379, 269, 265, 390, 125,
-        88, 368, 108, 9, 234, 194, 458, 244, 227, 61, 261, 19, 431, 173, 450, 27, 59, 167, 122, 478, 52, 505, 162, 69,
-        364, 348, 303, 350, 420, 75, 20, 177, 399, 343, 73, 35, 232, 388, 215, 421, 429, 95, 312, 294, 510, 79, 280,
-        276, 50, 82, 92, 324, 106, 451, 331, 206, 317, 186, 230, 184, 263, 55, 402, 357, 469, 223, 500, 154, 80, 247,
-        476, 501, 190, 441, 220, 355, 236, 330, 253, 287, 134, 120, 417, 28, 128, 425, 460, 179, 382, 142, 76, 188, 459,
-        153, 332, 54, 147, 101, 422, 148, 238, 411, 26, 78, 235, 346, 338, 315, 445, 156, 8, 157, 91, 385, 161, 7, 168,
-        171, 389, 172, 84, 199, 360, 266, 178, 461, 140, 180, 102, 96, 395, 406, 37, 467, 447, 428, 470, 217, 480, 479,
-        256, 239, 353, 68, 166, 401, 272, 328, 454, 150, 104, 497, 136, 386, 169, 347, 126, 56, 475, 36, 440, 107, 51,
-        214, 367, 123, 40, 46, 202, 165, 105, 336, 398, 224, 320, 229, 198, 67, 407, 196, 64, 225, 115, 430, 490, 152,
-        487, 176, 159, 209, 282, 121, 408, 16, 251, 375, 249, 45, 77, 181, 245, 439, 437, 87, 12, 158, 228, 90, 25, 363,
-        216, 433, 99, 267, 254, 43, 296, 30, 155, 191, 273, 404, 446, 11, 349, 163, 278, 371, 240, 507, 10, 511, 369,
-        127, 313, 17, 111, 291, 423, 486, 316, 295, 286, 146, 129, 391, 300, 277, 448, 81, 85, 305, 259, 141, 226, 356,
-        49, 33, 197, 492, 15, 72, 506, 53, 377, 42, 414, 205, 322, 34, 114, 334, 248, 327, 496, 32, 288, 416, 93, 274,
-        118, 412, 344, 365, 318, 329, 271, 3, 145, 132, 372, 204, 97, 219, 86, 335, 14, 495, 109, 66, 419, 47, 201, 71,
-        31, 464, 1, 323, 362, 192, 435, 275, 483, 342, 373, 361, 193, 307, 203, 89, 112, 314, 359, 405, 237, 262, 302,
-        484, 380, 292, 218, 341, 432, 387, 74, 306, 354, 117, 345, 494, 394, 378, 231, 289, 392, 396, 337, 310, 393,
-        195, 352, 116, 207, 133, 340, 135, 410, 339, 60, 413, 63, 18, 290, 264, 456, 508, 443, 418, 39, 281, 187, 293,
-        426, 438, 65, 5, 279, 370, 384, 210, 2, 381, 436, 462, 242, 0, 124, 257, 326, 509, 466, 442, 465, 62, 221, 449,
-        485, 200, 270, 453, 137, 498, 21, 444, 130, 358, 22, 301, 415, 57, 260, 160, 233, 48, 311, 455, 110, 471, 4, 23,
-        268, 103, 297, 189, 374, 213, 333, 383, 258, 463, 321, 164, 481, 13, 397, 119, 182, 457, 504, 212, 502, 29, 175,
-        474, 255, 472, 477, 246, 366, 503, 131, 70, 250, 284, 100, 319, 493, 138,
-    };
-    // clang-format on
+    // Put the shuffle order in here
+    constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = {};
 
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
@@ -215,8 +185,23 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
             }
         }
     }
-#endif
+
     return std::make_tuple(std::move(ft_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
+}
+
+void permute_network()
+{
+    auto net = std::make_unique<raw_network>();
+    *net = raw_net;
+
+    auto [ft_weight, ft_bias, l1_weight] = shuffle_ft_neurons(raw_net.ft_weight, raw_net.ft_bias, raw_net.l1_weight);
+    net->ft_weight = *ft_weight;
+    net->ft_bias = *ft_bias;
+    net->l1_weight = *l1_weight;
+
+    // write the network as a binary file
+    std::ofstream out("permuted.bin", std::ios::binary);
+    out.write(reinterpret_cast<const char*>(net.get()), sizeof(raw_network));
 }
 
 auto transpose_l2_weights(const decltype(raw_net.l2_weight)& input)
@@ -249,15 +234,13 @@ struct network
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = []
 {
-    auto [ft_weight, ft_bias, l1_weight] = shuffle_ft_neurons(raw_net.ft_weight, raw_net.ft_bias, raw_net.l1_weight);
-
-    auto l1_weight_2 = adjust_for_packus(*l1_weight);
+    auto l1_weight_2 = adjust_for_packus(raw_net.l1_weight);
     auto l1_bias = rescale_l1_bias(raw_net.l1_bias);
     auto l1_weight_3 = interleave_for_l1_sparsity(*l1_weight_2);
 
     auto final_net = std::make_unique<network>();
-    final_net->ft_weight = *ft_weight;
-    final_net->ft_bias = *ft_bias;
+    final_net->ft_weight = raw_net.ft_weight;
+    final_net->ft_bias = raw_net.ft_bias;
     final_net->l1_weight = *cast_l1_weight_int8(*l1_weight_3);
     final_net->l1_bias = *cast_l1_bias_int32(*l1_bias);
     final_net->l2_weight = *transpose_l2_weights(raw_net.l2_weight);
