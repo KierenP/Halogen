@@ -945,7 +945,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7 && tt_depth + 3 >= depth
-            && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED)
+            && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED
+            && std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
         {
             if (auto value = singular_extensions<pv_node>(
                     position, ss, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node))
