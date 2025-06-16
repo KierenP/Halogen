@@ -131,6 +131,9 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
     auto* ss = local.search_stack.root();
     Score mid_score = 0;
 
+    Move prev_depth_best_move = Move::Uninitialized;
+    int best_move_stability = 0;
+
     for (int depth = 1; depth < MAX_DEPTH; depth++)
     {
         if (shared.limits.depth && depth > shared.limits.depth)
@@ -164,10 +167,23 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
                 local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
             const auto node_factor = 0.5f + 2.f * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
 
-            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch(node_factor))
+            // bestmove stability time management
+            if (prev_depth_best_move == ss->pv[0])
+            {
+                best_move_stability = std::min(best_move_stability + 1, 10);
+            }
+            else
+            {
+                best_move_stability = 0;
+            }
+            const auto stability_factor = 1.3f - 0.05f * float(best_move_stability);
+
+            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch(node_factor * stability_factor))
             {
                 shared.report_thread_wants_to_stop(local.thread_id);
             }
+
+            prev_depth_best_move = ss->pv[0];
         }
 
         if (shared.limits.mate && Score::Limits::MATE - abs(mid_score.value()) <= shared.limits.mate.value() * 2)
