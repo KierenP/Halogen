@@ -176,7 +176,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
             {
                 best_move_stability = 0;
             }
-            const auto stability_factor = 1.5f - 0.05f * float(best_move_stability);
+            const auto stability_factor = 1.4f - 0.05f * float(best_move_stability);
 
             if (shared.limits.time && !shared.limits.time->ShouldContinueSearch(node_factor * stability_factor))
             {
