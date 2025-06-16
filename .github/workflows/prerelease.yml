@@ -24,10 +24,7 @@ jobs:
     - if: matrix.os == 'ubuntu-latest'
       name: Install GCC 14 (Ubuntu)
       run: |
-        wget https://apt.llvm.org/llvm.sh
-        sudo chmod +x llvm.sh
-        sudo ./llvm.sh 20
-        sudo rm -rf llvm.sh
+        sudo apt install gcc-14 g++-14 -y
 
     - if: matrix.os == 'windows-latest'
       name: Install GCC 13 (Windows)
@@ -48,7 +45,7 @@ jobs:
 
     - name: Build
       working-directory: src
-      run: make ${{ matrix.arch }} EXE=build/Halogen${{ matrix.extension }} -j
+      run: make ${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
 
     - if: matrix.os == 'ubuntu-latest'
       name: Extract Version Identifier (Linux)
