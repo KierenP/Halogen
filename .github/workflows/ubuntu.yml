@@ -20,7 +20,7 @@ jobs:
           - { compiler: g++-13, packages: g++-13, profdata: NA }
           - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
         # runners only seem to support up to avx2-pext
-        target: [pgo, legacy, sse4, avx, avx2, avx2-pext]
+        target: [pgo]
 
     steps:
       - uses: actions/checkout@v4.1.1
