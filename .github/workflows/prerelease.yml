@@ -125,18 +125,6 @@ jobs:
       with:
         path: ./artifacts
 
-    - name: Create prerelease
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: |
-        set -x
-        assets=()
-        for asset in ./artifacts*; do
-          assets+=("-a" "$asset")
-        done
-        tag_name="${GITHUB_REF##*/}"
-        hub release create "${assets[@]}" -m "$tag_name" "$tag_name"
-
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
