@@ -7,7 +7,31 @@ on:
     branches: [ "master" ]
 
 jobs:
+  create_prerelease:
+    name: Create Prerelease
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract Version Identifier
+      run: |
+        VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+    - name: Create prerelease
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        draft: true
+        prerelease: true
+        release_name: Halogen-${{ env.VERSION }}
+        tag_name: ${{ github.ref }}
+
   build:
+    needs: create_prerelease
     strategy:
       matrix:
         arch: [ legacy, sse4, avx, avx2, avx2-pext, avx512, avx512vnni ]
@@ -47,18 +71,6 @@ jobs:
     - name: Build
       working-directory: src
       run: make ${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
-    - if: matrix.os == 'ubuntu-latest'
-      name: Extract Version Identifier (Linux)
-      run: |
-        VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
-        echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
-    - if: matrix.os == 'windows-latest'
-      name: Extract Version Identifier (Windows)
-      shell: powershell
-      run: |
-        $VERSION = (Get-Content -Path ${{ github.workspace }}/src/main.cpp | Select-String -Pattern 'constexpr std::string_view version' -SimpleMatch).ToString().Split('"')[1]
-        echo "VERSION=${VERSION}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Rename Binary
       run: |
@@ -72,17 +84,6 @@ jobs:
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
         actual_bench=$(${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }} bench | tail -1 | grep -o "^[0-9]*")
         if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
-
-    - name: Create prerelease
-      uses: actions/create-release@v1
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        draft: true
-        prerelease: true
-        release_name: Halogen-${{ env.VERSION }}
-        tag_name: ${{ github.ref }}
 
     - name: Upload Binary
       uses: actions/upload-release-asset@v1
