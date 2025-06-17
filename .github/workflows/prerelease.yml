@@ -22,10 +22,19 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Extract Version Identifier
+    - if: matrix.os == 'ubuntu-latest'
+      name: Extract Version Identifier (Linux)
       run: |
         VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
         echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+    - if: matrix.os == 'windows-latest'
+      name: Extract Version Identifier (Windows)
+      shell: powershell
+      run: |
+        $VERSION = (Get-Content -Path ${{ github.workspace }}/src/main.cpp | Select-String -Pattern 'constexpr std::string_view version' -SimpleMatch).ToString().Split('"')[1]
+        echo "VERSION=${VERSION}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
 
     # latest available GCC versions on each platform
     - if: matrix.os == 'ubuntu-latest'
