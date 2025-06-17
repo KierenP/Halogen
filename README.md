@@ -11,13 +11,13 @@
 
 Halogen is a powerful, world-class program capable of analysing and playing chess. It has a peak rating of 19th on the international Computer Chess Rating List, and is the #1 strongest chess engine in Oceania.
 
-### How to download
+## How to download
 
 The latest version of Halogen can always be downloaded from the [releases](https://github.com/KierenP/Halogen/releases/tag/latest) page
 
 Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice.
 
-### How to build
+## How to build
 
 To build Halogen yourself, simply use the included makefile in the `src` directory:
 
@@ -36,7 +36,7 @@ Halogen is officially supported on Windows and Ubuntu when using compilers gcc-1
 | Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
 | Windows           |  [![Windows](https://github.com/KierenP/Halogen/actions/workflows/windows.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows.yml)     |
 
-### Strength
+## Strength
 
 | Version | [CCRL 40/15][ccrl-4015] | [CCRL Blitz][ccrl-blitz] | [CCRL 40/2 FRC][ccrl-402-frc] | [CEGT 40/20][cegt-4020] | [CEGT 40/4][cegt-404] | [MCERL] |
 |:-------:|:-----------------------:|:------------------------:|:-----------------------------:|:---------------------:|:-----------------------:|:-------:|
@@ -46,7 +46,7 @@ Halogen is officially supported on Windows and Ubuntu when using compilers gcc-1
 |  10.0.0 |          3196           |           3220           |             -              |         3084          |            -         |  -   |
 |  9.0.0  |          3153           |           3178           |             -              |           3013           |          -           |  -   |
 
-### Details
+## Details
 
 Written in C++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
 
