@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     name: Build and Verify
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [ legacy, sse4, avx, avx2, avx2-pext, avx512, avx512vnni ]
@@ -17,6 +16,8 @@ jobs:
         include:
           - os: windows-latest
             extension: .exe
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
