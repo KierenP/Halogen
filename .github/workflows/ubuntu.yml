@@ -19,8 +19,6 @@ jobs:
         config:
           - { compiler: g++-13, packages: g++-13, profdata: NA }
           - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
-        # runners only seem to support up to avx2-pext
-        target: [pgo]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -36,7 +34,7 @@ jobs:
 
       - name: Create build
         working-directory: src
-        run: make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXE=../bin/Halogen -j
+        run: make pgo CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXE=../bin/Halogen -j
 
       - name: Check bench matches commit message
         run: |
