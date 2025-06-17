@@ -1,4 +1,5 @@
 name: Prerelease
+
 on:
   push:
     branches: [ "master" ]
@@ -17,6 +18,7 @@ jobs:
       run: |
         VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
         echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
     - name: Create prerelease
       uses: actions/create-release@v1
       id: create_release
@@ -62,8 +64,18 @@ jobs:
     - if: matrix.os == 'windows-latest'
       name: Set CC and CXX for Windows
       shell: powershell
-	@@ -77,20 +56,77 @@ jobs:
+      run: |
+        echo "CC=gcc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "CXX=g++" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Build
+      working-directory: src
+      run: make ${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
+
+    - name: Rename Binary
+      run: |
         mv ${{ github.workspace }}/build/Halogen${{ matrix.extension }} ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
+
     # only avx2 and below supported on github runners
     - if: matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
       name: Verify
