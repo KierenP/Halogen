@@ -20,7 +20,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4.1.1
+      # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+      # This ensures we can extract the expected bench from the commit message.
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        lfs: true
 
     - if: matrix.os == 'ubuntu-latest'
       name: Extract Version Identifier (Linux)
@@ -70,7 +75,6 @@ jobs:
     - if: matrix.os == 'ubuntu-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
       name: Verify (Linux)
       run: |
-        cd bin
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
         actual_bench=$(${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }} bench | tail -1 | grep -o "^[0-9]*")
         if [[ "$actual_bench" != "$commit_bench" ]]; then
