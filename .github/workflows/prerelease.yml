@@ -123,12 +123,7 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ${{ github.workspace }}/Halogen/artifacts
-
-    - name: Debug why artifacts are not found
-      run: |
-        echo "Listing artifacts directory:"
-        ls -la ${{ github.workspace }}/Halogen/artifacts
+        path: ${{ github.workspace }}/artifacts
 
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
@@ -137,4 +132,4 @@ jobs:
         prerelease: true
         draft: true
         title: "${{ env.VERSION }}"
-        files: ${{ github.workspace }}/Halogen/artifacts/*
+        files: ${{ github.workspace }}/artifacts/**/*
