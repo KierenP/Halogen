@@ -109,7 +109,7 @@ jobs:
   release:
     name: Create Prerelease and Upload Release Assets
     needs: build
-    #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
     steps:
@@ -128,6 +128,7 @@ jobs:
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
         prerelease: true
         draft: true
         title: "${{ env.VERSION }}"
