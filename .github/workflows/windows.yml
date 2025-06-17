@@ -28,7 +28,7 @@ jobs:
       - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
-          install: mingw-w64-${{matrix.config.package}} make git
+          install: mingw-w64-${{matrix.config.package}} make git git-lfs
 
       - name: Add compiler to $PATH env
         shell: bash
