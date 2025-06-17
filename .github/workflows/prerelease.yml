@@ -7,31 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  create_prerelease:
-    name: Create Prerelease
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Extract Version Identifier
-      run: |
-        VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
-        echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
-    - name: Create prerelease
-      uses: actions/create-release@v1
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        draft: true
-        prerelease: true
-        release_name: Halogen-${{ env.VERSION }}
-        tag_name: ${{ github.ref }}
-
   build:
-    needs: create_prerelease
     strategy:
       matrix:
         arch: [ legacy, sse4, avx, avx2, avx2-pext, avx512, avx512vnni ]
