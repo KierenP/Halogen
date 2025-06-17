@@ -125,6 +125,11 @@ jobs:
       with:
         path: ${{ github.workspace }}/Halogen/artifacts
 
+    - name: Debug why artifacts are not found
+      run: |
+        echo "Listing artifacts directory:"
+        ls -la ${{ github.workspace }}/Halogen/artifacts
+
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
