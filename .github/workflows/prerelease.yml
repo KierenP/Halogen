@@ -107,28 +107,19 @@ jobs:
         VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
         echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
-    - name: Create prerelease
-      uses: actions/create-release@v1
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        draft: true
-        prerelease: true
-        release_name: Halogen-${{ env.VERSION }}
-        tag_name: ${{ github.ref }}
-
     - name: Download build artifacts
       uses: actions/download-artifact@v3
       with:
         path: ./artifacts
 
-    - name: Upload binaries as release assets
-      uses: actions/upload-release-asset@v1
+    - name: Create prerelease
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/*
-        asset_name: ${{ basename('./artifacts/*') }}
-        asset_content_type: application/zip
+      run: |
+        set -x
+        assets=()
+        for asset in ./artifacts*; do
+          assets+=("-a" "$asset")
+        done
+        tag_name="${GITHUB_REF##*/}"
+        hub release create "${assets[@]}" -m "$tag_name" "$tag_name"
