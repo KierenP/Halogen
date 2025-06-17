@@ -89,7 +89,7 @@ jobs:
       run: |
         cd bin
         $commit_bench_line = git show --summary | Select-String -Pattern 'Bench: \d+'
-        $commit_bench = ($commit_bench_line.Matches | ForEach-Object { $_.Value -replace 'Bench: ' })[0]
+        $commit_bench = [regex]::Match($commit_bench_line.Line, 'Bench: (\d+)').Groups[1].Value
         $actual_output = & "${{ github.workspace }}\Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}" bench
         $actual_bench = $actual_output[-1] -replace '^\D*(\d+).*$', '$1'
 
