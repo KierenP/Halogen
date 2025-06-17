@@ -27,7 +27,7 @@ jobs:
         VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
         echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
-      # latest available GCC versions on each platform
+    # latest available GCC versions on each platform
     - if: matrix.os == 'ubuntu-latest'
       name: Install GCC 14 (Ubuntu)
       run: sudo apt install gcc-14 g++-14 -y
@@ -92,3 +92,43 @@ jobs:
       with:
         name: Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
         path: ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
+
+  release:
+    name: Create Prerelease and Upload Release Assets
+    needs: build
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract Version Identifier
+      run: |
+        VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+    - name: Create prerelease
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        draft: true
+        prerelease: true
+        release_name: Halogen-${{ env.VERSION }}
+        tag_name: ${{ github.ref }}
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+
+    - name: Upload binaries as release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/*
+        asset_name: ${{ basename('./artifacts/*') }}
+        asset_content_type: application/zip
