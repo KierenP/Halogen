@@ -22,22 +22,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Extract Version Identifier
+      run: |
+        VERSION=$(grep 'constexpr std::string_view version' ${{ github.workspace }}/src/main.cpp | cut -d'"' -f2)
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       # latest available GCC versions on each platform
     - if: matrix.os == 'ubuntu-latest'
       name: Install GCC 14 (Ubuntu)
-      run: |
-        sudo apt install gcc-14 g++-14 -y
+      run: sudo apt install gcc-14 g++-14 -y
 
     - if: matrix.os == 'windows-latest'
       name: Install GCC 13 (Windows)
-      run: |
-        choco install mingw --version=13.2.0
+      run: choco install mingw --version=13.2.0
 
     - if: matrix.os == 'ubuntu-latest'
       name: Set CC and CXX for Linux
       run: |
         echo "CC=gcc-14" >> $GITHUB_ENV
         echo "CXX=g++-14" >> $GITHUB_ENV
+
     - if: matrix.os == 'windows-latest'
       name: Set CC and CXX for Windows
       shell: powershell
@@ -54,20 +58,37 @@ jobs:
         mv ${{ github.workspace }}/build/Halogen${{ matrix.extension }} ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
 
     # only avx2 and below supported on github runners
-    - if: matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
-      name: Verify
+    - if: matrix.os == 'ubuntu-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+      name: Verify (Linux)
       run: |
         cd bin
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
         actual_bench=$(${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }} bench | tail -1 | grep -o "^[0-9]*")
-        if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
+        if [[ "$actual_bench" != "$commit_bench" ]]; then
+          echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1
+        else
+          echo "Got correct bench $actual_bench"
+        fi
 
-    - name: Upload Binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+    - if: matrix.os == 'windows-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+      name: Verify (Windows)
+      shell: pwsh
+      run: |
+        cd bin
+        $commit_bench_line = git show --summary | Select-String -Pattern 'Bench: \d+'
+        $commit_bench = ($commit_bench_line.Matches | ForEach-Object { $_.Value -replace 'Bench: ' })[0]
+        $actual_output = & "${{ github.workspace }}\Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}" bench
+        $actual_bench = $actual_output[-1] -replace '^\D*(\d+).*$', '$1'
+
+        if ($actual_bench -ne $commit_bench) {
+          Write-Error "Incorrect bench, got '$actual_bench' expected '$commit_bench'"
+          exit 1
+        } else {
+          Write-Host "Got correct bench $actual_bench"
+        }
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
-        asset_name: Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
-        asset_content_type: application/zip
+        name: Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
+        path: ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
