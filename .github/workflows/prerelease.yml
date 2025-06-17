@@ -21,6 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+      # latest available GCC versions on each platform
     - if: matrix.os == 'ubuntu-latest'
       name: Install GCC 14 (Ubuntu)
       run: |
@@ -63,7 +64,9 @@ jobs:
       run: |
         mv ${{ github.workspace }}/build/Halogen${{ matrix.extension }} ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
 
-    - name: Verify
+    # only avx2 and below supported on github runners
+    - if: matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+      name: Verify
       run: |
         cd bin
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
