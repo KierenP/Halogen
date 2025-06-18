@@ -25,7 +25,6 @@ jobs:
       # This ensures we can extract the expected bench from the commit message.
       with:
         ref: ${{ github.event.pull_request.head.sha }}
-        lfs: true
 
     - if: matrix.os == 'ubuntu-latest'
       name: Extract Version Identifier (Linux)

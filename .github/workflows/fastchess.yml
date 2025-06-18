@@ -21,7 +21,6 @@ jobs:
         uses: actions/checkout@v4.1.1
         with:
           path: Halogen
-          lfs: true
 
       - name: Build
         working-directory: Halogen/src
