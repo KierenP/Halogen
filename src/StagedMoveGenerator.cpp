@@ -152,34 +152,32 @@ bool StagedMoveGenerator::Next(Move& move)
 
 void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.quiet_history.add(position, ss, move, positive_adjustment);
-    local.cont_hist.add(position, ss, move, positive_adjustment);
+    local.AddQuietHistory(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.quiet_history.add(position, ss, m.move, negative_adjustment);
-        local.cont_hist.add(position, ss, m.move, negative_adjustment);
+        local.AddQuietHistory(position, ss, m.move, negative_adjustment);
     }
 
     for (auto const& m : loudMoves)
     {
-        local.loud_history.add(position, ss, m.move, negative_adjustment);
+        local.AddLoudHistory(position, ss, m.move, negative_adjustment);
     }
 }
 
 void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.loud_history.add(position, ss, move, positive_adjustment);
+    local.AddLoudHistory(position, ss, move, positive_adjustment);
 
     for (auto const& m : loudMoves)
     {
         if (m.move == move)
             break;
 
-        local.loud_history.add(position, ss, m.move, negative_adjustment);
+        local.AddLoudHistory(position, ss, m.move, negative_adjustment);
     }
 }
 
@@ -215,8 +213,7 @@ void StagedMoveGenerator::ScoreQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.quiet_history.get(position, ss, moves[i].move)
-                + local.cont_hist.get(position, ss, moves[i].move);
+            int history = local.GetQuietHistory(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
@@ -253,7 +250,7 @@ void StagedMoveGenerator::ScoreLoudMoves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            int history = local.loud_history.get(position, ss, moves[i].move);
+            int history = local.GetLoudHistory(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
