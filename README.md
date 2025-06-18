@@ -9,17 +9,29 @@
 
 </div>
 
-Halogen is a powerful, world-class program capable of analysing and playing chess. It currently is ranked within the top 30 chess engines of all time.
+Halogen is a powerful, world-class program capable of analysing and playing chess. It has a peak rating of 19th on the international Computer Chess Rating List, and is the #1 strongest chess engine in Oceania.
 
+## How to download
 
-## Details
+The latest version of Halogen can always be downloaded from the [releases](https://github.com/KierenP/Halogen/releases/tag/latest) page
 
-Written in C++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
+Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice.
 
-Halogen development is currently supported on the [Openbench](http://chess.grantnet.us/) framework. OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source Sequential Probability Ratio Testing (SPRT) framework designed for self-play testing of engines. OpenBench makes use of distributed computing, allowing anyone to contribute CPU time to further the development of some of the world's most powerful engines.
+## How to build
 
-Since 2020, Halogen has used a neural network for its evaluation function. Halogen makes use of an incrementally updated architecture, inspired by the new NNUE networks in [Stockfish](https://github.com/official-stockfish/Stockfish). The neural networks were trained using a novel application of Temporaral Difference learning[^1], and then fine tuned using supervised learning on data generated through self-play games using the Bullet trainer[^2].
+To build Halogen yourself, simply use the included makefile in the `src` directory:
 
+```bash
+> cd src
+> make
+```
+
+Halogen is officially supported on Windows and Ubuntu when using compilers gcc-13 and clang-16 or newer.
+
+| Platform          | Build |
+|-------------------|-------|
+| Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
+| Windows           |  [![Windows](https://github.com/KierenP/Halogen/actions/workflows/windows.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows.yml)     |
 
 ## Strength
 
@@ -31,22 +43,14 @@ Since 2020, Halogen has used a neural network for its evaluation function. Halog
 |  10.0.0 |          3196           |           3220           |             -              |         3084          |            -         |  -   |
 |  9.0.0  |          3153           |           3178           |             -              |           3013           |          -           |  -   |
 
+## Details
 
-## How to use
+Written in C++, Halogen implements Null-move pruning, Late move reductions, Quiessence search and a Transposition table that uses Zobrist Hashing. The search routine is multithreaded using the SMP parallelisation technique.
 
-Halogen is not a stand alone application and should be used with any popular chess GUI that supports the [UCI](https://gist.github.com/DOBRO/2592c6dad754ba67e6dcaec8c90165bf) protocol. [Arena](http://www.playwitharena.de/) chess is a popular choice. You can find prebuilt binaries from the last major release in the releases tab, or build Halogen yourself. Halogen is officially supported on the following platforms:
+Halogen development is currently supported on the [Openbench](http://chess.grantnet.us/) framework. OpenBench (created by [Andrew Grant](https://github.com/AndyGrant)) is an open-source Sequential Probability Ratio Testing (SPRT) framework designed for self-play testing of engines. OpenBench makes use of distributed computing, allowing anyone to contribute CPU time to further the development of some of the world's most powerful engines.
 
-| Platform          | Build |
-|-------------------|-------|
-| Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
-| Windows (Mingw64) |  [![Windows (MinGW64)](https://github.com/KierenP/Halogen/actions/workflows/windows-mingw64.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows-mingw64.yml)     |
-| Windows (Clang64) |  [![Windows (Clang64)](https://github.com/KierenP/Halogen/actions/workflows/windows-clang64.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows-clang64.yml)     |
+Since 2020, Halogen has used a neural network for its evaluation function. Halogen makes use of an incrementally updated architecture, inspired by the new NNUE networks in [Stockfish](https://github.com/official-stockfish/Stockfish). The neural networks were trained using a novel application of Temporaral Difference learning[^1], and then fine tuned using supervised learning on data generated through self-play games using the Bullet trainer[^2].
 
-To build Halogen, simply use the included makefile in the `src` directory:
-
-```bash
-> make
-```
 
 [^1]: https://github.com/KierenP/Halogen/pull/517
 [^2]: https://github.com/jw1912/bullet

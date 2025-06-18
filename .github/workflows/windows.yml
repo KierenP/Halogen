@@ -15,8 +15,6 @@ jobs:
         config:
           - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
           - { system: mingw64, package: x86_64-gcc, compiler: g++ }
-        # runners only seem to support up to avx2-pext
-        target: [pgo]
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -24,11 +22,12 @@ jobs:
         # This ensures we can extract the expected bench from the commit message.
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          lfs: true
 
       - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
-          install: mingw-w64-${{matrix.config.package}} make git
+          install: mingw-w64-${{matrix.config.package}} make git mingw-w64-x86_64-git-lfs
 
       - name: Add compiler to $PATH env
         shell: bash
@@ -37,7 +36,7 @@ jobs:
       - name: Create build
         shell: msys2 {0}
         working-directory: src
-        run: make ${{ matrix.target }} CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j
+        run: make pgo CXX=${{ matrix.config.compiler }} EXE=../bin/Halogen.exe -j
 
       - name: Check bench matches commit message
         shell: msys2 {0}
