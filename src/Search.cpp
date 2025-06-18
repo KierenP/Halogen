@@ -888,7 +888,6 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
 
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
-    ss->cont_hist_subtables = local.cont_hist.get_subtables(ss);
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.Next(move))
@@ -931,9 +930,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
         // material.
         bool is_loud_move = move.IsCapture() || move.IsPromotion();
-        int history = is_loud_move
-            ? local.loud_history.get(position, ss, move)
-            : (local.quiet_history.get(position, ss, move) + local.cont_hist.get(position, ss, move));
+        int history
+            = is_loud_move ? local.GetLoudHistory(position, ss, move) : (local.GetQuietHistory(position, ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
             && !see_ge(position.Board(), move, -111 * depth - history / 168))

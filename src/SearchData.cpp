@@ -70,6 +70,58 @@ void SearchLocalState::ResetNewSearch()
     root_moves = {};
 }
 
+int SearchLocalState::GetQuietHistory(const GameState& position, const SearchStackState* ss, Move move)
+{
+    int total = 0;
+
+    if (auto* hist = pawn_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if (auto* hist = threat_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if ((ss - 1)->cont_hist_subtable)
+    {
+        total += *(ss - 1)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    if ((ss - 2)->cont_hist_subtable)
+    {
+        total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    return total;
+}
+
+int SearchLocalState::GetLoudHistory(const GameState& position, const SearchStackState* ss, Move move)
+{
+    int total = 0;
+    if (auto* hist = capt_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+    return total;
+}
+
+void SearchLocalState::AddQuietHistory(const GameState& position, const SearchStackState* ss, Move move, int change)
+{
+    pawn_hist.add(position, ss, move, change);
+    threat_hist.add(position, ss, move, change);
+    if ((ss - 1)->cont_hist_subtable)
+        (ss - 1)->cont_hist_subtable->add(position, ss, move, change);
+    if ((ss - 2)->cont_hist_subtable)
+        (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
+}
+
+void SearchLocalState::AddLoudHistory(const GameState& position, const SearchStackState* ss, Move move, int change)
+{
+    capt_hist.add(position, ss, move, change);
+}
+
 SearchSharedState::SearchSharedState(Uci& uci)
     : uci_handler(uci)
 {

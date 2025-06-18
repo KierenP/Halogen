@@ -82,9 +82,6 @@ struct ContinuationHistory
 {
     static constexpr int cont_hist_depth = 2;
     PieceMoveHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
-    static std::array<PieceMoveHistory*, cont_hist_depth> get_subtables(const SearchStackState* ss);
-    void add(const GameState& position, const SearchStackState* ss, Move move, int change);
-    int32_t get(const GameState& position, const SearchStackState* ss, Move move);
 
     constexpr void reset()
     {
@@ -135,35 +132,3 @@ struct NonPawnCorrHistory
 private:
     static constexpr int eval_scale = 16384 / correction_max;
 };
-
-template <typename... tables>
-class History
-{
-public:
-    void reset()
-    {
-        std::apply([](auto&... table) { (table.reset(), ...); }, tables_);
-    }
-
-    int get(const GameState& position, const SearchStackState* ss, Move move)
-    {
-        auto get_value = [&](auto& table)
-        {
-            auto* value = table.get(position, ss, move);
-            return value ? *value : 0;
-        };
-
-        return std::apply([&](auto&... table) { return (get_value(table) + ...); }, tables_);
-    }
-
-    void add(const GameState& position, const SearchStackState* ss, Move move, int change)
-    {
-        std::apply([&](auto&... table) { (table.add(position, ss, move, change), ...); }, tables_);
-    }
-
-private:
-    std::tuple<tables...> tables_;
-};
-
-using QuietHistory = History<PawnHistory, ThreatHistory>;
-using LoudHistory = History<CaptureHistory>;

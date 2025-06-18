@@ -55,7 +55,6 @@ struct SearchStackState
     int distance_from_root;
 
     PieceMoveHistory* cont_hist_subtable = nullptr;
-    std::array<PieceMoveHistory*, ContinuationHistory::cont_hist_depth> cont_hist_subtables = {};
 
     Accumulator acc;
 
@@ -108,11 +107,18 @@ public:
     void ResetNewSearch();
     void ResetNewGame();
 
+    int GetQuietHistory(const GameState& position, const SearchStackState* ss, Move move);
+    int GetLoudHistory(const GameState& position, const SearchStackState* ss, Move move);
+
+    void AddQuietHistory(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void AddLoudHistory(const GameState& position, const SearchStackState* ss, Move move, int change);
+
     int thread_id;
     SearchStack search_stack;
-    QuietHistory quiet_history;
-    LoudHistory loud_history;
+    PawnHistory pawn_hist;
+    ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
+    CaptureHistory capt_hist;
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     int sel_septh = 0;
