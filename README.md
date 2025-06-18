@@ -28,9 +28,6 @@ To build Halogen yourself, simply use the included makefile in the `src` directo
 
 Halogen is officially supported on Windows and Ubuntu when using compilers gcc-13 and clang-16 or newer.
 
-> [!IMPORTANT]  
-> Halogen uses `git lfs` to manage the large network binary files. You can follow instructions to download it [here](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage)
-
 | Platform          | Build |
 |-------------------|-------|
 | Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
