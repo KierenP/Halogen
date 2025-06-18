@@ -96,7 +96,7 @@ int SearchLocalState::GetQuietHistory(const GameState& position, const SearchSta
 
     if ((ss - 4)->cont_hist_subtable)
     {
-        total += *(ss - 4)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 4)->cont_hist_subtable->get(position, ss, move) / 2;
     }
 
     return total;
@@ -121,7 +121,7 @@ void SearchLocalState::AddQuietHistory(const GameState& position, const SearchSt
     if ((ss - 2)->cont_hist_subtable)
         (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
     if ((ss - 4)->cont_hist_subtable)
-        (ss - 4)->cont_hist_subtable->add(position, ss, move, change);
+        (ss - 4)->cont_hist_subtable->add(position, ss, move, change / 2);
 }
 
 void SearchLocalState::AddLoudHistory(const GameState& position, const SearchStackState* ss, Move move, int change)
