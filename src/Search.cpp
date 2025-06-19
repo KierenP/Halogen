@@ -508,7 +508,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     ss->singular_exclusion = Move::Uninitialized;
 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (!pv_node && se_score < sbeta - 11)
+    if (!pv_node && se_score < sbeta - 11 && ss->distance_from_root < local.curr_depth)
     {
         extensions += 2;
     }
