@@ -31,7 +31,7 @@ struct ExtendedMove
     };
 
     Move move;
-    int16_t score;
+    int32_t score;
 };
 
 using ExtendedMoveList = StaticVector<ExtendedMove, 218>;
