@@ -965,7 +965,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         // Step 15: Check extensions
         if (IsInCheck(position.Board()))
         {
-            extensions += 1;
+            extensions = std::max(extensions, 1);
         }
 
         // Step 16: Late move reductions
