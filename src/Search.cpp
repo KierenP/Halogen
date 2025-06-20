@@ -963,7 +963,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (IsInCheck(position.Board()))
+        if (IsInCheck(position.Board()) && see_ge(position.Board(), move, 0))
         {
             extensions += 1;
         }
