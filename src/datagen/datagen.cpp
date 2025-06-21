@@ -92,6 +92,7 @@ void generation_thread(Uci& uci, std::string_view output_path)
         auto now = std::chrono::steady_clock::now();
         if ((now - last_rotation) >= std::chrono::hours(1))
         {
+            last_rotation = std::chrono::steady_clock::now();
             output_rotation++;
             data_file = std::ofstream(output_file_path(), std::ios::out | std::ios::binary | std::ios::app);
         }
