@@ -1,1 +1,1 @@
-pkill -f "./Halogen-native.exe"
+pkill -f "Halogen"
