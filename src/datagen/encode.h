@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include "../BoardState.h"
-#include "Score.h"
+#include "../Score.h"
 
 struct MarlinFormat
 {

@@ -10,7 +10,7 @@
 
 inline void filter(std::string_view input_path, std::string_view output_path)
 {
-    std::ifstream input(input_path.data(), std::ios::binary);
+    /*std::ifstream input(input_path.data(), std::ios::binary);
     std::ofstream output(output_path.data(), std::ios::binary);
 
     training_data data;
@@ -59,5 +59,5 @@ inline void filter(std::string_view input_path, std::string_view output_path)
     }
 
     print_diagnostics();
-    std::cout << "Complete" << std::endl;
+    std::cout << "Complete" << std::endl;*/
 }
