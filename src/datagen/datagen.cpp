@@ -8,6 +8,7 @@
 #include "encode.h"
 
 #include <atomic>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -76,12 +77,24 @@ void generation_thread(Uci& uci, std::string_view output_path)
     uci.shared.limits.nodes = 40000;
     uci.output_level = OutputLevel::None;
     tTable.SetSize(1);
-    std::ofstream data_file(output_path.data(), std::ios::out | std::ios::binary | std::ios::app);
+
+    int output_rotation = 0;
+    auto output_file_path = [&] { return std::format("{}-{}.data", output_path, output_rotation); };
+    std::ofstream data_file(output_file_path(), std::ios::out | std::ios::binary | std::ios::app);
+    auto last_rotation = std::chrono::steady_clock::now();
 
     while (!stop)
     {
-        self_play_game(uci, data_file);
         uci.handle_ucinewgame();
+        self_play_game(uci, data_file);
+
+        // rotate output file each hour
+        auto now = std::chrono::steady_clock::now();
+        if ((now - last_rotation) >= std::chrono::hours(1))
+        {
+            output_rotation++;
+            data_file = std::ofstream(output_file_path(), std::ios::out | std::ios::binary | std::ios::app);
+        }
     }
 }
 
@@ -152,7 +165,8 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         }
     }
 
-    std::vector<std::tuple<BoardState, int16_t, Move>> datapoints;
+    BoardState initial_state = position.Board();
+    std::vector<std::tuple<int16_t, Move>> score_moves;
     float result = -1;
 
     while (true)
@@ -216,16 +230,27 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         const auto search_result = data.get_best_search_result();
         const auto best_move = search_result.best_move;
         const auto white_relative_score = (position.Board().stm == WHITE ? 1 : -1) * search_result.score.value();
-        datapoints.emplace_back(position.Board(), white_relative_score, best_move);
+        score_moves.emplace_back(white_relative_score, best_move);
         position.ApplyMove(search_result.best_move);
     }
 
-    for (const auto& [board, eval, best_move] : datapoints)
+    auto marlin_format = convert(initial_state, result);
+    data_file.write(reinterpret_cast<const char*>(&marlin_format), sizeof(marlin_format));
+    auto stm = initial_state.stm;
+
+    for (const auto& [eval, best_move] : score_moves)
     {
-        auto data_point = convert(board, eval, result, best_move);
-        data_file.write(reinterpret_cast<const char*>(&data_point), sizeof(data_point));
+        auto packed_move = convert(best_move);
+        auto score = convert(stm, eval);
+        data_file.write(reinterpret_cast<const char*>(&packed_move), sizeof(packed_move));
+        data_file.write(reinterpret_cast<const char*>(&score), sizeof(score));
+        stm = !stm;
     }
 
+    // terminate the game
+    uint8_t terminator[4] = { 0, 0, 0, 0 };
+    data_file.write(reinterpret_cast<const char*>(terminator), sizeof(terminator));
+
     games++;
-    fens += datapoints.size();
+    fens += score_moves.size();
 }

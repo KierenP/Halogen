@@ -5,23 +5,24 @@
 #include <type_traits>
 
 #include "../BoardState.h"
+#include "Score.h"
 
-struct training_data
+struct MarlinFormat
 {
-    uint64_t occ;
-    std::array<uint8_t, 16> pcs;
-    int16_t score;
-    int8_t result;
-    uint8_t ksq;
-    uint8_t opp_ksq;
-
-    uint8_t padding[1];
-    Move best_move;
+    uint64_t occ; // 64-bit occupied-piece bitboard
+    std::array<uint8_t, 16> pcs; // 32-entry array of 4-bit pieces
+    uint8_t stm_ep; // 8-bit side-to-move and en-passant field
+    uint8_t half_move_clock; // 8-bit halfmove clock
+    uint16_t full_move_counter; // 16-bit fullmove counter
+    int16_t score; // Score for the position
+    uint8_t result; // Game result: black win is 0, draw is 1, white win is 2
+    uint8_t padding; // Unused extra byte
 };
 
-static_assert(sizeof(training_data) == 32);
-static_assert(std::is_standard_layout_v<training_data>);
+static_assert(sizeof(MarlinFormat) == 32, "MarlinFormat size must be 32 bytes");
+static_assert(std::is_standard_layout_v<MarlinFormat>);
 
-/// - Score is White relative, in Centipawns.
 /// - Result is 0.0 for Black Win, 0.5 for Draw, 1.0 for White Win
-training_data convert(BoardState board, int16_t score, float result, Move best_move);
+MarlinFormat convert(BoardState board, float result);
+uint16_t convert(Move move);
+int16_t convert(Players stm, Score score);

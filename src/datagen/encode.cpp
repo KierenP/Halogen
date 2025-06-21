@@ -1,38 +1,22 @@
 #include "encode.h"
 
-training_data convert(BoardState board, int16_t score, float result, Move best_move)
+MarlinFormat convert(BoardState board, float result)
 {
-    auto us = board.GetPieces<WHITE>();
-    auto them = board.GetPieces<BLACK>();
+    const auto white = board.GetPieces<WHITE>();
+    const auto black = board.GetPieces<BLACK>();
+    const auto pawn = board.GetPieceBB<PAWN>();
+    const auto knight = board.GetPieceBB<KNIGHT>();
+    const auto bishop = board.GetPieceBB<BISHOP>();
+    const auto rook = board.GetPieceBB<ROOK>();
+    const auto queen = board.GetPieceBB<QUEEN>();
+    const auto king = board.GetPieceBB<KING>();
+    const auto castle_squares = board.castle_squares;
 
-    auto pawn = board.GetPieceBB<PAWN>();
-    auto knight = board.GetPieceBB<KNIGHT>();
-    auto bishop = board.GetPieceBB<BISHOP>();
-    auto rook = board.GetPieceBB<ROOK>();
-    auto queen = board.GetPieceBB<QUEEN>();
-    auto king = board.GetPieceBB<KING>();
-
-    if (board.stm == BLACK)
-    {
-        result = 1 - result;
-        score = -score;
-        best_move = Move(flip_square(best_move.GetFrom()), flip_square(best_move.GetTo()), best_move.GetFlag());
-        us = flip_bb(us);
-        them = flip_bb(them);
-        pawn = flip_bb(pawn);
-        knight = flip_bb(knight);
-        bishop = flip_bb(bishop);
-        rook = flip_bb(rook);
-        queen = flip_bb(queen);
-        king = flip_bb(king);
-        std::swap(us, them);
-    }
-
-    training_data data {};
-    data.occ = us | them;
+    MarlinFormat format {};
+    format.occ = white | black;
 
     auto idx = 0;
-    auto occ = data.occ;
+    auto occ = format.occ;
     while (occ)
     {
         auto sq = LSBpop(occ);
@@ -43,39 +27,67 @@ training_data convert(BoardState board, int16_t score, float result, Move best_m
             : (queen & SquareBB[sq]) != 0               ? QUEEN
             : (king & SquareBB[sq]) != 0                ? KING
                                                         : N_PIECE_TYPES;
-        assert(piece_type != N_PIECE_TYPES);
-        uint8_t colour = (us & SquareBB[sq]) != 0 ? 0 : (them & SquareBB[sq]) != 0 ? 1 : 2;
+        if (castle_squares & SquareBB[sq])
+        {
+            // marlin format encodes castle-able rooks as piece type 6
+            assert(piece_type == ROOK);
+            piece_type = N_PIECE_TYPES;
+        }
+        uint8_t colour = (white & SquareBB[sq]) != 0 ? 0 : (black & SquareBB[sq]) != 0 ? 1 : 2;
         assert(colour != 2);
         auto encoded_piece = ((colour << 3) | piece_type);
-        data.pcs[idx / 2] |= encoded_piece << (4 * (idx & 1));
+        format.pcs[idx / 2] |= encoded_piece << (4 * (idx & 1));
         idx++;
     }
 
-    data.score = score;
-    data.result = 2 * result;
-    data.ksq = LSB(us & king);
-    data.opp_ksq = flip_square(LSB(them & king));
-    data.best_move = best_move;
+    format.stm_ep = (board.stm == WHITE ? 0 : 0x80) | (board.en_passant == N_SQUARES ? 64 : board.en_passant);
+    format.half_move_clock = 0; // unused
+    format.full_move_counter = 0; // unused
+    format.score = 0; // unused
+    format.result = result * 2; // convert to [0-2] scale
+    format.padding = 0; // unused
 
-    return data;
+    return format;
 }
 
-#include "../GameState.h"
-
-auto flip_test = []()
+uint16_t convert(Move move)
 {
-    GameState position;
-    position.InitialiseFromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R2K3R w kq - 0 1");
-    auto encoded_white = convert(position.Board(), 100, 1, Move(SQ_E2, SQ_A6, CAPTURE));
-    std::array<uint8_t, 32> serialized_white;
-    std::memcpy(serialized_white.data(), &encoded_white, sizeof(encoded_white));
+    uint16_t packed_move = (move.GetFrom() & 0x3F) | ((move.GetTo() & 0x3F) << 6);
 
-    position.InitialiseFromFen("r2k3r/pppbbppp/2n2q1P/1P2p3/3pn3/BN2PNP1/P1PPQPB1/R3K2R b KQ - 0 1");
-    auto encoded_black = convert(position.Board(), -100, 0, Move(SQ_E7, SQ_A3, CAPTURE));
-    std::array<uint8_t, 32> serialized_black;
-    std::memcpy(serialized_black.data(), &encoded_black, sizeof(encoded_black));
+    switch (move.GetFlag())
+    {
+    case KNIGHT_PROMOTION:
+    case KNIGHT_PROMOTION_CAPTURE:
+        packed_move |= 0b1100 << 12; // knight promotion
+        break;
+    case BISHOP_PROMOTION:
+    case BISHOP_PROMOTION_CAPTURE:
+        packed_move |= 0b1101 << 12; // bishop promotion
+        break;
+    case ROOK_PROMOTION:
+    case ROOK_PROMOTION_CAPTURE:
+        packed_move |= 0b1110 << 12; // rook promotion
+        break;
+    case QUEEN_PROMOTION:
+    case QUEEN_PROMOTION_CAPTURE:
+        packed_move |= 0b1111 << 12; // queen promotion
+        break;
+    case EN_PASSANT:
+        packed_move |= 0b0100 << 12; // en-passant capture
+        break;
+    case A_SIDE_CASTLE:
+    case H_SIDE_CASTLE:
+        packed_move |= 0b1000 << 12; // castling move
+        break;
+    default:
+        break;
+    }
 
-    assert(serialized_white == serialized_black);
+    return packed_move;
+}
 
-    return 0;
-}();
+int16_t convert(Players stm, Score score)
+{
+    score = (stm == WHITE ? score : -score); // convert to white-relative score
+    return score.value();
+}
