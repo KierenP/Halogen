@@ -1,32 +1,27 @@
-#include "GameState.h"
+#include "chessboard/game_state.h"
 
 #include <cassert>
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
 
-#include "BoardState.h"
 #include "Cuckoo.h"
 #include "Move.h"
 #include "Zobrist.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 
-GameState::GameState()
+void GameState::apply_move(Move move)
 {
-    StartingPosition();
-}
-
-void GameState::ApplyMove(Move move)
-{
-    previousStates.emplace_back(previousStates.back()).ApplyMove(move);
+    previousStates.emplace_back(previousStates.back()).apply_move(move);
     update_current_position_repetition();
 }
 
-void GameState::ApplyMove(std::string_view strmove)
+void GameState::apply_move(std::string_view strmove)
 {
     Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
     Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
-    MoveFlag flag = Board().GetMoveFlag(from, to);
+    MoveFlag flag = board().infer_move_flag(from, to);
 
     // Promotion
     if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
@@ -44,55 +39,62 @@ void GameState::ApplyMove(std::string_view strmove)
     // Correction for castle moves (encode as KxR)
     if (flag == A_SIDE_CASTLE)
     {
-        to = lsb(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+        to = lsb(board().castle_squares & RankBB[board().stm == WHITE ? RANK_1 : RANK_8]);
     }
     else if (flag == H_SIDE_CASTLE)
     {
-        to = msb(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+        to = msb(board().castle_squares & RankBB[board().stm == WHITE ? RANK_1 : RANK_8]);
     }
 
-    ApplyMove(Move(from, to, flag));
+    apply_move(Move(from, to, flag));
 
     // trim all moves before a 50 move reset
-    if (Board().fifty_move_count == 0)
+    if (board().fifty_move_count == 0)
     {
         previousStates.erase(previousStates.begin(), previousStates.end() - 1);
     }
 }
 
-void GameState::RevertMove()
+void GameState::revert_move()
 {
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
 }
 
-void GameState::ApplyNullMove()
+void GameState::apply_null_move()
 {
     previousStates.push_back(previousStates.back());
-    MutableBoard().ApplyNullMove();
+    MutableBoard().apply_null_move();
     update_current_position_repetition();
 }
 
-void GameState::RevertNullMove()
+void GameState::revert_null_move()
 {
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
 }
 
-void GameState::StartingPosition()
+GameState GameState::starting_position()
 {
-    InitialiseFromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    return from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
-bool GameState::InitialiseFromFen(std::array<std::string_view, 6> fen)
+GameState GameState::from_fen(std::string_view fen)
+{
+    GameState state;
+    state.init_from_fen(fen);
+    return state;
+}
+
+bool GameState::init_from_fen(std::array<std::string_view, 6> fen)
 {
     previousStates.clear();
-    return previousStates.emplace_back().InitialiseFromFen(fen);
+    return previousStates.emplace_back().init_from_fen(fen);
 }
 
-bool GameState::InitialiseFromFen(std::string_view fen)
+bool GameState::init_from_fen(std::string_view fen)
 {
     // Split the line into an array of strings seperated by each space
     std::array<std::string_view, 6> splitFen = {
@@ -119,16 +121,16 @@ bool GameState::InitialiseFromFen(std::string_view fen)
         idx++;
     }
 
-    return InitialiseFromFen(splitFen);
+    return init_from_fen(splitFen);
 }
 
-const BoardState& GameState::Board() const
+const BoardState& GameState::board() const
 {
     assert(previousStates.size() >= 1);
     return previousStates.back();
 }
 
-const BoardState& GameState::PrevBoard() const
+const BoardState& GameState::prev_board() const
 {
     assert(previousStates.size() >= 2);
     return previousStates[previousStates.size() - 2];
@@ -142,13 +144,13 @@ BoardState& GameState::MutableBoard()
 
 bool GameState::is_repetition(int distance_from_root) const
 {
-    return Board().three_fold_rep
-        || (Board().repetition.has_value() && Board().repetition.value() < distance_from_root);
+    return board().three_fold_rep
+        || (board().repetition.has_value() && board().repetition.value() < distance_from_root);
 }
 
 bool GameState::is_two_fold_repetition() const
 {
-    return Board().repetition.has_value();
+    return board().repetition.has_value();
 }
 
 void GameState::update_current_position_repetition()
@@ -163,7 +165,7 @@ void GameState::update_current_position_repetition()
 
     for (int ply = 4; ply <= max_ply; ply += 2)
     {
-        if (previousStates[i].GetZobristKey() == previousStates[i - ply].GetZobristKey())
+        if (previousStates[i].key == previousStates[i - ply].key)
         {
             previousStates[i].repetition = ply;
             previousStates[i].three_fold_rep = (bool)previousStates[i - ply].repetition;
@@ -183,13 +185,12 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         return false;
     }
 
-    uint64_t other = previousStates[i].GetZobristKey() ^ previousStates[i - 1].GetZobristKey() ^ Zobrist::stm();
-    uint64_t occ = previousStates[i].GetAllPieces();
+    uint64_t other = previousStates[i].key ^ previousStates[i - 1].key ^ Zobrist::stm();
+    uint64_t occ = previousStates[i].get_pieces_bb();
 
     for (int ply = 3; ply <= max_ply; ply += 2)
     {
-        other
-            ^= previousStates[i - (ply - 1)].GetZobristKey() ^ previousStates[i - ply].GetZobristKey() ^ Zobrist::stm();
+        other ^= previousStates[i - (ply - 1)].key ^ previousStates[i - ply].key ^ Zobrist::stm();
 
         if (other != 0)
         {
@@ -198,7 +199,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         }
 
         // 'diff' is a single move
-        uint64_t diff = previousStates[i].GetZobristKey() ^ previousStates[i - ply].GetZobristKey();
+        uint64_t diff = previousStates[i].key ^ previousStates[i - ply].key;
         auto hash = cuckoo::H1(diff);
 
         if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))

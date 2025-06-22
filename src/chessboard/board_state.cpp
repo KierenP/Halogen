@@ -1,4 +1,4 @@
-#include "BoardState.h"
+#include "chessboard/board_state.h"
 
 #include <cassert>
 #include <charconv>
@@ -10,7 +10,7 @@
 #include "Zobrist.h"
 #include "bitboard.h"
 
-bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
+bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 {
     *this = BoardState(); // reset the board state
 
@@ -27,18 +27,18 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
         // clang-format off
 		switch (letter)
 		{
-		case 'p': AddPiece(sq, BLACK_PAWN); break;
-		case 'r': AddPiece(sq, BLACK_ROOK); break;
-		case 'n': AddPiece(sq, BLACK_KNIGHT); break;
-		case 'b': AddPiece(sq, BLACK_BISHOP); break;
-		case 'q': AddPiece(sq, BLACK_QUEEN); break;
-		case 'k': AddPiece(sq, BLACK_KING); break;
-		case 'P': AddPiece(sq, WHITE_PAWN); break;
-		case 'R': AddPiece(sq, WHITE_ROOK); break;
-		case 'N': AddPiece(sq, WHITE_KNIGHT); break;
-		case 'B': AddPiece(sq, WHITE_BISHOP); break;
-		case 'Q': AddPiece(sq, WHITE_QUEEN); break;
-		case 'K': AddPiece(sq, WHITE_KING); break;
+		case 'p': add_piece_sq(sq, BLACK_PAWN); break;
+		case 'r': add_piece_sq(sq, BLACK_ROOK); break;
+		case 'n': add_piece_sq(sq, BLACK_KNIGHT); break;
+		case 'b': add_piece_sq(sq, BLACK_BISHOP); break;
+		case 'q': add_piece_sq(sq, BLACK_QUEEN); break;
+		case 'k': add_piece_sq(sq, BLACK_KING); break;
+		case 'P': add_piece_sq(sq, WHITE_PAWN); break;
+		case 'R': add_piece_sq(sq, WHITE_ROOK); break;
+		case 'N': add_piece_sq(sq, WHITE_KNIGHT); break;
+		case 'B': add_piece_sq(sq, WHITE_BISHOP); break;
+		case 'Q': add_piece_sq(sq, WHITE_QUEEN); break;
+		case 'K': add_piece_sq(sq, WHITE_KING); break;
 		case '/': square--; break;
 		case '1': break;
 		case '2': square += 1; break;
@@ -69,16 +69,16 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 
         // parse classic fen or chess960 fen (KQkq)
         if (letter == 'K')
-            castle_squares |= SquareBB[msb(GetPieceBB<WHITE_ROOK>() & RankBB[RANK_1])];
+            castle_squares |= SquareBB[msb(get_pieces_bb<WHITE_ROOK>() & RankBB[RANK_1])];
 
         else if (letter == 'Q')
-            castle_squares |= SquareBB[lsb(GetPieceBB<WHITE_ROOK>() & RankBB[RANK_1])];
+            castle_squares |= SquareBB[lsb(get_pieces_bb<WHITE_ROOK>() & RankBB[RANK_1])];
 
         else if (letter == 'k')
-            castle_squares |= SquareBB[msb(GetPieceBB<BLACK_ROOK>() & RankBB[RANK_8])];
+            castle_squares |= SquareBB[msb(get_pieces_bb<BLACK_ROOK>() & RankBB[RANK_8])];
 
         else if (letter == 'q')
-            castle_squares |= SquareBB[lsb(GetPieceBB<BLACK_ROOK>() & RankBB[RANK_8])];
+            castle_squares |= SquareBB[lsb(get_pieces_bb<BLACK_ROOK>() & RankBB[RANK_8])];
 
         // parse Shredder-FEN (HAha)
         else if (letter >= 'A' && letter <= 'H')
@@ -118,7 +118,7 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
 
     half_turn_count = full_move_count * 2 - (stm == WHITE); // convert full move count to half move count
 
-    RecalculateWhiteBlackBoards();
+    recalculate_side_bb();
     key = Zobrist::key(*this);
     pawn_key = Zobrist::pawn_key(*this);
     non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
@@ -128,33 +128,23 @@ bool BoardState::InitialiseFromFen(const std::array<std::string_view, 6>& fen)
     return true;
 }
 
-void BoardState::RecalculateWhiteBlackBoards()
+void BoardState::recalculate_side_bb()
 {
-    side_bb[WHITE] = GetPieceBB<WHITE_PAWN>() | GetPieceBB<WHITE_KNIGHT>() | GetPieceBB<WHITE_BISHOP>()
-        | GetPieceBB<WHITE_ROOK>() | GetPieceBB<WHITE_QUEEN>() | GetPieceBB<WHITE_KING>();
-    side_bb[BLACK] = GetPieceBB<BLACK_PAWN>() | GetPieceBB<BLACK_KNIGHT>() | GetPieceBB<BLACK_BISHOP>()
-        | GetPieceBB<BLACK_ROOK>() | GetPieceBB<BLACK_QUEEN>() | GetPieceBB<BLACK_KING>();
+    side_bb[WHITE] = get_pieces_bb<WHITE_PAWN>() | get_pieces_bb<WHITE_KNIGHT>() | get_pieces_bb<WHITE_BISHOP>()
+        | get_pieces_bb<WHITE_ROOK>() | get_pieces_bb<WHITE_QUEEN>() | get_pieces_bb<WHITE_KING>();
+    side_bb[BLACK] = get_pieces_bb<BLACK_PAWN>() | get_pieces_bb<BLACK_KNIGHT>() | get_pieces_bb<BLACK_BISHOP>()
+        | get_pieces_bb<BLACK_ROOK>() | get_pieces_bb<BLACK_QUEEN>() | get_pieces_bb<BLACK_KING>();
 }
 
-uint64_t BoardState::GetPiecesColour(Side colour) const
+uint64_t BoardState::get_pieces_bb(Side colour) const
 {
     if (colour == WHITE)
-        return GetPieces<WHITE>();
+        return get_pieces_bb<WHITE>();
     else
-        return GetPieces<BLACK>();
+        return get_pieces_bb<BLACK>();
 }
 
-uint64_t BoardState::GetZobristKey() const
-{
-    return key;
-}
-
-uint64_t BoardState::GetPawnKey() const
-{
-    return pawn_key;
-}
-
-void BoardState::AddPiece(Square square, Piece piece)
+void BoardState::add_piece_sq(Square square, Piece piece)
 {
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
@@ -163,7 +153,7 @@ void BoardState::AddPiece(Square square, Piece piece)
     side_bb[enum_to<Side>(piece)] |= SquareBB[square];
 }
 
-void BoardState::RemovePiece(Square square, Piece piece)
+void BoardState::remove_piece_sq(Square square, Piece piece)
 {
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
@@ -172,12 +162,12 @@ void BoardState::RemovePiece(Square square, Piece piece)
     side_bb[enum_to<Side>(piece)] ^= SquareBB[square];
 }
 
-uint64_t BoardState::GetPieceBB(Piece piece) const
+uint64_t BoardState::get_pieces_bb(Piece piece) const
 {
     return board[piece];
 }
 
-void BoardState::ClearSquare(Square square)
+void BoardState::clear_sq(Square square)
 {
     assert(square < N_SQUARES);
 
@@ -190,55 +180,55 @@ void BoardState::ClearSquare(Square square)
     side_bb[BLACK] &= ~SquareBB[square];
 }
 
-uint64_t BoardState::GetPieceBB(PieceType pieceType, Side colour) const
+uint64_t BoardState::get_pieces_bb(PieceType pieceType, Side colour) const
 {
-    return GetPieceBB(get_piece(pieceType, colour));
+    return get_pieces_bb(get_piece(pieceType, colour));
 }
 
-Square BoardState::GetKing(Side colour) const
+Square BoardState::get_king_sq(Side colour) const
 {
-    assert(GetPieceBB(KING, colour) != 0);
-    return lsb(GetPieceBB(KING, colour));
+    assert(get_pieces_bb(KING, colour) != 0);
+    return lsb(get_pieces_bb(KING, colour));
 }
 
-bool BoardState::IsEmpty(Square square) const
-{
-    assert(square != N_SQUARES);
-    return ((GetAllPieces() & SquareBB[square]) == 0);
-}
-
-bool BoardState::IsOccupied(Square square) const
+bool BoardState::is_empty(Square square) const
 {
     assert(square != N_SQUARES);
-    return (!IsEmpty(square));
+    return ((get_pieces_bb() & SquareBB[square]) == 0);
 }
 
-Piece BoardState::GetSquare(Square square) const
+bool BoardState::is_occupied(Square square) const
+{
+    assert(square != N_SQUARES);
+    return (!is_empty(square));
+}
+
+Piece BoardState::get_square_piece(Square square) const
 {
     for (int i = 0; i < N_PIECES; i++)
     {
-        if ((GetPieceBB(static_cast<Piece>(i)) & SquareBB[square]) != 0)
+        if ((get_pieces_bb(static_cast<Piece>(i)) & SquareBB[square]) != 0)
             return static_cast<Piece>(i);
     }
 
     return N_PIECES;
 }
 
-uint64_t BoardState::GetAllPieces() const
+uint64_t BoardState::get_pieces_bb() const
 {
-    return GetPieces<WHITE>() | GetPieces<BLACK>();
+    return get_pieces_bb<WHITE>() | get_pieces_bb<BLACK>();
 }
 
-uint64_t BoardState::GetEmptySquares() const
+uint64_t BoardState::get_empty_bb() const
 {
-    return ~GetAllPieces();
+    return ~get_pieces_bb();
 }
 
-void BoardState::UpdateCastleRights(Move move)
+void BoardState::update_castle_rights(Move move)
 {
     // check for the king or rook moving, or a rook being captured
 
-    if (move.GetFrom() == GetKing(WHITE))
+    if (move.GetFrom() == get_king_sq(WHITE))
     {
         // get castle squares on white side
         uint64_t white_castle = castle_squares & RankBB[RANK_1];
@@ -251,7 +241,7 @@ void BoardState::UpdateCastleRights(Move move)
         castle_squares &= ~(RankBB[RANK_1]);
     }
 
-    if (move.GetFrom() == GetKing(BLACK))
+    if (move.GetFrom() == get_king_sq(BLACK))
     {
         // get castle squares on black side
         uint64_t black_castle = castle_squares & RankBB[RANK_8];
@@ -286,7 +276,7 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
     {
         constexpr static std::array PieceChar = { 'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K', ' ' };
-        Letter[i] = PieceChar[b.GetSquare(i)];
+        Letter[i] = PieceChar[b.get_square_piece(i)];
     }
 
     for (Square i = SQ_A1; i <= SQ_H8; ++i)
@@ -313,7 +303,7 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     return os;
 }
 
-void BoardState::ApplyMove(Move move)
+void BoardState::apply_move(Move move)
 {
     // std::cout << *this << std::endl;
 
@@ -327,16 +317,16 @@ void BoardState::ApplyMove(Move move)
 
     en_passant = N_SQUARES;
 
-    UpdateCastleRights(move);
+    update_castle_rights(move);
 
     switch (move.GetFlag())
     {
     case QUIET:
     {
-        const auto piece = GetSquare(move.GetFrom());
+        const auto piece = get_square_piece(move.GetFrom());
 
-        AddPiece(move.GetTo(), piece);
-        RemovePiece(move.GetFrom(), piece);
+        add_piece_sq(move.GetTo(), piece);
+        remove_piece_sq(move.GetFrom(), piece);
 
         key ^= Zobrist::piece_square(piece, move.GetFrom());
         key ^= Zobrist::piece_square(piece, move.GetTo());
@@ -370,7 +360,7 @@ void BoardState::ApplyMove(Move move)
         Square ep_sq = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
 
         // it only counts as a ep square if a pawn could potentially do the capture!
-        uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & GetPieceBB(PAWN, !stm);
+        uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & get_pieces_bb(PAWN, !stm);
 
         while (potentialAttackers)
         {
@@ -387,8 +377,8 @@ void BoardState::ApplyMove(Move move)
 
         const auto piece = get_piece(PAWN, stm);
 
-        AddPiece(move.GetTo(), piece);
-        RemovePiece(move.GetFrom(), piece);
+        add_piece_sq(move.GetTo(), piece);
+        remove_piece_sq(move.GetFrom(), piece);
 
         key ^= Zobrist::piece_square(piece, move.GetFrom());
         key ^= Zobrist::piece_square(piece, move.GetTo());
@@ -404,10 +394,10 @@ void BoardState::ApplyMove(Move move)
         Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
-        RemovePiece(king_start, get_piece(KING, stm));
-        RemovePiece(rook_start, get_piece(ROOK, stm));
-        AddPiece(king_end, get_piece(KING, stm));
-        AddPiece(rook_end, get_piece(ROOK, stm));
+        remove_piece_sq(king_start, get_piece(KING, stm));
+        remove_piece_sq(rook_start, get_piece(ROOK, stm));
+        add_piece_sq(king_end, get_piece(KING, stm));
+        add_piece_sq(rook_end, get_piece(ROOK, stm));
 
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
@@ -429,10 +419,10 @@ void BoardState::ApplyMove(Move move)
         Square rook_start = move.GetTo();
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
-        RemovePiece(king_start, get_piece(KING, stm));
-        RemovePiece(rook_start, get_piece(ROOK, stm));
-        AddPiece(king_end, get_piece(KING, stm));
-        AddPiece(rook_end, get_piece(ROOK, stm));
+        remove_piece_sq(king_start, get_piece(KING, stm));
+        remove_piece_sq(rook_start, get_piece(ROOK, stm));
+        add_piece_sq(king_end, get_piece(KING, stm));
+        add_piece_sq(rook_end, get_piece(ROOK, stm));
 
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
@@ -449,12 +439,12 @@ void BoardState::ApplyMove(Move move)
     }
     case CAPTURE:
     {
-        const auto cap_piece = GetSquare(move.GetTo());
-        const auto piece = GetSquare(move.GetFrom());
+        const auto cap_piece = get_square_piece(move.GetTo());
+        const auto piece = get_square_piece(move.GetFrom());
 
-        RemovePiece(move.GetTo(), cap_piece);
-        AddPiece(move.GetTo(), piece);
-        RemovePiece(move.GetFrom(), piece);
+        remove_piece_sq(move.GetTo(), cap_piece);
+        add_piece_sq(move.GetTo(), piece);
+        remove_piece_sq(move.GetFrom(), piece);
 
         key ^= Zobrist::piece_square(piece, move.GetFrom());
         key ^= Zobrist::piece_square(piece, move.GetTo());
@@ -504,9 +494,9 @@ void BoardState::ApplyMove(Move move)
         const auto cap_piece = get_piece(PAWN, !stm);
         const auto piece = get_piece(PAWN, stm);
 
-        RemovePiece(ep_cap_sq, cap_piece);
-        AddPiece(move.GetTo(), piece);
-        RemovePiece(move.GetFrom(), piece);
+        remove_piece_sq(ep_cap_sq, cap_piece);
+        add_piece_sq(move.GetTo(), piece);
+        remove_piece_sq(move.GetFrom(), piece);
 
         key ^= Zobrist::piece_square(cap_piece, ep_cap_sq);
         key ^= Zobrist::piece_square(piece, move.GetFrom());
@@ -523,8 +513,8 @@ void BoardState::ApplyMove(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(KNIGHT, stm);
 
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -539,8 +529,8 @@ void BoardState::ApplyMove(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(BISHOP, stm);
 
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -555,8 +545,8 @@ void BoardState::ApplyMove(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(ROOK, stm);
 
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -571,8 +561,8 @@ void BoardState::ApplyMove(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(QUEEN, stm);
 
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -586,11 +576,11 @@ void BoardState::ApplyMove(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(KNIGHT, stm);
-        const auto cap_piece = GetSquare(move.GetTo());
+        const auto cap_piece = get_square_piece(move.GetTo());
 
-        RemovePiece(move.GetTo(), cap_piece);
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.GetTo(), cap_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -614,11 +604,11 @@ void BoardState::ApplyMove(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(BISHOP, stm);
-        const auto cap_piece = GetSquare(move.GetTo());
+        const auto cap_piece = get_square_piece(move.GetTo());
 
-        RemovePiece(move.GetTo(), cap_piece);
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.GetTo(), cap_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -642,11 +632,11 @@ void BoardState::ApplyMove(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(ROOK, stm);
-        const auto cap_piece = GetSquare(move.GetTo());
+        const auto cap_piece = get_square_piece(move.GetTo());
 
-        RemovePiece(move.GetTo(), cap_piece);
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.GetTo(), cap_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -670,11 +660,11 @@ void BoardState::ApplyMove(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(QUEEN, stm);
-        const auto cap_piece = GetSquare(move.GetTo());
+        const auto cap_piece = get_square_piece(move.GetTo());
 
-        RemovePiece(move.GetTo(), cap_piece);
-        AddPiece(move.GetTo(), promo_piece);
-        RemovePiece(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.GetTo(), cap_piece);
+        add_piece_sq(move.GetTo(), promo_piece);
+        remove_piece_sq(move.GetFrom(), pawn_piece);
 
         key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
         key ^= Zobrist::piece_square(promo_piece, move.GetTo());
@@ -698,7 +688,7 @@ void BoardState::ApplyMove(Move move)
         assert(0);
     }
 
-    if (move.IsCapture() || GetSquare(move.GetTo()) == get_piece(PAWN, stm) || move.IsPromotion())
+    if (move.IsCapture() || get_square_piece(move.GetTo()) == get_piece(PAWN, stm) || move.IsPromotion())
         fifty_move_count = 0;
     else
         fifty_move_count++;
@@ -717,7 +707,7 @@ void BoardState::ApplyMove(Move move)
     // assert(major_key == Zobrist::major_key(*this));
 }
 
-void BoardState::ApplyNullMove()
+void BoardState::apply_null_move()
 {
     key ^= Zobrist::stm();
 
@@ -740,24 +730,24 @@ void BoardState::ApplyNullMove()
     // assert(major_key == Zobrist::major_key(*this));
 }
 
-MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
+MoveFlag BoardState::infer_move_flag(Square from, Square to) const
 {
     // Castling (normal chess)
-    if ((from == SQ_E1 && to == SQ_G1 && GetSquare(from) == WHITE_KING)
-        || (from == SQ_E8 && to == SQ_G8 && GetSquare(from) == BLACK_KING))
+    if ((from == SQ_E1 && to == SQ_G1 && get_square_piece(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_G8 && get_square_piece(from) == BLACK_KING))
     {
         return H_SIDE_CASTLE;
     }
 
-    if ((from == SQ_E1 && to == SQ_C1 && GetSquare(from) == WHITE_KING)
-        || (from == SQ_E8 && to == SQ_C8 && GetSquare(from) == BLACK_KING))
+    if ((from == SQ_E1 && to == SQ_C1 && get_square_piece(from) == WHITE_KING)
+        || (from == SQ_E8 && to == SQ_C8 && get_square_piece(from) == BLACK_KING))
     {
         return A_SIDE_CASTLE;
     }
 
     // Castling (chess960). Needs to be handled before the 'capture' case
-    if ((GetSquare(from) == WHITE_KING && GetSquare(to) == WHITE_ROOK)
-        || (GetSquare(from) == BLACK_KING && GetSquare(to) == BLACK_ROOK))
+    if ((get_square_piece(from) == WHITE_KING && get_square_piece(to) == WHITE_ROOK)
+        || (get_square_piece(from) == BLACK_KING && get_square_piece(to) == BLACK_ROOK))
     {
         if (from > to)
         {
@@ -770,19 +760,19 @@ MoveFlag BoardState::GetMoveFlag(Square from, Square to) const
     }
 
     // Captures
-    if (IsOccupied(to))
+    if (is_occupied(to))
     {
         return CAPTURE;
     }
 
     // Double pawn moves
-    if (abs_rank_diff(from, to) == 2 && (GetSquare(from) == WHITE_PAWN || GetSquare(from) == BLACK_PAWN))
+    if (abs_rank_diff(from, to) == 2 && (get_square_piece(from) == WHITE_PAWN || get_square_piece(from) == BLACK_PAWN))
     {
         return PAWN_DOUBLE_MOVE;
     }
 
     // En passant
-    if (to == en_passant && (GetSquare(from) == WHITE_PAWN || GetSquare(from) == BLACK_PAWN))
+    if (to == en_passant && (get_square_piece(from) == WHITE_PAWN || get_square_piece(from) == BLACK_PAWN))
     {
         return EN_PASSANT;
     }

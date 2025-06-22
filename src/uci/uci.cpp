@@ -15,9 +15,7 @@
 #include <string_view>
 #include <vector>
 
-#include "BoardState.h"
 #include "EGTB.h"
-#include "GameState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
@@ -30,6 +28,8 @@
 #include "TranspositionTable.h"
 #include "benchmark.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
+#include "chessboard/game_state.h"
 #include "network/network.h"
 #include "uci/options.h"
 #include "uci/parse.h"
@@ -84,20 +84,20 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.board(), moves);
 
     if (check_legality)
     {
         for (int i = 0; i < std::numeric_limits<uint16_t>::max(); i++)
         {
             Move move(i);
-            bool legal = MoveIsLegal(position.Board(), move);
+            bool legal = MoveIsLegal(position.board(), move);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
             if (present != legal)
             {
-                std::cout << position.Board() << move << "\n";
+                std::cout << position.board() << move << "\n";
                 std::cout << present << " " << legal << "\n";
                 std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;
                 return 0; // cause perft answer to be incorrect
@@ -110,9 +110,9 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        position.ApplyMove(moves[i]);
+        position.apply_move(moves[i]);
         nodeCount += Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.revert_move();
     }
 
     return nodeCount;
@@ -125,7 +125,6 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
     int Perfts = 0;
     int Correct = 0;
     double Totalnodes = 0;
-    GameState position;
     std::string line;
 
     auto before = std::chrono::steady_clock::now();
@@ -145,7 +144,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
         std::string fen = arrayTokens[0] + " " + arrayTokens[1] + " " + arrayTokens[2] + " " + arrayTokens[3] + " "
             + arrayTokens[4] + " " + arrayTokens[5];
 
-        position.InitialiseFromFen(fen);
+        auto position = GameState::from_fen(fen);
 
         int depth = (arrayTokens.size() - 7) / 2 - depth_reduce;
         uint64_t nodes = Perft(depth, position, check_legality);
@@ -180,13 +179,13 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.board(), moves);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        position.ApplyMove(moves[i]);
+        position.apply_move(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.revert_move();
         std::cout << moves[i] << ": " << ChildNodeCount << std::endl;
         nodeCount += ChildNodeCount;
     }
@@ -208,7 +207,7 @@ void Uci::handle_bench(int depth)
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
-        if (!position.InitialiseFromFen(benchMarkPositions[i]))
+        if (!position.init_from_fen(benchMarkPositions[i]))
         {
             std::cout << "BAD FEN!" << std::endl;
             break;
@@ -279,24 +278,24 @@ void Uci::handle_isready()
 
 void Uci::handle_ucinewgame()
 {
-    position.StartingPosition();
+    position.starting_position();
     shared.transposition_table.Clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
 bool Uci::handle_position_fen(std::string_view fen)
 {
-    return position.InitialiseFromFen(fen);
+    return position.init_from_fen(fen);
 }
 
 void Uci::handle_moves(std::string_view move)
 {
-    position.ApplyMove(move);
+    position.apply_move(move);
 }
 
 void Uci::handle_position_startpos()
 {
-    position.StartingPosition();
+    position.starting_position();
 }
 
 void Uci::handle_go(go_ctx& ctx)
@@ -315,8 +314,8 @@ void Uci::handle_go(go_ctx& ctx)
     constexpr static int timeIncCoeffA = 40;
     constexpr static int timeIncCoeffB = 1200;
 
-    const auto& myTime = position.Board().stm ? ctx.wtime : ctx.btime;
-    const auto& myInc = position.Board().stm ? ctx.winc : ctx.binc;
+    const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
+    const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
 
     if (ctx.movetime)
     {
@@ -344,7 +343,7 @@ void Uci::handle_go(go_ctx& ctx)
             // use a higher proportion of the available time so that we get down to just using the increment
 
             auto soft_limit
-                = (*myTime - BufferTime) * (timeIncCoeffA + position.Board().half_turn_count) / timeIncCoeffB + *myInc;
+                = (*myTime - BufferTime) * (timeIncCoeffA + position.board().half_turn_count) / timeIncCoeffB + *myInc;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
@@ -534,7 +533,7 @@ void Uci::print_search_info(const SearchResults& data, bool final)
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
     auto node_count = shared.nodes();
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = shared.transposition_table.GetCapacity(position.Board().half_turn_count);
+    auto hashfull = shared.transposition_table.GetCapacity(position.board().half_turn_count);
 
     std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
               << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
@@ -578,7 +577,7 @@ void Uci::print_error(const std::string& error_str)
 
 void Uci::handle_print()
 {
-    std::cout << position.Board() << std::endl;
+    std::cout << position.board() << std::endl;
 }
 
 void Uci::handle_spsa()
@@ -588,14 +587,14 @@ void Uci::handle_spsa()
 
 void Uci::handle_eval()
 {
-    std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << NN::Network::slow_eval(position.Board()) << std::endl;
+    std::cout << position.board() << std::endl;
+    std::cout << "Eval: " << NN::Network::slow_eval(position.board()) << std::endl;
 }
 
 void Uci::handle_probe()
 {
-    std::cout << position.Board() << std::endl;
-    auto probe = Syzygy::probe_dtz_root(position.Board());
+    std::cout << position.board() << std::endl;
+    auto probe = Syzygy::probe_dtz_root(position.board());
 
     if (!probe)
     {

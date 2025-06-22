@@ -8,11 +8,11 @@
 #include <numeric>
 #include <string>
 
-#include "BoardState.h"
 #include "Move.h"
 #include "Score.h"
 #include "TranspositionTable.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 #include "uci/uci.h"
 
 SearchStackState::SearchStackState(int distance_from_root_)

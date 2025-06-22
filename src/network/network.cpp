@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <initializer_list>
 
-#include "BoardState.h"
 #include "Move.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 #include "network/accumulator.hpp"
 #include "network/inference.hpp"
 #include "third-party/incbin/incbin.h"
@@ -210,12 +210,12 @@ void Accumulator::recalculate(const BoardState& board_)
 void Accumulator::recalculate(const BoardState& board_, Side view)
 {
     side[view] = net.hiddenBias;
-    auto king = board_.GetKing(view);
+    auto king = board_.get_king_sq(view);
 
     for (int i = 0; i < N_PIECES; i++)
     {
         Piece piece = static_cast<Piece>(i);
-        uint64_t bb = board_.GetPieceBB(piece);
+        uint64_t bb = board_.get_pieces_bb(piece);
 
         while (bb)
         {
@@ -247,7 +247,7 @@ void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Si
              BLACK_KING,
          })
     {
-        auto new_bb = board.GetPieceBB(piece);
+        auto new_bb = board.get_pieces_bb(piece);
         auto& old_bb = bb[piece];
 
         auto to_add = new_bb & ~old_bb;
@@ -288,13 +288,13 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
     expected.side = { net.hiddenBias, net.hiddenBias };
-    auto w_king = board.GetKing(WHITE);
-    auto b_king = board.GetKing(BLACK);
+    auto w_king = board.get_king_sq(WHITE);
+    auto b_king = board.get_king_sq(BLACK);
 
     for (int i = 0; i < N_PIECES; i++)
     {
         Piece piece = static_cast<Piece>(i);
-        uint64_t bb = board.GetPieceBB(piece);
+        uint64_t bb = board.get_pieces_bb(piece);
 
         while (bb)
         {
@@ -326,12 +326,12 @@ void Network::store_lazy_updates(
     auto stm = prev_move_board.stm;
     auto from_sq = move.GetFrom();
     auto to_sq = move.GetTo();
-    auto from_piece = prev_move_board.GetSquare(from_sq);
-    auto to_piece = post_move_board.GetSquare(to_sq);
-    auto cap_piece = prev_move_board.GetSquare(to_sq);
+    auto from_piece = prev_move_board.get_square_piece(from_sq);
+    auto to_piece = post_move_board.get_square_piece(to_sq);
+    auto cap_piece = prev_move_board.get_square_piece(to_sq);
 
-    auto w_king = post_move_board.GetKing(WHITE);
-    auto b_king = post_move_board.GetKing(BLACK);
+    auto w_king = post_move_board.get_king_sq(WHITE);
+    auto b_king = post_move_board.get_king_sq(BLACK);
 
     if (from_piece == get_piece(KING, stm))
     {
@@ -491,7 +491,7 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
 
     if (next_acc.white_requires_recalculation)
     {
-        table.recalculate(next_acc, next_acc.board, WHITE, next_acc.board.GetKing(WHITE));
+        table.recalculate(next_acc, next_acc.board, WHITE, next_acc.board.get_king_sq(WHITE));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
@@ -514,7 +514,7 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     }
     else if (next_acc.black_requires_recalculation)
     {
-        table.recalculate(next_acc, next_acc.board, BLACK, next_acc.board.GetKing(BLACK));
+        table.recalculate(next_acc, next_acc.board, BLACK, next_acc.board.get_king_sq(BLACK));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
@@ -567,7 +567,7 @@ int calculate_output_bucket(int pieces)
 Score Network::eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
-    auto output_bucket = calculate_output_bucket(popcount(board.GetAllPieces()));
+    auto output_bucket = calculate_output_bucket(popcount(board.get_pieces_bb()));
 
     int32_t output = 0;
     inference_output(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);

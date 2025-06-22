@@ -6,9 +6,9 @@
 #include <mutex>
 #include <optional>
 
-#include "BoardState.h"
 #include "Move.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 #include "third-party/Pyrrhic/tbprobe.h"
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
@@ -17,7 +17,7 @@ Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
     const auto to = static_cast<Square>(PYRRHIC_MOVE_TO(move));
     const auto flag = [&]()
     {
-        auto flag_without_promo = board.GetMoveFlag(from, to);
+        auto flag_without_promo = board.infer_move_flag(from, to);
 
         if (PYRRHIC_MOVE_IS_NPROMO(move))
         {
@@ -57,21 +57,21 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
 {
     // Can't probe Syzygy if there is too many pieces on the board, if there is casteling rights, or fifty move isn't
     // zero
-    if (board.fifty_move_count != 0 || popcount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
+    if (board.fifty_move_count != 0 || popcount(board.get_pieces_bb()) > TB_LARGEST || board.castle_squares != EMPTY)
     {
         return std::nullopt;
     }
 
     // clang-format off
     auto probe = tb_probe_wdl(
-        board.GetPieces<WHITE>(), 
-        board.GetPieces<BLACK>(),
-        board.GetPieceBB<KING>(),
-        board.GetPieceBB<QUEEN>(),
-        board.GetPieceBB<ROOK>(),
-        board.GetPieceBB<BISHOP>(),
-        board.GetPieceBB<KNIGHT>(),
-        board.GetPieceBB<PAWN>(),
+        board.get_pieces_bb<WHITE>(), 
+        board.get_pieces_bb<BLACK>(),
+        board.get_pieces_bb<KING>(),
+        board.get_pieces_bb<QUEEN>(),
+        board.get_pieces_bb<ROOK>(),
+        board.get_pieces_bb<BISHOP>(),
+        board.get_pieces_bb<KNIGHT>(),
+        board.get_pieces_bb<PAWN>(),
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE);
     // clang-format on
@@ -100,7 +100,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
 std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
 {
     // Can't probe Syzygy if there is too many pieces on the board, or if there is casteling rights.
-    if (popcount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
+    if (popcount(board.get_pieces_bb()) > TB_LARGEST || board.castle_squares != EMPTY)
     {
         return std::nullopt;
     }
@@ -115,14 +115,14 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
     tb_lock.lock();
     // clang-format off
     auto ec = tb_probe_root_dtz(
-        board.GetPieces<WHITE>(), 
-        board.GetPieces<BLACK>(),
-        board.GetPieceBB<KING>(),
-        board.GetPieceBB<QUEEN>(),
-        board.GetPieceBB<ROOK>(),
-        board.GetPieceBB<BISHOP>(),
-        board.GetPieceBB<KNIGHT>(),
-        board.GetPieceBB<PAWN>(),
+        board.get_pieces_bb<WHITE>(), 
+        board.get_pieces_bb<BLACK>(),
+        board.get_pieces_bb<KING>(),
+        board.get_pieces_bb<QUEEN>(),
+        board.get_pieces_bb<ROOK>(),
+        board.get_pieces_bb<BISHOP>(),
+        board.get_pieces_bb<KNIGHT>(),
+        board.get_pieces_bb<PAWN>(),
         board.fifty_move_count,
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE,

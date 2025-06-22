@@ -7,12 +7,10 @@ EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/4ed21ecb
 EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
 
 SRCS := \
-	BoardState.cpp \
 	Evaluate.cpp \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
-	GameState.cpp \
 	Search.cpp \
 	SearchData.cpp \
 	StagedMoveGenerator.cpp \
@@ -24,10 +22,12 @@ SRCS := \
 	History.cpp \
 	StaticExchangeEvaluation.cpp \
 	Cuckoo.cpp \
-	uci/uci.cpp \
-	test/static_exchange_evaluation_test.cpp \
+	chessboard/board_state.cpp \
+	chessboard/game_state.cpp \
 	network/network.cpp \
-	third-party/Pyrrhic/tbprobe.cpp
+	test/static_exchange_evaluation_test.cpp \
+	third-party/Pyrrhic/tbprobe.cpp \
+	uci/uci.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o

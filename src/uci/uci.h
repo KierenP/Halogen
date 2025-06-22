@@ -7,8 +7,8 @@
 #include <string_view>
 #include <thread>
 
-#include "GameState.h"
 #include "SearchData.h"
+#include "chessboard/game_state.h"
 
 class Move;
 
@@ -80,7 +80,7 @@ public:
 private:
     void join_search_thread();
 
-    GameState position;
+    GameState position = GameState::starting_position();
     std::thread search_thread;
     SearchSharedState shared { *this };
     const std::string_view version_;

@@ -12,10 +12,8 @@
 #include <tuple>
 #include <vector>
 
-#include "BoardState.h"
 #include "EGTB.h"
 #include "Evaluate.h"
-#include "GameState.h"
 #include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
@@ -32,6 +30,8 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
+#include "chessboard/game_state.h"
 #include "network/network.h"
 #include "uci/uci.h"
 #include "utility/atomic.h"
@@ -67,11 +67,11 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.board(), moves);
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(position.Board());
+    auto probe = Syzygy::probe_dtz_root(position.board());
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
@@ -102,7 +102,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     {
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
-        local.net.reset_new_search(position.Board(), local.search_stack.root()->acc);
+        local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
         threads.emplace_back(
             std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
@@ -111,7 +111,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     {
         auto& local = shared.get_local_state(0);
         local.root_move_whitelist = root_move_whitelist;
-        local.net.reset_new_search(position.Board(), local.search_stack.root()->acc);
+        local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
         SearchPosition(position, local, shared);
     }
@@ -285,7 +285,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     ss->pv.clear();
 
-    if (DeadPosition(position.Board()))
+    if (DeadPosition(position.board()))
     {
         return 0;
     }
@@ -296,12 +296,12 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
         return 8 - (local.nodes & 0b1111);
     }
 
-    if (position.Board().fifty_move_count >= 100)
+    if (position.board().fifty_move_count >= 100)
     {
-        if (IsInCheck(position.Board()))
+        if (IsInCheck(position.board()))
         {
             BasicMoveList moves;
-            LegalMoves(position.Board(), moves);
+            LegalMoves(position.board(), moves);
             if (moves.empty())
             {
                 return Score::mated_in(distance_from_root);
@@ -324,7 +324,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
     SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
     const int depth)
 {
-    auto probe = Syzygy::probe_wdl_search(position.Board(), distance_from_root);
+    auto probe = Syzygy::probe_wdl_search(position.board(), distance_from_root);
     if (probe.has_value())
     {
         local.tb_hits.fetch_add(1, std::memory_order_relaxed);
@@ -352,8 +352,8 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
                 || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
             {
                 shared.transposition_table.AddEntry(Move::Uninitialized,
-                    Zobrist::get_fifty_move_adj_key(position.Board()), tb_score, depth,
-                    position.Board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
+                    Zobrist::get_fifty_move_adj_key(position.board()), tb_score, depth,
+                    position.board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
                 return tb_score;
             }
         }
@@ -407,9 +407,9 @@ std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
     SearchSharedState& shared, const GameState& position, const int distance_from_root)
 {
     // copy the values out of the table that we want, to avoid race conditions
-    const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.Board());
+    const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.board());
     auto* tt_entry
-        = shared.transposition_table.GetEntry(adjusted_key, distance_from_root, position.Board().half_turn_count);
+        = shared.transposition_table.GetEntry(adjusted_key, distance_from_root, position.board().half_turn_count);
     const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth : 0;
     const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
@@ -438,8 +438,8 @@ std::optional<Score> tt_cutoff_node(const GameState& position, const Score tt_sc
 
 bool IsEndGame(const BoardState& board)
 {
-    return (
-        board.GetPiecesColour(board.stm) == (board.GetPieceBB(KING, board.stm) | board.GetPieceBB(PAWN, board.stm)));
+    return (board.get_pieces_bb(board.stm)
+        == (board.get_pieces_bb(KING, board.stm) | board.get_pieces_bb(PAWN, board.stm)));
 }
 
 std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss, SearchLocalState& local,
@@ -448,7 +448,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
-    if (IsEndGame(position.Board()) || popcount(position.Board().GetAllPieces()) < 5)
+    if (IsEndGame(position.board()) || popcount(position.board().get_pieces_bb()) < 5)
     {
         return std::nullopt;
     }
@@ -458,12 +458,12 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
     ss->cont_hist_subtable = nullptr;
-    position.ApplyNullMove();
+    position.apply_null_move();
     // TODO: separate out the accumulator stack from search stack. Then we can make this a no-op
-    local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
+    local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
         = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
-    position.RevertNullMove();
+    position.revert_null_move();
 
     if (null_move_score >= beta)
     {
@@ -684,7 +684,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     {
         // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
         // return false mate scores
-        return eval.value() * (288 - (int)position.Board().fifty_move_count) / 256;
+        return eval.value() * (288 - (int)position.board().fifty_move_count) / 256;
     };
 
     auto eval_corr_history = [&](Score eval)
@@ -702,7 +702,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         }
         else
         {
-            tt_entry->static_eval = raw_eval = Evaluate(position.Board(), ss, local.net);
+            tt_entry->static_eval = raw_eval = Evaluate(position.board(), ss, local.net);
         }
 
         adjusted_eval = scale_eval_50_move(raw_eval);
@@ -720,12 +720,12 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     }
     else
     {
-        raw_eval = Evaluate(position.Board(), ss, local.net);
+        raw_eval = Evaluate(position.board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;
-        shared.transposition_table.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.Board()),
-            SCORE_UNDEFINED, depth, position.Board().half_turn_count, distance_from_root, SearchResultType::EMPTY,
+        shared.transposition_table.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.board()),
+            SCORE_UNDEFINED, depth, position.board().half_turn_count, distance_from_root, SearchResultType::EMPTY,
             raw_eval);
     }
 
@@ -742,22 +742,22 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
     bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
     bool is_draw = false;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    LegalMoves(position.board(), moves);
 
     for (const auto& move : moves)
     {
-        position.ApplyMove(move);
+        position.apply_move(move);
         if (position.is_repetition(distance_from_root + 1))
         {
             is_draw = true;
         }
-        position.RevertMove();
+        position.revert_move();
     }
 
     if (has_upcoming_rep != is_draw)
     {
         std::cout << "Upcoming rep: " << has_upcoming_rep << " != " << is_draw << std::endl;
-        std::cout << position.Board() << std::endl;
+        std::cout << position.board() << std::endl;
         position.upcoming_rep(distance_from_root);
     }
 }
@@ -773,7 +773,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     assert(!(pv_node && cut_node));
     [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
-    const bool InCheck = IsInCheck(position.Board());
+    const bool InCheck = IsInCheck(position.board());
 
     // Step 1: Drop into q-search
     if (depth <= 0 && !InCheck)
@@ -870,7 +870,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
-    ss->threat_mask = ThreatMask(position.Board(), !position.Board().stm);
+    ss->threat_mask = ThreatMask(position.board(), !position.board().stm);
 
     // Step 9: Rebel style IID
     //
@@ -930,7 +930,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
             = is_loud_move ? local.GetLoudHistory(position, ss, move) : (local.GetQuietHistory(position, ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
-            && !see_ge(position.Board(), move, -111 * depth - history / 168))
+            && !see_ge(position.board(), move, -111 * depth - history / 168))
         {
             continue;
         }
@@ -956,16 +956,16 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         }
 
         ss->move = move;
-        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
+        ss->moved_piece = position.board().get_square_piece(move.GetFrom());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.Board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
-        position.ApplyMove(move);
+            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
+        position.apply_move(move);
         shared.transposition_table.PreFetch(
-            Zobrist::get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
-        local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
+            Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
+        local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (IsInCheck(position.Board()))
+        if (IsInCheck(position.board()))
         {
             extensions += 1;
         }
@@ -975,7 +975,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         Score search_score = search_move<pv_node>(
             position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
 
-        position.RevertMove();
+        position.revert_move();
 
         if (local.aborting_search)
         {
@@ -1000,7 +1000,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     // Step 18: Handle terminal node conditions
     if (noLegalMoves)
     {
-        return TerminalScore(position.Board(), distance_from_root);
+        return TerminalScore(position.board(), distance_from_root);
     }
 
     score = std::clamp(score, min_score, max_score);
@@ -1027,8 +1027,8 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     }
 
     // Step 21: Update transposition table
-    shared.transposition_table.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
-        position.Board().half_turn_count, distance_from_root, bound, raw_eval);
+    shared.transposition_table.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
+        position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
 }
@@ -1093,7 +1093,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
 
     while (gen.Next(move))
     {
-        if (!move.IsPromotion() && !see_ge(position.Board(), move, alpha - eval - 280))
+        if (!move.IsPromotion() && !see_ge(position.board(), move, alpha - eval - 280))
         {
             continue;
         }
@@ -1105,14 +1105,14 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         }
 
         ss->move = move;
-        ss->moved_piece = position.Board().GetSquare(move.GetFrom());
+        ss->moved_piece = position.board().get_square_piece(move.GetFrom());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.Board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
-        position.ApplyMove(move);
+            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
+        position.apply_move(move);
         // TODO: prefetch
-        local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
+        local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
         auto search_score = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
-        position.RevertMove();
+        position.revert_move();
 
         if (local.aborting_search)
         {
@@ -1142,8 +1142,8 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
                                                : SearchResultType::EXACT;
 
     // Step 7: Update transposition table
-    shared.transposition_table.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.Board()), score, depth,
-        position.Board().half_turn_count, distance_from_root, bound, raw_eval);
+    shared.transposition_table.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
+        position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
 }

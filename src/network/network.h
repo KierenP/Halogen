@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include "BoardState.h"
 #include "Score.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 
 class Move;
 

@@ -31,63 +31,60 @@ public:
     std::optional<int> repetition;
     bool three_fold_rep = false;
 
-    Piece GetSquare(Square square) const;
+    [[nodiscard]] Piece get_square_piece(Square square) const;
 
-    bool IsEmpty(Square square) const;
-    bool IsOccupied(Square square) const;
+    [[nodiscard]] bool is_empty(Square square) const;
+    [[nodiscard]] bool is_occupied(Square square) const;
 
-    uint64_t GetAllPieces() const;
-    uint64_t GetEmptySquares() const;
-    uint64_t GetPiecesColour(Side colour) const;
-    uint64_t GetPieceBB(PieceType pieceType, Side colour) const;
-    uint64_t GetPieceBB(Piece piece) const;
+    [[nodiscard]] uint64_t get_pieces_bb() const;
+    [[nodiscard]] uint64_t get_empty_bb() const;
+    [[nodiscard]] uint64_t get_pieces_bb(Side colour) const;
+    [[nodiscard]] uint64_t get_pieces_bb(PieceType pieceType, Side colour) const;
+    [[nodiscard]] uint64_t get_pieces_bb(Piece piece) const;
 
-    Square GetKing(Side colour) const;
+    [[nodiscard]] Square get_king_sq(Side colour) const;
 
     template <Side side>
-    uint64_t GetPieces() const
+    [[nodiscard]] uint64_t get_pieces_bb() const
     {
         return side_bb[side];
     }
 
     template <PieceType type>
-    uint64_t GetPieceBB() const
+    [[nodiscard]] uint64_t get_pieces_bb() const
     {
-        return GetPieceBB<type, WHITE>() | GetPieceBB<type, BLACK>();
+        return get_pieces_bb<type, WHITE>() | get_pieces_bb<type, BLACK>();
     }
 
     template <Piece type>
-    uint64_t GetPieceBB() const
+    [[nodiscard]] uint64_t get_pieces_bb() const
     {
         return board[type];
     }
 
     template <PieceType pieceType, Side colour>
-    uint64_t GetPieceBB() const
+    [[nodiscard]] uint64_t get_pieces_bb() const
     {
-        return GetPieceBB<get_piece(pieceType, colour)>();
+        return get_pieces_bb<get_piece(pieceType, colour)>();
     }
 
-    uint64_t GetZobristKey() const;
-    uint64_t GetPawnKey() const;
+    void add_piece_sq(Square square, Piece piece);
+    void remove_piece_sq(Square square, Piece piece);
+    void clear_sq(Square square);
 
-    void AddPiece(Square square, Piece piece);
-    void RemovePiece(Square square, Piece piece);
-    void ClearSquare(Square square);
+    bool init_from_fen(const std::array<std::string_view, 6>& fen);
 
-    bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);
-    void UpdateCastleRights(Move move);
-
-    void ApplyMove(Move move);
-    void ApplyNullMove();
+    void apply_move(Move move);
+    void apply_null_move();
 
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
-    MoveFlag GetMoveFlag(Square from, Square to) const;
+    [[nodiscard]] MoveFlag infer_move_flag(Square from, Square to) const;
 
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
 private:
-    void RecalculateWhiteBlackBoards();
+    void recalculate_side_bb();
+    void update_castle_rights(Move move);
 
 public:
     uint64_t key = 0;

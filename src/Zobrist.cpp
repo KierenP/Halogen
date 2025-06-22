@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <random>
 
-#include "BoardState.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 
 namespace Zobrist
 {
@@ -58,7 +58,7 @@ uint64_t key(const BoardState& board)
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        uint64_t bitboard = board.GetPieceBB(static_cast<Piece>(i));
+        uint64_t bitboard = board.get_pieces_bb(static_cast<Piece>(i));
         while (bitboard != 0)
         {
             key ^= piece_square(static_cast<Piece>(i), lsbpop(bitboard));
@@ -88,13 +88,13 @@ uint64_t pawn_key(const BoardState& board)
 {
     uint64_t key = 0;
 
-    uint64_t white = board.GetPieceBB<WHITE_PAWN>();
+    uint64_t white = board.get_pieces_bb<WHITE_PAWN>();
     while (white != 0)
     {
         key ^= piece_square(WHITE_PAWN, lsbpop(white));
     }
 
-    uint64_t black = board.GetPieceBB<BLACK_PAWN>();
+    uint64_t black = board.get_pieces_bb<BLACK_PAWN>();
     while (black != 0)
     {
         key ^= piece_square(BLACK_PAWN, lsbpop(black));
@@ -110,7 +110,7 @@ uint64_t non_pawn_key(const BoardState& board, Side side)
     for (int i = KNIGHT; i <= KING; i++)
     {
         const auto piece = get_piece(static_cast<PieceType>(i), side);
-        uint64_t bitboard = board.GetPieceBB(piece);
+        uint64_t bitboard = board.get_pieces_bb(piece);
         while (bitboard != 0)
         {
             key ^= piece_square(piece, lsbpop(bitboard));
@@ -129,7 +129,7 @@ uint64_t minor_key(const BoardState& board)
         for (const auto piece_type : { KNIGHT, BISHOP })
         {
             const auto piece = get_piece(piece_type, side);
-            uint64_t bitboard = board.GetPieceBB(piece);
+            uint64_t bitboard = board.get_pieces_bb(piece);
             while (bitboard != 0)
             {
                 key ^= piece_square(piece, lsbpop(bitboard));
@@ -149,7 +149,7 @@ uint64_t major_key(const BoardState& board)
         for (const auto piece_type : { ROOK, QUEEN })
         {
             const auto piece = get_piece(piece_type, side);
-            uint64_t bitboard = board.GetPieceBB(piece);
+            uint64_t bitboard = board.get_pieces_bb(piece);
             while (bitboard != 0)
             {
                 key ^= piece_square(piece, lsbpop(bitboard));
@@ -197,7 +197,7 @@ const auto fifty_move_hash = []()
 uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
     // assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
-    return board.GetZobristKey() ^ fifty_move_hash[board.fifty_move_count];
+    return board.key ^ fifty_move_hash[board.fifty_move_count];
 }
 
 } // namespace Zobrist

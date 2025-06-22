@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cassert>
 
-#include "BoardState.h"
 #include "Score.h"
 #include "SearchData.h"
 #include "bitboard.h"
+#include "chessboard/board_state.h"
 #include "network/network.h"
 
 void TempoAdjustment(Score& eval);
@@ -32,8 +32,9 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
     Score eval = NN::Network::eval(board, ss->acc);
 
     // Apply material scaling factor
-    const auto npMaterial = 450 * popcount(board.GetPieceBB<KNIGHT>()) + 450 * popcount(board.GetPieceBB<BISHOP>())
-        + 650 * popcount(board.GetPieceBB<ROOK>()) + 1250 * popcount(board.GetPieceBB<QUEEN>());
+    const auto npMaterial = 450 * popcount(board.get_pieces_bb<KNIGHT>())
+        + 450 * popcount(board.get_pieces_bb<BISHOP>()) + 650 * popcount(board.get_pieces_bb<ROOK>())
+        + 1250 * popcount(board.get_pieces_bb<QUEEN>());
     eval = eval.value() * (26500 + npMaterial) / 32768;
 
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
@@ -41,18 +42,18 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
 
 bool DeadPosition(const BoardState& board)
 {
-    if ((board.GetPieceBB<WHITE_PAWN>()) != 0)
+    if ((board.get_pieces_bb<WHITE_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB<WHITE_ROOK>()) != 0)
+    if ((board.get_pieces_bb<WHITE_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB<WHITE_QUEEN>()) != 0)
+    if ((board.get_pieces_bb<WHITE_QUEEN>()) != 0)
         return false;
 
-    if ((board.GetPieceBB<BLACK_PAWN>()) != 0)
+    if ((board.get_pieces_bb<BLACK_PAWN>()) != 0)
         return false;
-    if ((board.GetPieceBB<BLACK_ROOK>()) != 0)
+    if ((board.get_pieces_bb<BLACK_ROOK>()) != 0)
         return false;
-    if ((board.GetPieceBB<BLACK_QUEEN>()) != 0)
+    if ((board.get_pieces_bb<BLACK_QUEEN>()) != 0)
         return false;
 
     /*
@@ -65,10 +66,10 @@ bool DeadPosition(const BoardState& board)
     */
 
     // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = popcount(board.GetPieceBB<WHITE_BISHOP>());
-    int BlackBishops = popcount(board.GetPieceBB<BLACK_BISHOP>());
-    int WhiteKnights = popcount(board.GetPieceBB<WHITE_KNIGHT>());
-    int BlackKnights = popcount(board.GetPieceBB<BLACK_KNIGHT>());
+    int WhiteBishops = popcount(board.get_pieces_bb<WHITE_BISHOP>());
+    int BlackBishops = popcount(board.get_pieces_bb<BLACK_BISHOP>());
+    int WhiteKnights = popcount(board.get_pieces_bb<WHITE_KNIGHT>());
+    int BlackKnights = popcount(board.get_pieces_bb<BLACK_KNIGHT>());
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 
