@@ -264,7 +264,7 @@ enum { WDL, DTM, DTZ };
 enum { PIECE_ENC, FILE_ENC, RANK_ENC };
 
 // Attack and move generation code
-#include "tbchess.cpp"
+#include "tbchess.c"
 
 struct PairsData {
   uint8_t *indexTable;

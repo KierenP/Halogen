@@ -8,9 +8,9 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
-#include "incbin/incbin.h"
 #include "nn/Accumulator.hpp"
 #include "nn/Features.hpp"
+#include "third-party/incbin/incbin.h"
 
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64

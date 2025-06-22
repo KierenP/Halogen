@@ -27,7 +27,7 @@ SRCS := \
 	Cuckoo.cpp \
 	test/StaticExchangeEvaluation.cpp \
 	uci/uci.cpp \
-	Pyrrhic/tbprobe.cpp
+	third-party/Pyrrhic/tbprobe.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o

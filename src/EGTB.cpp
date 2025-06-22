@@ -9,7 +9,7 @@
 #include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
-#include "Pyrrhic/tbprobe.h"
+#include "third-party/Pyrrhic/tbprobe.h"
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
 {
