@@ -96,7 +96,7 @@ private:
 
 #ifndef USE_PEXT
             table[sq].magic = Derived::magics[sq];
-            table[sq].shift = 64 - GetBitCount(table[sq].mask);
+            table[sq].shift = 64 - popcount(table[sq].mask);
 #endif
 
             uint64_t occupied = 0;

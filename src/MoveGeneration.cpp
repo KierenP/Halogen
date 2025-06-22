@@ -94,7 +94,7 @@ void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     const Square king = board.GetKing(STM);
     const uint64_t threats = GetThreats<STM>(board, king);
-    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
+    assert(popcount(threats) <= 2); // triple or more check is impossible
 
     if (popcount(threats) == 2)
     {
@@ -147,7 +147,7 @@ void AddQuietMoves(const BoardState& board, T& moves, uint64_t pinned)
 {
     const Square king = board.GetKing(STM);
     const uint64_t threats = GetThreats<STM>(board, king);
-    assert(GetBitCount(threats) <= 2); // triple or more check is impossible
+    assert(popcount(threats) <= 2); // triple or more check is impossible
 
     if (popcount(threats) == 2)
     {

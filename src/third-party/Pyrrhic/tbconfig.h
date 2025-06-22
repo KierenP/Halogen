@@ -40,9 +40,9 @@
 
 #include "MoveGeneration.h"
 
-#define PYRRHIC_POPCOUNT(x)              (GetBitCount(x))
-#define PYRRHIC_LSB(x)                   (LSB(x))
-#define PYRRHIC_POPLSB(x)                (LSBpop(*x))
+#define PYRRHIC_POPCOUNT(x)              (popcount(x))
+#define PYRRHIC_LSB(x)                   (lsb(x))
+#define PYRRHIC_POPLSB(x)                (lsbpop(*x))
 
 #define PYRRHIC_PAWN_ATTACKS(sq, c)      (PawnAttacks[c][sq])
 #define PYRRHIC_KNIGHT_ATTACKS(sq)       (AttackBB<KNIGHT>(static_cast<Square>(sq)))
