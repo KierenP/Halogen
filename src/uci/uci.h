@@ -12,6 +12,9 @@
 
 class Move;
 
+namespace UCI
+{
+
 enum class OutputLevel : uint8_t
 {
     None,
@@ -78,7 +81,7 @@ private:
     void join_search_thread();
 
     GameState position;
-    std::thread searchThread;
+    std::thread search_thread;
     SearchSharedState shared { *this };
     const std::string_view version_;
     OutputLevel output_level;
@@ -87,3 +90,5 @@ private:
 
     auto options_handler();
 };
+
+}

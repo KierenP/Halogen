@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 #endif
 
     PrintVersion();
-    Uci uci { version };
+    UCI::Uci uci { version };
 
     // read any command line input as a regular UCI instruction
     for (int i = 1; i < argc; i++)

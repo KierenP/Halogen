@@ -122,7 +122,7 @@ void SearchLocalState::AddLoudHistory(const GameState& position, const SearchSta
     capt_hist.add(position, ss, move, change);
 }
 
-SearchSharedState::SearchSharedState(Uci& uci)
+SearchSharedState::SearchSharedState(UCI::Uci& uci)
     : uci_handler(uci)
 {
 }

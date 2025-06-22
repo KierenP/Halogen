@@ -35,6 +35,9 @@
 #include "uci/parse.h"
 #include "utility/atomic.h"
 
+namespace UCI
+{
+
 std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {
     switch (level)
@@ -234,14 +237,14 @@ auto Uci::options_handler()
         #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
     }
 
-    return uci_options {
-        button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
-        check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
-        spin_option { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
-        spin_option { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
-        spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
-        string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
-        combo_option {
+    return Options {
+        ButtonOption { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
+        CheckOption { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
+        SpinOption { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
+        SpinOption { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
+        SpinOption { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
+        StringOption { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
+        ComboOption {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
     };
 
@@ -353,7 +356,7 @@ void Uci::handle_go(go_ctx& ctx)
     }
 
     // launch search thread
-    searchThread = std::thread([&]() { SearchThread(position, shared); });
+    search_thread = std::thread([&]() { SearchThread(position, shared); });
 }
 
 void Uci::handle_setoption_clear_hash()
@@ -405,8 +408,8 @@ void Uci::handle_quit()
 
 void Uci::join_search_thread()
 {
-    if (searchThread.joinable())
-        searchThread.join();
+    if (search_thread.joinable())
+        search_thread.join();
 }
 
 void Uci::process_input_stream(std::istream& is)
@@ -426,11 +429,11 @@ void Uci::process_input(std::string_view command)
     // search thread to avoid race conditions.
 
     // clang-format off
-    auto during_search_processor = sequence {
-    one_of { 
-        consume { "stop", invoke { [this] { handle_stop(); } } },
-        consume { "quit", invoke { [this] { handle_quit(); } } } },
-    end_command{}
+    auto during_search_processor = Sequence {
+    OneOf { 
+        Consume { "stop", Invoke { [this] { handle_stop(); } } },
+        Consume { "quit", Invoke { [this] { handle_quit(); } } } },
+    EndCommand{}
     };
     // clang-format on
 
@@ -447,52 +450,52 @@ void Uci::process_input(std::string_view command)
     using namespace std::chrono_literals;
 
     // clang-format off
-    auto uci_processor = sequence {
-    one_of {
-        consume { "uci", invoke { [this]{ handle_uci(); } } },
-        consume { "ucinewgame", invoke { [this]{ handle_ucinewgame(); } } },
-        consume { "isready", invoke { [this]{ handle_isready(); } } },
-        consume { "position", one_of {
-            consume { "fen", sequence {
-                tokens_until {"moves", [this](auto fen){ return handle_position_fen(fen); } },
-                repeat { next_token { [this](auto move){ handle_moves(move); } } } } },
-            consume { "startpos", sequence {
-                invoke { [this] { handle_position_startpos(); } },
-                one_of {
-                    consume { "moves", repeat { next_token { [this](auto move){ handle_moves(move); } } } },
-                    end_command{} } } } } },
-        consume { "go", sequence {
-            invoke { [this]{ shared.limits = {}; } },
-            with_context { go_ctx{}, sequence {
-                repeat { one_of {
-                    consume { "infinite", invoke { [](auto&){} } },
-                    consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
-                    consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
-                    consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
-                    consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
-                    consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
-                    consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
-                    consume { "mate", next_token { to_int { [](auto value, auto& ctx){ ctx.mate = value; } } } },
-                    consume { "depth", next_token { to_int { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-                    consume { "nodes", next_token { to_int { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
-                invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
-        consume { "setoption", options_handler_model.build_handler() },
+    auto uci_processor = Sequence {
+    OneOf {
+        Consume { "uci", Invoke { [this]{ handle_uci(); } } },
+        Consume { "ucinewgame", Invoke { [this]{ handle_ucinewgame(); } } },
+        Consume { "isready", Invoke { [this]{ handle_isready(); } } },
+        Consume { "position", OneOf {
+            Consume { "fen", Sequence {
+                TokensUntil {"moves", [this](auto fen){ return handle_position_fen(fen); } },
+                Repeat { NextToken { [this](auto move){ handle_moves(move); } } } } },
+            Consume { "startpos", Sequence {
+                Invoke { [this] { handle_position_startpos(); } },
+                OneOf {
+                    Consume { "moves", Repeat { NextToken { [this](auto move){ handle_moves(move); } } } },
+                    EndCommand{} } } } } },
+        Consume { "go", Sequence {
+            Invoke { [this]{ shared.limits = {}; } },
+            WithContext { go_ctx{}, Sequence {
+                Repeat { OneOf {
+                    Consume { "infinite", Invoke { [](auto&){} } },
+                    Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
+                    Consume { "btime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
+                    Consume { "winc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
+                    Consume { "binc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
+                    Consume { "movestogo", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
+                    Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
+                    Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
+                    Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
+                    Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
+                Invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
+        Consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
-        consume { "perft", next_token { to_int { [this](auto value) { PerftDivide(value, position, false); } } } },
-        consume { "test", one_of {
-            consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
-            consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
-            consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
-            consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
-        consume { "bench", one_of  {
-            sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
-            next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
-        consume { "print", invoke { [this] { handle_print(); } } },
-        consume { "spsa", invoke { [this] { handle_spsa(); } } },
-        consume { "eval", invoke { [this] { handle_eval(); } } },
-        consume { "probe", invoke { [this] { handle_probe(); } } } },
-    end_command{}
+        Consume { "perft", NextToken { ToInt { [this](auto value) { PerftDivide(value, position, false); } } } },
+        Consume { "test", OneOf {
+            Consume { "perft", Invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
+            Consume { "perft960", Invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
+            Consume { "perft_legality", Invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
+            Consume { "perft960_legality", Invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
+        Consume { "bench", OneOf  {
+            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(10); } } },
+            NextToken { ToInt { [this](auto value){ handle_bench(value); } } } } },
+        Consume { "print", Invoke { [this] { handle_print(); } } },
+        Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
+        Consume { "eval", Invoke { [this] { handle_eval(); } } },
+        Consume { "probe", Invoke { [this] { handle_probe(); } } } },
+    EndCommand{}
     };
     // clang-format on
 
@@ -609,4 +612,6 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
 }

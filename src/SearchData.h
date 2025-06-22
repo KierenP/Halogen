@@ -32,7 +32,10 @@ constexpr std::size_t hardware_constructive_interference_size = 64;
 constexpr std::size_t hardware_destructive_interference_size = 64;
 #endif
 
+namespace UCI
+{
 class Uci;
+}
 
 // Holds information about the search state for a particular recursion depth.
 struct SearchStackState
@@ -164,7 +167,7 @@ struct SearchResults
 class SearchSharedState
 {
 public:
-    SearchSharedState(Uci& uci);
+    SearchSharedState(UCI::Uci& uci);
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -196,7 +199,7 @@ public:
     bool chess_960 {};
     SearchLimits limits;
     Timer search_timer;
-    Uci& uci_handler;
+    UCI::Uci& uci_handler;
 
     AtomicRelaxed<bool> stop_searching = false;
     TranspositionTable transposition_table;
