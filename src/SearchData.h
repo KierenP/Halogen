@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "BitBoardDefine.h"
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
@@ -20,6 +19,7 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "atomic.h"
+#include "bitboard.h"
 
 class TranspositionTable;
 
@@ -43,7 +43,7 @@ struct SearchStackState
     std::array<Move, 2> killers = {};
 
     Move move = Move::Uninitialized;
-    Pieces moved_piece = N_PIECES;
+    Piece moved_piece = N_PIECES;
     uint64_t threat_mask = EMPTY;
 
     Move singular_exclusion = Move::Uninitialized;
@@ -121,8 +121,8 @@ public:
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     int sel_septh = 0;
-    atomic_relaxed<int64_t> tb_hits = 0;
-    atomic_relaxed<int64_t> nodes = 0;
+    AtomicRelaxed<int64_t> tb_hits = 0;
+    AtomicRelaxed<int64_t> nodes = 0;
 
     // track the current depth + multi-pv of the search
     int curr_depth = 0;
@@ -135,7 +135,7 @@ public:
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
     // the threads stopping early if other threads are continuing. This signal lets the SearchSharedData check which
     // threads want to stop and if all threads do then we stop the search. TODO: could use a consensus model?
-    atomic_rel_acq<bool> thread_wants_to_stop = false;
+    AtomicRelAcq<bool> thread_wants_to_stop = false;
 
     // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
     // blacklist, or if it is missing from the whitelist (unless whitelist is empty)
@@ -198,7 +198,7 @@ public:
     Timer search_timer;
     Uci& uci_handler;
 
-    atomic_relaxed<bool> stop_searching = false;
+    AtomicRelaxed<bool> stop_searching = false;
     TranspositionTable transposition_table;
 
 private:

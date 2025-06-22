@@ -13,9 +13,9 @@
 #include <sys/mman.h>
 #endif
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "TTEntry.h"
+#include "bitboard.h"
 
 TranspositionTable::~TranspositionTable()
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BitBoardDefine.h"
+#include "bitboard.h"
 
 // Adapted with permission from Terje, author of Weiss.
 
@@ -89,8 +89,8 @@ private:
             table[sq].attacks = attack;
 
             // Construct the mask
-            uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[GetRank(sq)])
-                | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[GetFile(sq)]);
+            uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[enum_to<Rank>(sq)])
+                | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[enum_to<File>(sq)]);
 
             table[sq].mask = MakeSliderAttackBB<directions...>(sq, 0) & ~edges;
 

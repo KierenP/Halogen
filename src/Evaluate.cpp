@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cassert>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Network.h"
 #include "Score.h"
 #include "SearchData.h"
+#include "bitboard.h"
 
 void TempoAdjustment(Score& eval);
 
@@ -32,9 +32,8 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
     Score eval = Network::Eval(board, ss->acc);
 
     // Apply material scaling factor
-    const auto npMaterial = 450 * GetBitCount(board.GetPieceBB<KNIGHT>())
-        + 450 * GetBitCount(board.GetPieceBB<BISHOP>()) + 650 * GetBitCount(board.GetPieceBB<ROOK>())
-        + 1250 * GetBitCount(board.GetPieceBB<QUEEN>());
+    const auto npMaterial = 450 * popcount(board.GetPieceBB<KNIGHT>()) + 450 * popcount(board.GetPieceBB<BISHOP>())
+        + 650 * popcount(board.GetPieceBB<ROOK>()) + 1250 * popcount(board.GetPieceBB<QUEEN>());
     eval = eval.value() * (26500 + npMaterial) / 32768;
 
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
@@ -66,10 +65,10 @@ bool DeadPosition(const BoardState& board)
     */
 
     // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = GetBitCount(board.GetPieceBB<WHITE_BISHOP>());
-    int BlackBishops = GetBitCount(board.GetPieceBB<BLACK_BISHOP>());
-    int WhiteKnights = GetBitCount(board.GetPieceBB<WHITE_KNIGHT>());
-    int BlackKnights = GetBitCount(board.GetPieceBB<BLACK_KNIGHT>());
+    int WhiteBishops = popcount(board.GetPieceBB<WHITE_BISHOP>());
+    int BlackBishops = popcount(board.GetPieceBB<BLACK_BISHOP>());
+    int WhiteKnights = popcount(board.GetPieceBB<WHITE_KNIGHT>());
+    int BlackKnights = popcount(board.GetPieceBB<BLACK_KNIGHT>());
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 

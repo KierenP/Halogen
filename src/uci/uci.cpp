@@ -15,8 +15,6 @@
 #include <string_view>
 #include <vector>
 
-#include "Benchmark.h"
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "EGTB.h"
 #include "GameState.h"
@@ -32,6 +30,8 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "atomic.h"
+#include "benchmark.h"
+#include "bitboard.h"
 #include "uci/options.h"
 #include "uci/parse.h"
 

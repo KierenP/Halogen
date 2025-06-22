@@ -5,11 +5,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Cuckoo.h"
 #include "Move.h"
 #include "Zobrist.h"
+#include "bitboard.h"
 
 GameState::GameState()
 {
@@ -44,11 +44,11 @@ void GameState::ApplyMove(std::string_view strmove)
     // Correction for castle moves (encode as KxR)
     if (flag == A_SIDE_CASTLE)
     {
-        to = LSB(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+        to = lsb(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
     }
     else if (flag == H_SIDE_CASTLE)
     {
-        to = MSB(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
+        to = msb(Board().castle_squares & RankBB[Board().stm == WHITE ? RANK_1 : RANK_8]);
     }
 
     ApplyMove(Move(from, to, flag));
@@ -204,7 +204,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))
         {
             const auto move = cuckoo::move_table[hash];
-            if ((occ & betweenArray[move.GetFrom()][move.GetTo()]) == EMPTY)
+            if ((occ & BetweenBB[move.GetFrom()][move.GetTo()]) == EMPTY)
             {
                 // two fold rep after root
                 if (ply < distanceFromRoot)

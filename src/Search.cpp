@@ -12,7 +12,6 @@
 #include <tuple>
 #include <vector>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "EGTB.h"
 #include "Evaluate.h"
@@ -34,6 +33,7 @@
 #include "TranspositionTable.h"
 #include "Zobrist.h"
 #include "atomic.h"
+#include "bitboard.h"
 #include "uci/uci.h"
 
 enum class SearchType : int8_t
@@ -447,7 +447,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
-    if (IsEndGame(position.Board()) || GetBitCount(position.Board().GetAllPieces()) < 5)
+    if (IsEndGame(position.Board()) || popcount(position.Board().GetAllPieces()) < 5)
     {
         return std::nullopt;
     }
@@ -956,7 +956,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
+            = &local.cont_hist.table[position.Board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         shared.transposition_table.PreFetch(
             Zobrist::get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
@@ -1105,7 +1105,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         ss->move = move;
         ss->moved_piece = position.Board().GetSquare(move.GetFrom());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.Board().stm][GetPieceType(ss->moved_piece)][move.GetTo()];
+            = &local.cont_hist.table[position.Board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         // TODO: prefetch
         local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);

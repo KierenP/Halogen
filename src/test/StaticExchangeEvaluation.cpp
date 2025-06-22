@@ -1,10 +1,10 @@
 #include <cassert>
 
-#include "BitBoardDefine.h"
 #include "GameState.h"
 #include "Move.h"
 #include "Score.h"
 #include "StaticExchangeEvaluation.h"
+#include "bitboard.h"
 
 const auto test_see
     = []([[maybe_unused]] const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)

@@ -1,5 +1,5 @@
 #include "Move.h"
-#include "BitBoardDefine.h"
+#include "bitboard.h"
 
 #include <cassert>
 #include <iostream>
@@ -60,17 +60,17 @@ std::ostream& operator<<(std::ostream& os, Move m)
 
     if (m.GetFlag() == A_SIDE_CASTLE)
     {
-        to = GetPosition(FILE_C, GetRank(to));
+        to = get_square(FILE_C, enum_to<Rank>(to));
     }
     else if (m.GetFlag() == H_SIDE_CASTLE)
     {
-        to = GetPosition(FILE_G, GetRank(to));
+        to = get_square(FILE_G, enum_to<Rank>(to));
     }
 
-    buffer[0] = 'a' + GetFile(from);
-    buffer[1] = '1' + GetRank(from);
-    buffer[2] = 'a' + GetFile(to);
-    buffer[3] = '1' + GetRank(to);
+    buffer[0] = 'a' + enum_to<File>(from);
+    buffer[1] = '1' + enum_to<Rank>(from);
+    buffer[2] = 'a' + enum_to<File>(to);
+    buffer[3] = '1' + enum_to<Rank>(to);
 
     if (m.IsPromotion())
     {
@@ -94,10 +94,10 @@ std::ostream& operator<<(std::ostream& os, format_chess960 f)
     Square from = m.GetFrom();
     Square to = m.GetTo();
 
-    buffer[0] = 'a' + GetFile(from);
-    buffer[1] = '1' + GetRank(from);
-    buffer[2] = 'a' + GetFile(to);
-    buffer[3] = '1' + GetRank(to);
+    buffer[0] = 'a' + enum_to<File>(from);
+    buffer[1] = '1' + enum_to<Rank>(from);
+    buffer[2] = 'a' + enum_to<File>(to);
+    buffer[3] = '1' + enum_to<Rank>(to);
 
     if (f.m.IsPromotion())
     {

@@ -3,7 +3,7 @@
 #include <atomic>
 
 template <typename T>
-class atomic_relaxed : public std::atomic<T>
+class AtomicRelaxed : public std::atomic<T>
 {
     static_assert(std::atomic<T>::is_always_lock_free);
 
@@ -23,7 +23,7 @@ public:
 };
 
 template <typename T>
-class atomic_rel_acq : public std::atomic<T>
+class AtomicRelAcq : public std::atomic<T>
 {
     static_assert(std::atomic<T>::is_always_lock_free);
 

@@ -6,9 +6,9 @@
 #include <optional>
 #include <string_view>
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "Zobrist.h"
+#include "bitboard.h"
 
 /*
 
@@ -24,55 +24,55 @@ public:
     int fifty_move_count = 0;
     int half_turn_count = 1;
 
-    Players stm = N_PLAYERS;
+    Side stm = N_SIDES;
     uint64_t castle_squares = EMPTY;
 
     // number of plys since last repetition
     std::optional<int> repetition;
     bool three_fold_rep = false;
 
-    Pieces GetSquare(Square square) const;
+    Piece GetSquare(Square square) const;
 
     bool IsEmpty(Square square) const;
     bool IsOccupied(Square square) const;
 
     uint64_t GetAllPieces() const;
     uint64_t GetEmptySquares() const;
-    uint64_t GetPiecesColour(Players colour) const;
-    uint64_t GetPieceBB(PieceTypes pieceType, Players colour) const;
-    uint64_t GetPieceBB(Pieces piece) const;
+    uint64_t GetPiecesColour(Side colour) const;
+    uint64_t GetPieceBB(PieceType pieceType, Side colour) const;
+    uint64_t GetPieceBB(Piece piece) const;
 
-    Square GetKing(Players colour) const;
+    Square GetKing(Side colour) const;
 
-    template <Players side>
+    template <Side side>
     uint64_t GetPieces() const
     {
         return side_bb[side];
     }
 
-    template <PieceTypes type>
+    template <PieceType type>
     uint64_t GetPieceBB() const
     {
         return GetPieceBB<type, WHITE>() | GetPieceBB<type, BLACK>();
     }
 
-    template <Pieces type>
+    template <Piece type>
     uint64_t GetPieceBB() const
     {
         return board[type];
     }
 
-    template <PieceTypes pieceType, Players colour>
+    template <PieceType pieceType, Side colour>
     uint64_t GetPieceBB() const
     {
-        return GetPieceBB<Piece(pieceType, colour)>();
+        return GetPieceBB<get_piece(pieceType, colour)>();
     }
 
     uint64_t GetZobristKey() const;
     uint64_t GetPawnKey() const;
 
-    void AddPiece(Square square, Pieces piece);
-    void RemovePiece(Square square, Pieces piece);
+    void AddPiece(Square square, Piece piece);
+    void RemovePiece(Square square, Piece piece);
     void ClearSquare(Square square);
 
     bool InitialiseFromFen(const std::array<std::string_view, 6>& fen);

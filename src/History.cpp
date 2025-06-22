@@ -1,16 +1,16 @@
 #include "History.h"
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "GameState.h"
 #include "Move.h"
 #include "SearchData.h"
+#include "bitboard.h"
 
 int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
     const auto pawn_hash = position.Board().GetPawnKey() % pawn_states;
-    const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+    const auto piece = enum_to<PieceType>(position.Board().GetSquare(move.GetFrom()));
 
     return &table[stm][pawn_hash][piece][move.GetTo()];
 }
@@ -27,8 +27,9 @@ int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* s
 int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
-    const auto curr_piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
-    const auto cap_piece = move.GetFlag() == EN_PASSANT ? PAWN : GetPieceType(position.Board().GetSquare(move.GetTo()));
+    const auto curr_piece = enum_to<PieceType>(position.Board().GetSquare(move.GetFrom()));
+    const auto cap_piece
+        = move.GetFlag() == EN_PASSANT ? PAWN : enum_to<PieceType>(position.Board().GetSquare(move.GetTo()));
 
     return &table[stm][curr_piece][move.GetTo()][cap_piece];
 }
@@ -36,7 +37,7 @@ int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*,
 int16_t* PieceMoveHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.Board().stm;
-    const auto piece = GetPieceType(position.Board().GetSquare(move.GetFrom()));
+    const auto piece = enum_to<PieceType>(position.Board().GetSquare(move.GetFrom()));
 
     return &table[stm][piece][move.GetTo()];
 }
@@ -68,14 +69,14 @@ Score PawnCorrHistory::get_correction_score(const GameState& position) const
     return *get(position) / eval_scale;
 }
 
-int16_t* NonPawnCorrHistory::get(const GameState& position, Players side)
+int16_t* NonPawnCorrHistory::get(const GameState& position, Side side)
 {
     const auto& stm = position.Board().stm;
     const auto hash = position.Board().non_pawn_key[side];
     return &table[stm][hash % hash_table_size];
 }
 
-void NonPawnCorrHistory::add(const GameState& position, Players side, int depth, int eval_diff)
+void NonPawnCorrHistory::add(const GameState& position, Side side, int depth, int eval_diff)
 {
     auto* entry = get(position, side);
 
@@ -83,7 +84,7 @@ void NonPawnCorrHistory::add(const GameState& position, Players side, int depth,
     *entry += change - *entry * abs(change) / (correction_max * eval_scale);
 }
 
-Score NonPawnCorrHistory::get_correction_score(const GameState& position, Players side)
+Score NonPawnCorrHistory::get_correction_score(const GameState& position, Side side)
 {
     return *get(position, side) / eval_scale;
 }

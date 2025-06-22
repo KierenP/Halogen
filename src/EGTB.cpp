@@ -6,9 +6,9 @@
 #include <mutex>
 #include <optional>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
+#include "bitboard.h"
 #include "third-party/Pyrrhic/tbprobe.h"
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
@@ -57,7 +57,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
 {
     // Can't probe Syzygy if there is too many pieces on the board, if there is casteling rights, or fifty move isn't
     // zero
-    if (board.fifty_move_count != 0 || GetBitCount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
+    if (board.fifty_move_count != 0 || popcount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
     {
         return std::nullopt;
     }
@@ -100,7 +100,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
 std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
 {
     // Can't probe Syzygy if there is too many pieces on the board, or if there is casteling rights.
-    if (GetBitCount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
+    if (popcount(board.GetAllPieces()) > TB_LARGEST || board.castle_squares != EMPTY)
     {
         return std::nullopt;
     }

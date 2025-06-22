@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Score.h"
+#include "bitboard.h"
 
 class Move;
 
@@ -39,7 +39,7 @@ struct Input
 {
     Square king_sq;
     Square piece_sq;
-    Pieces piece;
+    Piece piece;
 };
 
 // represents a pair of inputs (one on each accumulator side)
@@ -48,13 +48,13 @@ struct InputPair
     Square w_king;
     Square b_king;
     Square piece_sq;
-    Pieces piece;
+    Piece piece;
 };
 
 // stored the accumulated first layer values for each side
 struct Accumulator
 {
-    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_PLAYERS> side = {};
+    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_SIDES> side = {};
 
     bool operator==(const Accumulator& rhs) const
     {
@@ -62,13 +62,13 @@ struct Accumulator
     }
 
     void AddInput(const InputPair& input);
-    void AddInput(const Input& input, Players side);
+    void AddInput(const Input& input, Side side);
 
     void SubInput(const InputPair& input);
-    void SubInput(const Input& input, Players side);
+    void SubInput(const Input& input, Side side);
 
     void Recalculate(const BoardState& board);
-    void Recalculate(const BoardState& board, Players side);
+    void Recalculate(const BoardState& board, Side side);
 
     // data for lazy updates
     bool acc_is_valid = false;
@@ -96,7 +96,7 @@ struct AccumulatorTable
 {
     std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
 
-    void Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq);
+    void Recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
 };
 
 class Network

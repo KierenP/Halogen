@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <type_traits>
 
-#include "BitBoardDefine.h"
+#include "bitboard.h"
 
 enum MoveFlag : int8_t
 {

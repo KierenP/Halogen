@@ -7,9 +7,9 @@
 #include <cstring>
 #include <tuple>
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "Score.h"
+#include "bitboard.h"
 
 class GameState;
 struct SearchStackState;
@@ -45,7 +45,7 @@ struct PawnHistory : HistoryTable<PawnHistory>
     static constexpr int max_value = 10036;
     static constexpr int scale = 35;
     static constexpr size_t pawn_states = 512;
-    int16_t table[N_PLAYERS][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
+    int16_t table[N_SIDES][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
@@ -53,7 +53,7 @@ struct ThreatHistory : HistoryTable<ThreatHistory>
 {
     static constexpr int max_value = 9692;
     static constexpr int scale = 45;
-    int16_t table[N_PLAYERS][2][N_SQUARES][N_SQUARES] = {};
+    int16_t table[N_SIDES][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
@@ -61,7 +61,7 @@ struct CaptureHistory : HistoryTable<CaptureHistory>
 {
     static constexpr int max_value = 18795;
     static constexpr int scale = 40;
-    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
+    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
@@ -69,7 +69,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
     static constexpr int max_value = 10036;
     static constexpr int scale = 35;
-    int16_t table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
@@ -81,7 +81,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 struct ContinuationHistory
 {
     static constexpr int cont_hist_depth = 2;
-    PieceMoveHistory table[N_PLAYERS][N_PIECE_TYPES][N_SQUARES] = {};
+    PieceMoveHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
 
     constexpr void reset()
     {
@@ -95,7 +95,7 @@ struct PawnCorrHistory
     static constexpr size_t pawn_hash_table_size = 16384;
     static constexpr int correction_max = 16;
 
-    int16_t table[N_PLAYERS][pawn_hash_table_size] = {};
+    int16_t table[N_SIDES][pawn_hash_table_size] = {};
 
     int16_t* get(const GameState& position);
     const int16_t* get(const GameState& position) const;
@@ -118,11 +118,11 @@ struct NonPawnCorrHistory
     static constexpr size_t hash_table_size = 16384;
     static constexpr int correction_max = 16;
 
-    int16_t table[N_PLAYERS][hash_table_size] = {};
+    int16_t table[N_SIDES][hash_table_size] = {};
 
-    int16_t* get(const GameState& position, Players side);
-    void add(const GameState& position, Players side, int depth, int eval_diff);
-    Score get_correction_score(const GameState& position, Players side);
+    int16_t* get(const GameState& position, Side side);
+    void add(const GameState& position, Side side, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position, Side side);
 
     constexpr void reset()
     {

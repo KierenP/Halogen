@@ -3,11 +3,11 @@
 #include <array>
 #include <cstdint>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "Score.h"
+#include "bitboard.h"
 
 uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
 {
@@ -22,11 +22,11 @@ uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
         | (AttackBB<ROOK>(sq, occ) & rooks);
 }
 
-uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, Pieces& capturing, Players side)
+uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, Piece& capturing, Side side)
 {
     for (int i = 0; i < 6; i++)
     {
-        capturing = Piece(PieceTypes(i), side);
+        capturing = get_piece(PieceType(i), side);
         uint64_t pieces = board.GetPieceBB(capturing) & attackers;
         if (pieces)
             return pieces & (~pieces + 1); // isolate LSB
@@ -43,8 +43,8 @@ int see(const BoardState& board, Move move)
     int index = 0;
 
     auto capturing = board.GetSquare(from);
-    auto attacker = ColourOfPiece(capturing);
-    auto captured = move.GetFlag() == EN_PASSANT ? Piece(PAWN, !attacker) : board.GetSquare(to);
+    auto attacker = enum_to<Side>(capturing);
+    auto captured = move.GetFlag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.GetSquare(to);
 
     uint64_t from_set = (1ull << from);
     uint64_t occ = board.GetAllPieces(), bishops = 0, rooks = 0;
@@ -55,7 +55,7 @@ int see(const BoardState& board, Move move)
 
     if (move.GetFlag() == EN_PASSANT)
     {
-        occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+        occ ^= SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
     }
 
     uint64_t attack_def = AttackersToSq(board, to, occ);
@@ -71,7 +71,7 @@ int see(const BoardState& board, Move move)
         occ ^= from_set;
 
         attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
-        from_set = GetLeastValuableAttacker(board, attack_def, capturing, Players(attacker));
+        from_set = GetLeastValuableAttacker(board, attack_def, capturing, Side(attacker));
     } while (from_set);
     while (--index)
     {
@@ -86,8 +86,8 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     Square to = move.GetTo();
 
     auto capturing = board.GetSquare(from);
-    auto attacker = ColourOfPiece(capturing);
-    auto captured = move.GetFlag() == EN_PASSANT ? Piece(PAWN, !attacker) : board.GetSquare(to);
+    auto attacker = enum_to<Side>(capturing);
+    auto captured = move.GetFlag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.GetSquare(to);
 
     // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If the
     // value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
@@ -114,7 +114,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
     if (move.GetFlag() == EN_PASSANT)
     {
-        occ ^= SquareBB[GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()))];
+        occ ^= SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
     }
 
     occ ^= SquareBB[from];
@@ -144,7 +144,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 swap = PieceValues[PAWN] - swap + 1;
                 if (swap <= 0)
                     break;
-                occ ^= SquareBB[LSB(pawns)];
+                occ ^= SquareBB[lsb(pawns)];
                 attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
                 continue;
             }
@@ -157,7 +157,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 swap = PieceValues[KNIGHT] - swap + 1;
                 if (swap <= 0)
                     break;
-                occ ^= SquareBB[LSB(knights)];
+                occ ^= SquareBB[lsb(knights)];
                 continue;
             }
         }
@@ -169,7 +169,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 swap = PieceValues[BISHOP] - swap + 1;
                 if (swap <= 0)
                     break;
-                occ ^= SquareBB[LSB(bishops)];
+                occ ^= SquareBB[lsb(bishops)];
                 attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
                 continue;
             }
@@ -182,7 +182,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 swap = PieceValues[ROOK] - swap + 1;
                 if (swap <= 0)
                     break;
-                occ ^= SquareBB[LSB(rooks)];
+                occ ^= SquareBB[lsb(rooks)];
                 attack_def |= occ & (rook_queen & AttackBB<ROOK>(to, occ));
                 continue;
             }
@@ -195,7 +195,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 swap = PieceValues[QUEEN] - swap + 1;
                 if (swap <= 0)
                     break;
-                occ ^= SquareBB[LSB(queens)];
+                occ ^= SquareBB[lsb(queens)];
                 attack_def
                     |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
                 continue;

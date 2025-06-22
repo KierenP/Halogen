@@ -1,9 +1,9 @@
 #pragma once
 #include <cstdint>
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "StaticVector.h"
+#include "bitboard.h"
 
 // For move ordering we need to bundle the 'score' with the move objects
 struct ExtendedMove

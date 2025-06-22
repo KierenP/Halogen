@@ -1,9 +1,9 @@
 #include "Cuckoo.h"
 
-#include "BitBoardDefine.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "Zobrist.h"
+#include "bitboard.h"
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck
@@ -13,12 +13,12 @@
 namespace cuckoo
 {
 
-bool is_valid_and_reversible_move(Move move, Pieces piece)
+bool is_valid_and_reversible_move(Move move, Piece piece)
 {
     const auto from = move.GetFrom();
     const auto to = move.GetTo();
 
-    switch (GetPieceType(piece))
+    switch (enum_to<PieceType>(piece))
     {
     case KNIGHT:
         return (AttackBB<KNIGHT>(from) & SquareBB[to]);
@@ -62,7 +62,7 @@ void init()
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        const auto piece = Pieces(i);
+        const auto piece = Piece(i);
         for (Square sq1 = SQ_A1; sq1 <= SQ_H8; ++sq1)
         {
             for (Square sq2 = Square(sq1 + 1); sq2 <= SQ_H8; ++sq2)

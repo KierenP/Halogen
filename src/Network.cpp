@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <initializer_list>
 
-#include "BitBoardDefine.h"
 #include "BoardState.h"
 #include "Move.h"
+#include "bitboard.h"
 #include "nn/Accumulator.hpp"
 #include "nn/Features.hpp"
 #include "third-party/incbin/incbin.h"
@@ -101,25 +101,25 @@ Square MirrorHorizontally(Square sq)
     return static_cast<Square>(sq ^ 7);
 }
 
-int get_king_bucket(Square king_sq, Players view)
+int get_king_bucket(Square king_sq, Side view)
 {
     king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
     return KING_BUCKETS[king_sq];
 }
 
-int index(Square king_sq, Square piece_sq, Pieces piece, Players view)
+int index(Square king_sq, Square piece_sq, Piece piece, Side view)
 {
     piece_sq = view == WHITE ? piece_sq : MirrorVertically(piece_sq);
-    piece_sq = GetFile(king_sq) <= FILE_D ? piece_sq : MirrorHorizontally(piece_sq);
+    piece_sq = enum_to<File>(king_sq) <= FILE_D ? piece_sq : MirrorHorizontally(piece_sq);
 
     auto king_bucket = get_king_bucket(king_sq, view);
-    Players relativeColor = static_cast<Players>(view != ColourOfPiece(piece));
-    PieceTypes pieceType = GetPieceType(piece);
+    Side relativeColor = static_cast<Side>(view != enum_to<Side>(piece));
+    PieceType pieceType = enum_to<PieceType>(piece);
 
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Players view)
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
@@ -135,7 +135,7 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1,
 }
 
 void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Players view)
+    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
@@ -155,7 +155,7 @@ void Add1Sub2(
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
-    const Input& sub2, Players view)
+    const Input& sub2, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
@@ -181,7 +181,7 @@ void Accumulator::AddInput(const InputPair& input)
     AddInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::AddInput(const Input& input, Players view)
+void Accumulator::AddInput(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
     NN::Accumulator::add1(side[view], net.hiddenWeights[side_index]);
@@ -193,7 +193,7 @@ void Accumulator::SubInput(const InputPair& input)
     SubInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::SubInput(const Input& input, Players view)
+void Accumulator::SubInput(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
     NN::Accumulator::sub1(side[view], net.hiddenWeights[side_index]);
@@ -206,28 +206,29 @@ void Accumulator::Recalculate(const BoardState& board_)
     acc_is_valid = true;
 }
 
-void Accumulator::Recalculate(const BoardState& board_, Players view)
+void Accumulator::Recalculate(const BoardState& board_, Side view)
 {
     side[view] = net.hiddenBias;
     auto king = board_.GetKing(view);
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        Pieces piece = static_cast<Pieces>(i);
+        Piece piece = static_cast<Piece>(i);
         uint64_t bb = board_.GetPieceBB(piece);
 
         while (bb)
         {
-            Square sq = LSBpop(bb);
+            Square sq = lsbpop(bb);
             AddInput({ king, sq, piece }, view);
         }
     }
 }
 
-void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Players side, Square king_sq)
+void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq)
 {
     // we need to keep a separate entry for when the king is on each side of the board
-    auto& entry = king_bucket[get_king_bucket(king_sq, side) + (GetFile(king_sq) <= FILE_D ? 0 : KING_BUCKET_COUNT)];
+    auto& entry
+        = king_bucket[get_king_bucket(king_sq, side) + (enum_to<File>(king_sq) <= FILE_D ? 0 : KING_BUCKET_COUNT)];
     auto& bb = side == WHITE ? entry.white_bb : entry.black_bb;
 
     for (const auto& piece : {
@@ -253,13 +254,13 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Pl
 
         while (to_add)
         {
-            auto sq = LSBpop(to_add);
+            auto sq = lsbpop(to_add);
             entry.acc.AddInput({ king_sq, sq, piece }, side);
         }
 
         while (to_sub)
         {
-            auto sq = LSBpop(to_sub);
+            auto sq = lsbpop(to_sub);
             entry.acc.SubInput({ king_sq, sq, piece }, side);
         }
 
@@ -291,12 +292,12 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
 
     for (int i = 0; i < N_PIECES; i++)
     {
-        Pieces piece = static_cast<Pieces>(i);
+        Piece piece = static_cast<Piece>(i);
         uint64_t bb = board.GetPieceBB(piece);
 
         while (bb)
         {
-            Square sq = LSBpop(bb);
+            Square sq = lsbpop(bb);
             expected.AddInput({ w_king, b_king, sq, piece });
         }
     }
@@ -331,10 +332,10 @@ void Network::StoreLazyUpdates(
     auto w_king = post_move_board.GetKing(WHITE);
     auto b_king = post_move_board.GetKing(BLACK);
 
-    if (from_piece == Piece(KING, stm))
+    if (from_piece == get_piece(KING, stm))
     {
         if (get_king_bucket(from_sq, stm) != get_king_bucket(to_sq, stm)
-            || ((GetFile(from_sq) <= FILE_D) ^ (GetFile(to_sq) <= FILE_D)))
+            || ((enum_to<File>(from_sq) <= FILE_D) ^ (enum_to<File>(to_sq) <= FILE_D)))
         {
             if (stm == WHITE)
             {
@@ -446,7 +447,7 @@ void Network::StoreLazyUpdates(
         }
         else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
         {
-            auto ep_capture_sq = GetPosition(GetFile(move.GetTo()), GetRank(move.GetFrom()));
+            auto ep_capture_sq = get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()));
 
             acc.n_adds = 1;
             acc.n_subs = 2;
@@ -454,7 +455,7 @@ void Network::StoreLazyUpdates(
             acc.adds[0] = { w_king, b_king, to_sq, from_piece };
 
             acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, ep_capture_sq, Piece(PAWN, !stm) };
+            acc.subs[1] = { w_king, b_king, ep_capture_sq, get_piece(PAWN, !stm) };
         }
         else if (move.IsCapture())
         {
@@ -565,7 +566,7 @@ int calculate_output_bucket(int pieces)
 Score Network::Eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
-    auto output_bucket = calculate_output_bucket(GetBitCount(board.GetAllPieces()));
+    auto output_bucket = calculate_output_bucket(popcount(board.GetAllPieces()));
 
     int32_t output = 0;
     NN::Features::DotProductSCReLU(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);

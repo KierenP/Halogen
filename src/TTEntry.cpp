@@ -1,7 +1,7 @@
 #include "TTEntry.h"
 
-#include "BitBoardDefine.h"
 #include "Score.h"
+#include "bitboard.h"
 
 Score convert_to_tt_score(Score val, int distance_from_root)
 {
