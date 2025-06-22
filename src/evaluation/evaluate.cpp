@@ -1,4 +1,4 @@
-#include "Evaluate.h"
+#include "evaluation/evaluate.h"
 
 #include <algorithm>
 #include <cassert>
@@ -9,9 +9,7 @@
 #include "chessboard/board_state.h"
 #include "network/network.h"
 
-void TempoAdjustment(Score& eval);
-
-Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
+Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
 {
     // apply lazy updates to accumulator stack
     //
@@ -40,7 +38,7 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
-bool DeadPosition(const BoardState& board)
+bool insufficient_material(const BoardState& board)
 {
     if ((board.get_pieces_bb<WHITE_PAWN>()) != 0)
         return false;
@@ -81,10 +79,4 @@ bool DeadPosition(const BoardState& board)
         return true; // 2
 
     return false;
-}
-
-void TempoAdjustment(Score& eval)
-{
-    constexpr static int TEMPO = 10;
-    eval += TEMPO;
 }

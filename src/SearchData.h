@@ -9,14 +9,14 @@
 #include <utility>
 #include <vector>
 
-#include "History.h"
 #include "Move.h"
 #include "MoveList.h"
 #include "Score.h"
-#include "SearchLimits.h"
-#include "TimeManager.h"
 #include "bitboard.h"
 #include "network/network.h"
+#include "search/history.h"
+#include "search/limit/limits.h"
+#include "search/limit/time.h"
 #include "search/transposition/table.h"
 #include "utility/atomic.h"
 #include "utility/static_vector.h"

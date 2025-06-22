@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <optional>
 
-#include "TimeManager.h"
+#include "search/limit/time.h"
 
 class SearchLimits
 {

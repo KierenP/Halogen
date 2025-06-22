@@ -1,4 +1,4 @@
-#include "History.h"
+#include "search/history.h"
 
 #include "Move.h"
 #include "SearchData.h"

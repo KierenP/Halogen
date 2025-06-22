@@ -7,22 +7,22 @@ EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/4ed21ecb
 EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
 
 SRCS := \
-	Evaluate.cpp \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
 	SearchData.cpp \
 	StagedMoveGenerator.cpp \
-	TimeManager.cpp \
 	Zobrist.cpp \
 	EGTB.cpp \
-	History.cpp \
 	StaticExchangeEvaluation.cpp \
 	chessboard/board_state.cpp \
 	chessboard/game_state.cpp \
+	evaluation/evaluate.cpp \
 	network/network.cpp \
 	search/cuckoo.cpp \
+	search/history.cpp \
 	search/search.cpp \
+	search/limit/time.cpp \
 	search/transposition/table.cpp \
 	search/transposition/entry.cpp \
 	test/static_exchange_evaluation_test.cpp \

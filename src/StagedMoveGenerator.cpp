@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <limits>
 
-#include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
@@ -14,6 +13,7 @@
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 #include "chessboard/game_state.h"
+#include "search/history.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)

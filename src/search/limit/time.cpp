@@ -1,4 +1,4 @@
-#include "TimeManager.h"
+#include "search/limit/time.h"
 
 #include <chrono>
 #include <compare>
@@ -26,7 +26,7 @@ SearchTimeManager::SearchTimeManager(chess_clock_t::duration soft_limit, chess_c
 {
 }
 
-bool SearchTimeManager::ShouldContinueSearch(float factor) const
+bool SearchTimeManager::should_continue_search(float factor) const
 {
     // if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort
     // search early
@@ -39,7 +39,7 @@ bool SearchTimeManager::ShouldContinueSearch(float factor) const
     return (elapsed_ms < soft_limit_ * factor * 0.5 && elapsed_ms < hard_limit_);
 }
 
-bool SearchTimeManager::ShouldAbortSearch() const
+bool SearchTimeManager::should_abort_search() const
 {
     auto elapsed_ms = timer.elapsed();
     return (elapsed_ms >= soft_limit_ || elapsed_ms >= hard_limit_);

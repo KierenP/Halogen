@@ -8,7 +8,7 @@ class Timer
 public:
     Timer();
 
-    chess_clock_t::duration elapsed() const;
+    [[nodiscard]] chess_clock_t::duration elapsed() const;
     void reset();
 
 private:
@@ -20,8 +20,8 @@ class SearchTimeManager
 public:
     SearchTimeManager(chess_clock_t::duration soft_limit, chess_clock_t::duration hard_limit);
 
-    bool ShouldContinueSearch(float factor) const;
-    bool ShouldAbortSearch() const;
+    bool should_continue_search(float factor) const;
+    bool should_abort_search() const;
 
 private:
     Timer timer;

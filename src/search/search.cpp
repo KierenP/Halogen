@@ -13,23 +13,23 @@
 #include <vector>
 
 #include "EGTB.h"
-#include "Evaluate.h"
-#include "History.h"
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Score.h"
 #include "SearchConstants.h"
 #include "SearchData.h"
-#include "SearchLimits.h"
 #include "StagedMoveGenerator.h"
 #include "StaticExchangeEvaluation.h"
-#include "TimeManager.h"
 #include "Zobrist.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
+#include "evaluation/evaluate.h"
 #include "network/network.h"
+#include "search/history.h"
+#include "search/limit/limits.h"
+#include "search/limit/time.h"
 #include "search/transposition/entry.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
@@ -166,7 +166,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
                 local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
             const auto node_factor = 0.5f + 2.f * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
 
-            if (shared.limits.time && !shared.limits.time->ShouldContinueSearch(node_factor))
+            if (shared.limits.time && !shared.limits.time->should_continue_search(node_factor))
             {
                 shared.report_thread_wants_to_stop(local.thread_id);
             }
@@ -249,7 +249,7 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
         return true;
     }
 
-    if (shared.limits.time && shared.limits.time->ShouldAbortSearch())
+    if (shared.limits.time && shared.limits.time->should_abort_search())
     {
         local.aborting_search = true;
         return true;
@@ -286,8 +286,9 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     ss->pv.clear();
 
-    if (DeadPosition(position.board()))
+    if (insufficient_material(position.board()))
     {
+        // TODO: apply draw randomness to all draws, and then adjust uci output to correct them to zero
         return 0;
     }
 
@@ -704,7 +705,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         }
         else
         {
-            tt_entry->static_eval = raw_eval = Evaluate(position.board(), ss, local.net);
+            tt_entry->static_eval = raw_eval = evaluate(position.board(), ss, local.net);
         }
 
         adjusted_eval = scale_eval_50_move(raw_eval);
@@ -722,7 +723,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     }
     else
     {
-        raw_eval = Evaluate(position.board(), ss, local.net);
+        raw_eval = evaluate(position.board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;
