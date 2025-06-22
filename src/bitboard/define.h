@@ -1,6 +1,6 @@
 #pragma once
 
-#include "enum.h"
+#include "bitboard/enum.h"
 
 #include <algorithm>
 #include <array>

@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "bitboard.h"
+#include "bitboard/define.h"
 
 class BoardState;
 

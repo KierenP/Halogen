@@ -8,10 +8,10 @@
 #include <numeric>
 #include <string>
 
-#include "Move.h"
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
 

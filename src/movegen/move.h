@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <type_traits>
 
-#include "bitboard.h"
+#include "bitboard/define.h"
 
 enum MoveFlag : int8_t
 {
@@ -34,13 +34,13 @@ public:
     Move(Square from, Square to, MoveFlag flag);
     explicit Move(uint16_t data);
 
-    Square GetFrom() const;
-    Square GetTo() const;
-    MoveFlag GetFlag() const;
+    Square from() const;
+    Square to() const;
+    MoveFlag flag() const;
 
-    bool IsPromotion() const;
-    bool IsCapture() const;
-    bool IsCastle() const;
+    bool is_promotion() const;
+    bool is_capture() const;
+    bool is_castle() const;
 
     constexpr bool operator==(const Move& rhs) const
     {

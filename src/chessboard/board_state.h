@@ -6,9 +6,9 @@
 #include <optional>
 #include <string_view>
 
-#include "Move.h"
 #include "Zobrist.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
 
 /*
 

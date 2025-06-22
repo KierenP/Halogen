@@ -8,20 +8,20 @@ EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
 
 SRCS := \
 	main.cpp \
-	Move.cpp \
-	MoveGeneration.cpp \
 	SearchData.cpp \
 	StagedMoveGenerator.cpp \
 	Zobrist.cpp \
-	EGTB.cpp \
 	StaticExchangeEvaluation.cpp \
 	chessboard/board_state.cpp \
 	chessboard/game_state.cpp \
 	evaluation/evaluate.cpp \
+	movegen/move.cpp \
+	movegen/movegen.cpp \
 	network/network.cpp \
 	search/cuckoo.cpp \
 	search/history.cpp \
 	search/search.cpp \
+	search/syzygy.cpp \
 	search/limit/time.cpp \
 	search/transposition/table.cpp \
 	search/transposition/entry.cpp \

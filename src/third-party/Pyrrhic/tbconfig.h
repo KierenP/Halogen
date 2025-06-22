@@ -38,15 +38,15 @@
  * to define White as 0 and Black as 1.
  */
 
-#include "MoveGeneration.h"
+#include "movegen/movegen.h"
 
-#define PYRRHIC_POPCOUNT(x)              (popcount(x))
-#define PYRRHIC_LSB(x)                   (lsb(x))
-#define PYRRHIC_POPLSB(x)                (lsbpop(*x))
+#define PYRRHIC_POPCOUNT(x) (popcount(x))
+#define PYRRHIC_LSB(x) (lsb(x))
+#define PYRRHIC_POPLSB(x) (lsbpop(*x))
 
-#define PYRRHIC_PAWN_ATTACKS(sq, c)      (PawnAttacks[c][sq])
-#define PYRRHIC_KNIGHT_ATTACKS(sq)       (AttackBB<KNIGHT>(static_cast<Square>(sq)))
-#define PYRRHIC_BISHOP_ATTACKS(sq, occ)  (AttackBB<BISHOP>(static_cast<Square>(sq), occ))
-#define PYRRHIC_ROOK_ATTACKS(sq, occ)    (AttackBB<ROOK>(static_cast<Square>(sq), occ))
-#define PYRRHIC_QUEEN_ATTACKS(sq, occ)   (AttackBB<QUEEN>(static_cast<Square>(sq), occ))
-#define PYRRHIC_KING_ATTACKS(sq)         (AttackBB<KING>(static_cast<Square>(sq)))
+#define PYRRHIC_PAWN_ATTACKS(sq, c) (PawnAttacks[c][sq])
+#define PYRRHIC_KNIGHT_ATTACKS(sq) (AttackBB<KNIGHT>(static_cast<Square>(sq)))
+#define PYRRHIC_BISHOP_ATTACKS(sq, occ) (AttackBB<BISHOP>(static_cast<Square>(sq), occ))
+#define PYRRHIC_ROOK_ATTACKS(sq, occ) (AttackBB<ROOK>(static_cast<Square>(sq), occ))
+#define PYRRHIC_QUEEN_ATTACKS(sq, occ) (AttackBB<QUEEN>(static_cast<Square>(sq), occ))
+#define PYRRHIC_KING_ATTACKS(sq) (AttackBB<KING>(static_cast<Square>(sq)))

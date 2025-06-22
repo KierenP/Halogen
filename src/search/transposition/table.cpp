@@ -13,8 +13,8 @@
 #include <sys/mman.h>
 #endif
 
-#include "Move.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
 #include "search/transposition/entry.h"
 
 namespace Transposition

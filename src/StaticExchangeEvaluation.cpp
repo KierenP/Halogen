@@ -3,11 +3,11 @@
 #include <array>
 #include <cstdint>
 
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 
 uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
 {
@@ -36,15 +36,15 @@ uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, P
 
 int see(const BoardState& board, Move move)
 {
-    Square from = move.GetFrom();
-    Square to = move.GetTo();
+    Square from = move.from();
+    Square to = move.to();
 
     int scores[32] { 0 };
     int index = 0;
 
     auto capturing = board.get_square_piece(from);
     auto attacker = enum_to<Side>(capturing);
-    auto captured = move.GetFlag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
+    auto captured = move.flag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
 
     uint64_t from_set = (1ull << from);
     uint64_t occ = board.get_pieces_bb(), bishops = 0, rooks = 0;
@@ -53,9 +53,9 @@ int see(const BoardState& board, Move move)
     bishops |= board.get_pieces_bb<BISHOP>();
     rooks |= board.get_pieces_bb<ROOK>();
 
-    if (move.GetFlag() == EN_PASSANT)
+    if (move.flag() == EN_PASSANT)
     {
-        occ ^= SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
+        occ ^= SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
     }
 
     uint64_t attack_def = AttackersToSq(board, to, occ);
@@ -82,12 +82,12 @@ int see(const BoardState& board, Move move)
 
 bool see_ge(const BoardState& board, Move move, Score threshold)
 {
-    Square from = move.GetFrom();
-    Square to = move.GetTo();
+    Square from = move.from();
+    Square to = move.to();
 
     auto capturing = board.get_square_piece(from);
     auto attacker = enum_to<Side>(capturing);
-    auto captured = move.GetFlag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
+    auto captured = move.flag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
 
     // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If the
     // value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
@@ -112,9 +112,9 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     bishop_queen |= board.get_pieces_bb<BISHOP>();
     rook_queen |= board.get_pieces_bb<ROOK>();
 
-    if (move.GetFlag() == EN_PASSANT)
+    if (move.flag() == EN_PASSANT)
     {
-        occ ^= SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
+        occ ^= SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
     }
 
     occ ^= SquareBB[from];

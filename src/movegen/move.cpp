@@ -1,5 +1,5 @@
-#include "Move.h"
-#include "bitboard.h"
+#include "movegen/move.h"
+#include "bitboard/define.h"
 
 #include <cassert>
 #include <iostream>
@@ -22,47 +22,47 @@ Move::Move(uint16_t data_)
 {
 }
 
-Square Move::GetFrom() const
+Square Move::from() const
 {
     return static_cast<Square>(data & FROM_MASK);
 }
 
-Square Move::GetTo() const
+Square Move::to() const
 {
     return static_cast<Square>((data & TO_MASK) >> 6);
 }
 
-MoveFlag Move::GetFlag() const
+MoveFlag Move::flag() const
 {
     return static_cast<MoveFlag>((data & FLAG_MASK) >> 12);
 }
 
-bool Move::IsPromotion() const
+bool Move::is_promotion() const
 {
     return ((data & PROMOTION_MASK) != 0);
 }
 
-bool Move::IsCapture() const
+bool Move::is_capture() const
 {
     return ((data & CAPTURE_MASK) != 0);
 }
 
-bool Move::IsCastle() const
+bool Move::is_castle() const
 {
-    return GetFlag() == A_SIDE_CASTLE || GetFlag() == H_SIDE_CASTLE;
+    return flag() == A_SIDE_CASTLE || flag() == H_SIDE_CASTLE;
 }
 
 std::ostream& operator<<(std::ostream& os, Move m)
 {
     char buffer[6] = {};
-    Square from = m.GetFrom();
-    Square to = m.GetTo();
+    Square from = m.from();
+    Square to = m.to();
 
-    if (m.GetFlag() == A_SIDE_CASTLE)
+    if (m.flag() == A_SIDE_CASTLE)
     {
         to = get_square(FILE_C, enum_to<Rank>(to));
     }
-    else if (m.GetFlag() == H_SIDE_CASTLE)
+    else if (m.flag() == H_SIDE_CASTLE)
     {
         to = get_square(FILE_G, enum_to<Rank>(to));
     }
@@ -72,15 +72,15 @@ std::ostream& operator<<(std::ostream& os, Move m)
     buffer[2] = 'a' + enum_to<File>(to);
     buffer[3] = '1' + enum_to<Rank>(to);
 
-    if (m.IsPromotion())
+    if (m.is_promotion())
     {
-        if (m.GetFlag() == KNIGHT_PROMOTION || m.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+        if (m.flag() == KNIGHT_PROMOTION || m.flag() == KNIGHT_PROMOTION_CAPTURE)
             buffer[4] = 'n';
-        else if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+        else if (m.flag() == BISHOP_PROMOTION || m.flag() == BISHOP_PROMOTION_CAPTURE)
             buffer[4] = 'b';
-        else if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+        else if (m.flag() == QUEEN_PROMOTION || m.flag() == QUEEN_PROMOTION_CAPTURE)
             buffer[4] = 'q';
-        else if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
+        else if (m.flag() == ROOK_PROMOTION || m.flag() == ROOK_PROMOTION_CAPTURE)
             buffer[4] = 'r';
     }
 
@@ -91,23 +91,23 @@ std::ostream& operator<<(std::ostream& os, format_chess960 f)
 {
     const auto& m = f.m;
     char buffer[6] = {};
-    Square from = m.GetFrom();
-    Square to = m.GetTo();
+    Square from = m.from();
+    Square to = m.to();
 
     buffer[0] = 'a' + enum_to<File>(from);
     buffer[1] = '1' + enum_to<Rank>(from);
     buffer[2] = 'a' + enum_to<File>(to);
     buffer[3] = '1' + enum_to<Rank>(to);
 
-    if (f.m.IsPromotion())
+    if (f.m.is_promotion())
     {
-        if (m.GetFlag() == KNIGHT_PROMOTION || m.GetFlag() == KNIGHT_PROMOTION_CAPTURE)
+        if (m.flag() == KNIGHT_PROMOTION || m.flag() == KNIGHT_PROMOTION_CAPTURE)
             buffer[4] = 'n';
-        else if (m.GetFlag() == BISHOP_PROMOTION || m.GetFlag() == BISHOP_PROMOTION_CAPTURE)
+        else if (m.flag() == BISHOP_PROMOTION || m.flag() == BISHOP_PROMOTION_CAPTURE)
             buffer[4] = 'b';
-        else if (m.GetFlag() == QUEEN_PROMOTION || m.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+        else if (m.flag() == QUEEN_PROMOTION || m.flag() == QUEEN_PROMOTION_CAPTURE)
             buffer[4] = 'q';
-        else if (m.GetFlag() == ROOK_PROMOTION || m.GetFlag() == ROOK_PROMOTION_CAPTURE)
+        else if (m.flag() == ROOK_PROMOTION || m.flag() == ROOK_PROMOTION_CAPTURE)
             buffer[4] = 'r';
     }
 

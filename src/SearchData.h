@@ -9,10 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include "Move.h"
 #include "MoveList.h"
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
 #include "network/network.h"
 #include "search/history.h"
 #include "search/limit/limits.h"

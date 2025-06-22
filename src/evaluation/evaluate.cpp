@@ -5,7 +5,7 @@
 
 #include "Score.h"
 #include "SearchData.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "network/network.h"
 

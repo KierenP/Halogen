@@ -1,9 +1,9 @@
 #include "search/cuckoo.h"
 
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "Zobrist.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck
@@ -15,8 +15,8 @@ namespace Cuckoo
 
 bool is_valid_and_reversible_move(Move move, Piece piece)
 {
-    const auto from = move.GetFrom();
-    const auto to = move.GetTo();
+    const auto from = move.from();
+    const auto to = move.to();
 
     switch (enum_to<PieceType>(piece))
     {
@@ -74,8 +74,8 @@ void init()
                     continue;
                 }
 
-                const uint64_t move_hash = Zobrist::piece_square(piece, move.GetFrom())
-                    ^ Zobrist::piece_square(piece, move.GetTo()) ^ Zobrist::stm();
+                const uint64_t move_hash = Zobrist::piece_square(piece, move.from())
+                    ^ Zobrist::piece_square(piece, move.to()) ^ Zobrist::stm();
                 insert(move_hash, move);
                 count++;
             }

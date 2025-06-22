@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <initializer_list>
 
-#include "Move.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
 #include "network/accumulator.hpp"
 #include "network/inference.hpp"
 #include "third-party/incbin/incbin.h"
@@ -324,8 +324,8 @@ void Network::store_lazy_updates(
     }
 
     auto stm = prev_move_board.stm;
-    auto from_sq = move.GetFrom();
-    auto to_sq = move.GetTo();
+    auto from_sq = move.from();
+    auto to_sq = move.to();
     auto from_piece = prev_move_board.get_square_piece(from_sq);
     auto to_piece = post_move_board.get_square_piece(to_sq);
     auto cap_piece = prev_move_board.get_square_piece(to_sq);
@@ -349,14 +349,14 @@ void Network::store_lazy_updates(
 
             acc.board = post_move_board;
 
-            if (move.IsCastle())
+            if (move.is_castle())
             {
-                Square king_start = move.GetFrom();
+                Square king_start = move.from();
                 Square king_end
-                    = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-                Square rook_start = move.GetTo();
+                    = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
+                Square rook_start = move.to();
                 Square rook_end
-                    = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
+                    = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
                 acc.n_adds = 2;
                 acc.n_subs = 2;
@@ -367,7 +367,7 @@ void Network::store_lazy_updates(
                 acc.subs[0] = { w_king, b_king, king_start, from_piece };
                 acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
             }
-            else if (move.IsCapture())
+            else if (move.is_capture())
             {
                 acc.n_adds = 1;
                 acc.n_subs = 2;
@@ -387,14 +387,14 @@ void Network::store_lazy_updates(
                 acc.subs[0] = { w_king, b_king, from_sq, from_piece };
             }
         }
-        else if (move.IsCastle())
+        else if (move.is_castle())
         {
-            Square king_start = move.GetFrom();
+            Square king_start = move.from();
             Square king_end
-                = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-            Square rook_start = move.GetTo();
+                = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
+            Square rook_start = move.to();
             Square rook_end
-                = move.GetFlag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
+                = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
             acc.n_adds = 2;
             acc.n_subs = 2;
@@ -405,7 +405,7 @@ void Network::store_lazy_updates(
             acc.subs[0] = { w_king, b_king, king_start, from_piece };
             acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
         }
-        else if (move.IsCapture())
+        else if (move.is_capture())
         {
             acc.n_adds = 1;
             acc.n_subs = 2;
@@ -427,7 +427,7 @@ void Network::store_lazy_updates(
     }
     else
     {
-        if (move.IsPromotion() && move.IsCapture())
+        if (move.is_promotion() && move.is_capture())
         {
             acc.n_adds = 1;
             acc.n_subs = 2;
@@ -437,7 +437,7 @@ void Network::store_lazy_updates(
             acc.subs[0] = { w_king, b_king, from_sq, from_piece };
             acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
         }
-        else if (move.IsPromotion())
+        else if (move.is_promotion())
         {
             acc.n_adds = 1;
             acc.n_subs = 1;
@@ -446,9 +446,9 @@ void Network::store_lazy_updates(
 
             acc.subs[0] = { w_king, b_king, from_sq, from_piece };
         }
-        else if (move.IsCapture() && move.GetFlag() == EN_PASSANT)
+        else if (move.is_capture() && move.flag() == EN_PASSANT)
         {
-            auto ep_capture_sq = get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()));
+            auto ep_capture_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
 
             acc.n_adds = 1;
             acc.n_subs = 2;
@@ -458,7 +458,7 @@ void Network::store_lazy_updates(
             acc.subs[0] = { w_king, b_king, from_sq, from_piece };
             acc.subs[1] = { w_king, b_king, ep_capture_sq, get_piece(PAWN, !stm) };
         }
-        else if (move.IsCapture())
+        else if (move.is_capture())
         {
             acc.n_adds = 1;
             acc.n_subs = 2;

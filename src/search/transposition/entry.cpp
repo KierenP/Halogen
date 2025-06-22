@@ -1,7 +1,7 @@
 #include "search/transposition/entry.h"
 
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 
 namespace Transposition
 {

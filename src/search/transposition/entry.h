@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "Move.h"
 #include "Score.h"
+#include "movegen/move.h"
 
 enum class SearchResultType : uint8_t;
 

@@ -1,122 +1,125 @@
 #pragma once
 
-#include "bitboard.h"
+#include "bitboard/define.h"
 
-// Adapted with permission from Terje, author of Weiss.
+// Thanks to Terje, author of Weiss, for helping with the initial implementation
 
 #ifdef USE_PEXT
 #include "x86intrin.h"
 #endif
 
-template <Shift direction>
-constexpr uint64_t MakeRayAttackBB(Square sq, uint64_t occupied)
+namespace Magic
 {
-    uint64_t attacks = 0;
-    uint64_t bb = SquareBB[sq];
-
-    while (true)
-    {
-        bb = shift_bb<direction>(bb);
-        if (bb == EMPTY)
-        {
-            break;
-        }
-        attacks |= bb;
-        if ((occupied & bb) != 0)
-        {
-            break;
-        }
-    }
-
-    return attacks;
-}
-
-template <Shift... direction>
-constexpr uint64_t MakeSliderAttackBB(Square sq, uint64_t occupied)
-{
-    return (MakeRayAttackBB<direction>(sq, occupied) | ... | EMPTY);
-}
 
 namespace detail
 {
-struct Magic
-{
-    uint64_t* attacks;
-    uint64_t mask;
-#ifndef USE_PEXT
-    uint64_t magic;
-    int shift;
-#endif
-};
-
-template <typename Derived, uint64_t size, Shift... directions>
-class MagicTable
-{
-public:
-    constexpr MagicTable()
+    template <Shift direction>
+    constexpr uint64_t make_ray_attack_bb(Square sq, uint64_t occupied)
     {
-        InitSliderAttacks();
-    }
+        uint64_t attacks = 0;
+        uint64_t bb = SquareBB[sq];
 
-    constexpr uint64_t AttackMask(Square sq, uint64_t occupied) const
-    {
-        return table[sq].attacks[AttackIndex(sq, occupied)];
-    }
-
-private:
-    constexpr uint64_t& AttackMask(Square sq, uint64_t occupied)
-    {
-        return table[sq].attacks[AttackIndex(sq, occupied)];
-    }
-
-    constexpr size_t AttackIndex(Square sq, uint64_t occupied) const
-    {
-#ifdef USE_PEXT
-        // Uses the bmi2 pext instruction in place of magic bitboards
-        return _pext_u64(occupied, table[sq].mask);
-#else
-        // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
-        return ((occupied & table[sq].mask) * table[sq].magic) >> table[sq].shift;
-#endif
-    }
-
-    constexpr void InitSliderAttacks()
-    {
-        uint64_t* attack = attacks.data();
-
-        for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
+        while (true)
         {
-            table[sq].attacks = attack;
-
-            // Construct the mask
-            uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[enum_to<Rank>(sq)])
-                | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[enum_to<File>(sq)]);
-
-            table[sq].mask = MakeSliderAttackBB<directions...>(sq, 0) & ~edges;
-
-#ifndef USE_PEXT
-            table[sq].magic = Derived::magics[sq];
-            table[sq].shift = 64 - popcount(table[sq].mask);
-#endif
-
-            uint64_t occupied = 0;
-            do
+            bb = shift_bb<direction>(bb);
+            if (bb == EMPTY)
             {
-                AttackMask(sq, occupied) = MakeSliderAttackBB<directions...>(sq, occupied);
-                occupied = (occupied - table[sq].mask) & table[sq].mask; // Carry rippler
-                attack++;
-            } while (occupied);
+                break;
+            }
+            attacks |= bb;
+            if ((occupied & bb) != 0)
+            {
+                break;
+            }
         }
+
+        return attacks;
     }
 
-    std::array<Magic, N_SQUARES> table = {};
-    std::array<uint64_t, size> attacks = {};
-};
+    template <Shift... direction>
+    constexpr uint64_t make_slider_attacks_bb(Square sq, uint64_t occupied)
+    {
+        return (make_ray_attack_bb<direction>(sq, occupied) | ... | EMPTY);
+    }
 
-struct BishopTable : public MagicTable<BishopTable, 0x1480, Shift::NW, Shift::NE, Shift::SW, Shift::SE>
-{
-    constexpr static std::array<uint64_t, N_SQUARES> magics = {
-        // clang-format off
+    struct Magic
+    {
+        uint64_t* attacks;
+        uint64_t mask;
+#ifndef USE_PEXT
+        uint64_t magic;
+        int shift;
+#endif
+    };
+
+    template <typename Derived, uint64_t size, Shift... directions>
+    class MagicTable
+    {
+    public:
+        constexpr MagicTable()
+        {
+            init_slider_attacks();
+        }
+
+        constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const
+        {
+            return table[sq].attacks[attack_index(sq, occupied)];
+        }
+
+    private:
+        constexpr uint64_t& attack_mask(Square sq, uint64_t occupied)
+        {
+            return table[sq].attacks[attack_index(sq, occupied)];
+        }
+
+        constexpr size_t attack_index(Square sq, uint64_t occupied) const
+        {
+#ifdef USE_PEXT
+            // Uses the bmi2 pext instruction in place of magic bitboards
+            return _pext_u64(occupied, table[sq].mask);
+#else
+            // Uses magic bitboards as explained on https://www.chessprogramming.org/Magic_Bitboards
+            return ((occupied & table[sq].mask) * table[sq].magic) >> table[sq].shift;
+#endif
+        }
+
+        constexpr void init_slider_attacks()
+        {
+            uint64_t* attack = attacks.data();
+
+            for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
+            {
+                table[sq].attacks = attack;
+
+                // Construct the mask
+                uint64_t edges = ((RankBB[RANK_1] | RankBB[RANK_8]) & ~RankBB[enum_to<Rank>(sq)])
+                    | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[enum_to<File>(sq)]);
+
+                table[sq].mask = make_slider_attacks_bb<directions...>(sq, 0) & ~edges;
+
+#ifndef USE_PEXT
+                table[sq].magic = Derived::magics[sq];
+                table[sq].shift = 64 - popcount(table[sq].mask);
+#endif
+
+                uint64_t occupied = 0;
+                do
+                {
+                    attack_mask(sq, occupied) = make_slider_attacks_bb<directions...>(sq, occupied);
+                    occupied = (occupied - table[sq].mask) & table[sq].mask; // Carry rippler
+                    attack++;
+                } while (occupied);
+            }
+        }
+
+        std::array<Magic, N_SQUARES> table = {};
+        std::array<uint64_t, size> attacks = {};
+    };
+
+    struct BishopTable : public MagicTable<BishopTable, 0x1480, Shift::NW, Shift::NE, Shift::SW, Shift::SE>
+    {
+        constexpr static std::array<uint64_t, N_SQUARES> magics = {
+            // clang-format off
         0xFFEDF9FD7CFCFFFFULL, 0xFC0962854A77F576ULL, 0x5822022042000000ULL, 0x2CA804A100200020ULL,
         0x0204042200000900ULL, 0x2002121024000002ULL, 0xFC0A66C64A7EF576ULL, 0x7FFDFDFCBD79FFFFULL,
         0xFC0846A64A34FFF6ULL, 0xFC087A874A3CF7F6ULL, 0x1001080204002100ULL, 0x1810080489021800ULL,
@@ -133,14 +136,14 @@ struct BishopTable : public MagicTable<BishopTable, 0x1480, Shift::NW, Shift::NE
         0x8200002022440100ULL, 0x0009431801010068ULL, 0xC3FFB7DC36CA8C89ULL, 0xC3FF8A54F4CA2C89ULL,
         0xFFFFFCFCFD79EDFFULL, 0xFC0863FCCB147576ULL, 0x040C000022013020ULL, 0x2000104000420600ULL,
         0x0400000260142410ULL, 0x0800633408100500ULL, 0xFC087E8E4BB2F736ULL, 0x43FF9E4EF4CA2C89ULL,
-        // clang-format on
+            // clang-format on
+        };
     };
-};
 
-struct RookTable : public MagicTable<RookTable, 0x19000, Shift::N, Shift::S, Shift::W, Shift::E>
-{
-    constexpr static std::array<uint64_t, N_SQUARES> magics = {
-        // clang-format off
+    struct RookTable : public MagicTable<RookTable, 0x19000, Shift::N, Shift::S, Shift::W, Shift::E>
+    {
+        constexpr static std::array<uint64_t, N_SQUARES> magics = {
+            // clang-format off
         0xA180022080400230ULL, 0x0040100040022000ULL, 0x0080088020001002ULL, 0x0080080280841000ULL,
         0x4200042010460008ULL, 0x04800A0003040080ULL, 0x0400110082041008ULL, 0x008000A041000880ULL,
         0x10138001A080C010ULL, 0x0000804008200480ULL, 0x00010011012000C0ULL, 0x0022004128102200ULL,
@@ -157,10 +160,12 @@ struct RookTable : public MagicTable<RookTable, 0x19000, Shift::N, Shift::S, Shi
         0xFFFFFFE9FFE7CE00ULL, 0xFFFFFFF5FFF3E600ULL, 0x0010301802830400ULL, 0x510FFFF5F63C96A0ULL,
         0xEBFFFFB9FF9FC526ULL, 0x61FFFEDDFEEDAEAEULL, 0x53BFFFEDFFDEB1A2ULL, 0x127FFFB9FFDFB5F6ULL,
         0x411FFFDDFFDBF4D6ULL, 0x0801000804000603ULL, 0x0003FFEF27EEBE74ULL, 0x7645FFFECBFEA79EULL,
-        // clang-format on
+            // clang-format on
+        };
     };
-};
 }
 
 const inline detail::BishopTable bishopTable;
 const inline detail::RookTable rookTable;
+
+}

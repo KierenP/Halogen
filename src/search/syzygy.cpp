@@ -1,4 +1,4 @@
-#include "EGTB.h"
+#include "search/syzygy.h"
 
 #include <algorithm>
 #include <cassert>
@@ -6,9 +6,9 @@
 #include <mutex>
 #include <optional>
 
-#include "Move.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
 #include "third-party/Pyrrhic/tbprobe.h"
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)

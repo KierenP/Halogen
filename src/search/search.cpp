@@ -12,9 +12,6 @@
 #include <tuple>
 #include <vector>
 
-#include "EGTB.h"
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Score.h"
 #include "SearchConstants.h"
@@ -22,14 +19,17 @@
 #include "StagedMoveGenerator.h"
 #include "StaticExchangeEvaluation.h"
 #include "Zobrist.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "network/network.h"
 #include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
+#include "search/syzygy.h"
 #include "search/transposition/entry.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
@@ -572,7 +572,7 @@ void UpdatePV(Move move, SearchStackState* ss)
 
 void AddKiller(Move move, std::array<Move, 2>& killers)
 {
-    if (move.IsCapture() || move.IsPromotion() || killers[0] == move)
+    if (move.is_capture() || move.is_promotion() || killers[0] == move)
         return;
 
     killers[1] = killers[0];
@@ -581,7 +581,7 @@ void AddKiller(Move move, std::array<Move, 2>& killers)
 
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
-    if (move.IsCapture() || move.IsPromotion())
+    if (move.is_capture() || move.is_promotion())
     {
         gen.AdjustLoudHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
     }
@@ -928,7 +928,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // If a move appears to lose material we prune it. The margin is adjusted based on depth and history. This means
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
         // material.
-        bool is_loud_move = move.IsCapture() || move.IsPromotion();
+        bool is_loud_move = move.is_capture() || move.is_promotion();
         int history
             = is_loud_move ? local.GetLoudHistory(position, ss, move) : (local.GetQuietHistory(position, ss, move));
 
@@ -959,9 +959,9 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
 
         ss->move = move;
-        ss->moved_piece = position.board().get_square_piece(move.GetFrom());
+        ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
+            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
@@ -1019,7 +1019,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                                                : SearchResultType::EXACT;
 
     // Step 20: Adjust eval correction history
-    if (!InCheck && !(bestMove.IsCapture() || bestMove.IsPromotion())
+    if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
     {
@@ -1096,21 +1096,21 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
     while (gen.Next(move))
     {
-        if (!move.IsPromotion() && !see_ge(position.board(), move, alpha - eval - 280))
+        if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - 280))
         {
             continue;
         }
 
         // prune underpromotions
-        if (move.IsPromotion() && !(move.GetFlag() == QUEEN_PROMOTION || move.GetFlag() == QUEEN_PROMOTION_CAPTURE))
+        if (move.is_promotion() && !(move.flag() == QUEEN_PROMOTION || move.flag() == QUEEN_PROMOTION_CAPTURE))
         {
             continue;
         }
 
         ss->move = move;
-        ss->moved_piece = position.board().get_square_piece(move.GetFrom());
+        ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
+            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         // TODO: prefetch
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);

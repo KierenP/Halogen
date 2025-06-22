@@ -1,14 +1,14 @@
-#include "MoveGeneration.h"
+#include "movegen/movegen.h"
 
 #include <array>
 #include <cassert>
 #include <cstddef>
 
-#include "Magic.h"
-#include "Move.h"
 #include "MoveList.h" // IWYU pragma: keep
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/magic.h"
+#include "movegen/move.h"
 #include "utility/static_vector.h"
 
 template <Side STM, typename T>
@@ -642,10 +642,10 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (move == Move::Uninitialized)
         return false;
 
-    const Piece piece = board.get_square_piece(move.GetFrom());
+    const Piece piece = board.get_square_piece(move.from());
 
     /*Make sure there's a piece to be moved*/
-    if (board.get_square_piece(move.GetFrom()) == N_PIECES)
+    if (board.get_square_piece(move.from()) == N_PIECES)
         return false;
 
     /*Make sure the piece are are moving is ours*/
@@ -653,12 +653,12 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
         return false;
 
     /*Make sure we aren't capturing our own piece - except when castling it's ok (chess960)*/
-    if (!move.IsCastle() && board.get_square_piece(move.GetTo()) != N_PIECES
-        && enum_to<Side>(board.get_square_piece(move.GetTo())) == STM)
+    if (!move.is_castle() && board.get_square_piece(move.to()) != N_PIECES
+        && enum_to<Side>(board.get_square_piece(move.to())) == STM)
         return false;
 
     /*We don't use these flags*/
-    if (move.GetFlag() == DONT_USE_1 || move.GetFlag() == DONT_USE_2)
+    if (move.flag() == DONT_USE_1 || move.flag() == DONT_USE_2)
         return false;
 
     const uint64_t allPieces = board.get_pieces_bb();
@@ -667,7 +667,7 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     if (piece == WHITE_BISHOP || piece == BLACK_BISHOP || piece == WHITE_ROOK || piece == BLACK_ROOK
         || piece == WHITE_QUEEN || piece == BLACK_QUEEN)
     {
-        if (!path_clear(move.GetFrom(), move.GetTo(), allPieces))
+        if (!path_clear(move.from(), move.to(), allPieces))
             return false;
     }
 
@@ -678,37 +678,37 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
         const Rank startingRank = piece == WHITE_PAWN ? RANK_2 : RANK_7;
 
         // pawn push
-        if (rank_diff(move.GetTo(), move.GetFrom()) == forward && file_diff(move.GetFrom(), move.GetTo()) == 0)
+        if (rank_diff(move.to(), move.from()) == forward && file_diff(move.from(), move.to()) == 0)
         {
-            if (board.is_occupied(move.GetTo())) // Something in the way!
+            if (board.is_occupied(move.to())) // Something in the way!
                 return false;
         }
 
         // pawn double push
-        else if (rank_diff(move.GetTo(), move.GetFrom()) == forward * 2 && file_diff(move.GetFrom(), move.GetTo()) == 0)
+        else if (rank_diff(move.to(), move.from()) == forward * 2 && file_diff(move.from(), move.to()) == 0)
         {
-            if (enum_to<Rank>(move.GetFrom()) != startingRank) // double move not from starting rank
+            if (enum_to<Rank>(move.from()) != startingRank) // double move not from starting rank
                 return false;
-            if (board.is_occupied(move.GetTo())) // something on target square
+            if (board.is_occupied(move.to())) // something on target square
                 return false;
-            if (!board.is_empty(static_cast<Square>((move.GetTo() + move.GetFrom()) / 2))) // something in between
+            if (!board.is_empty(static_cast<Square>((move.to() + move.from()) / 2))) // something in between
                 return false;
         }
 
         // pawn capture (not EP)
-        else if (rank_diff(move.GetTo(), move.GetFrom()) == forward && abs_file_diff(move.GetFrom(), move.GetTo()) == 1
-            && board.en_passant != move.GetTo())
+        else if (rank_diff(move.to(), move.from()) == forward && abs_file_diff(move.from(), move.to()) == 1
+            && board.en_passant != move.to())
         {
-            if (board.is_empty(move.GetTo())) // nothing there to capture
+            if (board.is_empty(move.to())) // nothing there to capture
                 return false;
         }
 
         // pawn capture (EP)
-        else if (rank_diff(move.GetTo(), move.GetFrom()) == forward && abs_file_diff(move.GetFrom(), move.GetTo()) == 1
-            && board.en_passant == move.GetTo())
+        else if (rank_diff(move.to(), move.from()) == forward && abs_file_diff(move.from(), move.to()) == 1
+            && board.en_passant == move.to())
         {
             if (board.is_empty(
-                    get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom())))) // nothing there to capture
+                    get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from())))) // nothing there to capture
                 return false;
         }
 
@@ -721,36 +721,36 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     /*Check the pieces can actually move as required*/
     if (piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
     {
-        if ((SquareBB[move.GetTo()] & KnightAttacks[move.GetFrom()]) == 0)
+        if ((SquareBB[move.to()] & KnightAttacks[move.from()]) == 0)
             return false;
     }
 
-    if ((piece == WHITE_KING || piece == BLACK_KING) && !move.IsCastle())
+    if ((piece == WHITE_KING || piece == BLACK_KING) && !move.is_castle())
     {
-        if ((SquareBB[move.GetTo()] & KingAttacks[move.GetFrom()]) == 0)
+        if ((SquareBB[move.to()] & KingAttacks[move.from()]) == 0)
             return false;
     }
 
     if (piece == WHITE_ROOK || piece == BLACK_ROOK)
     {
-        if ((SquareBB[move.GetTo()] & RookAttacks[move.GetFrom()]) == 0)
+        if ((SquareBB[move.to()] & RookAttacks[move.from()]) == 0)
             return false;
     }
 
     if (piece == WHITE_BISHOP || piece == BLACK_BISHOP)
     {
-        if ((SquareBB[move.GetTo()] & BishopAttacks[move.GetFrom()]) == 0)
+        if ((SquareBB[move.to()] & BishopAttacks[move.from()]) == 0)
             return false;
     }
 
     if (piece == WHITE_QUEEN || piece == BLACK_QUEEN)
     {
-        if ((SquareBB[move.GetTo()] & QueenAttacks[move.GetFrom()]) == 0)
+        if ((SquareBB[move.to()] & QueenAttacks[move.from()]) == 0)
             return false;
     }
 
     /*For castle moves, just generate them and see if we find a match*/
-    if (move.GetFlag() == A_SIDE_CASTLE || move.GetFlag() == H_SIDE_CASTLE)
+    if (move.flag() == A_SIDE_CASTLE || move.flag() == H_SIDE_CASTLE)
     {
         StaticVector<Move, 4> moves;
         CastleMoves<STM>(board, moves, PinnedMask<STM>(board));
@@ -768,42 +768,40 @@ bool MoveIsLegal(const BoardState& board, const Move& move)
     MoveFlag flag = QUIET;
 
     // Captures
-    if (board.is_occupied(move.GetTo()))
+    if (board.is_occupied(move.to()))
         flag = CAPTURE;
 
     // Double pawn moves
-    if (abs_rank_diff(move.GetFrom(), move.GetTo()) == 2)
-        if (board.get_square_piece(move.GetFrom()) == WHITE_PAWN
-            || board.get_square_piece(move.GetFrom()) == BLACK_PAWN)
+    if (abs_rank_diff(move.from(), move.to()) == 2)
+        if (board.get_square_piece(move.from()) == WHITE_PAWN || board.get_square_piece(move.from()) == BLACK_PAWN)
             flag = PAWN_DOUBLE_MOVE;
 
     // En passant
-    if (move.GetTo() == board.en_passant)
-        if (board.get_square_piece(move.GetFrom()) == WHITE_PAWN
-            || board.get_square_piece(move.GetFrom()) == BLACK_PAWN)
+    if (move.to() == board.en_passant)
+        if (board.get_square_piece(move.from()) == WHITE_PAWN || board.get_square_piece(move.from()) == BLACK_PAWN)
             flag = EN_PASSANT;
 
     // Promotion
-    if ((board.get_square_piece(move.GetFrom()) == WHITE_PAWN && enum_to<Rank>(move.GetTo()) == RANK_8)
-        || (board.get_square_piece(move.GetFrom()) == BLACK_PAWN && enum_to<Rank>(move.GetTo()) == RANK_1))
+    if ((board.get_square_piece(move.from()) == WHITE_PAWN && enum_to<Rank>(move.to()) == RANK_8)
+        || (board.get_square_piece(move.from()) == BLACK_PAWN && enum_to<Rank>(move.to()) == RANK_1))
     {
-        if (board.is_occupied(move.GetTo()))
+        if (board.is_occupied(move.to()))
         {
-            if (move.GetFlag() != KNIGHT_PROMOTION_CAPTURE && move.GetFlag() != ROOK_PROMOTION_CAPTURE
-                && move.GetFlag() != QUEEN_PROMOTION_CAPTURE && move.GetFlag() != BISHOP_PROMOTION_CAPTURE)
+            if (move.flag() != KNIGHT_PROMOTION_CAPTURE && move.flag() != ROOK_PROMOTION_CAPTURE
+                && move.flag() != QUEEN_PROMOTION_CAPTURE && move.flag() != BISHOP_PROMOTION_CAPTURE)
                 return false;
         }
         else
         {
-            if (move.GetFlag() != KNIGHT_PROMOTION && move.GetFlag() != ROOK_PROMOTION
-                && move.GetFlag() != QUEEN_PROMOTION && move.GetFlag() != BISHOP_PROMOTION)
+            if (move.flag() != KNIGHT_PROMOTION && move.flag() != ROOK_PROMOTION && move.flag() != QUEEN_PROMOTION
+                && move.flag() != BISHOP_PROMOTION)
                 return false;
         }
     }
     else
     {
         // check the decided on flag matches
-        if (flag != move.GetFlag())
+        if (flag != move.flag())
             return false;
     }
     //-----------------------------
@@ -821,20 +819,20 @@ This function does not work for casteling moves. They are tested for legality th
 template <Side STM>
 bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
 {
-    assert(move.GetFlag() != A_SIDE_CASTLE);
-    assert(move.GetFlag() != H_SIDE_CASTLE);
+    assert(move.flag() != A_SIDE_CASTLE);
+    assert(move.flag() != H_SIDE_CASTLE);
 
     const Square king
-        = enum_to<PieceType>(board.get_square_piece(move.GetFrom())) == KING ? move.GetTo() : board.get_king_sq(STM);
+        = enum_to<PieceType>(board.get_square_piece(move.from())) == KING ? move.to() : board.get_king_sq(STM);
 
-    const uint64_t knights = board.get_pieces_bb<KNIGHT, !STM>() & ~SquareBB[move.GetTo()];
+    const uint64_t knights = board.get_pieces_bb<KNIGHT, !STM>() & ~SquareBB[move.to()];
     if (AttackBB<KNIGHT>(king) & knights)
         return true;
 
-    uint64_t pawns = board.get_pieces_bb<PAWN, !STM>() & ~SquareBB[move.GetTo()];
+    uint64_t pawns = board.get_pieces_bb<PAWN, !STM>() & ~SquareBB[move.to()];
 
-    if (move.GetFlag() == EN_PASSANT)
-        pawns &= ~SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
+    if (move.flag() == EN_PASSANT)
+        pawns &= ~SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
 
     if (PawnAttacks[STM][king] & pawns)
         return true;
@@ -842,16 +840,16 @@ bool MovePutsSelfInCheck(const BoardState& board, const Move& move)
     if (AttackBB<KING>(king) & board.get_pieces_bb<KING, !STM>())
         return true;
 
-    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.GetTo()];
+    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.to()];
+    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.to()];
+    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.to()];
     uint64_t occ = board.get_pieces_bb();
 
-    occ &= ~SquareBB[move.GetFrom()];
-    occ |= SquareBB[move.GetTo()];
+    occ &= ~SquareBB[move.from()];
+    occ |= SquareBB[move.to()];
 
-    if (move.GetFlag() == EN_PASSANT)
-        occ &= ~SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
+    if (move.flag() == EN_PASSANT)
+        occ &= ~SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
 
     if (AttackBB<BISHOP>(king, occ) & (bishops | queens))
         return true;
@@ -885,18 +883,18 @@ bool EnPassantIsLegal(const BoardState& board, const Move& move)
         return false;
 
     const uint64_t pawns = board.get_pieces_bb<PAWN, !STM>()
-        & ~SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
+        & ~SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
     if (PawnAttacks[STM][king] & pawns)
         return false;
 
-    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.GetTo()];
+    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.to()];
+    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.to()];
+    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.to()];
     uint64_t occ = board.get_pieces_bb();
 
-    occ &= ~SquareBB[move.GetFrom()];
-    occ &= ~SquareBB[get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()))];
-    occ |= SquareBB[move.GetTo()];
+    occ &= ~SquareBB[move.from()];
+    occ &= ~SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
+    occ |= SquareBB[move.to()];
 
     if (AttackBB<BISHOP>(king, occ) & (bishops | queens))
         return false;
@@ -909,7 +907,7 @@ bool EnPassantIsLegal(const BoardState& board, const Move& move)
 template <Side STM>
 bool KingMoveIsLegal(const BoardState& board, const Move& move)
 {
-    const Square king = move.GetTo();
+    const Square king = move.to();
 
     if (AttackBB<KNIGHT>(king) & board.get_pieces_bb<KNIGHT, !STM>())
         return false;
@@ -920,9 +918,9 @@ bool KingMoveIsLegal(const BoardState& board, const Move& move)
     if (AttackBB<KING>(king) & board.get_pieces_bb<KING, !STM>())
         return false;
 
-    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.GetTo()];
-    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.GetTo()];
+    const uint64_t queens = board.get_pieces_bb<QUEEN, !STM>() & ~SquareBB[move.to()];
+    const uint64_t bishops = board.get_pieces_bb<BISHOP, !STM>() & ~SquareBB[move.to()];
+    const uint64_t rooks = board.get_pieces_bb<ROOK, !STM>() & ~SquareBB[move.to()];
     uint64_t occ = board.get_pieces_bb();
 
     // where this function is called, we already filter out attacks going through the 'from' square, so we don't need to
@@ -993,13 +991,13 @@ uint64_t AttackBB<KNIGHT>(Square sq, uint64_t)
 template <>
 uint64_t AttackBB<BISHOP>(Square sq, uint64_t occupied)
 {
-    return bishopTable.AttackMask(sq, occupied);
+    return Magic::bishopTable.attack_mask(sq, occupied);
 }
 
 template <>
 uint64_t AttackBB<ROOK>(Square sq, uint64_t occupied)
 {
-    return rookTable.AttackMask(sq, occupied);
+    return Magic::rookTable.attack_mask(sq, occupied);
 }
 
 template <>

@@ -6,13 +6,13 @@
 #include <cstdint>
 #include <limits>
 
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Score.h"
 #include "SearchData.h"
 #include "StaticExchangeEvaluation.h"
 #include "chessboard/game_state.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "search/history.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
@@ -41,7 +41,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || TTmove.IsCapture() || TTmove.IsPromotion()) && MoveIsLegal(position.board(), TTmove))
+        if ((!quiescence || TTmove.is_capture() || TTmove.is_promotion()) && MoveIsLegal(position.board(), TTmove))
         {
             move = TTmove;
             return true;
@@ -61,7 +61,7 @@ bool StagedMoveGenerator::Next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            if (current->move.IsPromotion() || see_ge(position.board(), current->move, 0))
+            if (current->move.is_promotion() || see_ge(position.board(), current->move, 0))
             {
                 move = current->move;
                 ++current;
@@ -235,9 +235,9 @@ void StagedMoveGenerator::ScoreLoudMoves(ExtendedMoveList& moves)
         }
 
         // Promotions
-        else if (moves[i].move.IsPromotion())
+        else if (moves[i].move.is_promotion())
         {
-            if (moves[i].move.GetFlag() == QUEEN_PROMOTION || moves[i].move.GetFlag() == QUEEN_PROMOTION_CAPTURE)
+            if (moves[i].move.flag() == QUEEN_PROMOTION || moves[i].move.flag() == QUEEN_PROMOTION_CAPTURE)
             {
                 moves[i].score = SCORE_QUEEN_PROMOTION;
             }

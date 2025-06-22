@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Move.h"
-#include "MoveGeneration.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck

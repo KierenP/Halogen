@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <random>
 
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
 
 namespace Zobrist

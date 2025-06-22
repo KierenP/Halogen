@@ -7,9 +7,9 @@
 #include <cstring>
 #include <tuple>
 
-#include "Move.h"
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
 
 class GameState;
 struct SearchStackState;
@@ -74,7 +74,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 };
 
 // Continuation history lets us look up history in the form
-// [side][(ss-N)->moved_piece][(ss-N)->move.GetTo()][(ss)->moved_piece][(ss)->move.GetTo()]
+// [side][(ss-N)->moved_piece][(ss-N)->move.to()][(ss)->moved_piece][(ss)->move.to()]
 // To add strength, we use the same table for all values of N (typically 1..6 in strong engines).
 // This means if we add a bonus for a particular 4 ply continuation, we will also observe this bonus for
 // equivalent 2 ply or 6 ply continuations

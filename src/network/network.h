@@ -5,7 +5,7 @@
 #include <cstring>
 
 #include "Score.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
 
 class Move;

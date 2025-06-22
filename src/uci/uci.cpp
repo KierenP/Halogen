@@ -15,20 +15,20 @@
 #include <string_view>
 #include <vector>
 
-#include "EGTB.h"
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Score.h"
 #include "SearchData.h"
-#include "benchmark.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
+#include "misc/benchmark.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "network/network.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
 #include "search/search.h"
+#include "search/syzygy.h"
 #include "search/transposition/table.h"
 #include "uci/options.h"
 #include "uci/parse.h"
@@ -99,7 +99,7 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
             {
                 std::cout << position.board() << move << "\n";
                 std::cout << present << " " << legal << "\n";
-                std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;
+                std::cout << move.from() << " " << move.to() << " " << move.flag() << std::endl;
                 return 0; // cause perft answer to be incorrect
             }
         }

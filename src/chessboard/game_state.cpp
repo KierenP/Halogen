@@ -5,10 +5,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Move.h"
 #include "Zobrist.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
 #include "search/cuckoo.h"
 
 void GameState::apply_move(Move move)
@@ -205,7 +205,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         if (Cuckoo::table[hash] == diff || (hash = Cuckoo::H2(diff), Cuckoo::table[hash] == diff))
         {
             const auto move = Cuckoo::move_table[hash];
-            if ((occ & BetweenBB[move.GetFrom()][move.GetTo()]) == EMPTY)
+            if ((occ & BetweenBB[move.from()][move.to()]) == EMPTY)
             {
                 // two fold rep after root
                 if (ply < distanceFromRoot)

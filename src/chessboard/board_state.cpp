@@ -5,10 +5,10 @@
 #include <cstddef>
 #include <iostream>
 
-#include "Move.h"
-#include "MoveGeneration.h"
 #include "Zobrist.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 
 bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 {
@@ -228,7 +228,7 @@ void BoardState::update_castle_rights(Move move)
 {
     // check for the king or rook moving, or a rook being captured
 
-    if (move.GetFrom() == get_king_sq(WHITE))
+    if (move.from() == get_king_sq(WHITE))
     {
         // get castle squares on white side
         uint64_t white_castle = castle_squares & RankBB[RANK_1];
@@ -241,7 +241,7 @@ void BoardState::update_castle_rights(Move move)
         castle_squares &= ~(RankBB[RANK_1]);
     }
 
-    if (move.GetFrom() == get_king_sq(BLACK))
+    if (move.from() == get_king_sq(BLACK))
     {
         // get castle squares on black side
         uint64_t black_castle = castle_squares & RankBB[RANK_8];
@@ -254,16 +254,16 @@ void BoardState::update_castle_rights(Move move)
         castle_squares &= ~(RankBB[RANK_8]);
     }
 
-    if (SquareBB[move.GetTo()] & castle_squares)
+    if (SquareBB[move.to()] & castle_squares)
     {
-        key ^= Zobrist::castle(move.GetTo());
-        castle_squares &= ~SquareBB[move.GetTo()];
+        key ^= Zobrist::castle(move.to());
+        castle_squares &= ~SquareBB[move.to()];
     }
 
-    if (SquareBB[move.GetFrom()] & castle_squares)
+    if (SquareBB[move.from()] & castle_squares)
     {
-        key ^= Zobrist::castle(move.GetFrom());
-        castle_squares &= ~SquareBB[move.GetFrom()];
+        key ^= Zobrist::castle(move.from());
+        castle_squares &= ~SquareBB[move.from()];
     }
 }
 
@@ -319,35 +319,35 @@ void BoardState::apply_move(Move move)
 
     update_castle_rights(move);
 
-    switch (move.GetFlag())
+    switch (move.flag())
     {
     case QUIET:
     {
-        const auto piece = get_square_piece(move.GetFrom());
+        const auto piece = get_square_piece(move.from());
 
-        add_piece_sq(move.GetTo(), piece);
-        remove_piece_sq(move.GetFrom(), piece);
+        add_piece_sq(move.to(), piece);
+        remove_piece_sq(move.from(), piece);
 
-        key ^= Zobrist::piece_square(piece, move.GetFrom());
-        key ^= Zobrist::piece_square(piece, move.GetTo());
+        key ^= Zobrist::piece_square(piece, move.from());
+        key ^= Zobrist::piece_square(piece, move.to());
         if (enum_to<PieceType>(piece) == PAWN)
         {
-            pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
-            pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
+            pawn_key ^= Zobrist::piece_square(piece, move.from());
+            pawn_key ^= Zobrist::piece_square(piece, move.to());
         }
         else
         {
-            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetFrom());
-            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetTo());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.from());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.to());
             if (enum_to<PieceType>(piece) == KNIGHT || enum_to<PieceType>(piece) == BISHOP)
             {
                 // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // minor_key ^= Zobrist::piece_square(piece, move.GetTo());
+                // minor_key ^= Zobrist::piece_square(piece, move.to());
             }
             else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
             {
                 // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // major_key ^= Zobrist::piece_square(piece, move.GetTo());
+                // major_key ^= Zobrist::piece_square(piece, move.to());
             }
         }
 
@@ -357,7 +357,7 @@ void BoardState::apply_move(Move move)
     {
         // average of from and to is the one in the middle, or 1 behind where it is moving to. This means it works the
         // same for black and white
-        Square ep_sq = static_cast<Square>((move.GetTo() + move.GetFrom()) / 2);
+        Square ep_sq = static_cast<Square>((move.to() + move.from()) / 2);
 
         // it only counts as a ep square if a pawn could potentially do the capture!
         uint64_t potentialAttackers = PawnAttacks[stm][ep_sq] & get_pieces_bb(PAWN, !stm);
@@ -377,21 +377,21 @@ void BoardState::apply_move(Move move)
 
         const auto piece = get_piece(PAWN, stm);
 
-        add_piece_sq(move.GetTo(), piece);
-        remove_piece_sq(move.GetFrom(), piece);
+        add_piece_sq(move.to(), piece);
+        remove_piece_sq(move.from(), piece);
 
-        key ^= Zobrist::piece_square(piece, move.GetFrom());
-        key ^= Zobrist::piece_square(piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
-        pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
+        key ^= Zobrist::piece_square(piece, move.from());
+        key ^= Zobrist::piece_square(piece, move.to());
+        pawn_key ^= Zobrist::piece_square(piece, move.from());
+        pawn_key ^= Zobrist::piece_square(piece, move.to());
 
         break;
     }
     case A_SIDE_CASTLE:
     {
-        Square king_start = move.GetFrom();
+        Square king_start = move.from();
         Square king_end = stm == WHITE ? SQ_C1 : SQ_C8;
-        Square rook_start = move.GetTo();
+        Square rook_start = move.to();
         Square rook_end = stm == WHITE ? SQ_D1 : SQ_D8;
 
         remove_piece_sq(king_start, get_piece(KING, stm));
@@ -414,9 +414,9 @@ void BoardState::apply_move(Move move)
     }
     case H_SIDE_CASTLE:
     {
-        Square king_start = move.GetFrom();
+        Square king_start = move.from();
         Square king_end = stm == WHITE ? SQ_G1 : SQ_G8;
-        Square rook_start = move.GetTo();
+        Square rook_start = move.to();
         Square rook_end = stm == WHITE ? SQ_F1 : SQ_F8;
 
         remove_piece_sq(king_start, get_piece(KING, stm));
@@ -439,50 +439,50 @@ void BoardState::apply_move(Move move)
     }
     case CAPTURE:
     {
-        const auto cap_piece = get_square_piece(move.GetTo());
-        const auto piece = get_square_piece(move.GetFrom());
+        const auto cap_piece = get_square_piece(move.to());
+        const auto piece = get_square_piece(move.from());
 
-        remove_piece_sq(move.GetTo(), cap_piece);
-        add_piece_sq(move.GetTo(), piece);
-        remove_piece_sq(move.GetFrom(), piece);
+        remove_piece_sq(move.to(), cap_piece);
+        add_piece_sq(move.to(), piece);
+        remove_piece_sq(move.from(), piece);
 
-        key ^= Zobrist::piece_square(piece, move.GetFrom());
-        key ^= Zobrist::piece_square(piece, move.GetTo());
+        key ^= Zobrist::piece_square(piece, move.from());
+        key ^= Zobrist::piece_square(piece, move.to());
         if (enum_to<PieceType>(piece) == PAWN)
         {
-            pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
-            pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
+            pawn_key ^= Zobrist::piece_square(piece, move.from());
+            pawn_key ^= Zobrist::piece_square(piece, move.to());
         }
         else
         {
-            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetFrom());
-            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.GetTo());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.from());
+            non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.to());
             if (enum_to<PieceType>(piece) == KNIGHT || enum_to<PieceType>(piece) == BISHOP)
             {
                 // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // minor_key ^= Zobrist::piece_square(piece, move.GetTo());
+                // minor_key ^= Zobrist::piece_square(piece, move.to());
             }
             else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
             {
                 // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // major_key ^= Zobrist::piece_square(piece, move.GetTo());
+                // major_key ^= Zobrist::piece_square(piece, move.to());
             }
         }
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        key ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == PAWN)
         {
-            pawn_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            pawn_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
         else
         {
-            non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
             if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
             {
-                // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+                // minor_key ^= Zobrist::piece_square(cap_piece, move.to());
             }
             else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
             {
-                // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+                // major_key ^= Zobrist::piece_square(cap_piece, move.to());
             }
         }
 
@@ -490,21 +490,21 @@ void BoardState::apply_move(Move move)
     }
     case EN_PASSANT:
     {
-        const auto ep_cap_sq = get_square(enum_to<File>(move.GetTo()), enum_to<Rank>(move.GetFrom()));
+        const auto ep_cap_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
         const auto cap_piece = get_piece(PAWN, !stm);
         const auto piece = get_piece(PAWN, stm);
 
         remove_piece_sq(ep_cap_sq, cap_piece);
-        add_piece_sq(move.GetTo(), piece);
-        remove_piece_sq(move.GetFrom(), piece);
+        add_piece_sq(move.to(), piece);
+        remove_piece_sq(move.from(), piece);
 
         key ^= Zobrist::piece_square(cap_piece, ep_cap_sq);
-        key ^= Zobrist::piece_square(piece, move.GetFrom());
-        key ^= Zobrist::piece_square(piece, move.GetTo());
+        key ^= Zobrist::piece_square(piece, move.from());
+        key ^= Zobrist::piece_square(piece, move.to());
 
         pawn_key ^= Zobrist::piece_square(cap_piece, ep_cap_sq);
-        pawn_key ^= Zobrist::piece_square(piece, move.GetFrom());
-        pawn_key ^= Zobrist::piece_square(piece, move.GetTo());
+        pawn_key ^= Zobrist::piece_square(piece, move.from());
+        pawn_key ^= Zobrist::piece_square(piece, move.to());
 
         break;
     }
@@ -513,14 +513,14 @@ void BoardState::apply_move(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(KNIGHT, stm);
 
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -529,14 +529,14 @@ void BoardState::apply_move(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(BISHOP, stm);
 
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -545,14 +545,14 @@ void BoardState::apply_move(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(ROOK, stm);
 
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -561,14 +561,14 @@ void BoardState::apply_move(Move move)
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(QUEEN, stm);
 
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -576,26 +576,26 @@ void BoardState::apply_move(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(KNIGHT, stm);
-        const auto cap_piece = get_square_piece(move.GetTo());
+        const auto cap_piece = get_square_piece(move.to());
 
-        remove_piece_sq(move.GetTo(), cap_piece);
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.to(), cap_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.to());
+        key ^= Zobrist::piece_square(cap_piece, move.to());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
         {
-            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -604,26 +604,26 @@ void BoardState::apply_move(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(BISHOP, stm);
-        const auto cap_piece = get_square_piece(move.GetTo());
+        const auto cap_piece = get_square_piece(move.to());
 
-        remove_piece_sq(move.GetTo(), cap_piece);
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.to(), cap_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // minor_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // minor_key ^= Zobrist::piece_square(promo_piece, move.to());
+        key ^= Zobrist::piece_square(cap_piece, move.to());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
         {
-            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -632,26 +632,26 @@ void BoardState::apply_move(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(ROOK, stm);
-        const auto cap_piece = get_square_piece(move.GetTo());
+        const auto cap_piece = get_square_piece(move.to());
 
-        remove_piece_sq(move.GetTo(), cap_piece);
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.to(), cap_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        key ^= Zobrist::piece_square(cap_piece, move.to());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
         {
-            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -660,26 +660,26 @@ void BoardState::apply_move(Move move)
     {
         const auto pawn_piece = get_piece(PAWN, stm);
         const auto promo_piece = get_piece(QUEEN, stm);
-        const auto cap_piece = get_square_piece(move.GetTo());
+        const auto cap_piece = get_square_piece(move.to());
 
-        remove_piece_sq(move.GetTo(), cap_piece);
-        add_piece_sq(move.GetTo(), promo_piece);
-        remove_piece_sq(move.GetFrom(), pawn_piece);
+        remove_piece_sq(move.to(), cap_piece);
+        add_piece_sq(move.to(), promo_piece);
+        remove_piece_sq(move.from(), pawn_piece);
 
-        key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.GetFrom());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.GetTo());
-        key ^= Zobrist::piece_square(cap_piece, move.GetTo());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.GetTo());
+        key ^= Zobrist::piece_square(pawn_piece, move.from());
+        key ^= Zobrist::piece_square(promo_piece, move.to());
+        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
+        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
+        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        key ^= Zobrist::piece_square(cap_piece, move.to());
+        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
         {
-            // minor_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // minor_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.GetTo());
+            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -688,7 +688,7 @@ void BoardState::apply_move(Move move)
         assert(0);
     }
 
-    if (move.IsCapture() || get_square_piece(move.GetTo()) == get_piece(PAWN, stm) || move.IsPromotion())
+    if (move.is_capture() || get_square_piece(move.to()) == get_piece(PAWN, stm) || move.is_promotion())
         fifty_move_count = 0;
     else
         fifty_move_count++;

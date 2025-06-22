@@ -1,6 +1,6 @@
 #pragma once
-#include "Move.h"
 #include "MoveList.h"
+#include "movegen/move.h"
 
 class GameState;
 struct SearchLocalState;

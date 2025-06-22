@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
 
-#include "Move.h"
-#include "bitboard.h"
+#include "bitboard/define.h"
+#include "movegen/move.h"
 #include "utility/static_vector.h"
 
 // For move ordering we need to bundle the 'score' with the move objects
