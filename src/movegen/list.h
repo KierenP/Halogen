@@ -34,5 +34,6 @@ struct ExtendedMove
     int16_t score;
 };
 
+// TODO: 256?
 using ExtendedMoveList = StaticVector<ExtendedMove, 218>;
 using BasicMoveList = StaticVector<Move, 218>;

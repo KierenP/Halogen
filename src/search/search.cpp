@@ -12,26 +12,26 @@
 #include <tuple>
 #include <vector>
 
-#include "MoveList.h"
-#include "Score.h"
-#include "SearchConstants.h"
-#include "SearchData.h"
-#include "StagedMoveGenerator.h"
-#include "StaticExchangeEvaluation.h"
-#include "Zobrist.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
+#include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "network/network.h"
+#include "search/data.h"
 #include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
+#include "search/score.h"
+#include "search/staged_movegen.h"
+#include "search/static_exchange_evaluation.h"
 #include "search/syzygy.h"
 #include "search/transposition/entry.h"
 #include "search/transposition/table.h"
+#include "search/zobrist.h"
+#include "spsa/tuneable.h"
 #include "uci/uci.h"
 #include "utility/atomic.h"
 #include "utility/static_vector.h"
@@ -62,12 +62,12 @@ void launch_search(GameState& position, SearchSharedState& shared)
     LMR_reduction = Initialise_LMR_reduction();
 #endif
 
-    shared.ResetNewSearch();
+    shared.reset_new_search();
 
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared.get_multi_pv_setting();
     BasicMoveList moves;
-    LegalMoves(position.board(), moves);
+    legal_moves(position.board(), moves);
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root
@@ -300,10 +300,10 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     if (position.board().fifty_move_count >= 100)
     {
-        if (IsInCheck(position.board()))
+        if (is_in_check(position.board()))
         {
             BasicMoveList moves;
-            LegalMoves(position.board(), moves);
+            legal_moves(position.board(), moves);
             if (moves.empty())
             {
                 return Score::mated_in(distance_from_root);
@@ -583,11 +583,11 @@ void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemai
 {
     if (move.is_capture() || move.is_promotion())
     {
-        gen.AdjustLoudHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+        gen.update_loud_history(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
     }
     else
     {
-        gen.AdjustQuietHistory(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+        gen.update_quiet_history(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
     }
 }
 
@@ -658,7 +658,7 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
 
 Score TerminalScore(const BoardState& board, int distanceFromRoot)
 {
-    if (IsInCheck(board))
+    if (is_in_check(board))
     {
         return Score::mated_in(distanceFromRoot);
     }
@@ -745,7 +745,7 @@ void test_upcoming_cycle_detection(GameState& position, int distance_from_root)
     bool has_upcoming_rep = position.upcoming_rep(distance_from_root);
     bool is_draw = false;
     BasicMoveList moves;
-    LegalMoves(position.board(), moves);
+    legal_moves(position.board(), moves);
 
     for (const auto& move : moves)
     {
@@ -776,7 +776,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     assert(!(pv_node && cut_node));
     [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
-    const bool InCheck = IsInCheck(position.board());
+    const bool InCheck = is_in_check(position.board());
 
     // Step 1: Drop into q-search
     if (depth <= 0 && !InCheck)
@@ -873,7 +873,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
-    ss->threat_mask = ThreatMask(position.board(), !position.board().stm);
+    ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
 
     // Step 9: Rebel style IID
     //
@@ -889,12 +889,12 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     Move move;
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
-    while (gen.Next(move))
+    while (gen.next(move))
     {
         noLegalMoves = false;
         const int64_t prev_nodes = local.nodes;
 
-        if (move == ss->singular_exclusion || (root_node && local.RootExcludeMove(move)))
+        if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
         {
             continue;
         }
@@ -907,7 +907,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // pruning
         if (depth < 6 && seen_moves >= 3 + 3 * depth * (1 + improving) && score > Score::tb_loss_in(MAX_DEPTH))
         {
-            gen.SkipQuiets();
+            gen.skip_quiets();
         }
 
         // Step 12: Futility pruning
@@ -916,8 +916,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
-            gen.SkipQuiets();
-            if (gen.GetStage() >= Stage::GIVE_BAD_LOUD)
+            gen.skip_quiets();
+            if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
             {
                 break;
             }
@@ -930,7 +930,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // material.
         bool is_loud_move = move.is_capture() || move.is_promotion();
         int history
-            = is_loud_move ? local.GetLoudHistory(position, ss, move) : (local.GetQuietHistory(position, ss, move));
+            = is_loud_move ? local.get_loud_history(position, ss, move) : (local.get_quiet_history(position, ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
             && !see_ge(position.board(), move, -111 * depth - history / 168))
@@ -968,7 +968,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (IsInCheck(position.board()))
+        if (is_in_check(position.board()))
         {
             extensions += 1;
         }
@@ -1094,7 +1094,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
     StagedMoveGenerator gen(position, ss, local, tt_move, true);
     Move move;
 
-    while (gen.Next(move))
+    while (gen.next(move))
     {
         if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - 280))
         {

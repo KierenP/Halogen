@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 
+// TODO: bring all search constants under here, and leverage uci options
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else

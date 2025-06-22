@@ -1,9 +1,9 @@
 #include "search/cuckoo.h"
 
-#include "Zobrist.h"
 #include "bitboard/define.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
+#include "search/zobrist.h"
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck
@@ -21,15 +21,15 @@ bool is_valid_and_reversible_move(Move move, Piece piece)
     switch (enum_to<PieceType>(piece))
     {
     case KNIGHT:
-        return (AttackBB<KNIGHT>(from) & SquareBB[to]);
+        return (attack_bb<KNIGHT>(from) & SquareBB[to]);
     case BISHOP:
-        return (AttackBB<BISHOP>(from) & SquareBB[to]);
+        return (attack_bb<BISHOP>(from) & SquareBB[to]);
     case ROOK:
-        return (AttackBB<ROOK>(from) & SquareBB[to]);
+        return (attack_bb<ROOK>(from) & SquareBB[to]);
     case QUEEN:
-        return (AttackBB<QUEEN>(from) & SquareBB[to]);
+        return (attack_bb<QUEEN>(from) & SquareBB[to]);
     case KING:
-        return (AttackBB<KING>(from) & SquareBB[to]);
+        return (attack_bb<KING>(from) & SquareBB[to]);
     default:
         return false;
     }

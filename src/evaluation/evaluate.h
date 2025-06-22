@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Score.h"
+#include "search/score.h"
 
 class BoardState;
 struct SearchStackState;

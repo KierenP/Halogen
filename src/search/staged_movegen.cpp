@@ -1,4 +1,4 @@
-#include "StagedMoveGenerator.h"
+#include "search/staged_movegen.h"
 
 #include <algorithm>
 #include <array>
@@ -6,14 +6,14 @@
 #include <cstdint>
 #include <limits>
 
-#include "MoveList.h"
-#include "Score.h"
-#include "SearchData.h"
-#include "StaticExchangeEvaluation.h"
 #include "chessboard/game_state.h"
+#include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
+#include "search/data.h"
 #include "search/history.h"
+#include "search/score.h"
+#include "search/static_exchange_evaluation.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
@@ -35,13 +35,13 @@ void selection_sort(
     }
 }
 
-bool StagedMoveGenerator::Next(Move& move)
+bool StagedMoveGenerator::next(Move& move)
 {
     if (stage == Stage::TT_MOVE)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || TTmove.is_capture() || TTmove.is_promotion()) && MoveIsLegal(position.board(), TTmove))
+        if ((!quiescence || TTmove.is_capture() || TTmove.is_promotion()) && is_legal(position.board(), TTmove))
         {
             move = TTmove;
             return true;
@@ -50,8 +50,8 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        QuiescenceMoves(position.board(), loudMoves);
-        ScoreLoudMoves(loudMoves);
+        loud_moves(position.board(), loudMoves);
+        score_loud_moves(loudMoves);
         current = loudMoves.begin();
         selection_sort(current, loudMoves.end(), loudMoves.end());
         stage = Stage::GIVE_GOOD_LOUD;
@@ -86,7 +86,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer1 = ss->killers[0];
         stage = Stage::GIVE_KILLER_2;
 
-        if (Killer1 != TTmove && MoveIsLegal(position.board(), Killer1))
+        if (Killer1 != TTmove && is_legal(position.board(), Killer1))
         {
             move = Killer1;
             return true;
@@ -98,7 +98,7 @@ bool StagedMoveGenerator::Next(Move& move)
         Killer2 = ss->killers[1];
         stage = Stage::GIVE_BAD_LOUD;
 
-        if (Killer2 != TTmove && MoveIsLegal(position.board(), Killer2))
+        if (Killer2 != TTmove && is_legal(position.board(), Killer2))
         {
             move = Killer2;
             return true;
@@ -124,8 +124,8 @@ bool StagedMoveGenerator::Next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        QuietMoves(position.board(), quietMoves);
-        ScoreQuietMoves(quietMoves);
+        quiet_moves(position.board(), quietMoves);
+        score_quiet_moves(quietMoves);
         current = sorted_end = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
     }
@@ -150,43 +150,43 @@ bool StagedMoveGenerator::Next(Move& move)
     return false;
 }
 
-void StagedMoveGenerator::AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.AddQuietHistory(position, ss, move, positive_adjustment);
+    local.add_quiet_history(position, ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.AddQuietHistory(position, ss, m.move, negative_adjustment);
+        local.add_quiet_history(position, ss, m.move, negative_adjustment);
     }
 
     for (auto const& m : loudMoves)
     {
-        local.AddLoudHistory(position, ss, m.move, negative_adjustment);
+        local.add_loud_history(position, ss, m.move, negative_adjustment);
     }
 }
 
-void StagedMoveGenerator::AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::update_loud_history(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.AddLoudHistory(position, ss, move, positive_adjustment);
+    local.add_loud_history(position, ss, move, positive_adjustment);
 
     for (auto const& m : loudMoves)
     {
         if (m.move == move)
             break;
 
-        local.AddLoudHistory(position, ss, m.move, negative_adjustment);
+        local.add_loud_history(position, ss, m.move, negative_adjustment);
     }
 }
 
-void StagedMoveGenerator::SkipQuiets()
+void StagedMoveGenerator::skip_quiets()
 {
     skipQuiets = true;
 }
 
-void StagedMoveGenerator::ScoreQuietMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
 {
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -213,14 +213,14 @@ void StagedMoveGenerator::ScoreQuietMoves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.GetQuietHistory(position, ss, moves[i].move);
+            int history = local.get_quiet_history(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }
     }
 }
 
-void StagedMoveGenerator::ScoreLoudMoves(ExtendedMoveList& moves)
+void StagedMoveGenerator::score_loud_moves(ExtendedMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
     static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
@@ -250,7 +250,7 @@ void StagedMoveGenerator::ScoreLoudMoves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            int history = local.GetLoudHistory(position, ss, moves[i].move);
+            int history = local.get_loud_history(position, ss, moves[i].move);
             moves[i].score
                 = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
         }

@@ -1,15 +1,16 @@
-#include "StaticExchangeEvaluation.h"
+#include "search/static_exchange_evaluation.h"
 
 #include <array>
 #include <cstdint>
 
-#include "Score.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
+#include "search/score.h"
 
-uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
+// movegen::attacks_to_sq could be used here?
+uint64_t attackers_to_sq(const BoardState& board, Square sq, uint64_t occ)
 {
     uint64_t pawn_mask = (board.get_pieces_bb<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
     pawn_mask |= (board.get_pieces_bb<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
@@ -17,12 +18,12 @@ uint64_t AttackersToSq(const BoardState& board, Square sq, uint64_t occ)
     uint64_t bishops = board.get_pieces_bb<QUEEN>() | board.get_pieces_bb<BISHOP>();
     uint64_t rooks = board.get_pieces_bb<QUEEN>() | board.get_pieces_bb<ROOK>();
 
-    return (pawn_mask & board.get_pieces_bb<PAWN>()) | (AttackBB<KNIGHT>(sq) & board.get_pieces_bb<KNIGHT>())
-        | (AttackBB<KING>(sq) & board.get_pieces_bb<KING>()) | (AttackBB<BISHOP>(sq, occ) & bishops)
-        | (AttackBB<ROOK>(sq, occ) & rooks);
+    return (pawn_mask & board.get_pieces_bb<PAWN>()) | (attack_bb<KNIGHT>(sq) & board.get_pieces_bb<KNIGHT>())
+        | (attack_bb<KING>(sq) & board.get_pieces_bb<KING>()) | (attack_bb<BISHOP>(sq, occ) & bishops)
+        | (attack_bb<ROOK>(sq, occ) & rooks);
 }
 
-uint64_t GetLeastValuableAttacker(const BoardState& board, uint64_t attackers, Piece& capturing, Side side)
+uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Piece& capturing, Side side)
 {
     for (int i = 0; i < 6; i++)
     {
@@ -58,7 +59,7 @@ int see(const BoardState& board, Move move)
         occ ^= SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
     }
 
-    uint64_t attack_def = AttackersToSq(board, to, occ);
+    uint64_t attack_def = attackers_to_sq(board, to, occ);
     scores[index] = PieceValues[captured];
 
     do
@@ -70,8 +71,8 @@ int see(const BoardState& board, Move move)
         attack_def ^= from_set;
         occ ^= from_set;
 
-        attack_def |= occ & ((bishops & AttackBB<BISHOP>(to, occ)) | (rooks & AttackBB<ROOK>(to, occ)));
-        from_set = GetLeastValuableAttacker(board, attack_def, capturing, Side(attacker));
+        attack_def |= occ & ((bishops & attack_bb<BISHOP>(to, occ)) | (rooks & attack_bb<ROOK>(to, occ)));
+        from_set = least_valuable_attacker(board, attack_def, capturing, Side(attacker));
     } while (from_set);
     while (--index)
     {
@@ -118,7 +119,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     }
 
     occ ^= SquareBB[from];
-    uint64_t attack_def = AttackersToSq(board, to, occ);
+    uint64_t attack_def = attackers_to_sq(board, to, occ);
     attack_def ^= SquareBB[from];
 
     while (true)
@@ -145,7 +146,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(pawns)];
-                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ));
                 continue;
             }
         }
@@ -170,7 +171,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(bishops)];
-                attack_def |= occ & (bishop_queen & AttackBB<BISHOP>(to, occ));
+                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ));
                 continue;
             }
         }
@@ -183,7 +184,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(rooks)];
-                attack_def |= occ & (rook_queen & AttackBB<ROOK>(to, occ));
+                attack_def |= occ & (rook_queen & attack_bb<ROOK>(to, occ));
                 continue;
             }
         }
@@ -197,7 +198,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                     break;
                 occ ^= SquareBB[lsb(queens)];
                 attack_def
-                    |= occ & ((bishop_queen & AttackBB<BISHOP>(to, occ)) | (rook_queen & AttackBB<ROOK>(to, occ)));
+                    |= occ & ((bishop_queen & attack_bb<BISHOP>(to, occ)) | (rook_queen & attack_bb<ROOK>(to, occ)));
                 continue;
             }
         }

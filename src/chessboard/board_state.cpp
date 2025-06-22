@@ -5,10 +5,10 @@
 #include <cstddef>
 #include <iostream>
 
-#include "Zobrist.h"
 #include "bitboard/define.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
+#include "search/zobrist.h"
 
 bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 {
@@ -365,7 +365,7 @@ void BoardState::apply_move(Move move)
         while (potentialAttackers)
         {
             stm = !stm;
-            bool legal = EnPassantIsLegal(*this, Move(lsbpop(potentialAttackers), ep_sq, EN_PASSANT));
+            bool legal = ep_is_legal(*this, Move(lsbpop(potentialAttackers), ep_sq, EN_PASSANT));
             stm = !stm;
             if (legal)
             {

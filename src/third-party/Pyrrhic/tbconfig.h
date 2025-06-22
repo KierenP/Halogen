@@ -45,8 +45,8 @@
 #define PYRRHIC_POPLSB(x) (lsbpop(*x))
 
 #define PYRRHIC_PAWN_ATTACKS(sq, c) (PawnAttacks[c][sq])
-#define PYRRHIC_KNIGHT_ATTACKS(sq) (AttackBB<KNIGHT>(static_cast<Square>(sq)))
-#define PYRRHIC_BISHOP_ATTACKS(sq, occ) (AttackBB<BISHOP>(static_cast<Square>(sq), occ))
-#define PYRRHIC_ROOK_ATTACKS(sq, occ) (AttackBB<ROOK>(static_cast<Square>(sq), occ))
-#define PYRRHIC_QUEEN_ATTACKS(sq, occ) (AttackBB<QUEEN>(static_cast<Square>(sq), occ))
-#define PYRRHIC_KING_ATTACKS(sq) (AttackBB<KING>(static_cast<Square>(sq)))
+#define PYRRHIC_KNIGHT_ATTACKS(sq) (attack_bb<KNIGHT>(static_cast<Square>(sq)))
+#define PYRRHIC_BISHOP_ATTACKS(sq, occ) (attack_bb<BISHOP>(static_cast<Square>(sq), occ))
+#define PYRRHIC_ROOK_ATTACKS(sq, occ) (attack_bb<ROOK>(static_cast<Square>(sq), occ))
+#define PYRRHIC_QUEEN_ATTACKS(sq, occ) (attack_bb<QUEEN>(static_cast<Square>(sq), occ))
+#define PYRRHIC_KING_ATTACKS(sq) (attack_bb<KING>(static_cast<Square>(sq)))

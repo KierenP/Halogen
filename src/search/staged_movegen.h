@@ -1,5 +1,5 @@
 #pragma once
-#include "MoveList.h"
+#include "movegen/list.h"
 #include "movegen/move.h"
 
 class GameState;
@@ -41,29 +41,29 @@ public:
     StagedMoveGenerator& operator=(StagedMoveGenerator&&) = delete;
 
     // Returns false if no more legal moves
-    bool Next(Move& move);
+    bool next(Move& move);
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
-    void AdjustQuietHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
-    void AdjustLoudHistory(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void update_quiet_history(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void update_loud_history(const Move& move, int positive_adjustment, int negative_adjustment) const;
 
     // Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
-    void SkipQuiets();
+    void skip_quiets();
 
     // Note this will be the stage of the coming move, not the one that was last returned.
-    Stage GetStage() const
+    Stage get_stage() const
     {
         return stage;
     }
 
-    Move TTMove()
+    Move tt_move()
     {
         return TTmove;
     }
 
 private:
-    void ScoreQuietMoves(ExtendedMoveList& moves);
-    void ScoreLoudMoves(ExtendedMoveList& moves);
+    void score_quiet_moves(ExtendedMoveList& moves);
+    void score_loud_moves(ExtendedMoveList& moves);
 
     // Data needed for use in ordering or generating moves
     const GameState& position;

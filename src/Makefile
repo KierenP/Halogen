@@ -8,10 +8,6 @@ EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
 
 SRCS := \
 	main.cpp \
-	SearchData.cpp \
-	StagedMoveGenerator.cpp \
-	Zobrist.cpp \
-	StaticExchangeEvaluation.cpp \
 	chessboard/board_state.cpp \
 	chessboard/game_state.cpp \
 	evaluation/evaluate.cpp \
@@ -19,9 +15,13 @@ SRCS := \
 	movegen/movegen.cpp \
 	network/network.cpp \
 	search/cuckoo.cpp \
+	search/data.cpp \
 	search/history.cpp \
 	search/search.cpp \
+	search/staged_movegen.cpp \
+	search/static_exchange_evaluation.cpp \
 	search/syzygy.cpp \
+	search/zobrist.cpp \
 	search/limit/time.cpp \
 	search/transposition/table.cpp \
 	search/transposition/entry.cpp \

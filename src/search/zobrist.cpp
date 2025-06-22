@@ -1,4 +1,4 @@
-#include "Zobrist.h"
+#include "search/zobrist.h"
 
 #include <cassert>
 #include <cstddef>
@@ -11,7 +11,6 @@
 namespace Zobrist
 {
 
-// TODO: consider fixing this to avoid Static Initialization Order Fiasco
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
     std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
@@ -196,7 +195,7 @@ const auto fifty_move_hash = []()
 
 uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
-    // assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
+    assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
     return board.key ^ fifty_move_hash[board.fifty_move_count];
 }
 

@@ -7,8 +7,8 @@
 #include <string_view>
 #include <thread>
 
-#include "SearchData.h"
 #include "chessboard/game_state.h"
+#include "search/data.h"
 
 class Move;
 

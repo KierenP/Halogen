@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Score.h"
+#include "search/score.h"
 
 class Move;
 enum class SearchResultType : uint8_t;

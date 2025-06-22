@@ -1,4 +1,4 @@
-#include "SearchData.h"
+#include "search/data.h"
 
 #include <algorithm>
 #include <chrono>
@@ -8,10 +8,10 @@
 #include <numeric>
 #include <string>
 
-#include "Score.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
+#include "search/score.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
 
@@ -35,7 +35,7 @@ SearchLocalState::SearchLocalState(int thread_id_)
 {
 }
 
-bool SearchLocalState::RootExcludeMove(Move move)
+bool SearchLocalState::should_skip_root_move(Move move)
 {
     // if present in blacklist, exclude
     if (std::find(root_move_blacklist.begin(), root_move_blacklist.end(), move) != root_move_blacklist.end())
@@ -53,7 +53,7 @@ bool SearchLocalState::RootExcludeMove(Move move)
     return false;
 }
 
-void SearchLocalState::ResetNewSearch()
+void SearchLocalState::reset_new_search()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
     search_stack = {};
@@ -70,7 +70,7 @@ void SearchLocalState::ResetNewSearch()
     root_moves = {};
 }
 
-int SearchLocalState::GetQuietHistory(const GameState& position, const SearchStackState* ss, Move move)
+int SearchLocalState::get_quiet_history(const GameState& position, const SearchStackState* ss, Move move)
 {
     int total = 0;
 
@@ -97,7 +97,7 @@ int SearchLocalState::GetQuietHistory(const GameState& position, const SearchSta
     return total;
 }
 
-int SearchLocalState::GetLoudHistory(const GameState& position, const SearchStackState* ss, Move move)
+int SearchLocalState::get_loud_history(const GameState& position, const SearchStackState* ss, Move move)
 {
     int total = 0;
     if (auto* hist = capt_hist.get(position, ss, move))
@@ -107,7 +107,7 @@ int SearchLocalState::GetLoudHistory(const GameState& position, const SearchStac
     return total;
 }
 
-void SearchLocalState::AddQuietHistory(const GameState& position, const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_quiet_history(const GameState& position, const SearchStackState* ss, Move move, int change)
 {
     pawn_hist.add(position, ss, move, change);
     threat_hist.add(position, ss, move, change);
@@ -117,7 +117,7 @@ void SearchLocalState::AddQuietHistory(const GameState& position, const SearchSt
         (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
 }
 
-void SearchLocalState::AddLoudHistory(const GameState& position, const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_loud_history(const GameState& position, const SearchStackState* ss, Move move, int change)
 {
     capt_hist.add(position, ss, move, change);
 }
@@ -127,7 +127,7 @@ SearchSharedState::SearchSharedState(UCI::Uci& uci)
 {
 }
 
-void SearchSharedState::ResetNewSearch()
+void SearchSharedState::reset_new_search()
 {
     search_timer.reset();
 
@@ -140,12 +140,12 @@ void SearchSharedState::ResetNewSearch()
     }
 
     best_search_result_ = {};
-    std::for_each(search_local_states_.begin(), search_local_states_.end(), [](auto& data) { data->ResetNewSearch(); });
+    std::ranges::for_each(search_local_states_, [](auto& data) { data->reset_new_search(); });
 }
 
-void SearchSharedState::ResetNewGame()
+void SearchSharedState::reset_new_game()
 {
-    ResetNewSearch();
+    reset_new_search();
     search_local_states_.clear();
     for (int i = 0; i < threads_setting; i++)
     {

@@ -15,18 +15,18 @@
 #include <string_view>
 #include <vector>
 
-#include "MoveList.h"
-#include "Score.h"
-#include "SearchData.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "misc/benchmark.h"
+#include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "network/network.h"
+#include "search/data.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
+#include "search/score.h"
 #include "search/search.h"
 #include "search/syzygy.h"
 #include "search/transposition/table.h"
@@ -84,14 +84,14 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.board(), moves);
+    legal_moves(position.board(), moves);
 
     if (check_legality)
     {
         for (int i = 0; i < std::numeric_limits<uint16_t>::max(); i++)
         {
             Move move(i);
-            bool legal = MoveIsLegal(position.board(), move);
+            bool legal = is_legal(position.board(), move);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
@@ -179,7 +179,7 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.board(), moves);
+    legal_moves(position.board(), moves);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -280,7 +280,7 @@ void Uci::handle_ucinewgame()
 {
     position.starting_position();
     shared.transposition_table.clear(shared.get_threads_setting());
-    shared.ResetNewGame();
+    shared.reset_new_game();
 }
 
 bool Uci::handle_position_fen(std::string_view fen)
@@ -361,7 +361,7 @@ void Uci::handle_go(go_ctx& ctx)
 void Uci::handle_setoption_clear_hash()
 {
     shared.transposition_table.clear(shared.get_threads_setting());
-    shared.ResetNewGame();
+    shared.reset_new_game();
 }
 
 void Uci::handle_setoption_hash(int value)

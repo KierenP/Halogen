@@ -5,11 +5,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Zobrist.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "search/cuckoo.h"
+#include "search/zobrist.h"
 
 void GameState::apply_move(Move move)
 {

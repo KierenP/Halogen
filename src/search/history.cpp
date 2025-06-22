@@ -1,10 +1,10 @@
 #include "search/history.h"
 
-#include "SearchData.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
+#include "search/data.h"
 
 int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Move move)
 {

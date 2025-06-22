@@ -9,14 +9,14 @@
 #include <utility>
 #include <vector>
 
-#include "MoveList.h"
-#include "Score.h"
 #include "bitboard/define.h"
+#include "movegen/list.h"
 #include "movegen/move.h"
 #include "network/network.h"
 #include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
+#include "search/score.h"
 #include "search/transposition/table.h"
 #include "utility/atomic.h"
 #include "utility/static_vector.h"
@@ -108,15 +108,15 @@ struct alignas(hardware_destructive_interference_size) SearchLocalState
 public:
     SearchLocalState(int thread_id);
 
-    bool RootExcludeMove(Move move);
-    void ResetNewSearch();
-    void ResetNewGame();
+    bool should_skip_root_move(Move move);
+    void reset_new_search();
+    void reset_new_game();
 
-    int GetQuietHistory(const GameState& position, const SearchStackState* ss, Move move);
-    int GetLoudHistory(const GameState& position, const SearchStackState* ss, Move move);
+    int get_quiet_history(const GameState& position, const SearchStackState* ss, Move move);
+    int get_loud_history(const GameState& position, const SearchStackState* ss, Move move);
 
-    void AddQuietHistory(const GameState& position, const SearchStackState* ss, Move move, int change);
-    void AddLoudHistory(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void add_quiet_history(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void add_loud_history(const GameState& position, const SearchStackState* ss, Move move, int change);
 
     int thread_id;
     SearchStack search_stack;
@@ -175,8 +175,8 @@ public:
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
 
-    void ResetNewSearch();
-    void ResetNewGame();
+    void reset_new_search();
+    void reset_new_game();
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
 

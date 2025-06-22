@@ -4,8 +4,8 @@
 #include <optional>
 #include <string_view>
 
-#include "Score.h"
 #include "movegen/move.h"
+#include "search/score.h"
 #include "utility/static_vector.h"
 
 class BoardState;

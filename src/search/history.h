@@ -7,9 +7,9 @@
 #include <cstring>
 #include <tuple>
 
-#include "Score.h"
 #include "bitboard/define.h"
 #include "movegen/move.h"
+#include "search/score.h"
 
 class GameState;
 struct SearchStackState;

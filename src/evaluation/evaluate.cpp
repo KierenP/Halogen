@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cassert>
 
-#include "Score.h"
-#include "SearchData.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "network/network.h"
+#include "search/data.h"
+#include "search/score.h"
 
 Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
 {
