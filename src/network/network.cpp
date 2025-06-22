@@ -1,4 +1,4 @@
-#include "Network.h"
+#include "network.h"
 
 #include <algorithm>
 #include <cassert>
@@ -8,9 +8,12 @@
 #include "BoardState.h"
 #include "Move.h"
 #include "bitboard.h"
-#include "nn/Accumulator.hpp"
-#include "nn/Features.hpp"
+#include "network/accumulator.hpp"
+#include "network/inference.hpp"
 #include "third-party/incbin/incbin.h"
+
+namespace NN
+{
 
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
@@ -30,7 +33,6 @@ struct network
     return true;
 }();
 
-constexpr int16_t L1_SCALE = 255;
 constexpr int16_t L2_SCALE = 64;
 constexpr double SCALE_FACTOR = 160;
 
@@ -124,8 +126,7 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
 
-    NN::Accumulator::add1sub1(
-        next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index]);
+    add1sub1(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index]);
 }
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
@@ -141,8 +142,8 @@ void Add1Sub2(
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    NN::Accumulator::add1sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
-        net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
+    add1sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index],
+        net.hiddenWeights[sub2_index]);
 }
 
 void Add1Sub2(
@@ -162,8 +163,8 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    NN::Accumulator::add2sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index],
-        net.hiddenWeights[add2_index], net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
+    add2sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[add2_index],
+        net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
@@ -175,38 +176,38 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1,
         { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
 }
 
-void Accumulator::AddInput(const InputPair& input)
+void Accumulator::add_input(const InputPair& input)
 {
-    AddInput({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    AddInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    add_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    add_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::AddInput(const Input& input, Side view)
+void Accumulator::add_input(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    NN::Accumulator::add1(side[view], net.hiddenWeights[side_index]);
+    add1(side[view], net.hiddenWeights[side_index]);
 }
 
-void Accumulator::SubInput(const InputPair& input)
+void Accumulator::sub_input(const InputPair& input)
 {
-    SubInput({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    SubInput({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    sub_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    sub_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::SubInput(const Input& input, Side view)
+void Accumulator::sub_input(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    NN::Accumulator::sub1(side[view], net.hiddenWeights[side_index]);
+    sub1(side[view], net.hiddenWeights[side_index]);
 }
 
-void Accumulator::Recalculate(const BoardState& board_)
+void Accumulator::recalculate(const BoardState& board_)
 {
-    Recalculate(board_, WHITE);
-    Recalculate(board_, BLACK);
+    recalculate(board_, WHITE);
+    recalculate(board_, BLACK);
     acc_is_valid = true;
 }
 
-void Accumulator::Recalculate(const BoardState& board_, Side view)
+void Accumulator::recalculate(const BoardState& board_, Side view)
 {
     side[view] = net.hiddenBias;
     auto king = board_.GetKing(view);
@@ -219,12 +220,12 @@ void Accumulator::Recalculate(const BoardState& board_, Side view)
         while (bb)
         {
             Square sq = lsbpop(bb);
-            AddInput({ king, sq, piece }, view);
+            add_input({ king, sq, piece }, view);
         }
     }
 }
 
-void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq)
+void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq)
 {
     // we need to keep a separate entry for when the king is on each side of the board
     auto& entry
@@ -255,13 +256,13 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Si
         while (to_add)
         {
             auto sq = lsbpop(to_add);
-            entry.acc.AddInput({ king_sq, sq, piece }, side);
+            entry.acc.add_input({ king_sq, sq, piece }, side);
         }
 
         while (to_sub)
         {
             auto sq = lsbpop(to_sub);
-            entry.acc.SubInput({ king_sq, sq, piece }, side);
+            entry.acc.sub_input({ king_sq, sq, piece }, side);
         }
 
         old_bb = new_bb;
@@ -270,9 +271,9 @@ void AccumulatorTable::Recalculate(Accumulator& acc, const BoardState& board, Si
     acc.side[side] = entry.acc.side[side];
 }
 
-void Network::Reset(const BoardState& board, Accumulator& acc)
+void Network::reset_new_search(const BoardState& board, Accumulator& acc)
 {
-    acc.Recalculate(board);
+    acc.recalculate(board);
 
     for (auto& entry : table.king_bucket)
     {
@@ -283,7 +284,7 @@ void Network::Reset(const BoardState& board, Accumulator& acc)
     }
 }
 
-bool Network::Verify(const BoardState& board, const Accumulator& acc)
+bool Network::verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
     expected.side = { net.hiddenBias, net.hiddenBias };
@@ -298,14 +299,14 @@ bool Network::Verify(const BoardState& board, const Accumulator& acc)
         while (bb)
         {
             Square sq = lsbpop(bb);
-            expected.AddInput({ w_king, b_king, sq, piece });
+            expected.add_input({ w_king, b_king, sq, piece });
         }
     }
 
     return expected == acc;
 }
 
-void Network::StoreLazyUpdates(
+void Network::store_lazy_updates(
     const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move)
 {
     acc.acc_is_valid = false;
@@ -479,7 +480,7 @@ void Network::StoreLazyUpdates(
     }
 }
 
-void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc)
+void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc)
 {
     if (next_acc.acc_is_valid)
     {
@@ -490,7 +491,7 @@ void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_ac
 
     if (next_acc.white_requires_recalculation)
     {
-        table.Recalculate(next_acc, next_acc.board, WHITE, next_acc.board.GetKing(WHITE));
+        table.recalculate(next_acc, next_acc.board, WHITE, next_acc.board.GetKing(WHITE));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
@@ -513,7 +514,7 @@ void Network::ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_ac
     }
     else if (next_acc.black_requires_recalculation)
     {
-        table.Recalculate(next_acc, next_acc.board, BLACK, next_acc.board.GetKing(BLACK));
+        table.recalculate(next_acc, next_acc.board, BLACK, next_acc.board.GetKing(BLACK));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
@@ -563,21 +564,23 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
-Score Network::Eval(const BoardState& board, const Accumulator& acc)
+Score Network::eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(popcount(board.GetAllPieces()));
 
     int32_t output = 0;
-    NN::Features::DotProductSCReLU(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);
+    inference_output(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);
 
     return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
         / L2_SCALE;
 }
 
-Score Network::SlowEval(const BoardState& board)
+Score Network::slow_eval(const BoardState& board)
 {
     Accumulator acc;
-    acc.Recalculate(board);
-    return Eval(board, acc);
+    acc.recalculate(board);
+    return eval(board, acc);
+}
+
 }

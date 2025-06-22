@@ -10,6 +10,9 @@
 
 class Move;
 
+namespace NN
+{
+
 constexpr size_t INPUT_NEURONS = 12 * 64;
 constexpr size_t HIDDEN_NEURONS = 1024;
 
@@ -61,14 +64,14 @@ struct Accumulator
         return side == rhs.side;
     }
 
-    void AddInput(const InputPair& input);
-    void AddInput(const Input& input, Side side);
+    void add_input(const InputPair& input);
+    void add_input(const Input& input, Side side);
 
-    void SubInput(const InputPair& input);
-    void SubInput(const Input& input, Side side);
+    void sub_input(const InputPair& input);
+    void sub_input(const Input& input, Side side);
 
-    void Recalculate(const BoardState& board);
-    void Recalculate(const BoardState& board, Side side);
+    void recalculate(const BoardState& board);
+    void recalculate(const BoardState& board, Side side);
 
     // data for lazy updates
     bool acc_is_valid = false;
@@ -96,29 +99,32 @@ struct AccumulatorTable
 {
     std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
 
-    void Recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
+    void recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
 };
 
+// TODO: this class can mostly disappear and be replaced with stand alone functions
 class Network
 {
 public:
     // called at the root of search
-    void Reset(const BoardState& board, Accumulator& acc);
+    void reset_new_search(const BoardState& board, Accumulator& acc);
 
     // return true if the incrementally updated accumulator is correct
-    static bool Verify(const BoardState& board, const Accumulator& acc);
+    static bool verify(const BoardState& board, const Accumulator& acc);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    static Score Eval(const BoardState& board, const Accumulator& acc);
+    static Score eval(const BoardState& board, const Accumulator& acc);
 
     // does a full from scratch recalculation
-    static Score SlowEval(const BoardState& board);
+    static Score slow_eval(const BoardState& board);
 
-    void StoreLazyUpdates(
+    void store_lazy_updates(
         const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
 
-    void ApplyLazyUpdates(const Accumulator& prev_acc, Accumulator& next_acc);
+    void apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
     AccumulatorTable table;
 };
+
+}

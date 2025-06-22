@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <immintrin.h>
 
-namespace SIMD
+namespace NN::SIMD
 {
 
 // https://stackoverflow.com/questions/60108658/fastest-method-to-calculate-sum-of-all-packed-32-bit-integers-using-avx512-or-av

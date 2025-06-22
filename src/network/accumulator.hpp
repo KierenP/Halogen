@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Network.h"
-#include "simd/Definitions.hpp"
+#include "simd/definitions.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <immintrin.h>
 
-namespace NN::Accumulator
+namespace NN
 {
 
 template <size_t SIZE>

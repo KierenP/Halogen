@@ -9,7 +9,7 @@
 
 #include <immintrin.h>
 
-namespace SIMD
+namespace NN::SIMD
 {
 
 #if defined(USE_AVX512)

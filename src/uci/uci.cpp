@@ -21,7 +21,6 @@
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
-#include "Network.h"
 #include "Score.h"
 #include "Search.h"
 #include "SearchData.h"
@@ -29,11 +28,12 @@
 #include "StaticVector.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
-#include "atomic.h"
 #include "benchmark.h"
 #include "bitboard.h"
+#include "network/network.h"
 #include "uci/options.h"
 #include "uci/parse.h"
+#include "utility/atomic.h"
 
 std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {
@@ -586,7 +586,7 @@ void Uci::handle_spsa()
 void Uci::handle_eval()
 {
     std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
+    std::cout << "Eval: " << NN::Network::slow_eval(position.Board()) << std::endl;
 }
 
 void Uci::handle_probe()

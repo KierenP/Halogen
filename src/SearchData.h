@@ -12,14 +12,14 @@
 #include "History.h"
 #include "Move.h"
 #include "MoveList.h"
-#include "Network.h"
 #include "Score.h"
 #include "SearchLimits.h"
 #include "StaticVector.h"
 #include "TimeManager.h"
 #include "TranspositionTable.h"
-#include "atomic.h"
 #include "bitboard.h"
+#include "network/network.h"
+#include "utility/atomic.h"
 
 class TranspositionTable;
 
@@ -55,7 +55,7 @@ struct SearchStackState
 
     PieceMoveHistory* cont_hist_subtable = nullptr;
 
-    Accumulator acc;
+    NN::Accumulator acc;
 
     Score adjusted_eval = 0;
 };
@@ -147,7 +147,7 @@ public:
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;
 
-    Network net;
+    NN::Network net;
 };
 
 struct SearchResults

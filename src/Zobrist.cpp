@@ -11,6 +11,7 @@
 namespace Zobrist
 {
 
+// TODO: consider fixing this to avoid Static Initialization Order Fiasco
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
     std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;

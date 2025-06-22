@@ -12,7 +12,6 @@ SRCS := \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
-	Network.cpp \
 	GameState.cpp \
 	Search.cpp \
 	SearchData.cpp \
@@ -25,8 +24,9 @@ SRCS := \
 	History.cpp \
 	StaticExchangeEvaluation.cpp \
 	Cuckoo.cpp \
-	test/StaticExchangeEvaluation.cpp \
 	uci/uci.cpp \
+	test/static_exchange_evaluation_test.cpp \
+	network/network.cpp \
 	third-party/Pyrrhic/tbprobe.cpp
 
 # String substitution for every C/C++ file.

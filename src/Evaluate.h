@@ -3,8 +3,12 @@
 #include "Score.h"
 
 class BoardState;
-class Network;
 struct SearchStackState;
 
+namespace NN
+{
+class Network;
+}
+
 bool DeadPosition(const BoardState& board);
-Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net);
+Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net);

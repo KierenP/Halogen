@@ -4,14 +4,14 @@
 #include <cassert>
 
 #include "BoardState.h"
-#include "Network.h"
 #include "Score.h"
 #include "SearchData.h"
 #include "bitboard.h"
+#include "network/network.h"
 
 void TempoAdjustment(Score& eval);
 
-Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
+Score Evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
 {
     // apply lazy updates to accumulator stack
     //
@@ -24,12 +24,12 @@ Score Evaluate(const BoardState& board, SearchStackState* ss, Network& net)
 
     while (current + 1 <= ss)
     {
-        net.ApplyLazyUpdates(current->acc, (current + 1)->acc);
+        net.apply_lazy_updates(current->acc, (current + 1)->acc);
         current++;
     }
 
-    assert(Network::Verify(board, ss->acc));
-    Score eval = Network::Eval(board, ss->acc);
+    assert(NN::Network::verify(board, ss->acc));
+    Score eval = NN::Network::eval(board, ss->acc);
 
     // Apply material scaling factor
     const auto npMaterial = 450 * popcount(board.GetPieceBB<KNIGHT>()) + 450 * popcount(board.GetPieceBB<BISHOP>())

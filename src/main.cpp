@@ -2,6 +2,7 @@
 #include <string_view>
 
 #include "Cuckoo.h"
+#include "test/static_exchange_evaluation_test.h"
 #include "uci/uci.h"
 
 constexpr std::string_view version = "12.35.2";
@@ -35,11 +36,16 @@ void PrintVersion()
 
 int main(int argc, char* argv[])
 {
-    PrintVersion();
     std::ios::sync_with_stdio(false);
-    Uci uci { version };
 
     cuckoo::init();
+
+#ifndef NDEBUG
+    static_exchange_evaluation_test();
+#endif
+
+    PrintVersion();
+    Uci uci { version };
 
     // read any command line input as a regular UCI instruction
     for (int i = 1; i < argc; i++)

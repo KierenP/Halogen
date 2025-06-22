@@ -1,20 +1,19 @@
 #pragma once
 
-#include "Network.h"
-#include "simd/Definitions.hpp"
-#include "simd/Utility.hpp"
+#include "network/simd/definitions.hpp"
+#include "network/simd/utility.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <immintrin.h>
 
-namespace NN::Features
+namespace NN
 {
 
 constexpr int16_t L1_SCALE = 255;
 
 template <size_t SIZE>
-void DotProductSCReLU(const std::array<int16_t, SIZE>& stm, const std::array<int16_t, SIZE>& nstm,
+void inference_output(const std::array<int16_t, SIZE>& stm, const std::array<int16_t, SIZE>& nstm,
     const std::array<int16_t, SIZE * 2>& weights, int32_t& output)
 {
 #if defined(SIMD_ENABLED)

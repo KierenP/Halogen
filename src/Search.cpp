@@ -20,7 +20,6 @@
 #include "Move.h"
 #include "MoveGeneration.h"
 #include "MoveList.h"
-#include "Network.h"
 #include "Score.h"
 #include "SearchConstants.h"
 #include "SearchData.h"
@@ -32,9 +31,10 @@
 #include "TimeManager.h"
 #include "TranspositionTable.h"
 #include "Zobrist.h"
-#include "atomic.h"
 #include "bitboard.h"
+#include "network/network.h"
 #include "uci/uci.h"
+#include "utility/atomic.h"
 
 enum class SearchType : int8_t
 {
@@ -97,11 +97,12 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     // We directly run SearchPosition from the main thread, and launch the other threads for any additional threads.
     // This means in single threaded mode we can avoid launching any additional threads or having to copy position.
+    // TODO: extract this into a lambda to avoid duplicating the code
     for (int i = 1; i < shared.get_threads_setting(); i++)
     {
         auto& local = shared.get_local_state(i);
         local.root_move_whitelist = root_move_whitelist;
-        local.net.Reset(position.Board(), local.search_stack.root()->acc);
+        local.net.reset_new_search(position.Board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
         threads.emplace_back(
             std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
@@ -110,7 +111,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     {
         auto& local = shared.get_local_state(0);
         local.root_move_whitelist = root_move_whitelist;
-        local.net.Reset(position.Board(), local.search_stack.root()->acc);
+        local.net.reset_new_search(position.Board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
         SearchPosition(position, local, shared);
     }
@@ -458,7 +459,8 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->moved_piece = N_PIECES;
     ss->cont_hist_subtable = nullptr;
     position.ApplyNullMove();
-    local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
+    // TODO: separate out the accumulator stack from search stack. Then we can make this a no-op
+    local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
         = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
     position.RevertNullMove();
@@ -960,7 +962,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         position.ApplyMove(move);
         shared.transposition_table.PreFetch(
             Zobrist::get_fifty_move_adj_key(position.Board())); // load the transposition into l1 cache. ~5% speedup
-        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
+        local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
         if (IsInCheck(position.Board()))
@@ -1108,7 +1110,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
             = &local.cont_hist.table[position.Board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
         position.ApplyMove(move);
         // TODO: prefetch
-        local.net.StoreLazyUpdates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
+        local.net.store_lazy_updates(position.PrevBoard(), position.Board(), (ss + 1)->acc, move);
         auto search_score = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
         position.RevertMove();
 
