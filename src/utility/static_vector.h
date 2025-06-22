@@ -4,8 +4,7 @@
 #include <cassert>
 #include <iterator>
 
-// Stack allocated fixed capacity vector. Should be a drop-in replacement for std::vector, with some lesser
-// functionality
+// TODO: bring this more in line with C++26 std::inplace_vector
 template <typename T, std::size_t N>
 class StaticVector
 {

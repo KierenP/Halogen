@@ -14,14 +14,17 @@
 #include "MoveList.h"
 #include "Score.h"
 #include "SearchLimits.h"
-#include "StaticVector.h"
 #include "TimeManager.h"
-#include "TranspositionTable.h"
 #include "bitboard.h"
 #include "network/network.h"
+#include "search/transposition/table.h"
 #include "utility/atomic.h"
+#include "utility/static_vector.h"
 
-class TranspositionTable;
+namespace Transposition
+{
+class Table;
+}
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;
@@ -202,7 +205,7 @@ public:
     UCI::Uci& uci_handler;
 
     AtomicRelaxed<bool> stop_searching = false;
-    TranspositionTable transposition_table;
+    Transposition::Table transposition_table;
 
 private:
     mutable std::recursive_mutex lock_;

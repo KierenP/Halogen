@@ -5,11 +5,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "Cuckoo.h"
 #include "Move.h"
 #include "Zobrist.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
+#include "search/cuckoo.h"
 
 void GameState::apply_move(Move move)
 {
@@ -200,11 +200,11 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
 
         // 'diff' is a single move
         uint64_t diff = previousStates[i].key ^ previousStates[i - ply].key;
-        auto hash = cuckoo::H1(diff);
+        auto hash = Cuckoo::H1(diff);
 
-        if (cuckoo::table[hash] == diff || (hash = cuckoo::H2(diff), cuckoo::table[hash] == diff))
+        if (Cuckoo::table[hash] == diff || (hash = Cuckoo::H2(diff), Cuckoo::table[hash] == diff))
         {
-            const auto move = cuckoo::move_table[hash];
+            const auto move = Cuckoo::move_table[hash];
             if ((occ & BetweenBB[move.GetFrom()][move.GetTo()]) == EMPTY)
             {
                 // two fold rep after root

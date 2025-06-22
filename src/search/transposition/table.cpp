@@ -1,4 +1,4 @@
-#include "TranspositionTable.h"
+#include "search/transposition/table.h"
 
 #include <algorithm>
 #include <array>
@@ -14,22 +14,25 @@
 #endif
 
 #include "Move.h"
-#include "TTEntry.h"
 #include "bitboard.h"
+#include "search/transposition/entry.h"
 
-TranspositionTable::~TranspositionTable()
+namespace Transposition
 {
-    Deallocate();
+
+Table::~Table()
+{
+    dealloc();
 }
 
-void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
+void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
     int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
 {
     score = convert_to_tt_score(score, distanceFromRoot);
     auto key16 = uint16_t(ZobristKey);
     auto current_generation = get_generation(Turncount, distanceFromRoot);
-    std::array<int16_t, TTBucket::size> scores = {};
-    auto& bucket = GetBucket(ZobristKey);
+    std::array<int16_t, Bucket::size> scores = {};
+    auto& bucket = get_bucket(ZobristKey);
 
     const auto write_to_entry = [&](auto& entry)
     {
@@ -43,10 +46,10 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
         entry.score = score;
         entry.static_eval = static_eval;
         entry.depth = Depth;
-        entry.meta = TTMeta { Cutoff, (uint8_t)current_generation };
+        entry.meta = Meta { Cutoff, (uint8_t)current_generation };
     };
 
-    for (size_t i = 0; i < TTBucket::size; i++)
+    for (size_t i = 0; i < Bucket::size; i++)
     {
         // each bucket fills from the first entry, and only once all entries are full do we use the replacement scheme
         if (bucket[i].key == EMPTY)
@@ -67,7 +70,7 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
             return;
         }
 
-        TTMeta meta = bucket[i].meta;
+        Meta meta = bucket[i].meta;
         int8_t age_diff = (int8_t)current_generation - (int8_t)meta.generation;
         scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
     }
@@ -75,9 +78,9 @@ void TranspositionTable::AddEntry(const Move& best, uint64_t ZobristKey, Score s
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
 }
 
-TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int half_turn_count)
+Entry* Table::get_entry(uint64_t key, int distanceFromRoot, int half_turn_count)
 {
-    auto& bucket = GetBucket(key);
+    auto& bucket = get_bucket(key);
     auto key16 = uint16_t(key);
 
     // we return by copy here because other threads are reading/writing to this same table.
@@ -94,7 +97,7 @@ TTEntry* TranspositionTable::GetEntry(uint64_t key, int distanceFromRoot, int ha
     return nullptr;
 }
 
-int TranspositionTable::GetCapacity(int halfmove) const
+int Table::get_hashfull(int halfmove) const
 {
     int count = 0;
     int8_t current_generation = get_generation(halfmove, 0);
@@ -102,7 +105,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
     // 1000 chosen specifically, because result needs to be 'per mill'
     for (int i = 0; i < 1000; i++)
     {
-        auto& entry = table[i / TTBucket::size][i % TTBucket::size];
+        auto& entry = table[i / Bucket::size][i % Bucket::size];
         if (entry.key != EMPTY && entry.meta.generation == current_generation)
         {
             count++;
@@ -112,7 +115,7 @@ int TranspositionTable::GetCapacity(int halfmove) const
     return count;
 }
 
-void TranspositionTable::Clear(int thread_count)
+void Table::clear(int thread_count)
 {
     // For extremely large hash sizes, we clear the table using multiple threads
 
@@ -125,7 +128,7 @@ void TranspositionTable::Clear(int thread_count)
             {
                 const size_t begin = (size_ / thread_count) * i;
                 const size_t end = i + 1 != thread_count ? size_ / thread_count * (i + 1) : size_;
-                std::fill(&table[begin], &table[end], TTBucket {});
+                std::fill(&table[begin], &table[end], Bucket {});
             });
     }
 
@@ -135,30 +138,30 @@ void TranspositionTable::Clear(int thread_count)
     }
 }
 
-void TranspositionTable::SetSize(uint64_t MB, int thread_count)
+void Table::set_size(uint64_t MB, int thread_count)
 {
-    size_ = MB * 1024 * 1024 / sizeof(TTBucket);
-    Reallocate(thread_count);
+    size_ = MB * 1024 * 1024 / sizeof(Bucket);
+    realloc(thread_count);
 }
 
-void TranspositionTable::Reallocate(int thread_count)
+void Table::realloc(int thread_count)
 {
-    Deallocate();
+    dealloc();
 
 #ifdef __linux__
     constexpr static size_t huge_page_size = 2 * 1024 * 1024;
-    const size_t bytes = size_ * sizeof(TTBucket);
-    table = static_cast<TTBucket*>(std::aligned_alloc(huge_page_size, bytes));
+    const size_t bytes = size_ * sizeof(Bucket);
+    table = static_cast<Bucket*>(std::aligned_alloc(huge_page_size, bytes));
     madvise(table, bytes, MADV_HUGEPAGE);
     std::uninitialized_default_construct_n(table, size_);
 #else
     table = new TTBucket[size_];
 #endif
 
-    Clear(thread_count);
+    clear(thread_count);
 }
 
-void TranspositionTable::Deallocate()
+void Table::dealloc()
 {
 #ifdef __linux__
     if (table)
@@ -174,9 +177,9 @@ void TranspositionTable::Deallocate()
 #endif
 }
 
-void TranspositionTable::PreFetch(uint64_t key) const
+void Table::prefetch(uint64_t key) const
 {
-    __builtin_prefetch(&GetBucket(key));
+    __builtin_prefetch(&get_bucket(key));
 }
 
 size_t tt_index(uint64_t key, size_t tt_size)
@@ -197,7 +200,9 @@ size_t tt_index(uint64_t key, size_t tt_size)
 #endif
 }
 
-TTBucket& TranspositionTable::GetBucket(uint64_t key) const
+Bucket& Table::get_bucket(uint64_t key) const
 {
     return table[tt_index(key, size_)];
+}
+
 }

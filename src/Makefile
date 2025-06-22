@@ -11,20 +11,20 @@ SRCS := \
 	main.cpp \
 	Move.cpp \
 	MoveGeneration.cpp \
-	Search.cpp \
 	SearchData.cpp \
 	StagedMoveGenerator.cpp \
 	TimeManager.cpp \
-	TranspositionTable.cpp \
-	TTEntry.cpp \
 	Zobrist.cpp \
 	EGTB.cpp \
 	History.cpp \
 	StaticExchangeEvaluation.cpp \
-	Cuckoo.cpp \
 	chessboard/board_state.cpp \
 	chessboard/game_state.cpp \
 	network/network.cpp \
+	search/cuckoo.cpp \
+	search/search.cpp \
+	search/transposition/table.cpp \
+	search/transposition/entry.cpp \
 	test/static_exchange_evaluation_test.cpp \
 	third-party/Pyrrhic/tbprobe.cpp \
 	uci/uci.cpp

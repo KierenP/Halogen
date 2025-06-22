@@ -6,7 +6,7 @@
 
 #include "Move.h"
 #include "Score.h"
-#include "StaticVector.h"
+#include "utility/static_vector.h"
 
 class BoardState;
 

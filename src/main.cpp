@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string_view>
 
-#include "Cuckoo.h"
+#include "search/cuckoo.h"
 #include "test/static_exchange_evaluation_test.h"
 #include "uci/uci.h"
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 {
     std::ios::sync_with_stdio(false);
 
-    cuckoo::init();
+    Cuckoo::init();
 
 #ifndef NDEBUG
     static_exchange_evaluation_test();

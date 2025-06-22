@@ -10,9 +10,9 @@
 
 #include "Move.h"
 #include "Score.h"
-#include "TranspositionTable.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
+#include "search/transposition/table.h"
 #include "uci/uci.h"
 
 SearchStackState::SearchStackState(int distance_from_root_)

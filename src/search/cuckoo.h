@@ -8,7 +8,7 @@
 //
 // https://web.archive.org/web/20180713113001/http://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
-namespace cuckoo
+namespace Cuckoo
 {
 
 inline std::array<uint64_t, 8192> table;

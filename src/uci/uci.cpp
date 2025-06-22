@@ -20,20 +20,20 @@
 #include "MoveGeneration.h"
 #include "MoveList.h"
 #include "Score.h"
-#include "Search.h"
 #include "SearchData.h"
 #include "SearchLimits.h"
-#include "StaticVector.h"
 #include "TimeManager.h"
-#include "TranspositionTable.h"
 #include "benchmark.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "network/network.h"
+#include "search/search.h"
+#include "search/transposition/table.h"
 #include "uci/options.h"
 #include "uci/parse.h"
 #include "utility/atomic.h"
+#include "utility/static_vector.h"
 
 namespace UCI
 {
@@ -214,7 +214,7 @@ void Uci::handle_bench(int depth)
         }
 
         shared.limits.time.reset();
-        SearchThread(position, shared);
+        launch_search(position, shared);
         nodeCount += shared.nodes();
     }
 
@@ -279,7 +279,7 @@ void Uci::handle_isready()
 void Uci::handle_ucinewgame()
 {
     position.starting_position();
-    shared.transposition_table.Clear(shared.get_threads_setting());
+    shared.transposition_table.clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
@@ -355,18 +355,18 @@ void Uci::handle_go(go_ctx& ctx)
     }
 
     // launch search thread
-    search_thread = std::thread([&]() { SearchThread(position, shared); });
+    search_thread = std::thread([&]() { launch_search(position, shared); });
 }
 
 void Uci::handle_setoption_clear_hash()
 {
-    shared.transposition_table.Clear(shared.get_threads_setting());
+    shared.transposition_table.clear(shared.get_threads_setting());
     shared.ResetNewGame();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    shared.transposition_table.SetSize(value, shared.get_threads_setting());
+    shared.transposition_table.set_size(value, shared.get_threads_setting());
 }
 
 void Uci::handle_setoption_threads(int value)
@@ -533,7 +533,7 @@ void Uci::print_search_info(const SearchResults& data, bool final)
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
     auto node_count = shared.nodes();
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = shared.transposition_table.GetCapacity(position.board().half_turn_count);
+    auto hashfull = shared.transposition_table.get_hashfull(position.board().half_turn_count);
 
     std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
               << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;

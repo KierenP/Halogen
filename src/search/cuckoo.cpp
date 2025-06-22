@@ -1,4 +1,4 @@
-#include "Cuckoo.h"
+#include "search/cuckoo.h"
 
 #include "Move.h"
 #include "MoveGeneration.h"
@@ -10,7 +10,7 @@
 //
 // https://web.archive.org/web/20180713113001/http://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
-namespace cuckoo
+namespace Cuckoo
 {
 
 bool is_valid_and_reversible_move(Move move, Piece piece)

@@ -2,8 +2,8 @@
 #include <cstdint>
 
 #include "Move.h"
-#include "StaticVector.h"
 #include "bitboard.h"
+#include "utility/static_vector.h"
 
 // For move ordering we need to bundle the 'score' with the move objects
 struct ExtendedMove

@@ -7,9 +7,9 @@
 #include "Magic.h"
 #include "Move.h"
 #include "MoveList.h" // IWYU pragma: keep
-#include "StaticVector.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
+#include "utility/static_vector.h"
 
 template <Side STM, typename T>
 void AddQuiescenceMoves(const BoardState& board, T& moves, uint64_t pinned); // captures and/or promotions

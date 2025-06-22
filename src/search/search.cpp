@@ -1,4 +1,4 @@
-#include "Search.h"
+#include "search/search.h"
 
 #include <algorithm>
 #include <array>
@@ -24,17 +24,17 @@
 #include "SearchLimits.h"
 #include "StagedMoveGenerator.h"
 #include "StaticExchangeEvaluation.h"
-#include "StaticVector.h"
-#include "TTEntry.h"
 #include "TimeManager.h"
-#include "TranspositionTable.h"
 #include "Zobrist.h"
 #include "bitboard.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "network/network.h"
+#include "search/transposition/entry.h"
+#include "search/transposition/table.h"
 #include "uci/uci.h"
 #include "utility/atomic.h"
+#include "utility/static_vector.h"
 
 enum class SearchType : int8_t
 {
@@ -43,20 +43,20 @@ enum class SearchType : int8_t
     ZW,
 };
 
-void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared);
+void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared);
 
-Score AspirationWindowSearch(
+Score aspiration_window(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score);
 
 template <SearchType search_type>
-Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta, bool cut_node);
+Score search(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+    Score alpha, Score beta, bool cut_node);
 
 template <SearchType search_type>
-Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta);
+Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+    Score alpha, Score beta);
 
-void SearchThread(GameState& position, SearchSharedState& shared)
+void launch_search(GameState& position, SearchSharedState& shared)
 {
 #ifdef TUNE
     LMR_reduction = Initialise_LMR_reduction();
@@ -95,8 +95,9 @@ void SearchThread(GameState& position, SearchSharedState& shared)
 
     std::vector<std::thread> threads;
 
-    // We directly run SearchPosition from the main thread, and launch the other threads for any additional threads.
-    // This means in single threaded mode we can avoid launching any additional threads or having to copy position.
+    // We directly run iterative_deepening from the main thread, and launch the other threads for any additional
+    // threads. This means in single threaded mode we can avoid launching any additional threads or having to copy
+    // position.
     // TODO: extract this into a lambda to avoid duplicating the code
     for (int i = 1; i < shared.get_threads_setting(); i++)
     {
@@ -105,7 +106,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
         threads.emplace_back(
-            std::thread([position, &local, &shared]() mutable { SearchPosition(position, local, shared); }));
+            std::thread([position, &local, &shared]() mutable { iterative_deepening(position, local, shared); }));
     }
 
     {
@@ -113,7 +114,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
         local.root_move_whitelist = root_move_whitelist;
         local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
         std::ranges::copy(moves, std::back_inserter(local.root_moves));
-        SearchPosition(position, local, shared);
+        iterative_deepening(position, local, shared);
     }
 
     for (size_t i = 0; i < threads.size(); i++)
@@ -127,7 +128,7 @@ void SearchThread(GameState& position, SearchSharedState& shared)
     shared.set_multi_pv(old_multi_pv);
 }
 
-void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedState& shared)
+void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     auto* ss = local.search_stack.root();
     Score mid_score = 0;
@@ -145,7 +146,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
             local.curr_multi_pv = multi_pv;
-            auto score = AspirationWindowSearch(position, ss, local, shared, mid_score);
+            auto score = aspiration_window(position, ss, local, shared, mid_score);
 
             if (local.aborting_search)
             {
@@ -178,7 +179,7 @@ void SearchPosition(GameState& position, SearchLocalState& local, SearchSharedSt
     }
 }
 
-Score AspirationWindowSearch(
+Score aspiration_window(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score)
 {
     Score delta = 12;
@@ -188,7 +189,7 @@ Score AspirationWindowSearch(
     while (true)
     {
         local.sel_septh = 0;
-        auto score = NegaScout<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta, false);
+        auto score = search<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta, false);
 
         if (local.aborting_search)
         {
@@ -351,7 +352,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
                 || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
             {
-                shared.transposition_table.AddEntry(Move::Uninitialized,
+                shared.transposition_table.add_entry(Move::Uninitialized,
                     Zobrist::get_fifty_move_adj_key(position.board()), tb_score, depth,
                     position.board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
                 return tb_score;
@@ -403,14 +404,15 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
     return std::nullopt;
 }
 
-std::tuple<TTEntry*, Score, int, SearchResultType, Move, Score> probe_tt(
+std::tuple<Transposition::Entry*, Score, int, SearchResultType, Move, Score> probe_tt(
     SearchSharedState& shared, const GameState& position, const int distance_from_root)
 {
     // copy the values out of the table that we want, to avoid race conditions
     const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.board());
     auto* tt_entry
-        = shared.transposition_table.GetEntry(adjusted_key, distance_from_root, position.board().half_turn_count);
-    const auto tt_score = tt_entry ? convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
+        = shared.transposition_table.get_entry(adjusted_key, distance_from_root, position.board().half_turn_count);
+    const auto tt_score
+        = tt_entry ? Transposition::convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
     const auto tt_depth = tt_entry ? tt_entry->depth : 0;
     const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
     const auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
@@ -462,7 +464,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     // TODO: separate out the accumulator stack from search stack. Then we can make this a no-op
     local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
-        = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
+        = -search<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
     position.revert_null_move();
 
     if (null_move_score >= beta)
@@ -482,7 +484,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         ss->nmp_verification_depth = distance_from_root + 3 * (depth - reduction - 1) / 4;
         ss->nmp_verification_root = true;
         auto verification
-            = NegaScout<SearchType::ZW>(position, ss, local, shared, depth - reduction - 1, beta - 1, beta, false);
+            = search<SearchType::ZW>(position, ss, local, shared, depth - reduction - 1, beta - 1, beta, false);
         ss->nmp_verification_root = false;
         ss->nmp_verification_depth = 0;
 
@@ -505,7 +507,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 
     ss->singular_exclusion = tt_move;
 
-    auto se_score = NegaScout<SearchType::ZW>(position, ss, local, shared, sdepth, sbeta - 1, sbeta, cut_node);
+    auto se_score = search<SearchType::ZW>(position, ss, local, shared, sdepth, sbeta - 1, sbeta, cut_node);
 
     ss->singular_exclusion = Move::Uninitialized;
 
@@ -628,7 +630,7 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
 
     if (reductions > 0)
     {
-        search_score = -NegaScout<SearchType::ZW>(
+        search_score = -search<SearchType::ZW>(
             position, ss + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
 
         if (search_score <= alpha)
@@ -641,13 +643,13 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
     if (!pv_node || seen_moves > 1)
     {
         search_score
-            = -NegaScout<SearchType::ZW>(position, ss + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
+            = -search<SearchType::ZW>(position, ss + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
     }
 
     // If the ZW search was skipped or failed high, we do a full depth full width search
     if (pv_node && (seen_moves == 1 || (search_score > alpha && search_score < beta)))
     {
-        search_score = -NegaScout<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha, false);
+        search_score = -search<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha, false);
     }
 
     return search_score;
@@ -668,7 +670,7 @@ Score TerminalScore(const BoardState& board, int distanceFromRoot)
 // { raw, adjusted }
 template <bool is_qsearch>
 std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchSharedState& shared,
-    SearchLocalState& local, TTEntry* const tt_entry, const Score tt_eval, const Score tt_score,
+    SearchLocalState& local, Transposition::Entry* const tt_entry, const Score tt_eval, const Score tt_score,
     const SearchResultType tt_cutoff, int depth, int distance_from_root, bool in_check)
 {
     if (in_check)
@@ -724,7 +726,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;
-        shared.transposition_table.AddEntry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.board()),
+        shared.transposition_table.add_entry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.board()),
             SCORE_UNDEFINED, depth, position.board().half_turn_count, distance_from_root, SearchResultType::EMPTY,
             raw_eval);
     }
@@ -733,7 +735,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     return { raw_eval, adjusted_eval };
 }
 
-void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
+void test_upcoming_cycle_detection(GameState& position, int distance_from_root)
 {
     // upcoming_rep should return true iff there is a legal move that will lead to a repetition.
     // It's possible to have a zobrist hash collision, so this isn't a perfect test. But the likelihood of this
@@ -763,8 +765,8 @@ void TestUpcomingCycleDetection(GameState& position, int distance_from_root)
 }
 
 template <SearchType search_type>
-Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta, bool cut_node)
+Score search(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+    Score alpha, Score beta, bool cut_node)
 {
     assert((search_type != SearchType::ROOT) || (ss->distance_from_root == 0));
     assert((search_type != SearchType::ZW) || (beta == alpha + 1));
@@ -779,7 +781,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     if (depth <= 0 && !InCheck)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
-        return Quiescence<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
+        return qsearch<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
     }
 
     // Step 2: Check for abort or draw and update stats in the local state and search stack
@@ -793,7 +795,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     auto min_score = std::numeric_limits<Score>::min();
 
 #ifdef TEST_UPCOMING_CYCLE_DETECTION
-    TestUpcomingCycleDetection(position, distance_from_root);
+    test_upcoming_cycle_detection(position, distance_from_root);
 #endif
 
     if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
@@ -960,7 +962,7 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.GetTo()];
         position.apply_move(move);
-        shared.transposition_table.PreFetch(
+        shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
 
@@ -1027,15 +1029,15 @@ Score NegaScout(GameState& position, SearchStackState* ss, SearchLocalState& loc
     }
 
     // Step 21: Update transposition table
-    shared.transposition_table.AddEntry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
+    shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
 }
 
 template <SearchType search_type>
-Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    int depth, Score alpha, Score beta)
+Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+    Score alpha, Score beta)
 {
     static_assert(search_type != SearchType::ROOT);
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
@@ -1111,7 +1113,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
         position.apply_move(move);
         // TODO: prefetch
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
-        auto search_score = -Quiescence<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
+        auto search_score = -qsearch<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
         position.revert_move();
 
         if (local.aborting_search)
@@ -1142,7 +1144,7 @@ Score Quiescence(GameState& position, SearchStackState* ss, SearchLocalState& lo
                                                : SearchResultType::EXACT;
 
     // Step 7: Update transposition table
-    shared.transposition_table.AddEntry(bestmove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
+    shared.transposition_table.add_entry(bestmove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
