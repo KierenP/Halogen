@@ -155,7 +155,7 @@ void Table::realloc(int thread_count)
     madvise(table, bytes, MADV_HUGEPAGE);
     std::uninitialized_default_construct_n(table, size_);
 #else
-    table = new TTBucket[size_];
+    table = new Bucket[size_];
 #endif
 
     clear(thread_count);
