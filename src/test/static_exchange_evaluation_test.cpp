@@ -9,9 +9,9 @@
 const auto test_see
     = []([[maybe_unused]] const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)
 {
-    assert(see(position.Board(), move) == expected_value.value());
-    assert(see_ge(position.Board(), move, expected_value));
-    assert(!see_ge(position.Board(), move, expected_value + 1));
+    assert(see(position.board(), move) == expected_value.value());
+    assert(see_ge(position.board(), move, expected_value));
+    assert(!see_ge(position.board(), move, expected_value + 1));
 };
 
 void static_exchange_evaluation_test()
