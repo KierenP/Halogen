@@ -7,10 +7,13 @@
 #include <string_view>
 #include <utility>
 
+namespace UCI
+{
+
 constexpr inline char uci_delimiter = ' ';
 
 // Returns true if we are at the end of the command
-struct end_command
+struct EndCommand
 {
     template <typename... Ctx>
     bool operator()(std::string_view& command, Ctx&&...)
@@ -21,9 +24,9 @@ struct end_command
 
 // Invokes a callback. Does nothing with the command
 template <typename T>
-struct invoke
+struct Invoke
 {
-    invoke(T&& callback)
+    Invoke(T&& callback)
         : callback_(std::move(callback))
     {
     }
@@ -39,9 +42,9 @@ struct invoke
 
 // Invokes a callback, converting the token to a int
 template <typename T>
-struct to_int
+struct ToInt
 {
-    to_int(T&& callback)
+    ToInt(T&& callback)
         : callback_(std::move(callback))
     {
     }
@@ -65,9 +68,9 @@ struct to_int
 
 // Invokes a callback, converting the token to a float
 template <typename T>
-struct to_float
+struct ToFloat
 {
-    to_float(T&& callback)
+    ToFloat(T&& callback)
         : callback_(std::move(callback))
     {
     }
@@ -85,9 +88,9 @@ struct to_float
 
 // Invokes a callback, converting the token to a boolean
 template <typename T>
-struct to_bool
+struct ToBool
 {
-    to_bool(T&& callback)
+    ToBool(T&& callback)
         : callback_(std::move(callback))
     {
     }
@@ -114,9 +117,9 @@ struct to_bool
 
 // Reads the next token and passes to the callback
 template <typename T>
-struct next_token
+struct NextToken
 {
-    next_token(T&& callback)
+    NextToken(T&& callback)
         : callback_(std::move(callback))
     {
     }
@@ -147,9 +150,9 @@ struct next_token
 
 // Reads until the first occurance of the token and passes the substr to the callback
 template <typename T>
-struct tokens_until
+struct TokensUntil
 {
-    tokens_until(std::string_view delimiter, T&& callback)
+    TokensUntil(std::string_view delimiter, T&& callback)
         : delimiter_(delimiter)
         , callback_(std::move(callback))
     {
@@ -182,9 +185,9 @@ struct tokens_until
 
 // Consumes a token and passes the remaining command to the handler
 template <typename T>
-struct consume
+struct Consume
 {
-    consume(std::string_view token, T&& handler)
+    Consume(std::string_view token, T&& handler)
         : handler_(std::move(handler))
         , token_(token)
     {
@@ -213,9 +216,9 @@ struct consume
 
 // Executes a series of handlers in order
 template <typename... T>
-struct sequence
+struct Sequence
 {
-    sequence(T&&... handlers)
+    Sequence(T&&... handlers)
         : handlers_(std::move(handlers)...)
     {
     }
@@ -248,9 +251,9 @@ struct sequence
 
 // Tries each handler until one returns true
 template <typename... T>
-struct one_of
+struct OneOf
 {
-    one_of(T&&... handlers)
+    OneOf(T&&... handlers)
         : handlers_(std::move(handlers)...)
     {
     }
@@ -283,9 +286,9 @@ struct one_of
 
 // Repeatedly calls the handler until the command is empty
 template <typename T>
-struct repeat
+struct Repeat
 {
-    repeat(T&& handler)
+    Repeat(T&& handler)
         : handler_(std::move(handler))
     {
     }
@@ -310,9 +313,9 @@ struct repeat
 // Wraps the nested handler in a context, useful for storing state between handlers. with_context can be used recursivly
 // to wrap multiple contexts
 template <typename new_Ctx, typename T>
-struct with_context
+struct WithContext
 {
-    with_context(new_Ctx&& ctx, T&& handler)
+    WithContext(new_Ctx&& ctx, T&& handler)
         : context_(std::move(ctx))
         , handler_(std::move(handler))
     {
@@ -327,3 +330,5 @@ struct with_context
     new_Ctx context_;
     T handler_;
 };
+
+}

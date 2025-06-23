@@ -7,10 +7,13 @@
 #include <string_view>
 #include <thread>
 
-#include "GameState.h"
-#include "SearchData.h"
+#include "chessboard/game_state.h"
+#include "search/data.h"
 
 class Move;
+
+namespace UCI
+{
 
 enum class OutputLevel : uint8_t
 {
@@ -77,8 +80,8 @@ public:
 private:
     void join_search_thread();
 
-    GameState position;
-    std::thread searchThread;
+    GameState position = GameState::starting_position();
+    std::thread search_thread;
     SearchSharedState shared { *this };
     const std::string_view version_;
     OutputLevel output_level;
@@ -87,3 +90,5 @@ private:
 
     auto options_handler();
 };
+
+}

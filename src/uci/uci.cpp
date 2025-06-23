@@ -15,25 +15,28 @@
 #include <string_view>
 #include <vector>
 
-#include "Benchmark.h"
-#include "BitBoardDefine.h"
-#include "BoardState.h"
-#include "EGTB.h"
-#include "GameState.h"
-#include "Move.h"
-#include "MoveGeneration.h"
-#include "MoveList.h"
-#include "Network.h"
-#include "Score.h"
-#include "Search.h"
-#include "SearchData.h"
-#include "SearchLimits.h"
-#include "StaticVector.h"
-#include "TimeManager.h"
-#include "TranspositionTable.h"
-#include "atomic.h"
+#include "bitboard/define.h"
+#include "chessboard/board_state.h"
+#include "chessboard/game_state.h"
+#include "misc/benchmark.h"
+#include "movegen/list.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
+#include "network/network.h"
+#include "search/data.h"
+#include "search/limit/limits.h"
+#include "search/limit/time.h"
+#include "search/score.h"
+#include "search/search.h"
+#include "search/syzygy.h"
+#include "search/transposition/table.h"
 #include "uci/options.h"
 #include "uci/parse.h"
+#include "utility/atomic.h"
+#include "utility/static_vector.h"
+
+namespace UCI
+{
 
 std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {
@@ -81,22 +84,22 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    legal_moves(position.board(), moves);
 
     if (check_legality)
     {
         for (int i = 0; i < std::numeric_limits<uint16_t>::max(); i++)
         {
             Move move(i);
-            bool legal = MoveIsLegal(position.Board(), move);
+            bool legal = is_legal(position.board(), move);
 
             bool present = std::find(moves.begin(), moves.end(), move) != moves.end();
 
             if (present != legal)
             {
-                std::cout << position.Board() << move << "\n";
+                std::cout << position.board() << move << "\n";
                 std::cout << present << " " << legal << "\n";
-                std::cout << move.GetFrom() << " " << move.GetTo() << " " << move.GetFlag() << std::endl;
+                std::cout << move.from() << " " << move.to() << " " << move.flag() << std::endl;
                 return 0; // cause perft answer to be incorrect
             }
         }
@@ -107,9 +110,9 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        position.ApplyMove(moves[i]);
+        position.apply_move(moves[i]);
         nodeCount += Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.revert_move();
     }
 
     return nodeCount;
@@ -122,7 +125,6 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
     int Perfts = 0;
     int Correct = 0;
     double Totalnodes = 0;
-    GameState position;
     std::string line;
 
     auto before = std::chrono::steady_clock::now();
@@ -142,7 +144,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
         std::string fen = arrayTokens[0] + " " + arrayTokens[1] + " " + arrayTokens[2] + " " + arrayTokens[3] + " "
             + arrayTokens[4] + " " + arrayTokens[5];
 
-        position.InitialiseFromFen(fen);
+        auto position = GameState::from_fen(fen);
 
         int depth = (arrayTokens.size() - 7) / 2 - depth_reduce;
         uint64_t nodes = Perft(depth, position, check_legality);
@@ -177,13 +179,13 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
 
     uint64_t nodeCount = 0;
     BasicMoveList moves;
-    LegalMoves(position.Board(), moves);
+    legal_moves(position.board(), moves);
 
     for (size_t i = 0; i < moves.size(); i++)
     {
-        position.ApplyMove(moves[i]);
+        position.apply_move(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
-        position.RevertMove();
+        position.revert_move();
         std::cout << moves[i] << ": " << ChildNodeCount << std::endl;
         nodeCount += ChildNodeCount;
     }
@@ -205,14 +207,14 @@ void Uci::handle_bench(int depth)
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
-        if (!position.InitialiseFromFen(benchMarkPositions[i]))
+        if (!position.init_from_fen(benchMarkPositions[i]))
         {
             std::cout << "BAD FEN!" << std::endl;
             break;
         }
 
         shared.limits.time.reset();
-        SearchThread(position, shared);
+        launch_search(position, shared);
         nodeCount += shared.nodes();
     }
 
@@ -234,14 +236,14 @@ auto Uci::options_handler()
         #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
     }
 
-    return uci_options {
-        button_option { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
-        check_option { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
-        spin_option { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
-        spin_option { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
-        spin_option { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
-        string_option { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
-        combo_option {
+    return Options {
+        ButtonOption { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
+        CheckOption { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
+        SpinOption { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
+        SpinOption { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
+        SpinOption { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
+        StringOption { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
+        ComboOption {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
     };
 
@@ -276,24 +278,24 @@ void Uci::handle_isready()
 
 void Uci::handle_ucinewgame()
 {
-    position.StartingPosition();
-    shared.transposition_table.Clear(shared.get_threads_setting());
-    shared.ResetNewGame();
+    position.starting_position();
+    shared.transposition_table.clear(shared.get_threads_setting());
+    shared.reset_new_game();
 }
 
 bool Uci::handle_position_fen(std::string_view fen)
 {
-    return position.InitialiseFromFen(fen);
+    return position.init_from_fen(fen);
 }
 
 void Uci::handle_moves(std::string_view move)
 {
-    position.ApplyMove(move);
+    position.apply_move(move);
 }
 
 void Uci::handle_position_startpos()
 {
-    position.StartingPosition();
+    position.starting_position();
 }
 
 void Uci::handle_go(go_ctx& ctx)
@@ -312,8 +314,8 @@ void Uci::handle_go(go_ctx& ctx)
     constexpr static int timeIncCoeffA = 40;
     constexpr static int timeIncCoeffB = 1200;
 
-    const auto& myTime = position.Board().stm ? ctx.wtime : ctx.btime;
-    const auto& myInc = position.Board().stm ? ctx.winc : ctx.binc;
+    const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
+    const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
 
     if (ctx.movetime)
     {
@@ -341,7 +343,7 @@ void Uci::handle_go(go_ctx& ctx)
             // use a higher proportion of the available time so that we get down to just using the increment
 
             auto soft_limit
-                = (*myTime - BufferTime) * (timeIncCoeffA + position.Board().half_turn_count) / timeIncCoeffB + *myInc;
+                = (*myTime - BufferTime) * (timeIncCoeffA + position.board().half_turn_count) / timeIncCoeffB + *myInc;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
@@ -353,18 +355,18 @@ void Uci::handle_go(go_ctx& ctx)
     }
 
     // launch search thread
-    searchThread = std::thread([&]() { SearchThread(position, shared); });
+    search_thread = std::thread([&]() { launch_search(position, shared); });
 }
 
 void Uci::handle_setoption_clear_hash()
 {
-    shared.transposition_table.Clear(shared.get_threads_setting());
-    shared.ResetNewGame();
+    shared.transposition_table.clear(shared.get_threads_setting());
+    shared.reset_new_game();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    shared.transposition_table.SetSize(value, shared.get_threads_setting());
+    shared.transposition_table.set_size(value, shared.get_threads_setting());
 }
 
 void Uci::handle_setoption_threads(int value)
@@ -405,8 +407,8 @@ void Uci::handle_quit()
 
 void Uci::join_search_thread()
 {
-    if (searchThread.joinable())
-        searchThread.join();
+    if (search_thread.joinable())
+        search_thread.join();
 }
 
 void Uci::process_input_stream(std::istream& is)
@@ -426,11 +428,11 @@ void Uci::process_input(std::string_view command)
     // search thread to avoid race conditions.
 
     // clang-format off
-    auto during_search_processor = sequence {
-    one_of { 
-        consume { "stop", invoke { [this] { handle_stop(); } } },
-        consume { "quit", invoke { [this] { handle_quit(); } } } },
-    end_command{}
+    auto during_search_processor = Sequence {
+    OneOf { 
+        Consume { "stop", Invoke { [this] { handle_stop(); } } },
+        Consume { "quit", Invoke { [this] { handle_quit(); } } } },
+    EndCommand{}
     };
     // clang-format on
 
@@ -447,52 +449,52 @@ void Uci::process_input(std::string_view command)
     using namespace std::chrono_literals;
 
     // clang-format off
-    auto uci_processor = sequence {
-    one_of {
-        consume { "uci", invoke { [this]{ handle_uci(); } } },
-        consume { "ucinewgame", invoke { [this]{ handle_ucinewgame(); } } },
-        consume { "isready", invoke { [this]{ handle_isready(); } } },
-        consume { "position", one_of {
-            consume { "fen", sequence {
-                tokens_until {"moves", [this](auto fen){ return handle_position_fen(fen); } },
-                repeat { next_token { [this](auto move){ handle_moves(move); } } } } },
-            consume { "startpos", sequence {
-                invoke { [this] { handle_position_startpos(); } },
-                one_of {
-                    consume { "moves", repeat { next_token { [this](auto move){ handle_moves(move); } } } },
-                    end_command{} } } } } },
-        consume { "go", sequence {
-            invoke { [this]{ shared.limits = {}; } },
-            with_context { go_ctx{}, sequence {
-                repeat { one_of {
-                    consume { "infinite", invoke { [](auto&){} } },
-                    consume { "wtime", next_token { to_int { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
-                    consume { "btime", next_token { to_int { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
-                    consume { "winc", next_token { to_int { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
-                    consume { "binc", next_token { to_int { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
-                    consume { "movestogo", next_token { to_int { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
-                    consume { "movetime", next_token { to_int { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
-                    consume { "mate", next_token { to_int { [](auto value, auto& ctx){ ctx.mate = value; } } } },
-                    consume { "depth", next_token { to_int { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-                    consume { "nodes", next_token { to_int { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
-                invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
-        consume { "setoption", options_handler_model.build_handler() },
+    auto uci_processor = Sequence {
+    OneOf {
+        Consume { "uci", Invoke { [this]{ handle_uci(); } } },
+        Consume { "ucinewgame", Invoke { [this]{ handle_ucinewgame(); } } },
+        Consume { "isready", Invoke { [this]{ handle_isready(); } } },
+        Consume { "position", OneOf {
+            Consume { "fen", Sequence {
+                TokensUntil {"moves", [this](auto fen){ return handle_position_fen(fen); } },
+                Repeat { NextToken { [this](auto move){ handle_moves(move); } } } } },
+            Consume { "startpos", Sequence {
+                Invoke { [this] { handle_position_startpos(); } },
+                OneOf {
+                    Consume { "moves", Repeat { NextToken { [this](auto move){ handle_moves(move); } } } },
+                    EndCommand{} } } } } },
+        Consume { "go", Sequence {
+            Invoke { [this]{ shared.limits = {}; } },
+            WithContext { go_ctx{}, Sequence {
+                Repeat { OneOf {
+                    Consume { "infinite", Invoke { [](auto&){} } },
+                    Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
+                    Consume { "btime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
+                    Consume { "winc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
+                    Consume { "binc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
+                    Consume { "movestogo", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
+                    Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
+                    Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
+                    Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
+                    Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
+                Invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
+        Consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
-        consume { "perft", next_token { to_int { [this](auto value) { PerftDivide(value, position, false); } } } },
-        consume { "test", one_of {
-            consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
-            consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
-            consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
-            consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
-        consume { "bench", one_of  {
-            sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
-            next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
-        consume { "print", invoke { [this] { handle_print(); } } },
-        consume { "spsa", invoke { [this] { handle_spsa(); } } },
-        consume { "eval", invoke { [this] { handle_eval(); } } },
-        consume { "probe", invoke { [this] { handle_probe(); } } } },
-    end_command{}
+        Consume { "perft", NextToken { ToInt { [this](auto value) { PerftDivide(value, position, false); } } } },
+        Consume { "test", OneOf {
+            Consume { "perft", Invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
+            Consume { "perft960", Invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
+            Consume { "perft_legality", Invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
+            Consume { "perft960_legality", Invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
+        Consume { "bench", OneOf  {
+            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(10); } } },
+            NextToken { ToInt { [this](auto value){ handle_bench(value); } } } } },
+        Consume { "print", Invoke { [this] { handle_print(); } } },
+        Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
+        Consume { "eval", Invoke { [this] { handle_eval(); } } },
+        Consume { "probe", Invoke { [this] { handle_probe(); } } } },
+    EndCommand{}
     };
     // clang-format on
 
@@ -531,7 +533,7 @@ void Uci::print_search_info(const SearchResults& data, bool final)
     auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
     auto node_count = shared.nodes();
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = shared.transposition_table.GetCapacity(position.Board().half_turn_count);
+    auto hashfull = shared.transposition_table.get_hashfull(position.board().half_turn_count);
 
     std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
               << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
@@ -575,7 +577,7 @@ void Uci::print_error(const std::string& error_str)
 
 void Uci::handle_print()
 {
-    std::cout << position.Board() << std::endl;
+    std::cout << position.board() << std::endl;
 }
 
 void Uci::handle_spsa()
@@ -585,14 +587,14 @@ void Uci::handle_spsa()
 
 void Uci::handle_eval()
 {
-    std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
+    std::cout << position.board() << std::endl;
+    std::cout << "Eval: " << NN::Network::slow_eval(position.board()) << std::endl;
 }
 
 void Uci::handle_probe()
 {
-    std::cout << position.Board() << std::endl;
-    auto probe = Syzygy::probe_dtz_root(position.Board());
+    std::cout << position.board() << std::endl;
+    auto probe = Syzygy::probe_dtz_root(position.board());
 
     if (!probe)
     {
@@ -609,4 +611,6 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
 }

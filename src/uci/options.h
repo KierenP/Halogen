@@ -10,17 +10,20 @@
 #include <tuple>
 #include <type_traits>
 
-template <typename T>
-struct check_option
+namespace UCI
 {
-    check_option(std::string_view name_, bool default_value_, T&& on_change_)
+
+template <typename T>
+struct CheckOption
+{
+    CheckOption(std::string_view name_, bool default_value_, T&& on_change_)
         : name(name_)
         , default_value(default_value_)
         , on_change(std::move(on_change_))
     {
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const check_option<T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const CheckOption<T>& opt)
     {
         return os << std::boolalpha << "option name " << opt.name << " type check default " << opt.default_value
                   << "\n";
@@ -29,7 +32,7 @@ struct check_option
     auto handler()
     {
         auto action = [this](auto val) { return invoke_with_optional_validation(on_change, val); };
-        return consume { name, consume { "value", next_token { to_bool { std::move(action) } } } };
+        return Consume { name, Consume { "value", NextToken { ToBool { std::move(action) } } } };
     }
 
     void set_default()
@@ -48,9 +51,9 @@ struct check_option
 };
 
 template <typename T>
-struct spin_option
+struct SpinOption
 {
-    spin_option(std::string_view name_, int default_value_, int min_value_, int max_value_, T&& on_change_)
+    SpinOption(std::string_view name_, int default_value_, int min_value_, int max_value_, T&& on_change_)
         : name(name_)
         , default_value(default_value_)
         , min_value(min_value_)
@@ -60,7 +63,7 @@ struct spin_option
         assert(min_value <= default_value && default_value <= max_value);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const spin_option<T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const SpinOption<T>& opt)
     {
         return os << "option name " << opt.name << " type spin default " << opt.default_value << " min "
                   << opt.min_value << " max " << opt.max_value << "\n";
@@ -80,7 +83,7 @@ struct spin_option
             }
         };
 
-        return consume { name, consume { "value", next_token { to_int { std::move(with_validation) } } } };
+        return Consume { name, Consume { "value", NextToken { ToInt { std::move(with_validation) } } } };
     }
 
     void set_default()
@@ -105,9 +108,9 @@ struct spin_option
 
 // UCI extension: a float parameter that pretends to be 'string'. Useful for automated tuning
 template <typename T>
-struct float_option
+struct FloatOption
 {
-    float_option(std::string_view name_, float default_value_, float min_value_, float max_value_, T&& on_change_)
+    FloatOption(std::string_view name_, float default_value_, float min_value_, float max_value_, T&& on_change_)
         : name(name_)
         , default_value(default_value_)
         , min_value(min_value_)
@@ -117,7 +120,7 @@ struct float_option
         assert(min_value <= default_value && default_value <= max_value);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const float_option<T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const FloatOption<T>& opt)
     {
         return os << "option name " << opt.name << " type string default " << opt.default_value << " min "
                   << opt.min_value << " max " << opt.max_value << "\n";
@@ -137,7 +140,7 @@ struct float_option
             }
         };
 
-        return consume { name, consume { "value", next_token { to_float { std::move(with_validation) } } } };
+        return Consume { name, Consume { "value", NextToken { ToFloat { std::move(with_validation) } } } };
     }
 
     void set_default()
@@ -159,22 +162,22 @@ struct float_option
 };
 
 template <typename T>
-struct button_option
+struct ButtonOption
 {
-    button_option(std::string_view name_, T&& on_change_)
+    ButtonOption(std::string_view name_, T&& on_change_)
         : name(name_)
         , on_change(std::move(on_change_))
     {
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const button_option<T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const ButtonOption<T>& opt)
     {
         return os << "option name " << opt.name << " type button\n";
     }
 
     auto handler()
     {
-        return consume { name, invoke { [this]() { return invoke_with_optional_validation(on_change); } } };
+        return Consume { name, Invoke { [this]() { return invoke_with_optional_validation(on_change); } } };
     }
 
     void set_default()
@@ -192,16 +195,16 @@ struct button_option
 };
 
 template <typename T>
-struct string_option
+struct StringOption
 {
-    string_option(std::string_view name_, std::string_view default_value_, T&& on_change_)
+    StringOption(std::string_view name_, std::string_view default_value_, T&& on_change_)
         : name(name_)
         , default_value(default_value_)
         , on_change(std::move(on_change_))
     {
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const string_option<T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const StringOption<T>& opt)
     {
         return os << "option name " << opt.name << " type string default " << opt.default_value << "\n";
     }
@@ -209,7 +212,7 @@ struct string_option
     auto handler()
     {
         auto action = [this](auto val) { return invoke_with_optional_validation(on_change, val); };
-        return consume { name, consume { "value", next_token { std::move(action) } } };
+        return Consume { name, Consume { "value", NextToken { std::move(action) } } };
     }
 
     void set_default()
@@ -233,16 +236,16 @@ template <typename T>
 std::optional<T> to_enum(std::string_view str);
 
 template <typename Enum, typename T>
-struct combo_option
+struct ComboOption
 {
-    combo_option(std::string_view name_, Enum default_value_, T&& on_change_)
+    ComboOption(std::string_view name_, Enum default_value_, T&& on_change_)
         : name(name_)
         , default_value(default_value_)
         , on_change(std::move(on_change_))
     {
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const combo_option<Enum, T>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const ComboOption<Enum, T>& opt)
     {
         os << "option name " << opt.name << " type combo default " << opt.default_value;
         using U = std::underlying_type_t<Enum>;
@@ -269,7 +272,7 @@ struct combo_option
             }
         };
 
-        return consume { name, consume { "value", next_token { std::move(action) } } };
+        return Consume { name, Consume { "value", NextToken { std::move(action) } } };
     }
 
     void set_default()
@@ -288,22 +291,22 @@ struct combo_option
 };
 
 template <typename... T>
-class uci_options
+class Options
 {
 public:
-    uci_options(T&&... opts)
+    Options(T&&... opts)
         : options(std::move(opts)...)
     {
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const uci_options<T...>& opt)
+    friend std::ostream& operator<<(std::ostream& os, const Options<T...>& opt)
     {
         return std::apply([&](auto&... opts) -> decltype(auto) { return (os << ... << opts); }, opt.options);
     }
 
     auto build_handler()
     {
-        return consume { "name", std::apply([&](auto&... opts) { return one_of { opts.handler()... }; }, options) };
+        return Consume { "name", std::apply([&](auto&... opts) { return OneOf { opts.handler()... }; }, options) };
     }
 
     void set_defaults()
@@ -319,3 +322,5 @@ public:
 private:
     std::tuple<T...> options;
 };
+
+}
