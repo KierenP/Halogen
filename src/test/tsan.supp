@@ -1,4 +1,5 @@
 # Using atomics in TT is a slowdown, so we silence the data race warnings
 race:Table::add_entry
 race:Table::get_entry
+race:Table::realloc
 race:get_search_eval
