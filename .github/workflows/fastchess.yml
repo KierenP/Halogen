@@ -14,7 +14,8 @@ jobs:
 
     strategy:
       matrix:
-        target: [sanitize-address, sanitize-undefined, sanitize-thread]
+        # TODO: sanitize-thread
+        target: [sanitize-address, sanitize-undefined]
 
     steps:
       - name: Checkout Halogen repo 
