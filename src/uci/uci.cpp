@@ -278,7 +278,7 @@ void Uci::handle_isready()
 
 void Uci::handle_ucinewgame()
 {
-    position.starting_position();
+    position = GameState::starting_position();
     shared.transposition_table.clear(shared.get_threads_setting());
     shared.reset_new_game();
 }
@@ -295,7 +295,7 @@ void Uci::handle_moves(std::string_view move)
 
 void Uci::handle_position_startpos()
 {
-    position.starting_position();
+    position = GameState::starting_position();
 }
 
 void Uci::handle_go(go_ctx& ctx)

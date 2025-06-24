@@ -16,8 +16,8 @@ including all previous game states for the purposes of draw by repetition.
 class GameState
 {
 public:
-    static GameState starting_position();
-    static GameState from_fen(std::string_view fen);
+    [[nodiscard]] static GameState starting_position();
+    [[nodiscard]] static GameState from_fen(std::string_view fen);
 
     void apply_move(Move move);
     void apply_move(std::string_view strmove);
