@@ -43,7 +43,7 @@ jobs:
           ./fast-chess -rounds 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 -log file=fast.log option.Threads=4 | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "disconnect" fast.out > /dev/null
@@ -55,7 +55,7 @@ jobs:
           ./fast-chess -rounds 1 -openings\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 -log file=fast.log option.Threads=4 | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "disconnect" fast.out > /dev/null
@@ -67,7 +67,7 @@ jobs:
           ./fast-chess -variant fischerandom -rounds 4 -openings file=opening.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 -log file=fast.log option.Threads=4 | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "disconnect" fast.out > /dev/null
