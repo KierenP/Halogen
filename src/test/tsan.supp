@@ -1,4 +1,4 @@
 # Using atomics in TT is a slowdown, so we silence the data race warnings
-race:Transposition::Table::add_entry
+race:operator()<Transposition::Entry>
 race:Transposition::Table::get_entry
 race:get_search_eval
