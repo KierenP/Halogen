@@ -24,8 +24,6 @@
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "network/network.h"
-#include "options.h"
-#include "parse.h"
 #include "search/data.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
@@ -500,7 +498,7 @@ void Uci::process_input(std::string_view command)
         Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
              Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
-                Consume { "duration", NextToken { ToInt{[](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
+                Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
             Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
     EndCommand{}
     };
