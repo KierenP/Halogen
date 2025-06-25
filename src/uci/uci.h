@@ -55,12 +55,6 @@ public:
         std::optional<int> nodes;
     };
 
-    struct file_io_ctx
-    {
-        std::string input_path;
-        std::string output_path;
-    };
-
     struct datagen_ctx
     {
         std::string output_path;
@@ -90,7 +84,7 @@ public:
     void handle_probe();
     void handle_datagen(const datagen_ctx& ctx);
 
-    // private:
+private:
     void join_search_thread();
 
     GameState position = GameState::starting_position();
