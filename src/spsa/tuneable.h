@@ -17,6 +17,8 @@ TUNEABLE_CONSTANT double LMR_depth_coeff = -1.48;
 TUNEABLE_CONSTANT double LMR_move_coeff = 1.91;
 TUNEABLE_CONSTANT double LMR_depth_move_coeff = 0.12;
 
+constexpr static int LMR_SCALE = 1024;
+
 inline auto Initialise_LMR_reduction()
 {
     std::array<std::array<int, 64>, 64> ret = {};
@@ -25,8 +27,9 @@ inline auto Initialise_LMR_reduction()
     {
         for (size_t j = 0; j < ret[i].size(); j++)
         {
-            ret[i][j] = static_cast<int>(std::round(LMR_constant + LMR_depth_coeff * log(i + 1)
-                + LMR_move_coeff * log(j + 1) + LMR_depth_move_coeff * log(i + 1) * log(j + 1)));
+            auto reduction = LMR_constant + LMR_depth_coeff * log(i + 1) + LMR_move_coeff * log(j + 1)
+                + LMR_depth_move_coeff * log(i + 1) * log(j + 1);
+            ret[i][j] = static_cast<int>(std::round(reduction * LMR_SCALE));
         }
     }
 
