@@ -648,7 +648,7 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
     }
 
     // If the ZW search was skipped or failed high, we do a full depth full width search
-    if (pv_node && (seen_moves == 1 || (search_score > alpha && search_score < beta)))
+    if (pv_node && (seen_moves == 1 || search_score > alpha))
     {
         search_score = -search<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha, false);
     }
