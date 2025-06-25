@@ -564,7 +564,7 @@ int late_move_reductions(int depth, int seen_moves, int history, bool cut_node)
 
     r -= history * 2138 / 16384;
 
-    r /= LMR_SCALE;
+    r = (r + 512) / LMR_SCALE;
 
     return std::max(0, r);
 }
