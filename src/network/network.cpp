@@ -93,26 +93,16 @@ void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, 
     }
 }
 
-Square MirrorVertically(Square sq)
-{
-    return static_cast<Square>(sq ^ 56);
-}
-
-Square MirrorHorizontally(Square sq)
-{
-    return static_cast<Square>(sq ^ 7);
-}
-
 int get_king_bucket(Square king_sq, Side view)
 {
-    king_sq = view == WHITE ? king_sq : MirrorVertically(king_sq);
+    king_sq = view == WHITE ? king_sq : flip_square_vertical(king_sq);
     return KING_BUCKETS[king_sq];
 }
 
 int index(Square king_sq, Square piece_sq, Piece piece, Side view)
 {
-    piece_sq = view == WHITE ? piece_sq : MirrorVertically(piece_sq);
-    piece_sq = enum_to<File>(king_sq) <= FILE_D ? piece_sq : MirrorHorizontally(piece_sq);
+    piece_sq = view == WHITE ? piece_sq : flip_square_vertical(piece_sq);
+    piece_sq = enum_to<File>(king_sq) <= FILE_D ? piece_sq : flip_square_horizontal(piece_sq);
 
     auto king_bucket = get_king_bucket(king_sq, view);
     Side relativeColor = static_cast<Side>(view != enum_to<Side>(piece));

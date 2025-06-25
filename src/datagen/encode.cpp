@@ -2,14 +2,14 @@
 
 MarlinFormat convert(BoardState board, float result)
 {
-    const auto white = board.GetPieces<WHITE>();
-    const auto black = board.GetPieces<BLACK>();
-    const auto pawn = board.GetPieceBB<PAWN>();
-    const auto knight = board.GetPieceBB<KNIGHT>();
-    const auto bishop = board.GetPieceBB<BISHOP>();
-    const auto rook = board.GetPieceBB<ROOK>();
-    const auto queen = board.GetPieceBB<QUEEN>();
-    const auto king = board.GetPieceBB<KING>();
+    const auto white = board.get_pieces_bb<WHITE>();
+    const auto black = board.get_pieces_bb<BLACK>();
+    const auto pawn = board.get_pieces_bb<PAWN>();
+    const auto knight = board.get_pieces_bb<KNIGHT>();
+    const auto bishop = board.get_pieces_bb<BISHOP>();
+    const auto rook = board.get_pieces_bb<ROOK>();
+    const auto queen = board.get_pieces_bb<QUEEN>();
+    const auto king = board.get_pieces_bb<KING>();
     const auto castle_squares = board.castle_squares;
 
     MarlinFormat format {};
@@ -19,7 +19,7 @@ MarlinFormat convert(BoardState board, float result)
     auto occ = format.occ;
     while (occ)
     {
-        auto sq = LSBpop(occ);
+        auto sq = lsbpop(occ);
         uint8_t piece_type = (pawn & SquareBB[sq]) != 0 ? PAWN
             : (knight & SquareBB[sq]) != 0              ? KNIGHT
             : (bishop & SquareBB[sq]) != 0              ? BISHOP
@@ -52,9 +52,9 @@ MarlinFormat convert(BoardState board, float result)
 
 uint16_t convert(Move move)
 {
-    uint16_t packed_move = (move.GetFrom() & 0x3F) | ((move.GetTo() & 0x3F) << 6);
+    uint16_t packed_move = (move.from() & 0x3F) | ((move.to() & 0x3F) << 6);
 
-    switch (move.GetFlag())
+    switch (move.flag())
     {
     case KNIGHT_PROMOTION:
     case KNIGHT_PROMOTION_CAPTURE:
@@ -86,7 +86,7 @@ uint16_t convert(Move move)
     return packed_move;
 }
 
-int16_t convert(Players stm, Score score)
+int16_t convert(Side stm, Score score)
 {
     score = (stm == WHITE ? score : -score); // convert to white-relative score
     return score.value();

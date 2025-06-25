@@ -1,11 +1,10 @@
 #include "datagen.h"
 
-#include "../Evaluate.h"
-#include "../MoveGeneration.h"
-#include "../Search.h"
-#include "../SearchData.h"
-#include "../uci/uci.h"
 #include "encode.h"
+#include "evaluation/evaluate.h"
+#include "movegen/movegen.h"
+#include "search/data.h"
+#include "search/search.h"
 
 #include <atomic>
 #include <chrono>
@@ -14,7 +13,7 @@
 #include <random>
 #include <thread>
 
-void self_play_game(Uci& uci, std::ofstream& data_file);
+void self_play_game(UCI::Uci& uci, std::ofstream& data_file);
 
 std::atomic<uint64_t> games;
 std::atomic<uint64_t> fens;
@@ -72,11 +71,11 @@ void info_thread(std::chrono::seconds datagen_time)
     }
 }
 
-void generation_thread(Uci& uci, std::string_view output_path)
+void generation_thread(UCI::Uci& uci, std::string_view output_path)
 {
     uci.shared.limits.nodes = 40000;
-    uci.output_level = OutputLevel::None;
-    tTable.SetSize(1);
+    uci.output_level = UCI::OutputLevel::None;
+    uci.shared.transposition_table.set_size(1, 1);
 
     int output_rotation = 0;
     auto output_file_path = [&] { return std::format("{}-{}.data", output_path, output_rotation); };
@@ -99,7 +98,7 @@ void generation_thread(Uci& uci, std::string_view output_path)
     }
 }
 
-void datagen(Uci& uci, std::string_view output_path, std::chrono::seconds duration)
+void datagen(UCI::Uci& uci, std::string_view output_path, std::chrono::seconds duration)
 {
     auto info = std::thread(info_thread, duration);
     auto data = std::thread(generation_thread, std::ref(uci), output_path);
@@ -108,7 +107,7 @@ void datagen(Uci& uci, std::string_view output_path, std::chrono::seconds durati
     data.join();
 }
 
-void self_play_game(Uci& uci, std::ofstream& data_file)
+void self_play_game(UCI::Uci& uci, std::ofstream& data_file)
 {
     auto& position = uci.position;
     auto& data = uci.shared;
@@ -126,13 +125,13 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
     while (!valid_opening)
     {
         int turns = 0;
-        uci.position.InitialiseFromFen(opening);
+        uci.position = GameState::from_fen(opening);
 
         // play out 10 random moves
         while (turns < 10)
         {
             BasicMoveList moves;
-            LegalMoves(position.Board(), moves);
+            legal_moves(position.board(), moves);
 
             if (moves.size() == 0)
             {
@@ -141,13 +140,13 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
             }
 
             std::uniform_int_distribution<> move(0, moves.size() - 1);
-            position.ApplyMove(moves[move(gen)]);
+            position.apply_move(moves[move(gen)]);
             turns++;
             continue;
         }
 
         BasicMoveList moves;
-        LegalMoves(position.Board(), moves);
+        legal_moves(position.board(), moves);
 
         if (moves.size() == 0)
         {
@@ -155,7 +154,7 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
             continue;
         }
 
-        SearchThread(position, data);
+        launch_search(position, data);
         auto result = data.get_best_search_result();
         auto eval = result.score;
 
@@ -166,7 +165,7 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         }
     }
 
-    BoardState initial_state = position.Board();
+    BoardState initial_state = position.board();
     std::vector<std::tuple<int16_t, Move>> score_moves;
     float result = -1;
 
@@ -176,12 +175,12 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
 
         // checkmate or stalemate
         BasicMoveList moves;
-        LegalMoves(position.Board(), moves);
+        legal_moves(position.board(), moves);
         if (moves.size() == 0)
         {
-            if (IsInCheck(position.Board()))
+            if (is_in_check(position.board()))
             {
-                if (position.Board().stm == WHITE)
+                if (position.board().stm == WHITE)
                 {
                     result = 0.f;
                     black_wins++;
@@ -202,7 +201,7 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         }
 
         // 50 move rule
-        if (position.Board().fifty_move_count >= 100)
+        if (position.board().fifty_move_count >= 100)
         {
             result = 0.5f;
             draws++;
@@ -210,15 +209,15 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
         }
 
         // 3 fold repitition rule
-        if (position.CheckForRep(0, 3))
+        if (position.is_repetition(0))
         {
             result = 0.5f;
             draws++;
             break;
         }
 
-        // insufficent material rule
-        if (DeadPosition(position.Board()))
+        // insufficient material rule
+        if (insufficient_material(position.board()))
         {
             result = 0.5f;
             draws++;
@@ -227,12 +226,12 @@ void self_play_game(Uci& uci, std::ofstream& data_file)
 
         // -----------------------------
 
-        SearchThread(position, data);
+        launch_search(position, data);
         const auto search_result = data.get_best_search_result();
-        const auto best_move = search_result.best_move;
-        const auto white_relative_score = (position.Board().stm == WHITE ? 1 : -1) * search_result.score.value();
+        const auto best_move = search_result.pv[0];
+        const auto white_relative_score = (position.board().stm == WHITE ? 1 : -1) * search_result.score.value();
         score_moves.emplace_back(white_relative_score, best_move);
-        position.ApplyMove(search_result.best_move);
+        position.apply_move(best_move);
     }
 
     auto marlin_format = convert(initial_state, result);

@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "../BoardState.h"
-#include "../Score.h"
+#include "chessboard/board_state.h"
+#include "search/score.h"
 
 struct MarlinFormat
 {
@@ -25,4 +25,4 @@ static_assert(std::is_standard_layout_v<MarlinFormat>);
 /// - Result is 0.0 for Black Win, 0.5 for Draw, 1.0 for White Win
 MarlinFormat convert(BoardState board, float result);
 uint16_t convert(Move move);
-int16_t convert(Players stm, Score score);
+int16_t convert(Side stm, Score score);

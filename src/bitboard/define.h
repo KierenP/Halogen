@@ -26,14 +26,14 @@ constexpr int popcount(uint64_t bb)
 #endif
 }
 
-constexpr Square flip_square(Square sq)
+constexpr Square flip_square_vertical(Square sq)
 {
     return static_cast<Square>(sq ^ 56);
 }
 
-constexpr uint64_t flip_bb(uint64_t bb)
+constexpr Square flip_square_horizontal(Square sq)
 {
-    return __builtin_bswap64(bb);
+    return static_cast<Square>(sq ^ 7);
 }
 
 constexpr uint64_t EMPTY = 0;
