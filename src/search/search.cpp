@@ -182,7 +182,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 Score aspiration_window(
     GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score)
 {
-    Score delta = 12;
+    Score delta = aspiration_window_size;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
     Score beta = std::min<Score>(Score::Limits::MATE, mid_score + delta);
 
@@ -456,7 +456,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction = 4 + depth / 6 + std::min(3, (static_score - beta).value() / 245);
+    const int reduction = nmp_const + depth / nmp_d + std::min(3, (static_score - beta).value() / nmp_s);
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
@@ -503,7 +503,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move, const Score beta, int& extensions,
     bool cut_node)
 {
-    Score sbeta = tt_score - 56 * depth / 64;
+    Score sbeta = tt_score - se_d * depth / 64;
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
@@ -513,7 +513,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     ss->singular_exclusion = Move::Uninitialized;
 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (!pv_node && se_score < sbeta - 11 && ss->distance_from_root < local.curr_depth)
+    if (!pv_node && se_score < sbeta - se_de && ss->distance_from_root < local.curr_depth)
     {
         extensions += 2;
     }
@@ -558,7 +558,7 @@ int reduction(int depth, int seen_moves, int history, bool cut_node)
     if (cut_node)
         r++;
 
-    r -= history / 7844;
+    r -= history / lmr_h;
 
     return std::max(0, r);
 }
@@ -687,7 +687,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     {
         // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
         // return false mate scores
-        return eval.value() * (288 - (int)position.board().fifty_move_count) / 256;
+        return eval.value() * (fifty_mr_scale - (int)position.board().fifty_move_count) / 256;
     };
 
     auto eval_corr_history = [&](Score eval)
@@ -841,8 +841,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < 8
-        && eval - 93 * (depth - improving) >= beta)
+    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
+        && eval - rfp_d * (depth - improving) >= beta)
     {
         return (beta.value() + eval.value()) / 2;
     }
@@ -905,7 +905,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < 6 && seen_moves >= 3 + 3 * depth * (1 + improving) && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < lmp_max_d && seen_moves >= lmp_const + lmp_depth * depth * (1 + improving)
+            && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.skip_quiets();
         }
@@ -913,7 +914,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < 10 && eval + 31 + 13 * depth + 11 * depth * depth < alpha
+        if (!pv_node && !InCheck && depth < fp_max_d
+            && eval + fp_const + fp_depth * depth + fp_quad * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.skip_quiets();
@@ -933,7 +935,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             = is_loud_move ? local.get_loud_history(position, ss, move) : (local.get_quiet_history(position, ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
-            && !see_ge(position.board(), move, -111 * depth - history / 168))
+            && !see_ge(position.board(), move, -see_d * depth - history / see_h))
         {
             continue;
         }
@@ -948,8 +950,9 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= 7 && tt_depth + 3 >= depth
-            && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move && tt_score != SCORE_UNDEFINED)
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= se_max_d
+            && tt_depth + see_tt_d >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
+            && tt_score != SCORE_UNDEFINED)
         {
             if (auto value = singular_extensions<pv_node>(
                     position, ss, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node))
@@ -1096,7 +1099,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
     while (gen.next(move))
     {
-        if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - 280))
+        if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - delta_c))
         {
             continue;
         }

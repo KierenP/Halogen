@@ -60,13 +60,14 @@ void PawnCorrHistory::add(const GameState& position, int depth, int eval_diff)
 {
     auto* entry = get(position);
 
-    int change = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale / 4, correction_max * eval_scale / 4);
-    *entry += change - *entry * abs(change) / (correction_max * eval_scale);
+    int change
+        = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
 }
 
 Score PawnCorrHistory::get_correction_score(const GameState& position) const
 {
-    return *get(position) / eval_scale;
+    return *get(position) / eval_scale();
 }
 
 int16_t* NonPawnCorrHistory::get(const GameState& position, Side side)
@@ -80,11 +81,12 @@ void NonPawnCorrHistory::add(const GameState& position, Side side, int depth, in
 {
     auto* entry = get(position, side);
 
-    int change = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale / 4, correction_max * eval_scale / 4);
-    *entry += change - *entry * abs(change) / (correction_max * eval_scale);
+    int change
+        = std::clamp(eval_diff * depth / 8, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
 }
 
 Score NonPawnCorrHistory::get_correction_score(const GameState& position, Side side)
 {
-    return *get(position, side) / eval_scale;
+    return *get(position, side) / eval_scale();
 }
