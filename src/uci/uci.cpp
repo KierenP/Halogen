@@ -621,7 +621,7 @@ void Uci::handle_probe()
 
 void Uci::handle_datagen(const datagen_ctx& ctx)
 {
-    datagen(*this, ctx.output_path, ctx.duration);
+    datagen(ctx.output_path, ctx.duration);
 }
 
 }

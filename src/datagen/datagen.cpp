@@ -1,5 +1,6 @@
 #include "datagen.h"
 
+#include "chessboard/game_state.h"
 #include "encode.h"
 #include "evaluation/evaluate.h"
 #include "movegen/movegen.h"
@@ -13,7 +14,7 @@
 #include <random>
 #include <thread>
 
-void self_play_game(UCI::Uci& uci, std::ofstream& data_file);
+void self_play_game(SearchSharedState& shared, GameState& position, std::ofstream& data_file);
 
 std::atomic<uint64_t> games;
 std::atomic<uint64_t> fens;
@@ -71,11 +72,18 @@ void info_thread(std::chrono::seconds datagen_time)
     }
 }
 
-void generation_thread(UCI::Uci& uci, std::string_view output_path)
+void generation_thread(std::string_view output_path)
 {
-    uci.shared.limits.nodes = 40000;
-    uci.output_level = UCI::OutputLevel::None;
-    uci.shared.transposition_table.set_size(1, 1);
+    // A bit hacky, SearchSharedState requires a UCI to print output, but UCI also maintains the engine state (which we
+    // end up not needing here)
+    UCI::Uci uci { "datagen" };
+    uci.handle_setoption_output_level(UCI::OutputLevel::None);
+
+    SearchSharedState shared { uci };
+    GameState position = GameState::starting_position();
+
+    shared.limits.nodes = 40000;
+    shared.transposition_table.set_size(1, 1);
 
     int output_rotation = 0;
     auto output_file_path = [&] { return std::format("{}-{}.data", output_path, output_rotation); };
@@ -84,8 +92,10 @@ void generation_thread(UCI::Uci& uci, std::string_view output_path)
 
     while (!stop)
     {
-        uci.handle_ucinewgame();
-        self_play_game(uci, data_file);
+        position = GameState::starting_position();
+        shared.transposition_table.clear(shared.get_threads_setting());
+        shared.reset_new_game();
+        self_play_game(shared, position, data_file);
 
         // rotate output file each hour
         auto now = std::chrono::steady_clock::now();
@@ -98,19 +108,17 @@ void generation_thread(UCI::Uci& uci, std::string_view output_path)
     }
 }
 
-void datagen(UCI::Uci& uci, std::string_view output_path, std::chrono::seconds duration)
+void datagen(std::string_view output_path, std::chrono::seconds duration)
 {
     auto info = std::thread(info_thread, duration);
-    auto data = std::thread(generation_thread, std::ref(uci), output_path);
+    auto data = std::thread(generation_thread, output_path);
 
     info.join();
     data.join();
 }
 
-void self_play_game(UCI::Uci& uci, std::ofstream& data_file)
+void self_play_game(SearchSharedState& data, GameState& position, std::ofstream& data_file)
 {
-    auto& position = uci.position;
-    auto& data = uci.shared;
     thread_local std::random_device rd;
     thread_local std::mt19937 gen(rd());
 
@@ -125,7 +133,7 @@ void self_play_game(UCI::Uci& uci, std::ofstream& data_file)
     while (!valid_opening)
     {
         int turns = 0;
-        uci.position = GameState::from_fen(opening);
+        position = GameState::from_fen(opening);
 
         // play out 10 random moves
         while (turns < 10)

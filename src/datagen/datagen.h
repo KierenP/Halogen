@@ -5,4 +5,4 @@
 #include <chrono>
 #include <string_view>
 
-void datagen(UCI::Uci& uci, std::string_view output_path, std::chrono::seconds duration);
+void datagen(std::string_view output_path, std::chrono::seconds duration);
