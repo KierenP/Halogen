@@ -86,7 +86,7 @@ void generation_thread(std::string_view output_path)
     shared.transposition_table.set_size(1, 1);
 
     int output_rotation = 0;
-    auto output_file_path = [&] { return std::format("{}-{}.data", output_path, output_rotation); };
+    auto output_file_path = [&] { return std::string(output_path) + std::to_string(output_rotation) + ".data"; };
     std::ofstream data_file(output_file_path(), std::ios::out | std::ios::binary | std::ios::app);
     auto last_rotation = std::chrono::steady_clock::now();
 
