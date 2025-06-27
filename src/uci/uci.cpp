@@ -30,6 +30,7 @@
 #include "search/search.h"
 #include "search/syzygy.h"
 #include "search/transposition/table.h"
+#include "spsa/tuneable.h"
 #include "uci/options.h"
 #include "uci/parse.h"
 #include "utility/atomic.h"
@@ -224,16 +225,16 @@ void Uci::handle_bench(int depth)
 
 auto Uci::options_handler()
 {
-#define tuneable_int(name, default_, min_, max_)                                                                       \
-    spin_option                                                                                                        \
+#define tuneable_int(name, min_, max_)                                                                                 \
+    SpinOption                                                                                                         \
     {                                                                                                                  \
-        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+        #name, name, min_, max_, [](auto value) { name = value; }                                                      \
     }
 
-#define tuneable_float(name, default_, min_, max_)                                                                     \
-    float_option                                                                                                       \
+#define tuneable_float(name, min_, max_)                                                                               \
+    FloatOption                                                                                                        \
     {                                                                                                                  \
-        #name, default_, min_, max_, [](auto value) { name = value; }                                                  \
+        #name, name, min_, max_, [](auto value) { name = value; }                                                      \
     }
 
     return Options {
@@ -245,6 +246,59 @@ auto Uci::options_handler()
         StringOption { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         ComboOption {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
+
+#ifdef TUNE
+        tuneable_float(LMR_constant, -5, 5),
+        tuneable_float(LMR_depth_coeff, -5, 5),
+        tuneable_float(LMR_move_coeff, -5, 5),
+        tuneable_float(LMR_depth_move_coeff, -1, 1),
+
+        tuneable_int(aspiration_window_size, 5, 15),
+
+        tuneable_int(nmp_const, 2, 6),
+        tuneable_int(nmp_d, 4, 8),
+        tuneable_int(nmp_s, 200, 300),
+
+        tuneable_int(se_d, 32, 128),
+        tuneable_int(se_de, 0, 30),
+
+        tuneable_int(lmr_h, 4000, 12000),
+
+        tuneable_int(fifty_mr_scale, 200, 350),
+
+        tuneable_int(rfp_max_d, 5, 15),
+        tuneable_int(rfp_d, 50, 150),
+
+        tuneable_int(lmp_max_d, 3, 9),
+        tuneable_int(lmp_const, 1, 10),
+        tuneable_int(lmp_depth, 1, 10),
+
+        tuneable_int(fp_max_d, 5, 15),
+        tuneable_int(fp_const, 10, 50),
+        tuneable_int(fp_depth, 5, 15),
+        tuneable_int(fp_quad, 5, 25),
+
+        tuneable_int(see_d, 50, 150),
+        tuneable_int(see_h, 50, 250),
+
+        tuneable_int(se_max_d, 5, 10),
+        tuneable_int(see_tt_d, 0, 10),
+
+        tuneable_int(PawnHistory::max_value, 5000, 16000),
+        tuneable_int(PawnHistory::scale, 20, 50),
+        tuneable_int(ThreatHistory::max_value, 5000, 16000),
+        tuneable_int(ThreatHistory::scale, 20, 50),
+        tuneable_int(CaptureHistory::max_value, 5000, 25000),
+        tuneable_int(CaptureHistory::scale, 20, 60),
+        tuneable_int(PawnHistory::max_value, 5000, 16000),
+        tuneable_int(PawnHistory::scale, 20, 50),
+        tuneable_int(PieceMoveHistory::max_value, 5000, 16000),
+        tuneable_int(PieceMoveHistory::scale, 20, 50),
+
+        tuneable_int(PawnCorrHistory::correction_max, 5, 50),
+        tuneable_int(NonPawnCorrHistory::correction_max, 5, 50),
+
+#endif
     };
 
 #undef tuneable_int
