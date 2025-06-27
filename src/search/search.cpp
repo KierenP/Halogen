@@ -543,7 +543,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 }
 
 template <bool pv_node>
-int reduction(int depth, int seen_moves, int history, bool cut_node)
+int reduction(int depth, int seen_moves, int history, bool cut_node, bool improving)
 {
     if (seen_moves == 1)
     {
@@ -557,6 +557,9 @@ int reduction(int depth, int seen_moves, int history, bool cut_node)
 
     if (cut_node)
         r++;
+
+    if (improving)
+        r--;
 
     r -= history / 7844;
 
@@ -974,7 +977,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
 
         // Step 16: Late move reductions
-        int r = reduction<pv_node>(depth, seen_moves, history, cut_node);
+        int r = reduction<pv_node>(depth, seen_moves, history, cut_node, improving);
         Score search_score = search_move<pv_node>(
             position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
 
