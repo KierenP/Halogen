@@ -35,6 +35,8 @@ SRCS := \
 # As an example, hello.cpp turns into ./build/hello.cpp.o
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
+default: tune
+
 #----------------------------------------------------------------------------------------------------------------------
 # Define compiler flags and instruction sets
 
