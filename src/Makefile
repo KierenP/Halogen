@@ -92,8 +92,8 @@ else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
 	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
 	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
-	CXXFLAGS += -stdlib=libc++
-	LDFLAGS += -stdlib=libc++
+	CXXFLAGS += -stdlib=libstdc++
+	LDFLAGS += -stdlib=libstdc++
   	$(info detected compiler is [clang++])
 endif
 
