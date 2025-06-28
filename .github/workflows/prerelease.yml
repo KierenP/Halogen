@@ -16,7 +16,7 @@ jobs:
           - { platform: ubuntu-latest, name: ubuntu }
           - { platform: windows-latest, name: windows }
         include:
-          - os: windows-latest
+          - os.platform: windows-latest
             extension: .exe
 
     runs-on: ${{ matrix.os.platform }}
