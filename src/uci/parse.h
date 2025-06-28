@@ -53,7 +53,7 @@ struct ToInt
     bool operator()(std::string_view& token, Ctx&&... ctx)
     {
         int result {};
-        auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
+        auto [ptr, _] = std::from_chars(token.data(), token.data() + token.size(), result);
 
         if (ptr != token.end())
         {
