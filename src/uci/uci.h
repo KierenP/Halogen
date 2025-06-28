@@ -55,6 +55,12 @@ public:
         std::optional<int> nodes;
     };
 
+    struct datagen_ctx
+    {
+        std::string output_path;
+        std::chrono::seconds duration;
+    };
+
     void handle_uci();
     void handle_isready();
     void handle_ucinewgame();
@@ -76,6 +82,7 @@ public:
     void handle_print();
     void handle_eval();
     void handle_probe();
+    void handle_datagen(const datagen_ctx& ctx);
 
 private:
     void join_search_thread();

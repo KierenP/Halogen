@@ -27,7 +27,9 @@ SRCS := \
 	search/transposition/entry.cpp \
 	test/static_exchange_evaluation_test.cpp \
 	third-party/Pyrrhic/tbprobe.cpp \
-	uci/uci.cpp
+	uci/uci.cpp \
+	datagen/datagen.cpp \
+	datagen/encode.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o

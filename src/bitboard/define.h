@@ -26,6 +26,16 @@ constexpr int popcount(uint64_t bb)
 #endif
 }
 
+constexpr Square flip_square_vertical(Square sq)
+{
+    return static_cast<Square>(sq ^ 56);
+}
+
+constexpr Square flip_square_horizontal(Square sq)
+{
+    return static_cast<Square>(sq ^ 7);
+}
+
 constexpr uint64_t EMPTY = 0;
 constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 

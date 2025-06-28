@@ -18,6 +18,7 @@
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
+#include "datagen/datagen.h"
 #include "misc/benchmark.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
@@ -493,7 +494,12 @@ void Uci::process_input(std::string_view command)
         Consume { "print", Invoke { [this] { handle_print(); } } },
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
-        Consume { "probe", Invoke { [this] { handle_probe(); } } } },
+        Consume { "probe", Invoke { [this] { handle_probe(); } } },
+        Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
+             Repeat { OneOf {
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
+                Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
     EndCommand{}
     };
     // clang-format on
@@ -611,6 +617,11 @@ void Uci::handle_probe()
     }
 
     std::cout << std::endl;
+}
+
+void Uci::handle_datagen(const datagen_ctx& ctx)
+{
+    datagen(ctx.output_path, ctx.duration);
 }
 
 }
