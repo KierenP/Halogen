@@ -104,14 +104,14 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     };
 
     auto [ptr1, ec1] = std::from_chars(fen[4].data(), fen[4].data() + fen[4].size(), fifty_move_count);
-    if (ptr1 != fen[4].end())
+    if (ptr1 != fen[4].data() + fen[4].size())
     {
         return false;
     }
 
     int full_move_count = 0;
     auto [ptr2, ec2] = std::from_chars(fen[5].data(), fen[5].data() + fen[5].size(), full_move_count);
-    if (ptr2 != fen[5].end())
+    if (ptr2 != fen[5].data() + fen[5].size())
     {
         return false;
     }

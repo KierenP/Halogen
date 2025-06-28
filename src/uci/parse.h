@@ -55,7 +55,7 @@ struct ToInt
         int result {};
         auto [ptr, _] = std::from_chars(token.data(), token.data() + token.size(), result);
 
-        if (ptr != token.end())
+        if (ptr != token.data() + token.size())
         {
             return false;
         }
