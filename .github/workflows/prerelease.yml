@@ -41,27 +41,32 @@ jobs:
         $VERSION = (Get-Content -Path ${{ github.workspace }}/src/main.cpp | Select-String -Pattern 'constexpr std::string_view version' -SimpleMatch).ToString().Split('"')[1]
         echo "VERSION=${VERSION}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-    # latest available GCC versions on each platform
+    # latest available Clang versions on each platform
     - if: matrix.os.platform == 'ubuntu-latest'
-      name: Install GCC 14 (Ubuntu)
-      run: sudo apt install gcc-14 g++-14 -y
+      name: Install Clang 20 (Ubuntu)
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        sudo chmod +x llvm.sh
+        sudo ./llvm.sh 20
+        sudo rm -rf llvm.sh
 
     - if: matrix.os.platform == 'windows-latest'
-      name: Install GCC 13 (Windows)
-      run: choco install mingw --version=13.2.0
+      name: Install Clang 20 (Windows)
+      run: |
+        choco install llvm --version 20.1.0 -y
 
     - if: matrix.os.platform == 'ubuntu-latest'
       name: Set CC and CXX for Linux
       run: |
-        echo "CC=gcc-14" >> $GITHUB_ENV
-        echo "CXX=g++-14" >> $GITHUB_ENV
+        echo "CC=clang-20" >> $GITHUB_ENV
+        echo "CXX=clang++-20" >> $GITHUB_ENV
 
     - if: matrix.os.platform == 'windows-latest'
       name: Set CC and CXX for Windows
       shell: powershell
       run: |
-        echo "CC=gcc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "CXX=g++" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "CC=clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "CXX=clang++" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Build
       working-directory: src
