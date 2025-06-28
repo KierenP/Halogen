@@ -87,8 +87,6 @@ ifeq ($(findstring clang++, $(CXX)),)
 	PGOGEN = -fprofile-generate
 	PGOUSE = -fprofile-use -fprofile-partial-training
 	CXXFLAGS += -Wno-interference-size
-	CXXFLAGS += -stdlib=libstdc++
-	LDFLAGS += -stdlib=libstdc++
   	$(info detected compiler is [g++])
 else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
