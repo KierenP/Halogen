@@ -53,7 +53,7 @@ jobs:
     - if: matrix.os.platform == 'windows-latest'
       name: Install Clang 20 (Windows)
       run: |
-        choco install llvm --version 20.1.0 -y
+        choco install llvm --version 20.1.7 -y
 
     - if: matrix.os.platform == 'ubuntu-latest'
       name: Set CC and CXX for Linux
