@@ -92,7 +92,7 @@ else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
 	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
 	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
-	CXXFLAGS += -Wno-deprecated-declarations
+	CXXFLAGS += -Wno-deprecated-declarations -Wno-c++11-narrowing
   	$(info detected compiler is [clang++])
 endif
 
