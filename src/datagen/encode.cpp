@@ -2,14 +2,14 @@
 
 MarlinFormat convert(BoardState board, float result)
 {
-    const auto white = board.get_pieces_bb<WHITE>();
-    const auto black = board.get_pieces_bb<BLACK>();
-    const auto pawn = board.get_pieces_bb<PAWN>();
-    const auto knight = board.get_pieces_bb<KNIGHT>();
-    const auto bishop = board.get_pieces_bb<BISHOP>();
-    const auto rook = board.get_pieces_bb<ROOK>();
-    const auto queen = board.get_pieces_bb<QUEEN>();
-    const auto king = board.get_pieces_bb<KING>();
+    const auto white = board.get_pieces_bb(WHITE);
+    const auto black = board.get_pieces_bb(BLACK);
+    const auto pawn = board.get_pieces_bb(PAWN);
+    const auto knight = board.get_pieces_bb(KNIGHT);
+    const auto bishop = board.get_pieces_bb(BISHOP);
+    const auto rook = board.get_pieces_bb(ROOK);
+    const auto queen = board.get_pieces_bb(QUEEN);
+    const auto king = board.get_pieces_bb(KING);
     const auto castle_squares = board.castle_squares;
 
     MarlinFormat format {};

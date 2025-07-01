@@ -69,16 +69,16 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 
         // parse classic fen or chess960 fen (KQkq)
         if (letter == 'K')
-            castle_squares |= SquareBB[msb(get_pieces_bb<WHITE_ROOK>() & RankBB[RANK_1])];
+            castle_squares |= SquareBB[msb(get_pieces_bb(WHITE_ROOK) & RankBB[RANK_1])];
 
         else if (letter == 'Q')
-            castle_squares |= SquareBB[lsb(get_pieces_bb<WHITE_ROOK>() & RankBB[RANK_1])];
+            castle_squares |= SquareBB[lsb(get_pieces_bb(WHITE_ROOK) & RankBB[RANK_1])];
 
         else if (letter == 'k')
-            castle_squares |= SquareBB[msb(get_pieces_bb<BLACK_ROOK>() & RankBB[RANK_8])];
+            castle_squares |= SquareBB[msb(get_pieces_bb(BLACK_ROOK) & RankBB[RANK_8])];
 
         else if (letter == 'q')
-            castle_squares |= SquareBB[lsb(get_pieces_bb<BLACK_ROOK>() & RankBB[RANK_8])];
+            castle_squares |= SquareBB[lsb(get_pieces_bb(BLACK_ROOK) & RankBB[RANK_8])];
 
         // parse Shredder-FEN (HAha)
         else if (letter >= 'A' && letter <= 'H')
@@ -130,18 +130,15 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 
 void BoardState::recalculate_side_bb()
 {
-    side_bb[WHITE] = get_pieces_bb<WHITE_PAWN>() | get_pieces_bb<WHITE_KNIGHT>() | get_pieces_bb<WHITE_BISHOP>()
-        | get_pieces_bb<WHITE_ROOK>() | get_pieces_bb<WHITE_QUEEN>() | get_pieces_bb<WHITE_KING>();
-    side_bb[BLACK] = get_pieces_bb<BLACK_PAWN>() | get_pieces_bb<BLACK_KNIGHT>() | get_pieces_bb<BLACK_BISHOP>()
-        | get_pieces_bb<BLACK_ROOK>() | get_pieces_bb<BLACK_QUEEN>() | get_pieces_bb<BLACK_KING>();
+    side_bb[WHITE] = get_pieces_bb(WHITE_PAWN) | get_pieces_bb(WHITE_KNIGHT) | get_pieces_bb(WHITE_BISHOP)
+        | get_pieces_bb(WHITE_ROOK) | get_pieces_bb(WHITE_QUEEN) | get_pieces_bb(WHITE_KING);
+    side_bb[BLACK] = get_pieces_bb(BLACK_PAWN) | get_pieces_bb(BLACK_KNIGHT) | get_pieces_bb(BLACK_BISHOP)
+        | get_pieces_bb(BLACK_ROOK) | get_pieces_bb(BLACK_QUEEN) | get_pieces_bb(BLACK_KING);
 }
 
 uint64_t BoardState::get_pieces_bb(Side colour) const
 {
-    if (colour == WHITE)
-        return get_pieces_bb<WHITE>();
-    else
-        return get_pieces_bb<BLACK>();
+    return side_bb[colour];
 }
 
 void BoardState::add_piece_sq(Square square, Piece piece)
@@ -165,6 +162,11 @@ void BoardState::remove_piece_sq(Square square, Piece piece)
 uint64_t BoardState::get_pieces_bb(Piece piece) const
 {
     return board[piece];
+}
+
+uint64_t BoardState::get_pieces_bb(PieceType type) const
+{
+    return get_pieces_bb(type, WHITE) | get_pieces_bb(type, BLACK);
 }
 
 void BoardState::clear_sq(Square square)
@@ -216,7 +218,7 @@ Piece BoardState::get_square_piece(Square square) const
 
 uint64_t BoardState::get_pieces_bb() const
 {
-    return get_pieces_bb<WHITE>() | get_pieces_bb<BLACK>();
+    return get_pieces_bb(WHITE) | get_pieces_bb(BLACK);
 }
 
 uint64_t BoardState::get_empty_bb() const

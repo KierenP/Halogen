@@ -87,13 +87,13 @@ uint64_t pawn_key(const BoardState& board)
 {
     uint64_t key = 0;
 
-    uint64_t white = board.get_pieces_bb<WHITE_PAWN>();
+    uint64_t white = board.get_pieces_bb(WHITE_PAWN);
     while (white != 0)
     {
         key ^= piece_square(WHITE_PAWN, lsbpop(white));
     }
 
-    uint64_t black = board.get_pieces_bb<BLACK_PAWN>();
+    uint64_t black = board.get_pieces_bb(BLACK_PAWN);
     while (black != 0)
     {
         key ^= piece_square(BLACK_PAWN, lsbpop(black));

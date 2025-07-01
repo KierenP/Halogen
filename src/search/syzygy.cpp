@@ -64,14 +64,14 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
 
     // clang-format off
     auto probe = tb_probe_wdl(
-        board.get_pieces_bb<WHITE>(), 
-        board.get_pieces_bb<BLACK>(),
-        board.get_pieces_bb<KING>(),
-        board.get_pieces_bb<QUEEN>(),
-        board.get_pieces_bb<ROOK>(),
-        board.get_pieces_bb<BISHOP>(),
-        board.get_pieces_bb<KNIGHT>(),
-        board.get_pieces_bb<PAWN>(),
+        board.get_pieces_bb(WHITE), 
+        board.get_pieces_bb(BLACK),
+        board.get_pieces_bb(KING),
+        board.get_pieces_bb(QUEEN),
+        board.get_pieces_bb(ROOK),
+        board.get_pieces_bb(BISHOP),
+        board.get_pieces_bb(KNIGHT),
+        board.get_pieces_bb(PAWN),
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE);
     // clang-format on
@@ -115,14 +115,14 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
     tb_lock.lock();
     // clang-format off
     auto ec = tb_probe_root_dtz(
-        board.get_pieces_bb<WHITE>(), 
-        board.get_pieces_bb<BLACK>(),
-        board.get_pieces_bb<KING>(),
-        board.get_pieces_bb<QUEEN>(),
-        board.get_pieces_bb<ROOK>(),
-        board.get_pieces_bb<BISHOP>(),
-        board.get_pieces_bb<KNIGHT>(),
-        board.get_pieces_bb<PAWN>(),
+        board.get_pieces_bb(WHITE), 
+        board.get_pieces_bb(BLACK),
+        board.get_pieces_bb(KING),
+        board.get_pieces_bb(QUEEN),
+        board.get_pieces_bb(ROOK),
+        board.get_pieces_bb(BISHOP),
+        board.get_pieces_bb(KNIGHT),
+        board.get_pieces_bb(PAWN),
         board.fifty_move_count,
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE,
