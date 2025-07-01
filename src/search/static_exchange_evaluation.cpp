@@ -12,14 +12,14 @@
 // movegen::attacks_to_sq could be used here?
 uint64_t attackers_to_sq(const BoardState& board, Square sq, uint64_t occ)
 {
-    uint64_t pawn_mask = (board.get_pieces_bb<PAWN, WHITE>() & PawnAttacks[BLACK][sq]);
-    pawn_mask |= (board.get_pieces_bb<PAWN, BLACK>() & PawnAttacks[WHITE][sq]);
+    uint64_t pawn_mask = (board.get_pieces_bb(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
+    pawn_mask |= (board.get_pieces_bb(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
 
-    uint64_t bishops = board.get_pieces_bb<QUEEN>() | board.get_pieces_bb<BISHOP>();
-    uint64_t rooks = board.get_pieces_bb<QUEEN>() | board.get_pieces_bb<ROOK>();
+    uint64_t bishops = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(BISHOP);
+    uint64_t rooks = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(ROOK);
 
-    return (pawn_mask & board.get_pieces_bb<PAWN>()) | (attack_bb<KNIGHT>(sq) & board.get_pieces_bb<KNIGHT>())
-        | (attack_bb<KING>(sq) & board.get_pieces_bb<KING>()) | (attack_bb<BISHOP>(sq, occ) & bishops)
+    return (pawn_mask & board.get_pieces_bb(PAWN)) | (attack_bb<KNIGHT>(sq) & board.get_pieces_bb(KNIGHT))
+        | (attack_bb<KING>(sq) & board.get_pieces_bb(KING)) | (attack_bb<BISHOP>(sq, occ) & bishops)
         | (attack_bb<ROOK>(sq, occ) & rooks);
 }
 
@@ -50,9 +50,9 @@ int see(const BoardState& board, Move move)
     uint64_t from_set = (1ull << from);
     uint64_t occ = board.get_pieces_bb(), bishops = 0, rooks = 0;
 
-    bishops = rooks = board.get_pieces_bb<QUEEN>();
-    bishops |= board.get_pieces_bb<BISHOP>();
-    rooks |= board.get_pieces_bb<ROOK>();
+    bishops = rooks = board.get_pieces_bb(QUEEN);
+    bishops |= board.get_pieces_bb(BISHOP);
+    rooks |= board.get_pieces_bb(ROOK);
 
     if (move.flag() == EN_PASSANT)
     {
@@ -109,9 +109,9 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     int result = 1;
     uint64_t occ = board.get_pieces_bb(), bishop_queen = 0, rook_queen = 0;
 
-    bishop_queen = rook_queen = board.get_pieces_bb<QUEEN>();
-    bishop_queen |= board.get_pieces_bb<BISHOP>();
-    rook_queen |= board.get_pieces_bb<ROOK>();
+    bishop_queen = rook_queen = board.get_pieces_bb(QUEEN);
+    bishop_queen |= board.get_pieces_bb(BISHOP);
+    rook_queen |= board.get_pieces_bb(ROOK);
 
     if (move.flag() == EN_PASSANT)
     {

@@ -41,32 +41,9 @@ public:
     [[nodiscard]] uint64_t get_pieces_bb(Side colour) const;
     [[nodiscard]] uint64_t get_pieces_bb(PieceType pieceType, Side colour) const;
     [[nodiscard]] uint64_t get_pieces_bb(Piece piece) const;
+    [[nodiscard]] uint64_t get_pieces_bb(PieceType type) const;
 
     [[nodiscard]] Square get_king_sq(Side colour) const;
-
-    template <Side side>
-    [[nodiscard]] uint64_t get_pieces_bb() const
-    {
-        return side_bb[side];
-    }
-
-    template <PieceType type>
-    [[nodiscard]] uint64_t get_pieces_bb() const
-    {
-        return get_pieces_bb<type, WHITE>() | get_pieces_bb<type, BLACK>();
-    }
-
-    template <Piece type>
-    [[nodiscard]] uint64_t get_pieces_bb() const
-    {
-        return board[type];
-    }
-
-    template <PieceType pieceType, Side colour>
-    [[nodiscard]] uint64_t get_pieces_bb() const
-    {
-        return get_pieces_bb<get_piece(pieceType, colour)>();
-    }
 
     void add_piece_sq(Square square, Piece piece);
     void remove_piece_sq(Square square, Piece piece);
