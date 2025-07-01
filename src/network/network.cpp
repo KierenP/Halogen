@@ -10,7 +10,19 @@
 #include "movegen/move.h"
 #include "network/accumulator.hpp"
 #include "network/inference.hpp"
+
+#ifdef _MSC_VER
+#define HALOGEN_MSVC
+#pragma push_macro("_MSC_VER")
+#undef _MSC_VER
+#endif
+
 #include "third-party/incbin/incbin.h"
+
+#ifdef HALOGEN_MSVC
+#pragma pop_macro("_MSC_VER")
+#undef HALOGEN_MSVC
+#endif
 
 namespace NN
 {
