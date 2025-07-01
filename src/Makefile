@@ -46,8 +46,6 @@ RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
 
-LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-
 # Different instruction sets targeting different architectures.
 
 # AMD processors before Zen 3 implement PEXT in microcode, so we support bmi as a optional orthogonal configuration for AVX2
@@ -80,6 +78,10 @@ $(info detected OS is [${detected_OS}])
 # Many users on windows use a environment to build so we must link statically
 ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
+endif
+
+ifeq ($(detected_OS),Linux)
+    LDFLAGS += -pthread
 endif
 
 # Detect if CXX is g++ or clang++, in this order.
