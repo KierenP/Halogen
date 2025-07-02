@@ -43,8 +43,8 @@ struct HistoryTable
 
 struct PawnHistory : HistoryTable<PawnHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 10036;
-    static TUNEABLE_CONSTANT int scale = 35;
+    static TUNEABLE_CONSTANT int max_value = 10297;
+    static TUNEABLE_CONSTANT int scale = 36;
     static constexpr size_t pawn_states = 512;
     int16_t table[N_SIDES][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
@@ -52,7 +52,7 @@ struct PawnHistory : HistoryTable<PawnHistory>
 
 struct ThreatHistory : HistoryTable<ThreatHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 9692;
+    static TUNEABLE_CONSTANT int max_value = 9631;
     static TUNEABLE_CONSTANT int scale = 45;
     int16_t table[N_SIDES][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
@@ -60,15 +60,15 @@ struct ThreatHistory : HistoryTable<ThreatHistory>
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 18795;
-    static TUNEABLE_CONSTANT int scale = 40;
+    static TUNEABLE_CONSTANT int max_value = 18882;
+    static TUNEABLE_CONSTANT int scale = 43;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 10036;
+    static TUNEABLE_CONSTANT int max_value = 10264;
     static TUNEABLE_CONSTANT int scale = 35;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
@@ -120,7 +120,7 @@ struct NonPawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t hash_table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 16;
+    static TUNEABLE_CONSTANT int correction_max = 17;
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
