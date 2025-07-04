@@ -164,7 +164,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             // node based time management
             const auto idx = std::ranges::distance(
                 local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
-            const auto node_factor = 0.5f + 2.f * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
+            const auto node_factor
+                = node_tm_base + node_tm_scale * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
 
             if (shared.limits.time && !shared.limits.time->should_continue_search(node_factor))
             {
@@ -687,7 +688,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     {
         // rescale and skew the raw eval based on the 50 move rule. We need to reclamp the score to ensure we don't
         // return false mate scores
-        return eval.value() * (fifty_mr_scale - (int)position.board().fifty_move_count) / 256;
+        return eval.value() * (fifty_mr_scale_a - (int)position.board().fifty_move_count) / fifty_mr_scale_b;
     };
 
     auto eval_corr_history = [&](Score eval)

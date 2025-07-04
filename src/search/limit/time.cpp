@@ -1,4 +1,5 @@
 #include "search/limit/time.h"
+#include "spsa/tuneable.h"
 
 #include <chrono>
 #include <compare>
@@ -36,7 +37,7 @@ bool SearchTimeManager::should_continue_search(float factor) const
     }
 
     auto elapsed_ms = timer.elapsed();
-    return (elapsed_ms < soft_limit_ * factor * 0.5 && elapsed_ms < hard_limit_);
+    return (elapsed_ms < soft_limit_ * factor * soft_tm && elapsed_ms < hard_limit_);
 }
 
 bool SearchTimeManager::should_abort_search() const

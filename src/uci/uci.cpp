@@ -265,7 +265,8 @@ auto Uci::options_handler()
 
         tuneable_int(lmr_h, 4000, 12000),
 
-        tuneable_int(fifty_mr_scale, 200, 350),
+        tuneable_int(fifty_mr_scale_a, 100, 350),
+        tuneable_int(fifty_mr_scale_b, 100, 350),
 
         tuneable_int(rfp_max_d, 5, 15),
         tuneable_int(rfp_d, 50, 150),
@@ -284,6 +285,25 @@ auto Uci::options_handler()
 
         tuneable_int(se_max_d, 5, 10),
         tuneable_int(see_tt_d, 0, 10),
+
+        tuneable_int(delta_c, 0, 500),
+
+        tuneable_int(eval_scale_knight, 200, 800),
+        tuneable_int(eval_scale_bishop, 200, 800),
+        tuneable_int(eval_scale_rook, 400, 1200),
+        tuneable_int(eval_scale_queen, 600, 2400),
+        tuneable_int(eval_scale_const, 15000, 40000),
+
+        tuneable_int(see_values[PAWN], 50, 200),
+        tuneable_int(see_values[KNIGHT], 250, 1000),
+        tuneable_int(see_values[BISHOP], 250, 1000),
+        tuneable_int(see_values[ROOK], 300, 1400),
+        tuneable_int(see_values[QUEEN], 600, 2400),
+
+        tuneable_float(soft_tm, 0.1, 0.9),
+
+        tuneable_float(node_tm_base, 0.2, 0.8),
+        tuneable_float(node_tm_scale, 1.0, 3.0),
 
         tuneable_int(PawnHistory::max_value, 5000, 16000),
         tuneable_int(PawnHistory::scale, 20, 50),

@@ -4,10 +4,12 @@
 #include <cstdint>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/score.h"
+#include "spsa/tuneable.h"
 
 // movegen::attacks_to_sq could be used here?
 uint64_t attackers_to_sq(const BoardState& board, Square sq, uint64_t occ)
@@ -60,13 +62,13 @@ int see(const BoardState& board, Move move)
     }
 
     uint64_t attack_def = attackers_to_sq(board, to, occ);
-    scores[index] = PieceValues[captured];
+    scores[index] = captured == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured)];
 
     do
     {
         index++;
         attacker = !attacker;
-        scores[index] = PieceValues[capturing] - scores[index - 1];
+        scores[index] = see_values[enum_to<PieceType>(capturing)] - scores[index - 1];
 
         attack_def ^= from_set;
         occ ^= from_set;
@@ -83,6 +85,9 @@ int see(const BoardState& board, Move move)
 
 bool see_ge(const BoardState& board, Move move, Score threshold)
 {
+    // TODO: the handling of castle moves is bugged
+    // TODO: the handling of promotion moves is bad, and probably caused loud see pruning to fail
+
     Square from = move.from();
     Square to = move.to();
 
@@ -92,14 +97,14 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
 
     // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If the
     // value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
-    Score swap = PieceValues[captured] - threshold + 1;
+    Score swap = (captured == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured)]) - threshold + 1;
     if (swap <= 0)
     {
         return false;
     }
 
     // From the opponents perspective, if recapturing does not beat the threshold we win
-    swap = PieceValues[capturing] - swap + 1;
+    swap = see_values[enum_to<PieceType>(capturing)] - swap + 1;
     if (swap <= 0)
     {
         return true;
@@ -142,7 +147,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
             auto pawns = stmAttackers & board.get_pieces_bb(PAWN, stm);
             if (pawns)
             {
-                swap = PieceValues[PAWN] - swap + 1;
+                swap = see_values[PAWN] - swap + 1;
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(pawns)];
@@ -155,7 +160,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
             auto knights = stmAttackers & board.get_pieces_bb(KNIGHT, stm);
             if (knights)
             {
-                swap = PieceValues[KNIGHT] - swap + 1;
+                swap = see_values[KNIGHT] - swap + 1;
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(knights)];
@@ -167,7 +172,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
             auto bishops = stmAttackers & board.get_pieces_bb(BISHOP, stm);
             if (bishops)
             {
-                swap = PieceValues[BISHOP] - swap + 1;
+                swap = see_values[BISHOP] - swap + 1;
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(bishops)];
@@ -180,7 +185,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
             auto rooks = stmAttackers & board.get_pieces_bb(ROOK, stm);
             if (rooks)
             {
-                swap = PieceValues[ROOK] - swap + 1;
+                swap = see_values[ROOK] - swap + 1;
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(rooks)];
@@ -193,7 +198,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
             auto queens = stmAttackers & board.get_pieces_bb(QUEEN, stm);
             if (queens)
             {
-                swap = PieceValues[QUEEN] - swap + 1;
+                swap = see_values[QUEEN] - swap + 1;
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(queens)];
