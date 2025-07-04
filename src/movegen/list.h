@@ -31,7 +31,7 @@ struct ExtendedMove
     };
 
     Move move;
-    int16_t score;
+    int score;
 };
 
 // TODO: 256?

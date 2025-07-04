@@ -213,9 +213,7 @@ void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            int history = local.get_quiet_history(position, ss, moves[i].move);
-            moves[i].score
-                = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
+            moves[i].score = local.get_quiet_history(position, ss, moves[i].move);
         }
     }
 }
@@ -250,9 +248,7 @@ void StagedMoveGenerator::score_loud_moves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            int history = local.get_loud_history(position, ss, moves[i].move);
-            moves[i].score
-                = std::clamp<int>(history, std::numeric_limits<int16_t>::min(), std::numeric_limits<int16_t>::max());
+            moves[i].score = local.get_loud_history(position, ss, moves[i].move);
         }
     }
 }
