@@ -60,8 +60,8 @@ void PawnCorrHistory::add(const GameState& position, int depth, int eval_diff)
 {
     auto* entry = get(position);
 
-    int change = std::clamp(
-        eval_diff * depth * 128 / 64, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+    int change = std::clamp(eval_diff * depth * corr_hist_scale / 64, -correction_max * eval_scale() / 4,
+        correction_max * eval_scale() / 4);
     *entry += change - *entry * abs(change) / (correction_max * eval_scale());
 }
 
@@ -81,8 +81,8 @@ void NonPawnCorrHistory::add(const GameState& position, Side side, int depth, in
 {
     auto* entry = get(position, side);
 
-    int change = std::clamp(
-        eval_diff * depth * 128 / 64, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+    int change = std::clamp(eval_diff * depth * corr_hist_scale / 64, -correction_max * eval_scale() / 4,
+        correction_max * eval_scale() / 4);
     *entry += change - *entry * abs(change) / (correction_max * eval_scale());
 }
 
