@@ -1027,7 +1027,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
-        const auto adj = score.value() - ss->adjusted_eval.value();
+        const auto adj = score.value() - (raw_eval.value() + ss->adjusted_eval.value()) / 2;
         local.pawn_corr_hist.add(position, depth, adj);
         local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
         local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
