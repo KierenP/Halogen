@@ -129,7 +129,7 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
     non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
     // minor_key = Zobrist::minor_key(*this);
-    // major_key = Zobrist::major_key(*this);
+    major_key = Zobrist::major_key(*this);
     return true;
 }
 
@@ -350,8 +350,8 @@ void BoardState::apply_move(Move move)
             }
             else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
             {
-                // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // major_key ^= Zobrist::piece_square(piece, move.to());
+                major_key ^= Zobrist::piece_square(piece, move.from());
+                major_key ^= Zobrist::piece_square(piece, move.to());
             }
         }
 
@@ -411,8 +411,8 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
+        major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -436,8 +436,8 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
+        major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -468,8 +468,8 @@ void BoardState::apply_move(Move move)
             }
             else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
             {
-                // major_key ^= Zobrist::piece_square(piece, move.GetFrom());
-                // major_key ^= Zobrist::piece_square(piece, move.to());
+                major_key ^= Zobrist::piece_square(piece, move.from());
+                major_key ^= Zobrist::piece_square(piece, move.to());
             }
         }
         key ^= Zobrist::piece_square(cap_piece, move.to());
@@ -486,7 +486,7 @@ void BoardState::apply_move(Move move)
             }
             else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
             {
-                // major_key ^= Zobrist::piece_square(cap_piece, move.to());
+                major_key ^= Zobrist::piece_square(cap_piece, move.to());
             }
         }
 
@@ -556,7 +556,7 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -572,7 +572,7 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -599,7 +599,7 @@ void BoardState::apply_move(Move move)
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
+            major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -627,7 +627,7 @@ void BoardState::apply_move(Move move)
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
+            major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -646,7 +646,7 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        major_key ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
@@ -655,7 +655,7 @@ void BoardState::apply_move(Move move)
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
+            major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -674,7 +674,7 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
+        major_key ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == KNIGHT || enum_to<PieceType>(cap_piece) == BISHOP)
@@ -683,7 +683,7 @@ void BoardState::apply_move(Move move)
         }
         else if (enum_to<PieceType>(cap_piece) == ROOK || enum_to<PieceType>(cap_piece) == QUEEN)
         {
-            // major_key ^= Zobrist::piece_square(cap_piece, move.to());
+            major_key ^= Zobrist::piece_square(cap_piece, move.to());
         }
 
         break;
@@ -708,7 +708,7 @@ void BoardState::apply_move(Move move)
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     // assert(minor_key == Zobrist::minor_key(*this));
-    // assert(major_key == Zobrist::major_key(*this));
+    assert(major_key == Zobrist::major_key(*this));
 }
 
 void BoardState::apply_null_move()
@@ -731,7 +731,7 @@ void BoardState::apply_null_move()
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     // assert(minor_key == Zobrist::minor_key(*this));
-    // assert(major_key == Zobrist::major_key(*this));
+    assert(major_key == Zobrist::major_key(*this));
 }
 
 MoveFlag BoardState::infer_move_flag(Square from, Square to) const
