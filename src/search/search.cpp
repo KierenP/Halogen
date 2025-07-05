@@ -1024,10 +1024,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
     // Step 20: Adjust eval correction history
     if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
-        && !(bound == SearchResultType::LOWER_BOUND && score <= raw_eval)
-        && !(bound == SearchResultType::UPPER_BOUND && score >= raw_eval))
+        && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
+        && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
-        const auto adj = score.value() - raw_eval.value();
+        const auto adj = score.value() - ss->adjusted_eval.value();
         local.pawn_corr_hist.add(position, depth, adj);
         local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
         local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
