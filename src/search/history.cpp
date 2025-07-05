@@ -90,3 +90,24 @@ Score NonPawnCorrHistory::get_correction_score(const GameState& position, Side s
 {
     return *get(position, side) / eval_scale();
 }
+
+int16_t* MajorCorrHistory::get(const GameState& position)
+{
+    const auto& stm = position.board().stm;
+    const auto hash = position.board().major_key;
+    return &table[stm][hash % hash_table_size];
+}
+
+void MajorCorrHistory::add(const GameState& position, int depth, int eval_diff)
+{
+    auto* entry = get(position);
+
+    int change = std::clamp(
+        eval_diff * depth * 128 / 64, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
+}
+
+Score MajorCorrHistory::get_correction_score(const GameState& position)
+{
+    return *get(position) / eval_scale();
+}
