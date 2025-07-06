@@ -4,11 +4,15 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
 #define TUNEABLE_CONSTANT const inline
 #endif
+
+constexpr inline int LMR_SCALE = 1024;
 
 TUNEABLE_CONSTANT float LMR_constant = 0.3356;
 TUNEABLE_CONSTANT float LMR_depth_coeff = -0.3232;
@@ -23,8 +27,9 @@ inline auto Initialise_LMR_reduction()
     {
         for (size_t j = 0; j < ret[i].size(); j++)
         {
-            ret[i][j] = static_cast<int>(std::round(LMR_constant + LMR_depth_coeff * log(i + 1)
-                + LMR_move_coeff * log(j + 1) + LMR_depth_move_coeff * log(i + 1) * log(j + 1)));
+            auto lmr = LMR_constant + LMR_depth_coeff * log(i + 1) + LMR_move_coeff * log(j + 1)
+                + LMR_depth_move_coeff * log(i + 1) * log(j + 1);
+            ret[i][j] = static_cast<int>(std::round(lmr * LMR_SCALE));
         }
     }
 
@@ -39,11 +44,17 @@ TUNEABLE_CONSTANT int aspiration_window_size = 11;
 TUNEABLE_CONSTANT int nmp_const = 6;
 TUNEABLE_CONSTANT int nmp_d = 7;
 TUNEABLE_CONSTANT int nmp_s = 250;
+TUNEABLE_CONSTANT int nmp_sd = 3;
 
 TUNEABLE_CONSTANT int se_d = 51;
 TUNEABLE_CONSTANT int se_de = 12;
 
-TUNEABLE_CONSTANT int lmr_h = 6526;
+TUNEABLE_CONSTANT int lmr_pv = 1024;
+TUNEABLE_CONSTANT int lmr_cut = 1024;
+TUNEABLE_CONSTANT int lmr_improving = 0;
+TUNEABLE_CONSTANT int lmr_loud = 0;
+TUNEABLE_CONSTANT int lmr_h = 2570;
+TUNEABLE_CONSTANT int lmr_offset = 512;
 
 TUNEABLE_CONSTANT int fifty_mr_scale_a = 278;
 TUNEABLE_CONSTANT int fifty_mr_scale_b = 251;

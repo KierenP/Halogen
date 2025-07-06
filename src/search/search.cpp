@@ -457,7 +457,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction = nmp_const + depth / nmp_d + std::min(3, (static_score - beta).value() / nmp_s);
+    const int reduction = nmp_const + depth / nmp_d + std::min(nmp_sd, (static_score - beta).value() / nmp_s);
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
@@ -544,7 +544,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 }
 
 template <bool pv_node>
-int reduction(int depth, int seen_moves, int history, bool cut_node)
+int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud)
 {
     if (seen_moves == 1)
     {
@@ -554,13 +554,28 @@ int reduction(int depth, int seen_moves, int history, bool cut_node)
     int r = LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)];
 
     if constexpr (pv_node)
-        r--;
+    {
+        r -= lmr_pv;
+    }
 
     if (cut_node)
-        r++;
+    {
+        r += lmr_cut;
+    }
 
-    r -= history / lmr_h;
+    if (improving)
+    {
+        r -= lmr_improving;
+    }
 
+    if (loud)
+    {
+        r -= lmr_loud;
+    }
+
+    r -= history * lmr_h / 16384;
+
+    r = (r + lmr_offset) / LMR_SCALE;
     return std::max(0, r);
 }
 
@@ -978,7 +993,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
 
         // Step 16: Late move reductions
-        int r = reduction<pv_node>(depth, seen_moves, history, cut_node);
+        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
             position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
 
