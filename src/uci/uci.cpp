@@ -578,8 +578,8 @@ void Uci::process_input(std::string_view command)
         Consume { "fix_viribin_eval", WithContext { file_io_ctx{}, Sequence {
             Repeat { OneOf {
                 Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
-                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
-            Invoke { [this](auto& ctx) { handle_fix_viribin_eval(ctx); } } } } } } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            Invoke { [this](auto& ctx) { handle_fix_viribin_eval(ctx); } } } } } },
     EndCommand{}
     };
     // clang-format on

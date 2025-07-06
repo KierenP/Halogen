@@ -16,7 +16,7 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
     // This function reads the input file, fixes the evals, and writes the output file
 
     // Open the input file for reading
-    std::ifstream input_file(input_path.data(), std::ios::binary);
+    std::ifstream input_file(std::string { input_path }, std::ios::binary);
     if (!input_file)
     {
         std::cerr << "Error: Could not open input file: " << input_path << std::endl;
@@ -24,7 +24,7 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
     }
 
     // Open the output file for writing
-    std::ofstream output_file(output_path.data(), std::ios::binary);
+    std::ofstream output_file(std::string { output_path }, std::ios::binary);
     if (!output_file)
     {
         std::cerr << "Error: Could not open output file: " << output_path << std::endl;
