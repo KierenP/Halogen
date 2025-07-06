@@ -25,6 +25,7 @@
 #include "movegen/movegen.h"
 #include "network/network.h"
 #include "search/data.h"
+#include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
 #include "search/score.h"
@@ -301,9 +302,12 @@ auto Uci::options_handler()
         tuneable_int(see_values[QUEEN], 600, 2400),
 
         tuneable_float(soft_tm, 0.1, 0.9),
-
         tuneable_float(node_tm_base, 0.2, 0.8),
         tuneable_float(node_tm_scale, 1.0, 3.0),
+        tuneable_int(blitz_tc_a, 20, 80),
+        tuneable_int(blitz_tc_b, 600, 2400),
+        tuneable_int(sudden_death_tc, 25, 100),
+        tuneable_int(repeating_tc, 50, 200),
 
         tuneable_int(PawnHistory::max_value, 5000, 16000),
         tuneable_int(PawnHistory::scale, 20, 50),
@@ -316,9 +320,11 @@ auto Uci::options_handler()
         tuneable_int(PieceMoveHistory::max_value, 5000, 16000),
         tuneable_int(PieceMoveHistory::scale, 20, 50),
 
-        tuneable_int(PawnCorrHistory::correction_max, 5, 50),
-        tuneable_int(NonPawnCorrHistory::correction_max, 5, 50),
+        tuneable_int(PawnCorrHistory::correction_max, 32, 128),
+        tuneable_int(NonPawnCorrHistory::correction_max, 32, 128),
 
+        tuneable_int(corr_hist_scale, 64, 256),
+#else
 #endif
     };
 
@@ -385,10 +391,6 @@ void Uci::handle_go(go_ctx& ctx)
     // The amount of time we leave on the clock for safety
     constexpr static auto BufferTime = 100ms;
 
-    // Tuneable time constants
-    constexpr static int timeIncCoeffA = 40;
-    constexpr static int timeIncCoeffB = 1200;
-
     const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
     const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
 
@@ -407,7 +409,7 @@ void Uci::handle_go(go_ctx& ctx)
 
             // We divide the available time by the number of movestogo (which can be zero) and then adjust
             // by 1.5x. This ensures we use more of the available time earlier.
-            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * 3 / 2;
+            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * repeating_tc / 64;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else if (myInc)
@@ -418,13 +420,13 @@ void Uci::handle_go(go_ctx& ctx)
             // use a higher proportion of the available time so that we get down to just using the increment
 
             auto soft_limit
-                = (*myTime - BufferTime) * (timeIncCoeffA + position.board().half_turn_count) / timeIncCoeffB + *myInc;
+                = (*myTime - BufferTime) * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
         {
             // Sudden death time control. We use 1/20th of the remaining time each turn
-            auto soft_limit = (*myTime - BufferTime) / 20;
+            auto soft_limit = (*myTime - BufferTime) * sudden_death_tc / 1024;
             shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
     }

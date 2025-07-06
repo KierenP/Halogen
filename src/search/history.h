@@ -43,8 +43,8 @@ struct HistoryTable
 
 struct PawnHistory : HistoryTable<PawnHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 9929;
-    static TUNEABLE_CONSTANT int scale = 35;
+    static TUNEABLE_CONSTANT int max_value = 9923;
+    static TUNEABLE_CONSTANT int scale = 37;
     static constexpr size_t pawn_states = 512;
     int16_t table[N_SIDES][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
@@ -52,24 +52,24 @@ struct PawnHistory : HistoryTable<PawnHistory>
 
 struct ThreatHistory : HistoryTable<ThreatHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 9245;
-    static TUNEABLE_CONSTANT int scale = 45;
+    static TUNEABLE_CONSTANT int max_value = 9463;
+    static TUNEABLE_CONSTANT int scale = 44;
     int16_t table[N_SIDES][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 19732;
-    static TUNEABLE_CONSTANT int scale = 43;
+    static TUNEABLE_CONSTANT int max_value = 19299;
+    static TUNEABLE_CONSTANT int scale = 41;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 10537;
-    static TUNEABLE_CONSTANT int scale = 35;
+    static TUNEABLE_CONSTANT int max_value = 10444;
+    static TUNEABLE_CONSTANT int scale = 37;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
@@ -90,11 +90,13 @@ struct ContinuationHistory
     }
 };
 
+TUNEABLE_CONSTANT int corr_hist_scale = 128;
+
 struct PawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t pawn_hash_table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 64;
+    static TUNEABLE_CONSTANT int correction_max = 62;
 
     int16_t table[N_SIDES][pawn_hash_table_size] = {};
 
@@ -120,7 +122,7 @@ struct NonPawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t hash_table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 64;
+    static TUNEABLE_CONSTANT int correction_max = 67;
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
