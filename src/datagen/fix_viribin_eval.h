@@ -58,13 +58,10 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
         }
 
         // Write the terminator (4 bytes of zeros)
-        uint8_t terminator[4] = { 0, 0, 0, 0 };
+        uint8_t terminator[4];
+        input_file.read(reinterpret_cast<char*>(terminator), sizeof(terminator));
         output_file.write(reinterpret_cast<const char*>(terminator), sizeof(terminator));
     }
-
-    // Write the terminator for final game (4 bytes of zeros)
-    uint8_t terminator[4] = { 0, 0, 0, 0 };
-    output_file.write(reinterpret_cast<const char*>(terminator), sizeof(terminator));
 
     // Close the files
     input_file.close();
