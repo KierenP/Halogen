@@ -260,11 +260,17 @@ auto Uci::options_handler()
         tuneable_int(nmp_const, 2, 6),
         tuneable_int(nmp_d, 4, 8),
         tuneable_int(nmp_s, 200, 300),
+        tuneable_int(nmp_sd, 1, 10),
 
         tuneable_int(se_d, 32, 128),
         tuneable_int(se_de, 0, 30),
 
-        tuneable_int(lmr_h, 4000, 12000),
+        tuneable_int(lmr_pv, 0, 2000),
+        tuneable_int(lmr_cut, 0, 2000),
+        tuneable_int(lmr_improving, -2000, 2000),
+        tuneable_int(lmr_loud, -2000, 2000),
+        tuneable_int(lmr_h, 1000, 5000),
+        tuneable_int(lmr_offset, 0, 2000),
 
         tuneable_int(fifty_mr_scale_a, 100, 350),
         tuneable_int(fifty_mr_scale_b, 100, 350),
