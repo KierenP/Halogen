@@ -61,6 +61,12 @@ public:
         std::chrono::seconds duration;
     };
 
+    struct file_io_ctx
+    {
+        std::string_view input_path;
+        std::string_view output_path;
+    };
+
     void handle_uci();
     void handle_isready();
     void handle_ucinewgame();
@@ -83,6 +89,7 @@ public:
     void handle_eval();
     void handle_probe();
     void handle_datagen(const datagen_ctx& ctx);
+    void handle_fix_viribin_eval(const file_io_ctx& ctx);
 
 private:
     void join_search_thread();

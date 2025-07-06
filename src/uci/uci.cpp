@@ -19,6 +19,7 @@
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "datagen/datagen.h"
+#include "datagen/fix_viribin_eval.h"
 #include "misc/benchmark.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
@@ -573,7 +574,12 @@ void Uci::process_input(std::string_view command)
              Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
                 Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
-            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } },
+        Consume { "fix_viribin_eval", WithContext { file_io_ctx{}, Sequence {
+            Repeat { OneOf {
+                Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
+            Invoke { [this](auto& ctx) { handle_fix_viribin_eval(ctx); } } } } } } } },
     EndCommand{}
     };
     // clang-format on
@@ -696,6 +702,11 @@ void Uci::handle_probe()
 void Uci::handle_datagen(const datagen_ctx& ctx)
 {
     datagen(ctx.output_path, ctx.duration);
+}
+
+void Uci::handle_fix_viribin_eval(const file_io_ctx& ctx)
+{
+    fix_viribin_eval(ctx.input_path, ctx.output_path);
 }
 
 }
