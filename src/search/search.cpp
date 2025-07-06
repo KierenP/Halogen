@@ -450,7 +450,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
     if (se_score < sbeta)
     {
-        auto double_margin = se_de + 400 * pv_node + 400 * (ss->distance_from_root < local.curr_depth);
+        auto double_margin = se_de + 400 * pv_node + 400 * (ss->distance_from_root >= local.curr_depth);
         extensions += 1 + (se_score < sbeta - double_margin);
     }
 
