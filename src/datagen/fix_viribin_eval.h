@@ -2,6 +2,7 @@
 
 #include "datagen/encode.h"
 
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <string_view>
@@ -33,6 +34,8 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
 
     // Read the header
     MarlinFormat header;
+    size_t games = 0;
+    size_t moves = 0;
 
     while (input_file.read(reinterpret_cast<char*>(&header), sizeof(header)))
     {
@@ -46,6 +49,11 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
         while (input_file.read(reinterpret_cast<char*>(&move), sizeof(move))
             && input_file.read(reinterpret_cast<char*>(&eval), sizeof(eval)))
         {
+            if (move == 0 && eval == 0) // Check for the terminator
+            {
+                break; // Exit the loop if we hit the terminator
+            }
+
             if (stm == BLACK) // Check if the move is for black
             {
                 eval = -eval;
@@ -55,13 +63,17 @@ void fix_viribin_eval(std::string_view input_path, std::string_view output_path)
             output_file.write(reinterpret_cast<const char*>(&move), sizeof(move));
             output_file.write(reinterpret_cast<const char*>(&eval), sizeof(eval));
             stm = !stm; // Switch sides for the next move
+            moves++;
         }
 
         // Write the terminator (4 bytes of zeros)
         uint8_t terminator[4];
-        input_file.read(reinterpret_cast<char*>(terminator), sizeof(terminator));
         output_file.write(reinterpret_cast<const char*>(terminator), sizeof(terminator));
+
+        games++;
     }
+
+    std::cout << "Processed " << games << " games with " << moves << " moves." << std::endl;
 
     // Close the files
     input_file.close();
