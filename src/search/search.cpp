@@ -657,18 +657,6 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
     return search_score;
 }
 
-Score TerminalScore(const BoardState& board, int distanceFromRoot)
-{
-    if (is_in_check(board))
-    {
-        return Score::mated_in(distanceFromRoot);
-    }
-    else
-    {
-        return (Score::draw());
-    }
-}
-
 // { raw, adjusted }
 template <bool is_qsearch>
 std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchSharedState& shared,
@@ -892,14 +880,13 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.next(move))
     {
-        noLegalMoves = false;
-        const int64_t prev_nodes = local.nodes;
-
         if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
         {
             continue;
         }
 
+        noLegalMoves = false;
+        const int64_t prev_nodes = local.nodes;
         seen_moves++;
 
         // Step 11: Late move pruning
@@ -1007,7 +994,18 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // Step 18: Handle terminal node conditions
     if (noLegalMoves)
     {
-        return TerminalScore(position.board(), distance_from_root);
+        if (ss->singular_exclusion != Move::Uninitialized)
+        {
+            return alpha;
+        }
+        else if (InCheck)
+        {
+            return Score::mated_in(distance_from_root);
+        }
+        else
+        {
+            return Score::draw();
+        }
     }
 
     score = std::clamp(score, min_score, max_score);
