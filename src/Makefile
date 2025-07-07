@@ -3,8 +3,9 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/4ed21ecb/4ed21ecb.nn
-EVALFILE = $(BUILD_DIR)/4ed21ecb.nn
+NET_HASH := 2766f962
+EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn
+EVALFILE = $(BUILD_DIR)/$(NET_HASH).nn
 
 SRCS := \
 	main.cpp \
@@ -248,9 +249,9 @@ release:
 
 $(EVALFILE):
 	@ mkdir -p $(dir $@)
-	@echo "net: $(EVALFILE)"
-	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
-	if [ "x$(curl_or_wget)" = "x" ]; then \
+	@ echo "net: $(EVALFILE)"
+	@ $(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
+	@ if [ "x$(curl_or_wget)" = "x" ]; then \
 		echo "Automatic download failed: neither curl nor wget is installed. Install one of these tools or download the net manually"; exit 1; \
 	else \
 		echo "Downloading... $(EVALURL)"; $(curl_or_wget) $(EVALURL) > $(EVALFILE);\
