@@ -3,7 +3,7 @@ LLVM_PROFDATA := llvm-profdata
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
-NET_HASH := 2766f962
+NET_HASH := c73b45d8
 EVALURL = https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn
 EVALFILE = $(BUILD_DIR)/$(NET_HASH).nn
 
