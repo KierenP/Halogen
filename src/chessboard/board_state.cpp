@@ -10,6 +10,11 @@
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
 
+BoardState::BoardState()
+{
+    mailbox.fill(N_PIECES);
+}
+
 bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 {
     *this = BoardState(); // reset the board state
@@ -148,6 +153,7 @@ void BoardState::add_piece_sq(Square square, Piece piece)
 
     board[piece] |= SquareBB[square];
     side_bb[enum_to<Side>(piece)] |= SquareBB[square];
+    mailbox[square] = piece;
 }
 
 void BoardState::remove_piece_sq(Square square, Piece piece)
@@ -157,6 +163,7 @@ void BoardState::remove_piece_sq(Square square, Piece piece)
 
     board[piece] ^= SquareBB[square];
     side_bb[enum_to<Side>(piece)] ^= SquareBB[square];
+    mailbox[square] = N_PIECES;
 }
 
 uint64_t BoardState::get_pieces_bb(Piece piece) const
@@ -180,6 +187,7 @@ void BoardState::clear_sq(Square square)
 
     side_bb[WHITE] &= ~SquareBB[square];
     side_bb[BLACK] &= ~SquareBB[square];
+    mailbox[square] = N_PIECES;
 }
 
 uint64_t BoardState::get_pieces_bb(PieceType pieceType, Side colour) const
@@ -207,13 +215,7 @@ bool BoardState::is_occupied(Square square) const
 
 Piece BoardState::get_square_piece(Square square) const
 {
-    for (int i = 0; i < N_PIECES; i++)
-    {
-        if ((get_pieces_bb(static_cast<Piece>(i)) & SquareBB[square]) != 0)
-            return static_cast<Piece>(i);
-    }
-
-    return N_PIECES;
+    return mailbox[square];
 }
 
 uint64_t BoardState::get_pieces_bb() const

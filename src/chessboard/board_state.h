@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "search/zobrist.h"
 
@@ -20,6 +21,8 @@ It does not store the history of all previous moves applied to the board.
 class BoardState
 {
 public:
+    BoardState();
+
     Square en_passant = N_SQUARES;
     int fifty_move_count = 0;
     int half_turn_count = 1;
@@ -72,4 +75,5 @@ public:
 private:
     std::array<uint64_t, N_PIECES> board = {};
     std::array<uint64_t, 2> side_bb = {};
+    std::array<Piece, N_SQUARES> mailbox;
 };
