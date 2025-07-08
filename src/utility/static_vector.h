@@ -16,8 +16,8 @@ public:
     using value_type = T;
     using reference = T&;
     using const_reference = const T&;
-    using iterator = typename decltype(elems_)::iterator;
-    using const_iterator = typename decltype(elems_)::const_iterator;
+    using iterator = T*;
+    using const_iterator = const T*;
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 

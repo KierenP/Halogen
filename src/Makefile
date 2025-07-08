@@ -47,8 +47,6 @@ RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
 
-LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-
 # Different instruction sets targeting different architectures.
 
 # AMD processors before Zen 3 implement PEXT in microcode, so we support bmi as a optional orthogonal configuration for AVX2
@@ -83,6 +81,10 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
 endif
 
+ifeq ($(detected_OS),Linux)
+    LDFLAGS += -pthread
+endif
+
 # Detect if CXX is g++ or clang++, in this order.
 ifeq ($(findstring clang++, $(CXX)),)
 	PGOGEN = -fprofile-generate
@@ -93,6 +95,8 @@ else
 	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
 	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
 	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
+	CXXFLAGS += -Wno-deprecated-declarations -Wno-c++11-narrowing
+	LDFLAGS += -fuse-ld=lld
   	$(info detected compiler is [clang++])
 endif
 
