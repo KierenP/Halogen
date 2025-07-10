@@ -936,9 +936,9 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         bool is_loud_move = move.is_capture() || move.is_promotion();
         int history
             = is_loud_move ? local.get_loud_history(position, ss, move) : (local.get_quiet_history(position, ss, move));
+        auto see_pruning_margin = is_loud_move ? -34 * depth * depth - history / 140 : -see_d * depth - history / see_h;
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
-            && !see_ge(position.board(), move, -see_d * depth - history / see_h))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= 6 && !see_ge(position.board(), move, see_pruning_margin))
         {
             continue;
         }
