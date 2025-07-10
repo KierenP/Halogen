@@ -145,4 +145,11 @@ void static_exchange_evaluation_test()
         test_see(position, Move(SQ_H7, SQ_G8, QUEEN_PROMOTION_CAPTURE),
             see_values[KNIGHT] - see_values[PAWN] + see_values[ROOK]);
     }
+
+    // Castle moves always have zero SEE
+
+    {
+        auto position = GameState::from_fen("rnbqkbnr/pp3ppp/2p5/3pp3/8/4PN2/PPPPBPPP/RNBQK2R w KQkq - 0 4");
+        test_see(position, Move(SQ_E1, SQ_H1, H_SIDE_CASTLE), 0);
+    }
 }
