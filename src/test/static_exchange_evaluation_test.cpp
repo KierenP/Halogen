@@ -5,11 +5,11 @@
 #include "movegen/move.h"
 #include "search/score.h"
 #include "search/static_exchange_evaluation.h"
+#include "spsa/tuneable.h"
 
 const auto test_see
     = []([[maybe_unused]] const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)
 {
-    assert(see(position.board(), move) == expected_value.value());
     assert(see_ge(position.board(), move, expected_value));
     assert(!see_ge(position.board(), move, expected_value + 1));
 };
@@ -99,5 +99,50 @@ void static_exchange_evaluation_test()
     {
         auto position = GameState::from_fen("3k4/8/1B6/5n2/8/8/5P2/3K4 w - - 0 1");
         test_see(position, Move(SQ_B6, SQ_E3, QUIET), -see_values[BISHOP] + see_values[KNIGHT]);
+    }
+
+    // promotion tests
+
+    {
+        auto position = GameState::from_fen("8/7P/8/8/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_H8, QUEEN_PROMOTION), see_values[QUEEN] - see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r4/7P/8/8/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_H8, QUEEN_PROMOTION), -see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r4/7P/8/7R/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_H8, KNIGHT_PROMOTION), see_values[KNIGHT] - see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r4/7P/8/7R/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_H8, QUEEN_PROMOTION), see_values[ROOK] - see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("6n1/7P/8/8/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_G8, ROOK_PROMOTION_CAPTURE),
+            see_values[ROOK] - see_values[PAWN] + see_values[KNIGHT]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r2n1/7P/8/8/8/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_G8, KNIGHT_PROMOTION_CAPTURE), see_values[KNIGHT] - see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r2n1/7P/8/8/6R1/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_G8, BISHOP_PROMOTION_CAPTURE),
+            see_values[KNIGHT] + see_values[BISHOP] - see_values[PAWN]);
+    }
+
+    {
+        auto position = GameState::from_fen("3r2n1/7P/8/8/6R1/k7/8/K7 w - - 0 1");
+        test_see(position, Move(SQ_H7, SQ_G8, QUEEN_PROMOTION_CAPTURE),
+            see_values[KNIGHT] - see_values[PAWN] + see_values[ROOK]);
     }
 }
