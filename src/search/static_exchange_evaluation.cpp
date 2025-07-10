@@ -40,6 +40,11 @@ uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Pi
 
 bool see_ge(const BoardState& board, Move move, Score threshold)
 {
+    if (move.is_castle())
+    {
+        return threshold <= 0;
+    }
+
     Square from = move.from();
     Square to = move.to();
 
