@@ -1113,7 +1113,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
     while (gen.next(move))
     {
-        if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - delta_c))
+        if (!see_ge(position.board(), move, alpha - eval - delta_c))
         {
             continue;
         }
