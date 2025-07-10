@@ -40,9 +40,6 @@ uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Pi
 
 bool see_ge(const BoardState& board, Move move, Score threshold)
 {
-    // TODO: the handling of castle moves is bugged
-    // TODO: the handling of promotion moves is bad, and probably caused loud see pruning to fail
-
     Square from = move.from();
     Square to = move.to();
 
