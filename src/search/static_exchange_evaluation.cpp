@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
@@ -37,67 +38,44 @@ uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Pi
     return 0;
 }
 
-int see(const BoardState& board, Move move)
-{
-    Square from = move.from();
-    Square to = move.to();
-
-    int scores[32] { 0 };
-    int index = 0;
-
-    auto capturing = board.get_square_piece(from);
-    auto attacker = enum_to<Side>(capturing);
-    auto captured = move.flag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
-
-    uint64_t from_set = (1ull << from);
-    uint64_t occ = board.get_pieces_bb(), bishops = 0, rooks = 0;
-
-    bishops = rooks = board.get_pieces_bb(QUEEN);
-    bishops |= board.get_pieces_bb(BISHOP);
-    rooks |= board.get_pieces_bb(ROOK);
-
-    if (move.flag() == EN_PASSANT)
-    {
-        occ ^= SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
-    }
-
-    uint64_t attack_def = attackers_to_sq(board, to, occ);
-    scores[index] = captured == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured)];
-
-    do
-    {
-        index++;
-        attacker = !attacker;
-        scores[index] = see_values[enum_to<PieceType>(capturing)] - scores[index - 1];
-
-        attack_def ^= from_set;
-        occ ^= from_set;
-
-        attack_def |= occ & ((bishops & attack_bb<BISHOP>(to, occ)) | (rooks & attack_bb<ROOK>(to, occ)));
-        from_set = least_valuable_attacker(board, attack_def, capturing, Side(attacker));
-    } while (from_set);
-    while (--index)
-    {
-        scores[index - 1] = -(-scores[index - 1] > scores[index] ? -scores[index - 1] : scores[index]);
-    }
-    return scores[0];
-}
-
 bool see_ge(const BoardState& board, Move move, Score threshold)
 {
-    // TODO: the handling of castle moves is bugged
-    // TODO: the handling of promotion moves is bad, and probably caused loud see pruning to fail
-
     Square from = move.from();
     Square to = move.to();
 
     auto capturing = board.get_square_piece(from);
     auto attacker = enum_to<Side>(capturing);
     auto captured = move.flag() == EN_PASSANT ? get_piece(PAWN, !attacker) : board.get_square_piece(to);
+    auto promo_value = [&]()
+    {
+        switch (move.flag())
+        {
+        case KNIGHT_PROMOTION:
+        case KNIGHT_PROMOTION_CAPTURE:
+            capturing = get_piece(KNIGHT, board.stm);
+            return see_values[KNIGHT] - see_values[PAWN];
+        case BISHOP_PROMOTION:
+        case BISHOP_PROMOTION_CAPTURE:
+            capturing = get_piece(BISHOP, board.stm);
+            return see_values[BISHOP] - see_values[PAWN];
+        case ROOK_PROMOTION:
+        case ROOK_PROMOTION_CAPTURE:
+            capturing = get_piece(ROOK, board.stm);
+            return see_values[ROOK] - see_values[PAWN];
+        case QUEEN_PROMOTION:
+        case QUEEN_PROMOTION_CAPTURE:
+            capturing = get_piece(QUEEN, board.stm);
+            return see_values[QUEEN] - see_values[PAWN];
+        default:
+            return 0;
+        }
+    }();
 
-    // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If the
-    // value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
-    Score swap = (captured == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured)]) - threshold + 1;
+    auto value = promo_value + (captured == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured)]);
+
+    // The value of 'swap' is the net exchanged material less the threshold, relative to the perspective to move. If
+    // the value of the captured piece does not beat the threshold, the opponent can do nothing and we lose
+    Score swap = value - threshold + 1;
     if (swap <= 0)
     {
         return false;
