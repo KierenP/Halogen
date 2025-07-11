@@ -516,7 +516,8 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
     if (se_score < sbeta)
     {
-        auto double_margin = se_de + 400 * pv_node + 400 * (ss->distance_from_root >= local.curr_depth);
+        auto double_margin = se_de + se_pv * pv_node + se_high_d * (ss->distance_from_root >= local.curr_depth)
+            - se_quiet * !(tt_move.is_capture() || tt_move.is_promotion());
         extensions += 1 + (se_score < sbeta - double_margin);
     }
 
@@ -933,7 +934,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         bool is_loud_move = move.is_capture() || move.is_promotion();
         int history
             = is_loud_move ? local.get_loud_history(position, ss, move) : (local.get_quiet_history(position, ss, move));
-        auto see_pruning_margin = is_loud_move ? -34 * depth * depth - history / 140 : -see_d * depth - history / see_h;
+        auto see_pruning_margin = is_loud_move ? -see_depth_loud * depth * depth - history / see_hist_loud
+                                               : -see_depth_quiet * depth - history / see_hist_quiet;
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= 6 && !see_ge(position.board(), move, see_pruning_margin))
         {
@@ -951,7 +953,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
         if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= se_max_d
-            && tt_depth + see_tt_d >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
+            && tt_depth + se_tt_d >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
             && tt_score != SCORE_UNDEFINED)
         {
             if (auto value = singular_extensions<pv_node>(

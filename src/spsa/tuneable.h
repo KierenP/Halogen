@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
@@ -69,11 +71,16 @@ TUNEABLE_CONSTANT int fp_const = 36;
 TUNEABLE_CONSTANT int fp_depth = 12;
 TUNEABLE_CONSTANT int fp_quad = 13;
 
-TUNEABLE_CONSTANT int see_d = 108;
-TUNEABLE_CONSTANT int see_h = 140;
+TUNEABLE_CONSTANT int see_depth_quiet = 108;
+TUNEABLE_CONSTANT int see_hist_quiet = 140;
+TUNEABLE_CONSTANT int see_depth_loud = 34;
+TUNEABLE_CONSTANT int see_hist_loud = 140;
 
 TUNEABLE_CONSTANT int se_max_d = 6;
-TUNEABLE_CONSTANT int see_tt_d = 4;
+TUNEABLE_CONSTANT int se_tt_d = 4;
+TUNEABLE_CONSTANT int se_pv = 400;
+TUNEABLE_CONSTANT int se_high_d = 400;
+TUNEABLE_CONSTANT int se_quiet = 0;
 
 TUNEABLE_CONSTANT int delta_c = 346;
 

@@ -287,11 +287,16 @@ auto Uci::options_handler()
         tuneable_int(fp_depth, 5, 15),
         tuneable_int(fp_quad, 5, 25),
 
-        tuneable_int(see_d, 50, 150),
-        tuneable_int(see_h, 50, 250),
+        tuneable_int(see_depth_quiet, 50, 150),
+        tuneable_int(see_hist_quiet, 50, 250),
+        tuneable_int(see_depth_loud, 10, 50),
+        tuneable_int(see_hist_loud, 50, 250),
 
         tuneable_int(se_max_d, 5, 10),
-        tuneable_int(see_tt_d, 0, 10),
+        tuneable_int(se_tt_d, 0, 10),
+        tuneable_int(se_pv, 0, 1000),
+        tuneable_int(se_high_d, 0, 1000),
+        tuneable_int(se_quiet, 0, 1000),
 
         tuneable_int(delta_c, 0, 500),
 
