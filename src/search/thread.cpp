@@ -75,6 +75,7 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
         [this, root_move_whitelist]()
         {
             local_state->root_move_whitelist = root_move_whitelist;
+            // TODO: the network and root moves could be set when we know the current position
             local_state->net.reset_new_search(local_state->position.board(), local_state->search_stack.root()->acc);
             BasicMoveList moves;
             legal_moves(local_state->position.board(), moves);
@@ -146,6 +147,11 @@ void SearchThreadPool::set_hash(int hash_size_mb)
 void SearchThreadPool::set_multi_pv(int multi_pv)
 {
     shared_state.set_multi_pv(multi_pv);
+}
+
+void SearchThreadPool::set_chess960(bool chess960)
+{
+    shared_state.chess_960 = chess960;
 }
 
 void SearchThreadPool::set_threads(size_t threads)
@@ -251,6 +257,9 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
 
     std::vector<std::future<void>> futures;
     futures.reserve(search_threads.size());
+
+    auto now = std::chrono::steady_clock::now();
+    std::cout << "Starting threads: " << now.time_since_epoch().count() << std::endl;
 
     for (auto* thread : search_threads)
     {

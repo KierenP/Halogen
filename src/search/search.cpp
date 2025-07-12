@@ -56,8 +56,6 @@ template <SearchType search_type>
 Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
     Score alpha, Score beta);
 
-std::mutex io_lock;
-
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     iterative_deepening(position, local, shared);

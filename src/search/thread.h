@@ -52,15 +52,10 @@ public:
     void reset_new_search();
     void reset_new_game();
 
-    // TODO: some of this stuff is specific to the thread pool, but some of it is really only here because
-    // SearchThreadPool for some reason owns the SearchSharedState
     void set_position(const GameState& position);
     void set_hash(int hash_size_mb);
     void set_multi_pv(int multi_pv);
-    void set_chess960(bool chess960)
-    {
-        shared_state.chess_960 = chess960;
-    }
+    void set_chess960(bool chess960);
     void set_threads(size_t threads);
 
     SearchResults launch_search(const SearchLimits& limits);
