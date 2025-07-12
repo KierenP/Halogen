@@ -453,9 +453,6 @@ void Uci::handle_go(go_ctx& ctx)
         }
     }
 
-    auto now = std::chrono::steady_clock::now();
-    std::cout << "Parsed go command " << now.time_since_epoch().count() << std::endl;
-
     // TODO: we could do this before the go command to save time
     search_thread_pool.set_position(position);
 
@@ -526,8 +523,7 @@ void Uci::process_input_stream(std::istream& is)
 
 void Uci::process_input(std::string_view command)
 {
-    auto now = std::chrono::steady_clock::now();
-    std::cout << "TIMING: received input: " << now.time_since_epoch().count() << std::endl;
+    // TODO: Should not be needed, the parsing should just take string_view by value everywhere
     auto original = command;
 
     // We first try to handle the UCI commands that we expect to get during the search. If we cannot, then we join the
