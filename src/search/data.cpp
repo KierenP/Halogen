@@ -64,10 +64,11 @@ void SearchLocalState::reset_new_search()
     curr_multi_pv = 0;
     thread_wants_to_stop = false;
     aborting_search = false;
-    root_move_blacklist = {};
+        root_move_blacklist = {};
     root_move_whitelist = {};
     limit_check_counter = 0;
     root_moves = {};
+    assert(false);
 }
 
 int SearchLocalState::get_quiet_history(const GameState& position, const SearchStackState* ss, Move move)
