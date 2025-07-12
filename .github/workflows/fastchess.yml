@@ -111,10 +111,10 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 5000" 2>&1 tee out.log
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go mate 3" 2>&1 tee out.log
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go nodes 10000" 2>&1 tee out.log
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go depth 6" 2>&1 tee out.log
+          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 10000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go mate 3" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go nodes 100000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go depth 8" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
