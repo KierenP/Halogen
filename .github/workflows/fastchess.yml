@@ -46,8 +46,11 @@ jobs:
                -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
+          echo $?
           ! grep "ThreadSanitizer" fast.log > /dev/null
+          echo $?
           ! grep "disconnect" fast.out > /dev/null
+          echo $?
 
       # no opening for this one to test 'position startpos moves ...'
       - name: Run games (Cyclical)
