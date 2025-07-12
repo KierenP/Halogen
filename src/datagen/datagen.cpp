@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -162,7 +163,9 @@ void self_play_game(SearchSharedState& data, GameState& position, std::ofstream&
             continue;
         }
 
-        launch_search(position, data);
+        std::exit(EXIT_FAILURE);
+        // TODO
+        // launch_search(position, data);
         auto result = data.get_best_search_result();
         auto eval = result.score;
 
@@ -234,7 +237,9 @@ void self_play_game(SearchSharedState& data, GameState& position, std::ofstream&
 
         // -----------------------------
 
-        launch_search(position, data);
+        std::exit(EXIT_FAILURE);
+        // TODO
+        // launch_search(position, data);
         const auto search_result = data.get_best_search_result();
         const auto best_move = search_result.pv[0];
         const auto white_relative_score = (position.board().stm == WHITE ? 1 : -1) * search_result.score.value();

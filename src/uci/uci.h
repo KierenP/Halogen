@@ -9,6 +9,7 @@
 
 #include "chessboard/game_state.h"
 #include "search/data.h"
+#include "search/thread.h"
 
 class Move;
 
@@ -38,8 +39,8 @@ public:
     void process_input_stream(std::istream& is);
     void process_input(std::string_view command);
 
-    void print_search_info(const SearchResults& data, bool final = false);
-    void print_bestmove(Move move);
+    void print_search_info(const SearchSharedState& shared, const SearchResults& data, bool final = false);
+    void print_bestmove(bool chess960, Move move);
     void print_error(const std::string& error_str);
 
     struct go_ctx
@@ -87,9 +88,10 @@ public:
 private:
     void join_search_thread();
 
+    std::unique_ptr<SearchThreadPool> search_thread_pool { std::make_unique<SearchThreadPool>(*this, 1) };
+    std::thread main_search_thread;
     GameState position = GameState::starting_position();
-    std::thread search_thread;
-    SearchSharedState shared { *this };
+
     const std::string_view version_;
     OutputLevel output_level;
     bool quit = false;

@@ -206,7 +206,8 @@ void Uci::handle_bench(int depth)
     Timer timer;
 
     uint64_t nodeCount = 0;
-    shared.limits.depth = depth;
+    SearchLimits limits;
+    limits.depth = depth;
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -216,9 +217,9 @@ void Uci::handle_bench(int depth)
             break;
         }
 
-        shared.limits.time.reset();
-        launch_search(position, shared);
-        nodeCount += shared.nodes();
+        search_thread_pool->set_position(position);
+        auto result = search_thread_pool->launch_search(limits);
+        nodeCount += result.nodes;
     }
 
     int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer.elapsed()).count();
@@ -366,8 +367,7 @@ void Uci::handle_isready()
 void Uci::handle_ucinewgame()
 {
     position = GameState::starting_position();
-    shared.transposition_table.clear(shared.get_threads_setting());
-    shared.reset_new_game();
+    search_thread_pool->reset_new_game();
 }
 
 bool Uci::handle_position_fen(std::string_view fen)
@@ -387,10 +387,11 @@ void Uci::handle_position_startpos()
 
 void Uci::handle_go(go_ctx& ctx)
 {
-    shared.limits.mate = ctx.mate;
-    shared.limits.depth = ctx.depth;
-    shared.limits.nodes = ctx.nodes;
-    shared.limits.time = {};
+    SearchLimits limits;
+    limits.mate = ctx.mate;
+    limits.depth = ctx.depth;
+    limits.nodes = ctx.nodes;
+    limits.time = {};
 
     using namespace std::chrono_literals;
 
@@ -403,7 +404,7 @@ void Uci::handle_go(go_ctx& ctx)
     if (ctx.movetime)
     {
         auto hard_limit = *ctx.movetime - BufferTime;
-        shared.limits.time = SearchTimeManager(hard_limit, hard_limit);
+        limits.time = SearchTimeManager(hard_limit, hard_limit);
     }
     else if (myTime)
     {
@@ -416,7 +417,7 @@ void Uci::handle_go(go_ctx& ctx)
             // We divide the available time by the number of movestogo (which can be zero) and then adjust
             // by 1.5x. This ensures we use more of the available time earlier.
             auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * repeating_tc / 64;
-            shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else if (myInc)
         {
@@ -427,34 +428,36 @@ void Uci::handle_go(go_ctx& ctx)
 
             auto soft_limit
                 = (*myTime - BufferTime) * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
-            shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
         {
             // Sudden death time control. We use 1/20th of the remaining time each turn
             auto soft_limit = (*myTime - BufferTime) * sudden_death_tc / 1024;
-            shared.limits.time = SearchTimeManager(soft_limit, hard_limit);
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
     }
 
+    // TODO: we could do this before the go command to save time
+    search_thread_pool->set_position(position);
+
     // launch search thread
-    search_thread = std::thread([&]() { launch_search(position, shared); });
+    main_search_thread = std::thread([&]() { search_thread_pool->launch_search(limits); });
 }
 
 void Uci::handle_setoption_clear_hash()
 {
-    shared.transposition_table.clear(shared.get_threads_setting());
-    shared.reset_new_game();
+    search_thread_pool->reset_new_game();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    shared.transposition_table.set_size(value, shared.get_threads_setting());
+    search_thread_pool->set_hash(value);
 }
 
 void Uci::handle_setoption_threads(int value)
 {
-    shared.set_threads(value);
+    search_thread_pool->set_threads(value);
 }
 
 void Uci::handle_setoption_syzygy_path(std::string_view value)
@@ -464,12 +467,12 @@ void Uci::handle_setoption_syzygy_path(std::string_view value)
 
 void Uci::handle_setoption_multipv(int value)
 {
-    shared.set_multi_pv(value);
+    search_thread_pool->set_multi_pv(value);
 }
 
 void Uci::handle_setoption_chess960(bool value)
 {
-    shared.chess_960 = value;
+    search_thread_pool->set_chess960(value);
 }
 
 void Uci::handle_setoption_output_level(OutputLevel level)
@@ -479,19 +482,19 @@ void Uci::handle_setoption_output_level(OutputLevel level)
 
 void Uci::handle_stop()
 {
-    shared.stop_searching = true;
+    search_thread_pool->stop_search();
 }
 
 void Uci::handle_quit()
 {
-    shared.stop_searching = true;
+    search_thread_pool->stop_search();
     quit = true;
 }
 
 void Uci::join_search_thread()
 {
-    if (search_thread.joinable())
-        search_thread.join();
+    if (main_search_thread.joinable())
+        main_search_thread.join();
 }
 
 void Uci::process_input_stream(std::istream& is)
@@ -547,7 +550,6 @@ void Uci::process_input(std::string_view command)
                     Consume { "moves", Repeat { NextToken { [this](auto move){ handle_moves(move); } } } },
                     EndCommand{} } } } } },
         Consume { "go", Sequence {
-            Invoke { [this]{ shared.limits = {}; } },
             WithContext { go_ctx{}, Sequence {
                 Repeat { OneOf {
                     Consume { "infinite", Invoke { [](auto&){} } },
@@ -592,7 +594,7 @@ void Uci::process_input(std::string_view command)
     }
 }
 
-void Uci::print_search_info(const SearchResults& data, bool final)
+void Uci::print_search_info(const SearchSharedState& shared, const SearchResults& data, bool final)
 {
     if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
     {
@@ -643,11 +645,11 @@ void Uci::print_search_info(const SearchResults& data, bool final)
     std::cout << std::endl;
 }
 
-void Uci::print_bestmove(Move move)
+void Uci::print_bestmove(bool chess960, Move move)
 {
     if (output_level > OutputLevel::None)
     {
-        if (shared.chess_960)
+        if (chess960)
         {
             std::cout << "bestmove " << format_chess960 { move } << std::endl;
         }

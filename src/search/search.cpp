@@ -56,76 +56,9 @@ template <SearchType search_type>
 Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
     Score alpha, Score beta);
 
-void launch_search(GameState& position, SearchSharedState& shared)
+void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
-#ifdef TUNE
-    LMR_reduction = Initialise_LMR_reduction();
-#endif
-
-    shared.reset_new_search();
-
-    // Limit the MultiPV setting to be at most the number of legal moves
-    auto multi_pv = shared.get_multi_pv_setting();
-    BasicMoveList moves;
-    legal_moves(position.board(), moves);
-    multi_pv = std::min<int>(multi_pv, moves.size());
-
-    // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(position.board());
-    BasicMoveList root_move_whitelist;
-    if (probe.has_value())
-    {
-        // filter out the results which preserve the tbRank
-        for (const auto& [move, tb_rank] : probe->root_moves)
-        {
-            if (tb_rank != probe->root_moves[0].tb_rank)
-            {
-                break;
-            }
-
-            root_move_whitelist.emplace_back(move);
-        }
-
-        multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
-    }
-
-    auto old_multi_pv = shared.get_multi_pv_setting();
-    shared.set_multi_pv(multi_pv);
-    shared.stop_searching = false;
-
-    std::vector<std::thread> threads;
-
-    // We directly run iterative_deepening from the main thread, and launch the other threads for any additional
-    // threads. This means in single threaded mode we can avoid launching any additional threads or having to copy
-    // position.
-    // TODO: extract this into a lambda to avoid duplicating the code
-    for (int i = 1; i < shared.get_threads_setting(); i++)
-    {
-        auto& local = shared.get_local_state(i);
-        local.root_move_whitelist = root_move_whitelist;
-        local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
-        std::ranges::copy(moves, std::back_inserter(local.root_moves));
-        threads.emplace_back(
-            std::thread([position, &local, &shared]() mutable { iterative_deepening(position, local, shared); }));
-    }
-
-    {
-        auto& local = shared.get_local_state(0);
-        local.root_move_whitelist = root_move_whitelist;
-        local.net.reset_new_search(position.board(), local.search_stack.root()->acc);
-        std::ranges::copy(moves, std::back_inserter(local.root_moves));
-        iterative_deepening(position, local, shared);
-    }
-
-    for (size_t i = 0; i < threads.size(); i++)
-    {
-        threads[i].join();
-    }
-
-    const auto& search_result = shared.get_best_search_result();
-    shared.uci_handler.print_search_info(search_result, true);
-    shared.uci_handler.print_bestmove(search_result.pv[0]);
-    shared.set_multi_pv(old_multi_pv);
+    iterative_deepening(position, local, shared);
 }
 
 void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared)
@@ -169,7 +102,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
             if (shared.limits.time && !shared.limits.time->should_continue_search(node_factor))
             {
-                shared.report_thread_wants_to_stop(local.thread_id);
+                local.thread_wants_to_stop = true;
+                shared.report_thread_wants_to_stop();
             }
         }
 

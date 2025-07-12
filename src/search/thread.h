@@ -1,0 +1,83 @@
+#pragma once
+
+#include "chessboard/game_state.h"
+#include "movegen/movegen.h"
+#include "numa/numa.h"
+#include "search/data.h"
+#include "search/search.h"
+
+#include <condition_variable>
+#include <future>
+#include <mutex>
+#include <thread>
+
+class SearchThread
+{
+public:
+    SearchThread(int thread_id, SearchSharedState& shared_state);
+
+    // Should be called from a newly created std::thread, after the thread has been bound to a CPU core
+    void start();
+    void terminate();
+
+    [[nodiscard]] std::future<void> set_position(GameState position);
+    [[nodiscard]] std::future<void> reset_new_search();
+    [[nodiscard]] std::future<void> reset_new_game();
+    [[nodiscard]] std::future<void> start_searching(BasicMoveList root_move_whitelist);
+
+    const SearchLocalState& get_local_state();
+
+private:
+    mutable std::mutex mutex;
+    mutable std::condition_variable signal;
+    std::function<void()> invoke;
+    bool destroy = false;
+
+    // Give some work to the thread, which will be executed in the thread's context. This is the correct way to reset
+    // the threads state, as we need any allocated memory to be provisioned on the correct NUMA node.
+    void run_on_thread(const std::function<void()>& func);
+
+    const int thread_id_;
+    SearchSharedState& shared_state;
+    std::unique_ptr<SearchLocalState> local_state;
+    GameState position_ = GameState::starting_position();
+};
+
+class SearchThreadPool
+{
+public:
+    SearchThreadPool(UCI::Uci& uci, size_t num_threads);
+    ~SearchThreadPool();
+
+    SearchThreadPool(const SearchThreadPool&) = delete;
+    SearchThreadPool& operator=(const SearchThreadPool&) = delete;
+    SearchThreadPool(SearchThreadPool&&) = delete;
+    SearchThreadPool& operator=(SearchThreadPool&&) = delete;
+
+    void reset_new_search();
+    void reset_new_game();
+
+    // TODO: some of this stuff is specific to the thread pool, but some of it is really only here because
+    // SearchThreadPool for some reason owns the SearchSharedState
+    void set_position(const GameState& position);
+    void set_hash(int hash_size_mb);
+    void set_multi_pv(int multi_pv);
+    void set_chess960(bool chess960)
+    {
+        shared_state.chess_960 = chess960;
+    }
+    void set_threads(size_t threads);
+
+    SearchResults launch_search(const SearchLimits& limits);
+    void stop_search();
+
+    const SearchSharedState& get_shared_state();
+
+private:
+    void create_thread();
+
+    std::vector<std::thread> native_threads;
+    std::vector<SearchThread*> search_threads;
+    SearchSharedState shared_state;
+    GameState position_ = GameState::starting_position();
+};

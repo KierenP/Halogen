@@ -140,17 +140,12 @@ void SearchSharedState::reset_new_search()
     }
 
     best_search_result_ = {};
-    std::ranges::for_each(search_local_states_, [](auto& data) { data->reset_new_search(); });
 }
 
 void SearchSharedState::reset_new_game()
 {
+    transposition_table.clear(get_threads_setting());
     reset_new_search();
-    search_local_states_.clear();
-    for (int i = 0; i < threads_setting; i++)
-    {
-        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
-    }
 }
 
 void SearchSharedState::set_multi_pv(int multi_pv)
@@ -166,14 +161,12 @@ void SearchSharedState::set_multi_pv(int multi_pv)
 void SearchSharedState::set_threads(int threads)
 {
     threads_setting = threads;
-
-    search_local_states_.clear();
-    for (int i = 0; i < threads_setting; i++)
-    {
-        search_local_states_.emplace_back(std::make_unique<SearchLocalState>(i));
-    }
-
     search_results_.resize(threads, decltype(search_results_)::value_type(multi_pv_setting));
+}
+
+void SearchSharedState::set_hash(int hash_size_mb)
+{
+    transposition_table.set_size(hash_size_mb, get_threads_setting());
 }
 
 SearchResults SearchSharedState::get_best_search_result() const
@@ -193,7 +186,7 @@ void SearchSharedState::report_search_result(
 
     // Store the result in the table (potentially overwriting a previous lower/upper bound)
     auto& result_data = search_results_[local.thread_id][local.curr_multi_pv - 1][local.curr_depth];
-    result_data = { local.curr_depth, local.sel_septh, local.curr_multi_pv, score, ss->pv, type };
+    result_data = { local.curr_depth, local.sel_septh, local.curr_multi_pv, nodes(), score, ss->pv, type };
 
     // Update the best search result. We want to pick the highest depth result, and using the higher score for
     // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
@@ -235,7 +228,7 @@ void SearchSharedState::report_search_result(
         using namespace std::chrono_literals;
         if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
         {
-            uci_handler.print_search_info(result_data);
+            uci_handler.print_search_info(*this, result_data);
         }
     }
 }
@@ -262,17 +255,9 @@ int SearchSharedState::get_multi_pv_setting() const
     return multi_pv_setting;
 }
 
-SearchLocalState& SearchSharedState::get_local_state(int thread_id)
-{
-    return *search_local_states_[thread_id];
-}
-
-void SearchSharedState::report_thread_wants_to_stop(int thread_id)
+void SearchSharedState::report_thread_wants_to_stop()
 {
     // If at least half the threads (rounded up) want to stop, we abort
-
-    search_local_states_[thread_id]->thread_wants_to_stop = true;
-
     int abort_votes = 0;
 
     for (const auto& local : search_local_states_)

@@ -110,7 +110,6 @@ public:
 
     bool should_skip_root_move(Move move);
     void reset_new_search();
-    void reset_new_game();
 
     int get_quiet_history(const GameState& position, const SearchStackState* ss, Move move);
     int get_loud_history(const GameState& position, const SearchStackState* ss, Move move);
@@ -161,6 +160,7 @@ struct SearchResults
     int depth = 0;
     int sel_septh = 0;
     int multi_pv = 0;
+    int64_t nodes = 0;
     Score score = SCORE_UNDEFINED;
     StaticVector<Move, MAX_DEPTH> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
@@ -176,9 +176,10 @@ public:
     // ------------------------------------
 
     void reset_new_search();
-    void reset_new_game();
+    void reset_new_game(); // TODO: this function is no longer needed
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
+    void set_hash(int hash_size_mb);
 
     // Below functions are thread-safe and blocking
     // ------------------------------------
@@ -196,8 +197,7 @@ public:
     int get_threads_setting() const;
     int get_multi_pv_setting() const;
 
-    SearchLocalState& get_local_state(int thread_id);
-    void report_thread_wants_to_stop(int thread_id);
+    void report_thread_wants_to_stop();
 
     bool chess_960 {};
     SearchLimits limits;
@@ -206,6 +206,9 @@ public:
 
     AtomicRelaxed<bool> stop_searching = false;
     Transposition::Table transposition_table;
+
+    // TODO: wip
+    std::vector<const SearchLocalState*> search_local_states_;
 
 private:
     mutable std::recursive_mutex lock_;
@@ -216,8 +219,4 @@ private:
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
 
     std::optional<SearchResults> best_search_result_;
-
-    // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
-    // we start a search.
-    std::vector<std::unique_ptr<SearchLocalState>> search_local_states_;
 };

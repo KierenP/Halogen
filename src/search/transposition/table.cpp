@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <thread>
@@ -140,6 +141,7 @@ void Table::clear(int thread_count)
 
 void Table::set_size(uint64_t MB, int thread_count)
 {
+    std::cout << "Setting transposition table size to " << MB << " MB" << std::endl;
     size_ = MB * 1024 * 1024 / sizeof(Bucket);
     realloc(thread_count);
 }
