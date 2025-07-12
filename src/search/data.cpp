@@ -11,6 +11,7 @@
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "search/score.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
