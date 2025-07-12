@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "bitboard/define.h"
+#include "chessboard/game_state.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "network/network.h"
@@ -37,7 +38,7 @@ constexpr std::size_t hardware_destructive_interference_size = 64;
 
 namespace UCI
 {
-class Uci;
+class UciOutput;
 }
 
 // Holds information about the search state for a particular recursion depth.
@@ -111,11 +112,11 @@ public:
     bool should_skip_root_move(Move move);
     void reset_new_search();
 
-    int get_quiet_history(const GameState& position, const SearchStackState* ss, Move move);
-    int get_loud_history(const GameState& position, const SearchStackState* ss, Move move);
+    int get_quiet_history(const SearchStackState* ss, Move move);
+    int get_loud_history(const SearchStackState* ss, Move move);
 
-    void add_quiet_history(const GameState& position, const SearchStackState* ss, Move move, int change);
-    void add_loud_history(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void add_quiet_history(const SearchStackState* ss, Move move, int change);
+    void add_loud_history(const SearchStackState* ss, Move move, int change);
 
     int thread_id;
     SearchStack search_stack;
@@ -153,6 +154,8 @@ public:
     int limit_check_counter = 0;
 
     NN::Network net;
+
+    GameState position = GameState::starting_position();
 };
 
 struct SearchResults
@@ -170,7 +173,7 @@ struct SearchResults
 class SearchSharedState
 {
 public:
-    SearchSharedState(UCI::Uci& uci);
+    SearchSharedState(UCI::UciOutput& uci);
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -202,7 +205,7 @@ public:
     bool chess_960 {};
     SearchLimits limits;
     Timer search_timer;
-    UCI::Uci& uci_handler;
+    UCI::UciOutput& uci_handler;
 
     AtomicRelaxed<bool> stop_searching = false;
     Transposition::Table transposition_table;

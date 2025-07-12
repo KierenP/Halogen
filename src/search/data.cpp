@@ -70,7 +70,7 @@ void SearchLocalState::reset_new_search()
     root_moves = {};
 }
 
-int SearchLocalState::get_quiet_history(const GameState& position, const SearchStackState* ss, Move move)
+int SearchLocalState::get_quiet_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
 
@@ -97,7 +97,7 @@ int SearchLocalState::get_quiet_history(const GameState& position, const SearchS
     return total;
 }
 
-int SearchLocalState::get_loud_history(const GameState& position, const SearchStackState* ss, Move move)
+int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
     if (auto* hist = capt_hist.get(position, ss, move))
@@ -107,7 +107,7 @@ int SearchLocalState::get_loud_history(const GameState& position, const SearchSt
     return total;
 }
 
-void SearchLocalState::add_quiet_history(const GameState& position, const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, int change)
 {
     pawn_hist.add(position, ss, move, change);
     threat_hist.add(position, ss, move, change);
@@ -117,12 +117,12 @@ void SearchLocalState::add_quiet_history(const GameState& position, const Search
         (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
 }
 
-void SearchLocalState::add_loud_history(const GameState& position, const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, int change)
 {
     capt_hist.add(position, ss, move, change);
 }
 
-SearchSharedState::SearchSharedState(UCI::Uci& uci)
+SearchSharedState::SearchSharedState(UCI::UciOutput& uci)
     : uci_handler(uci)
 {
 }
@@ -228,7 +228,7 @@ void SearchSharedState::report_search_result(
         using namespace std::chrono_literals;
         if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
         {
-            uci_handler.print_search_info(*this, result_data);
+            uci_handler.print_search_info(*this, result_data, local.position.board());
         }
     }
 }

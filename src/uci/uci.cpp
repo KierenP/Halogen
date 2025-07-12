@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <optional>
 #include <ratio>
 #include <sstream>
@@ -31,6 +32,7 @@
 #include "search/score.h"
 #include "search/search.h"
 #include "search/syzygy.h"
+#include "search/thread.h"
 #include "search/transposition/table.h"
 #include "spsa/tuneable.h"
 #include "uci/options.h"
@@ -40,6 +42,8 @@
 
 namespace UCI
 {
+
+std::mutex output_mutex;
 
 std::ostream& operator<<(std::ostream& os, const OutputLevel& level)
 {
@@ -100,6 +104,7 @@ uint64_t Perft(int depth, GameState& position, bool check_legality)
 
             if (present != legal)
             {
+                std::lock_guard io { output_mutex };
                 std::cout << position.board() << move << "\n";
                 std::cout << present << " " << legal << "\n";
                 std::cout << move.from() << " " << move.to() << " " << move.flag() << std::endl;
@@ -154,12 +159,14 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
         uint64_t correct = stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce)));
         if (nodes == stoull(arrayTokens.at(arrayTokens.size() - 2 * (1 + depth_reduce))))
         {
+            std::lock_guard io { output_mutex };
             std::cout << "CORRECT   (" << nodes << " == " << correct << ") [" << fen << "] depth: " << depth
                       << std::endl;
             Correct++;
         }
         else
         {
+            std::lock_guard io { output_mutex };
             std::cout << "INCORRECT (" << nodes << " != " << correct << ") [" << fen << "] depth: " << depth
                       << std::endl;
         }
@@ -170,6 +177,7 @@ void PerftSuite(std::string path, int depth_reduce, bool check_legality)
     auto after = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double>(after - before).count();
 
+    std::lock_guard io { output_mutex };
     std::cout << "\n\nCompleted perft with: " << Correct << "/" << Perfts << " correct";
     std::cout << "\nTotal nodes: " << (Totalnodes) << " in " << duration << "s";
     std::cout << "\nNodes per second: " << static_cast<int>(Totalnodes / duration);
@@ -189,6 +197,7 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
         position.apply_move(moves[i]);
         uint64_t ChildNodeCount = Perft(depth - 1, position, check_legality);
         position.revert_move();
+        std::lock_guard io { output_mutex };
         std::cout << moves[i] << ": " << ChildNodeCount << std::endl;
         nodeCount += ChildNodeCount;
     }
@@ -196,6 +205,7 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
     auto after = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double>(after - before).count();
 
+    std::lock_guard io { output_mutex };
     std::cout << "\nNodes searched: " << (nodeCount) << " in " << duration << " seconds ";
     std::cout << "(" << static_cast<int>(nodeCount / duration) << " nps)" << std::endl;
     return nodeCount;
@@ -213,16 +223,18 @@ void Uci::handle_bench(int depth)
     {
         if (!position.init_from_fen(benchMarkPositions[i]))
         {
+            std::lock_guard io { output_mutex };
             std::cout << "BAD FEN!" << std::endl;
             break;
         }
 
-        search_thread_pool->set_position(position);
-        auto result = search_thread_pool->launch_search(limits);
+        search_thread_pool.set_position(position);
+        auto result = search_thread_pool.launch_search(limits);
         nodeCount += result.nodes;
     }
 
     int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(timer.elapsed()).count();
+    std::lock_guard io { output_mutex };
     std::cout << nodeCount << " nodes " << nodeCount / std::max(elapsed_time, 1) * 1000 << " nps" << std::endl;
 }
 
@@ -339,8 +351,10 @@ auto Uci::options_handler()
 #undef tuneable_float
 }
 
-Uci::Uci(std::string_view version)
+Uci::Uci(std::string_view version, SearchThreadPool& pool, UciOutput& output_)
     : version_(version)
+    , search_thread_pool(pool)
+    , output(output_)
 {
     options_handler().set_defaults();
     finished_startup = true;
@@ -353,6 +367,7 @@ Uci::~Uci()
 
 void Uci::handle_uci()
 {
+    std::lock_guard io { output_mutex };
     std::cout << "id name Halogen " << version_ << "\n";
     std::cout << "id author Kieren Pearson\n";
     std::cout << options_handler();
@@ -361,13 +376,13 @@ void Uci::handle_uci()
 
 void Uci::handle_isready()
 {
+    std::lock_guard io { output_mutex };
     std::cout << "readyok" << std::endl;
 }
 
 void Uci::handle_ucinewgame()
 {
-    position = GameState::starting_position();
-    search_thread_pool->reset_new_game();
+    search_thread_pool.reset_new_game();
 }
 
 bool Uci::handle_position_fen(std::string_view fen)
@@ -438,56 +453,59 @@ void Uci::handle_go(go_ctx& ctx)
         }
     }
 
+    auto now = std::chrono::steady_clock::now();
+    std::cout << "Parsed go command " << now.time_since_epoch().count() << std::endl;
+
     // TODO: we could do this before the go command to save time
-    search_thread_pool->set_position(position);
+    search_thread_pool.set_position(position);
 
     // launch search thread
-    main_search_thread = std::thread([this, limits]() { search_thread_pool->launch_search(limits); });
+    main_search_thread = std::thread([this, limits]() { search_thread_pool.launch_search(limits); });
 }
 
 void Uci::handle_setoption_clear_hash()
 {
-    search_thread_pool->reset_new_game();
+    search_thread_pool.reset_new_game();
 }
 
 void Uci::handle_setoption_hash(int value)
 {
-    search_thread_pool->set_hash(value);
+    search_thread_pool.set_hash(value);
 }
 
 void Uci::handle_setoption_threads(int value)
 {
-    search_thread_pool->set_threads(value);
+    search_thread_pool.set_threads(value);
 }
 
 void Uci::handle_setoption_syzygy_path(std::string_view value)
 {
-    Syzygy::init(value, output_level > OutputLevel::None && finished_startup);
+    Syzygy::init(value, output.output_level > OutputLevel::None && finished_startup);
 }
 
 void Uci::handle_setoption_multipv(int value)
 {
-    search_thread_pool->set_multi_pv(value);
+    search_thread_pool.set_multi_pv(value);
 }
 
 void Uci::handle_setoption_chess960(bool value)
 {
-    search_thread_pool->set_chess960(value);
+    search_thread_pool.set_chess960(value);
 }
 
 void Uci::handle_setoption_output_level(OutputLevel level)
 {
-    output_level = level;
+    output.output_level = level;
 }
 
 void Uci::handle_stop()
 {
-    search_thread_pool->stop_search();
+    search_thread_pool.stop_search();
 }
 
 void Uci::handle_quit()
 {
-    search_thread_pool->stop_search();
+    search_thread_pool.stop_search();
     quit = true;
 }
 
@@ -508,6 +526,8 @@ void Uci::process_input_stream(std::istream& is)
 
 void Uci::process_input(std::string_view command)
 {
+    auto now = std::chrono::steady_clock::now();
+    std::cout << "TIMING: received input: " << now.time_since_epoch().count() << std::endl;
     auto original = command;
 
     // We first try to handle the UCI commands that we expect to get during the search. If we cannot, then we join the
@@ -590,99 +610,33 @@ void Uci::process_input(std::string_view command)
 
     if (!uci_processor(command))
     {
+        std::lock_guard io { output_mutex };
         std::cout << "info string unable to handle command " << std::quoted(original) << std::endl;
     }
 }
 
-void Uci::print_search_info(const SearchSharedState& shared, const SearchResults& data, bool final)
-{
-    if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
-    {
-        return;
-    }
-
-    std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
-
-    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
-    {
-        if (data.score > 0)
-            std::cout << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
-        else
-            std::cout << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
-    }
-    else
-    {
-        std::cout << " score cp " << data.score.value();
-    }
-
-    if (data.type == SearchResultType::UPPER_BOUND)
-        std::cout << " upperbound";
-    if (data.type == SearchResultType::LOWER_BOUND)
-        std::cout << " lowerbound";
-
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
-    auto node_count = shared.nodes();
-    auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = shared.transposition_table.get_hashfull(position.board().half_turn_count);
-
-    std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
-              << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
-
-    std::cout << " pv "; // the current best line found
-
-    for (const auto& move : data.pv)
-    {
-        if (shared.chess_960)
-        {
-            std::cout << format_chess960 { move } << ' ';
-        }
-        else
-        {
-            std::cout << move << ' ';
-        }
-    }
-
-    std::cout << std::endl;
-}
-
-void Uci::print_bestmove(bool chess960, Move move)
-{
-    if (output_level > OutputLevel::None)
-    {
-        if (chess960)
-        {
-            std::cout << "bestmove " << format_chess960 { move } << std::endl;
-        }
-        else
-        {
-            std::cout << "bestmove " << move << std::endl;
-        }
-    }
-}
-
-void Uci::print_error(const std::string& error_str)
-{
-    std::cout << "info string Error: " << error_str << std::endl;
-}
-
 void Uci::handle_print()
 {
+    std::lock_guard io { output_mutex };
     std::cout << position.board() << std::endl;
 }
 
 void Uci::handle_spsa()
 {
+    std::lock_guard io { output_mutex };
     options_handler().spsa_input_print(std::cout);
 }
 
 void Uci::handle_eval()
 {
+    std::lock_guard io { output_mutex };
     std::cout << position.board() << std::endl;
     std::cout << "Eval: " << NN::Network::slow_eval(position.board()) << std::endl;
 }
 
 void Uci::handle_probe()
 {
+    std::lock_guard io { output_mutex };
     std::cout << position.board() << std::endl;
     auto probe = Syzygy::probe_dtz_root(position.board());
 
@@ -706,6 +660,83 @@ void Uci::handle_probe()
 void Uci::handle_datagen(const datagen_ctx& ctx)
 {
     datagen(ctx.output_path, ctx.duration);
+}
+
+void UciOutput::print_search_info(
+    const SearchSharedState& shared, const SearchResults& data, const BoardState& board, bool final)
+{
+    if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
+    {
+        return;
+    }
+
+    std::lock_guard io { output_mutex };
+
+    std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
+
+    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
+    {
+        if (data.score > 0)
+            std::cout << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+        else
+            std::cout << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+    }
+    else
+    {
+        std::cout << " score cp " << data.score.value();
+    }
+
+    if (data.type == SearchResultType::UPPER_BOUND)
+        std::cout << " upperbound";
+    if (data.type == SearchResultType::LOWER_BOUND)
+        std::cout << " lowerbound";
+
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
+    auto node_count = shared.nodes();
+    auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
+    auto hashfull = shared.transposition_table.get_hashfull(board.half_turn_count);
+
+    std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
+              << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
+
+    std::cout << " pv "; // the current best line found
+
+    for (const auto& move : data.pv)
+    {
+        if (shared.chess_960)
+        {
+            std::cout << format_chess960 { move } << ' ';
+        }
+        else
+        {
+            std::cout << move << ' ';
+        }
+    }
+
+    std::cout << std::endl;
+}
+
+void UciOutput::print_bestmove(bool chess960, Move move)
+{
+    if (output_level > OutputLevel::None)
+    {
+        std::lock_guard io { output_mutex };
+
+        if (chess960)
+        {
+            std::cout << "bestmove " << format_chess960 { move } << std::endl;
+        }
+        else
+        {
+            std::cout << "bestmove " << move << std::endl;
+        }
+    }
+}
+
+void UciOutput::print_error(const std::string& error_str)
+{
+    std::lock_guard io { output_mutex };
+    std::cout << "info string Error: " << error_str << std::endl;
 }
 
 }

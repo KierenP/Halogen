@@ -1,8 +1,6 @@
 #pragma once
 
 #include "chessboard/game_state.h"
-#include "movegen/movegen.h"
-#include "numa/numa.h"
 #include "search/data.h"
 #include "search/search.h"
 
@@ -38,13 +36,12 @@ private:
     const int thread_id_;
     SearchSharedState& shared_state;
     std::unique_ptr<SearchLocalState> local_state;
-    GameState position_ = GameState::starting_position();
 };
 
 class SearchThreadPool
 {
 public:
-    SearchThreadPool(UCI::Uci& uci, size_t num_threads);
+    SearchThreadPool(UCI::UciOutput& uci, size_t num_threads);
     ~SearchThreadPool();
 
     SearchThreadPool(const SearchThreadPool&) = delete;

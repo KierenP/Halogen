@@ -9,12 +9,14 @@
 
 #include "chessboard/game_state.h"
 #include "search/data.h"
-#include "search/thread.h"
 
 class Move;
+class SearchThreadPool;
 
 namespace UCI
 {
+
+class UciOutput;
 
 enum class OutputLevel : uint8_t
 {
@@ -28,7 +30,7 @@ enum class OutputLevel : uint8_t
 class Uci
 {
 public:
-    Uci(std::string_view version);
+    Uci(std::string_view version, SearchThreadPool& pool, UciOutput& output);
     ~Uci();
 
     Uci(const Uci&) = delete;
@@ -88,16 +90,28 @@ public:
 private:
     void join_search_thread();
 
-    std::unique_ptr<SearchThreadPool> search_thread_pool { std::make_unique<SearchThreadPool>(*this, 1) };
+    const std::string_view version_;
+
+    SearchThreadPool& search_thread_pool;
+    UciOutput& output;
     std::thread main_search_thread;
     GameState position = GameState::starting_position();
-
-    const std::string_view version_;
-    OutputLevel output_level;
     bool quit = false;
     bool finished_startup = false;
 
     auto options_handler();
+};
+
+// A handler that gets passed to the search for it to print info including bestmove
+class UciOutput
+{
+public:
+    OutputLevel output_level = OutputLevel::Default;
+
+    void print_search_info(
+        const SearchSharedState& shared, const SearchResults& data, const BoardState& board, bool final = false);
+    void print_bestmove(bool chess960, Move move);
+    void print_error(const std::string& error_str);
 };
 
 }

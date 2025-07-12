@@ -56,6 +56,8 @@ template <SearchType search_type>
 Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
     Score alpha, Score beta);
 
+std::mutex io_lock;
+
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     iterative_deepening(position, local, shared);
@@ -868,8 +870,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
         // material.
         bool is_loud_move = move.is_capture() || move.is_promotion();
-        int history
-            = is_loud_move ? local.get_loud_history(position, ss, move) : (local.get_quiet_history(position, ss, move));
+        int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_history(ss, move));
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
             && !see_ge(position.board(), move, -see_d * depth - history / see_h))

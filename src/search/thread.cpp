@@ -1,5 +1,8 @@
 #include "thread.h"
+#include "chessboard/game_state.h"
 #include "movegen/list.h"
+#include "movegen/movegen.h"
+#include "numa/numa.h"
 #include "search/data.h"
 #include "search/syzygy.h"
 #include "uci/uci.h"
@@ -53,7 +56,7 @@ void SearchThread::terminate()
 
 std::future<void> SearchThread::set_position(const GameState& position)
 {
-    return enqueue_task([this, position]() { position_ = position; });
+    return enqueue_task([this, position]() { local_state->position = position; });
 }
 
 std::future<void> SearchThread::reset_new_search()
@@ -72,11 +75,11 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
         [this, root_move_whitelist]()
         {
             local_state->root_move_whitelist = root_move_whitelist;
-            local_state->net.reset_new_search(position_.board(), local_state->search_stack.root()->acc);
+            local_state->net.reset_new_search(local_state->position.board(), local_state->search_stack.root()->acc);
             BasicMoveList moves;
-            legal_moves(position_.board(), moves);
+            legal_moves(local_state->position.board(), moves);
             std::ranges::copy(moves, std::back_inserter(local_state->root_moves));
-            launch_worker_search(position_, *local_state, shared_state);
+            launch_worker_search(local_state->position, *local_state, shared_state);
         });
 }
 
@@ -85,7 +88,7 @@ const SearchLocalState& SearchThread::get_local_state()
     return *local_state;
 }
 
-SearchThreadPool::SearchThreadPool(UCI::Uci& uci, size_t num_threads)
+SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads)
     : shared_state(uci)
 {
     for (size_t i = 0; i < num_threads; ++i)
@@ -127,6 +130,7 @@ void SearchThreadPool::reset_new_search()
 
 void SearchThreadPool::reset_new_game()
 {
+    position_ = GameState::starting_position();
     shared_state.reset_new_game();
     for (auto* thread : search_threads)
     {
@@ -259,7 +263,7 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
     }
 
     const auto& search_result = shared_state.get_best_search_result();
-    shared_state.uci_handler.print_search_info(shared_state, search_result, true);
+    shared_state.uci_handler.print_search_info(shared_state, search_result, position_.board(), true);
     shared_state.uci_handler.print_bestmove(shared_state.chess_960, search_result.pv[0]);
     shared_state.set_multi_pv(old_multi_pv);
     return search_result;
