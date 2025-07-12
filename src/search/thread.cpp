@@ -75,11 +75,6 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
         [this, root_move_whitelist]()
         {
             local_state->root_move_whitelist = root_move_whitelist;
-            // TODO: the network and root moves could be set when we know the current position
-            local_state->net.reset_new_search(local_state->position.board(), local_state->search_stack.root()->acc);
-            BasicMoveList moves;
-            legal_moves(local_state->position.board(), moves);
-            std::ranges::copy(moves, std::back_inserter(local_state->root_moves));
             launch_worker_search(local_state->position, *local_state, shared_state);
         });
 }

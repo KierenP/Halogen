@@ -68,6 +68,11 @@ void SearchLocalState::reset_new_search()
     root_move_whitelist = {};
     limit_check_counter = 0;
     root_moves = {};
+
+    net.reset_new_search(position.board(), search_stack.root()->acc);
+    BasicMoveList moves;
+    legal_moves(position.board(), moves);
+    std::ranges::copy(moves, std::back_inserter(root_moves));
 }
 
 int SearchLocalState::get_quiet_history(const SearchStackState* ss, Move move)
