@@ -45,6 +45,7 @@ jobs:
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
                -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=4 -log file=fast.log | tee fast.out
+          cat fast.log
           if grep -q "ThreadSanitizer" fast.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
