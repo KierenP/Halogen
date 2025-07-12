@@ -71,7 +71,6 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
     return enqueue_task(
         [this, root_move_whitelist]()
         {
-            local_state->reset_new_search();
             local_state->root_move_whitelist = root_move_whitelist;
             local_state->net.reset_new_search(position_.board(), local_state->search_stack.root()->acc);
             BasicMoveList moves;
@@ -206,7 +205,7 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
     LMR_reduction = Initialise_LMR_reduction();
 #endif
 
-    shared_state.reset_new_search();
+    reset_new_search();
     shared_state.limits = limits;
 
     // TODO: a bit ugly

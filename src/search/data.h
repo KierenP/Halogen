@@ -207,7 +207,6 @@ public:
     AtomicRelaxed<bool> stop_searching = false;
     Transposition::Table transposition_table;
 
-    // TODO: wip
     std::vector<const SearchLocalState*> search_local_states_;
 
 private:
