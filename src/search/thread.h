@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <future>
 #include <mutex>
+#include <queue>
 #include <thread>
 
 class SearchThread
