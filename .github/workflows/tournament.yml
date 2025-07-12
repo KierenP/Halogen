@@ -1,4 +1,4 @@
-name: Ubuntu
+name: Tournament
 
 # A special build of Halogen with NUMA aware search thread allocation
 
@@ -9,7 +9,7 @@ on:
   pull_request:
 
 jobs:
-  Ubuntu:
+  Tournament:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,6 +18,11 @@ jobs:
         # This ensures we can extract the expected bench from the commit message.
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install
+        run: |
+          sudo apt update
+          sudo apt install libnuma-dev
 
       - name: Create build
         working-directory: src
