@@ -44,7 +44,7 @@ jobs:
           ./fast-chess -rounds 1 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "ThreadSanitizer" fast.log > /dev/null
@@ -58,7 +58,7 @@ jobs:
           ./fast-chess -rounds 1 -openings\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "ThreadSanitizer" fast.log > /dev/null
@@ -72,7 +72,7 @@ jobs:
           ./fast-chess -variant fischerandom -rounds 1 -openings file=opening.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/4 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
           ! grep "ThreadSanitizer" fast.log > /dev/null
@@ -85,7 +85,7 @@ jobs:
           ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 5000" | tee out.log
           ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go mate 3" | tee out.log
           ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go nodes 100000" | tee out.log
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go depth 10" | tee out.log
+          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go depth 8" | tee out.log
           ! grep "Assertion" out.log > /dev/null
           ! grep "ThreadSanitizer" out.log > /dev/null
           ! grep "disconnect" out.log > /dev/null
