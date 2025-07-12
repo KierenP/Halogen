@@ -16,8 +16,7 @@ class SearchThread
 public:
     SearchThread(int thread_id, SearchSharedState& shared_state);
 
-    // Should be called from a newly created std::thread, after the thread has been bound to a CPU core
-    void start();
+    void thread_loop();
     void terminate();
 
     [[nodiscard]] std::future<void> set_position(const GameState& position);
@@ -28,14 +27,12 @@ public:
     const SearchLocalState& get_local_state();
 
 private:
-    mutable std::mutex mutex;
-    mutable std::condition_variable signal;
-    std::optional<std::packaged_task<void()>> invoke;
-    bool destroy = false;
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::queue<std::packaged_task<void()>> tasks;
+    bool stop;
 
-    // Give some work to the thread, which will be executed in the thread's context. This is the correct way to reset
-    // the threads state, as we need any allocated memory to be provisioned on the correct NUMA node.
-    void run_on_thread(std::packaged_task<void()> func);
+    std::future<void> enqueue_task(std::function<void()> func);
 
     const int thread_id_;
     SearchSharedState& shared_state;

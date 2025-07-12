@@ -3,6 +3,8 @@
 #include "search/data.h"
 #include "search/syzygy.h"
 #include "uci/uci.h"
+#include <future>
+#include <iostream>
 #include <thread>
 
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
@@ -12,59 +14,61 @@ SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
 {
 }
 
-void SearchThread::start()
+void SearchThread::thread_loop()
 {
-    while (!destroy)
+    while (!stop)
     {
-        std::unique_lock lock(mutex);
-        signal.wait(lock, [this]() { return invoke.has_value(); });
-        invoke.value()();
-        invoke = std::nullopt;
+        std::packaged_task<void()> task;
+
+        {
+            std::unique_lock lock(mutex);
+            cv.wait(lock, [this]() { return !tasks.empty(); });
+
+            task = std::move(tasks.front());
+            tasks.pop();
+        }
+
+        task();
     }
 }
 
-void SearchThread::run_on_thread(std::packaged_task<void()> func)
+std::future<void> SearchThread::enqueue_task(std::function<void()> func)
 {
+    std::packaged_task task(std::move(func));
+    auto future = task.get_future();
+
     {
         std::lock_guard lock(mutex);
-        invoke = std::move(func);
+        tasks.push(std::move(task));
     }
-    signal.notify_one();
+
+    cv.notify_one();
+    return future;
 }
 
 void SearchThread::terminate()
 {
-    std::packaged_task task([this]() { destroy = true; });
-    run_on_thread(std::move(task));
+    enqueue_task([this]() { stop = true; });
 }
 
 std::future<void> SearchThread::set_position(const GameState& position)
 {
-    std::packaged_task task([this, position]() { position_ = position; });
-    auto future = task.get_future();
-    run_on_thread(std::move(task));
-    return future;
+    return enqueue_task([this, position]() { position_ = position; });
 }
 
 std::future<void> SearchThread::reset_new_search()
 {
-    std::packaged_task task([this]() { local_state->reset_new_search(); });
-    auto future = task.get_future();
-    run_on_thread(std::move(task));
-    return future;
+    return enqueue_task([this]() { local_state->reset_new_search(); });
 }
 
 std::future<void> SearchThread::reset_new_game()
 {
-    std::packaged_task task([this]() { local_state = std::make_unique<SearchLocalState>(thread_id_); });
-    auto future = task.get_future();
-    run_on_thread(std::move(task));
-    return future;
+    return enqueue_task([this]() { local_state = std::make_unique<SearchLocalState>(thread_id_); });
 }
 
 std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_whitelist)
 {
-    std::packaged_task task(
+    return enqueue_task(
         [this, root_move_whitelist]()
         {
             local_state->reset_new_search();
@@ -75,9 +79,6 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
             std::ranges::copy(moves, std::back_inserter(local_state->root_moves));
             launch_worker_search(position_, *local_state, shared_state);
         });
-    auto future = task.get_future();
-    run_on_thread(std::move(task));
-    return future;
 }
 
 const SearchLocalState& SearchThread::get_local_state()
@@ -188,7 +189,7 @@ void SearchThreadPool::create_thread()
             bind_search_thread(search_threads.size());
             auto thread = std::make_unique<SearchThread>(search_threads.size(), shared_state);
             promise.set_value(thread.get());
-            thread->start();
+            thread->thread_loop();
         });
 
     native_threads.push_back(std::move(native_thread));
