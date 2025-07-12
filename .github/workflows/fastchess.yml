@@ -45,12 +45,19 @@ jobs:
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
                -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=4 -log file=fast.log | tee fast.out
-          ! grep "Assertion" fast.log > /dev/null
-          echo $?
-          ! grep "ThreadSanitizer" fast.log > /dev/null
-          echo $?
-          ! grep "disconnect" fast.out > /dev/null
-          echo $?
+          if grep -q "ThreadSanitizer" fast.log; then
+            echo "ERROR: ThreadSanitizer found"
+            exit 1
+          fi
+          if grep -q "Assertion" fast.log; then
+            echo "ERROR: Assertion found"
+            exit 1
+          fi
+
+          if grep -q "disconnect" fast.out; then
+            echo "ERROR: disconnect found"
+            exit 1
+          fi
 
       # no opening for this one to test 'position startpos moves ...'
       - name: Run games (Cyclical)
