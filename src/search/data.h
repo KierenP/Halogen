@@ -176,7 +176,7 @@ public:
     // ------------------------------------
 
     void reset_new_search();
-    void reset_new_game(); // TODO: this function is no longer needed
+    void reset_new_game();
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
     void set_hash(int hash_size_mb);

@@ -102,7 +102,6 @@ SearchThreadPool::~SearchThreadPool()
         thread->terminate();
     }
 
-    // TODO: jthread?
     for (auto& thread : native_threads)
     {
         thread.join();
