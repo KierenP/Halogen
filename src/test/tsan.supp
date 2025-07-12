@@ -1,2 +1,4 @@
 # Using atomics in TT is a slowdown, so we silence the data race warnings
 race:search/transposition/table.cpp
+race:probe_tt
+race:get_search_eval
