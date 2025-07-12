@@ -258,9 +258,6 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
     std::vector<std::future<void>> futures;
     futures.reserve(search_threads.size());
 
-    auto now = std::chrono::steady_clock::now();
-    std::cout << "Starting threads: " << now.time_since_epoch().count() << std::endl;
-
     for (auto* thread : search_threads)
     {
         futures.push_back(thread->start_searching(root_move_whitelist));
