@@ -2,8 +2,6 @@
 #include <cstdlib>
 #include <vector>
 
-#define TOURNAMENT_MODE
-
 #ifdef TOURNAMENT_MODE
 #include <iostream>
 #include <numa.h>
@@ -48,7 +46,7 @@ std::vector<cpu_set_t> get_cpu_masks_per_numa_node()
     return node_cpu_masks;
 }
 
-void numa_bind_thread(size_t index)
+void bind_thread(size_t index)
 {
     static auto mapping = get_cpu_masks_per_numa_node();
     size_t node = index % mapping.size();
@@ -57,5 +55,5 @@ void numa_bind_thread(size_t index)
 }
 
 #else
-void bind_search_thread(int) { }
+void bind_thread(size_t) { }
 #endif

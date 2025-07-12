@@ -189,7 +189,7 @@ void SearchThreadPool::create_thread()
     std::thread native_thread(
         [this, &promise]() mutable
         {
-            bind_search_thread(search_threads.size());
+            bind_thread(search_threads.size());
             auto thread = std::make_unique<SearchThread>(search_threads.size(), shared_state);
             promise.set_value(thread.get());
             thread->thread_loop();

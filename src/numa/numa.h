@@ -1,3 +1,5 @@
 #pragma once
 
-void bind_search_thread(int core);
+#include <cstddef>
+
+void bind_thread(size_t index);
