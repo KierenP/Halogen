@@ -20,10 +20,10 @@ public:
     void start();
     void terminate();
 
-    [[nodiscard]] std::future<void> set_position(GameState position);
+    [[nodiscard]] std::future<void> set_position(const GameState& position);
     [[nodiscard]] std::future<void> reset_new_search();
     [[nodiscard]] std::future<void> reset_new_game();
-    [[nodiscard]] std::future<void> start_searching(BasicMoveList root_move_whitelist);
+    [[nodiscard]] std::future<void> start_searching(const BasicMoveList& root_move_whitelist);
 
     const SearchLocalState& get_local_state();
 

@@ -442,7 +442,7 @@ void Uci::handle_go(go_ctx& ctx)
     search_thread_pool->set_position(position);
 
     // launch search thread
-    main_search_thread = std::thread([&]() { search_thread_pool->launch_search(limits); });
+    main_search_thread = std::thread([this, limits]() { search_thread_pool->launch_search(limits); });
 }
 
 void Uci::handle_setoption_clear_hash()

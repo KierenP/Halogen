@@ -42,13 +42,14 @@ void SearchThread::run_on_thread(const std::function<void()>& func)
     signal.notify_all();
 }
 
-std::future<void> SearchThread::set_position(GameState position)
+std::future<void> SearchThread::set_position(const GameState& position)
 {
+    // TODO: std::packaged_task
     auto promise = std::make_shared<std::promise<void>>();
     auto future = promise->get_future();
 
     run_on_thread(
-        [this, &position, promise]()
+        [this, position, promise]()
         {
             position_ = position;
             promise->set_value();
@@ -87,7 +88,7 @@ std::future<void> SearchThread::reset_new_game()
     return future;
 }
 
-std::future<void> SearchThread::start_searching(BasicMoveList root_move_whitelist)
+std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_whitelist)
 {
     auto promise = std::make_shared<std::promise<void>>();
     auto future = promise->get_future();
