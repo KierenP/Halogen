@@ -31,7 +31,7 @@ private:
     std::mutex mutex;
     std::condition_variable cv;
     std::queue<std::packaged_task<void()>> tasks;
-    bool stop;
+    bool stop = false;
 
     std::future<void> enqueue_task(std::function<void()> func);
 
