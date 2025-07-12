@@ -111,7 +111,7 @@ void SearchThreadPool::set_position(const GameState& position)
     position_ = position;
     for (auto* thread : search_threads)
     {
-        thread->set_position(position).get();
+        thread->set_position(position);
     }
 }
 
@@ -120,7 +120,7 @@ void SearchThreadPool::reset_new_search()
     shared_state.reset_new_search();
     for (auto* thread : search_threads)
     {
-        thread->reset_new_search().get();
+        thread->reset_new_search();
     }
 }
 
@@ -130,7 +130,7 @@ void SearchThreadPool::reset_new_game()
     shared_state.reset_new_game();
     for (auto* thread : search_threads)
     {
-        thread->reset_new_game().get();
+        thread->reset_new_game();
     }
 }
 
