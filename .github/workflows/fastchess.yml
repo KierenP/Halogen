@@ -41,8 +41,8 @@ jobs:
         working-directory: fast-chess
         run: |
           ./fast-chess -rounds 1 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
-               -engine name=halogen1 cmd='TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp" ../Halogen/bin/Halogen'\
-               -engine name=halogen2 cmd='TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp" ../Halogen/bin/Halogen'\
+               -engine name=halogen1 cmd=../Halogen/bin/Halogen args="cmd='TSAN_OPTIONS=\"suppressions=../Halogen/src/test/tsan.supp\""\
+               -engine name=halogen2 cmd=../Halogen/bin/Halogen args="cmd='TSAN_OPTIONS=\"suppressions=../Halogen/src/test/tsan.supp\""\
                -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 option.Threads=4 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
