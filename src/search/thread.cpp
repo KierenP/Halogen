@@ -29,16 +29,20 @@ void SearchThread::start()
 
 void SearchThread::terminate()
 {
-    std::unique_lock<std::mutex> lock(mutex);
-    destroy = true;
-    signal.notify_all();
+    {
+        std::lock_guard lock(mutex);
+        destroy = true;
+    }
+    signal.notify_one();
 }
 
 void SearchThread::run_on_thread(const std::function<void()>& func)
 {
-    std::unique_lock<std::mutex> lock(mutex);
-    invoke = func;
-    signal.notify_all();
+    {
+        std::lock_guard lock(mutex);
+        invoke = func;
+    }
+    signal.notify_one();
 }
 
 std::future<void> SearchThread::set_position(const GameState& position)
