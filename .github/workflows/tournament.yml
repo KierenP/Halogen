@@ -1,0 +1,37 @@
+name: Tournament
+
+# A special build of Halogen with NUMA aware search thread allocation
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  Tournament:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+        # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
+        # This ensures we can extract the expected bench from the commit message.
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install
+        run: |
+          sudo apt update
+          sudo apt install libnuma-dev
+
+      - name: Create build
+        working-directory: src
+        run: make pgo EXE=../bin/Halogen -j EXTRA_CXXFLAGS='-DTOURNAMENT_MODE' EXTRA_LDFLAGS='-lnuma'
+
+      - name: Check bench matches commit message
+        run: |
+          cd bin
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
+          
