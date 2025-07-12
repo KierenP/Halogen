@@ -30,12 +30,12 @@ public:
 private:
     mutable std::mutex mutex;
     mutable std::condition_variable signal;
-    std::function<void()> invoke;
+    std::optional<std::packaged_task<void()>> invoke;
     bool destroy = false;
 
     // Give some work to the thread, which will be executed in the thread's context. This is the correct way to reset
     // the threads state, as we need any allocated memory to be provisioned on the correct NUMA node.
-    void run_on_thread(const std::function<void()>& func);
+    void run_on_thread(std::packaged_task<void()> func);
 
     const int thread_id_;
     SearchSharedState& shared_state;

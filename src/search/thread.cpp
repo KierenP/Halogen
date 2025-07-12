@@ -16,88 +16,56 @@ void SearchThread::start()
 {
     while (!destroy)
     {
-        std::unique_lock<std::mutex> lock(mutex);
-        signal.wait(lock, [this]() { return invoke || destroy; });
-
-        if (invoke)
-        {
-            invoke();
-            invoke = nullptr;
-        }
+        std::unique_lock lock(mutex);
+        signal.wait(lock, [this]() { return invoke.has_value(); });
+        invoke.value()();
+        invoke = std::nullopt;
     }
+}
+
+void SearchThread::run_on_thread(std::packaged_task<void()> func)
+{
+    {
+        std::lock_guard lock(mutex);
+        invoke = std::move(func);
+    }
+    signal.notify_one();
 }
 
 void SearchThread::terminate()
 {
-    {
-        std::lock_guard lock(mutex);
-        destroy = true;
-    }
-    signal.notify_one();
-}
-
-void SearchThread::run_on_thread(const std::function<void()>& func)
-{
-    {
-        std::lock_guard lock(mutex);
-        invoke = func;
-    }
-    signal.notify_one();
+    std::packaged_task task([this]() { destroy = true; });
+    run_on_thread(std::move(task));
 }
 
 std::future<void> SearchThread::set_position(const GameState& position)
 {
-    // TODO: std::packaged_task
-    auto promise = std::make_shared<std::promise<void>>();
-    auto future = promise->get_future();
-
-    run_on_thread(
-        [this, position, promise]()
-        {
-            position_ = position;
-            promise->set_value();
-        });
-
+    std::packaged_task task([this, position]() { position_ = position; });
+    auto future = task.get_future();
+    run_on_thread(std::move(task));
     return future;
 }
 
 std::future<void> SearchThread::reset_new_search()
 {
-    auto promise = std::make_shared<std::promise<void>>();
-    auto future = promise->get_future();
-
-    run_on_thread(
-        [this, promise]()
-        {
-            local_state->reset_new_search();
-            promise->set_value();
-        });
-
+    std::packaged_task task([this]() { local_state->reset_new_search(); });
+    auto future = task.get_future();
+    run_on_thread(std::move(task));
     return future;
 }
 
 std::future<void> SearchThread::reset_new_game()
 {
-    auto promise = std::make_shared<std::promise<void>>();
-    auto future = promise->get_future();
-
-    run_on_thread(
-        [this, promise]()
-        {
-            local_state = std::make_unique<SearchLocalState>(thread_id_);
-            promise->set_value();
-        });
-
+    std::packaged_task task([this]() { local_state = std::make_unique<SearchLocalState>(thread_id_); });
+    auto future = task.get_future();
+    run_on_thread(std::move(task));
     return future;
 }
 
 std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_whitelist)
 {
-    auto promise = std::make_shared<std::promise<void>>();
-    auto future = promise->get_future();
-
-    run_on_thread(
-        [this, root_move_whitelist, promise]()
+    std::packaged_task task(
+        [this, root_move_whitelist]()
         {
             local_state->reset_new_search();
             local_state->root_move_whitelist = root_move_whitelist;
@@ -106,9 +74,9 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
             legal_moves(position_.board(), moves);
             std::ranges::copy(moves, std::back_inserter(local_state->root_moves));
             launch_worker_search(position_, *local_state, shared_state);
-            promise->set_value();
         });
-
+    auto future = task.get_future();
+    run_on_thread(std::move(task));
     return future;
 }
 
