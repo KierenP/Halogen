@@ -16,9 +16,8 @@ void SearchThread::start()
 {
     while (!destroy)
     {
-        // spurrious wakeups are fine, if all flags are false then we just continue waiting
         std::unique_lock<std::mutex> lock(mutex);
-        signal.wait(lock, [this]() { return invoke; });
+        signal.wait(lock, [this]() { return invoke || destroy; });
 
         if (invoke)
         {
