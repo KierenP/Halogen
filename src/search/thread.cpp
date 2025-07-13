@@ -141,6 +141,7 @@ void SearchThreadPool::reset_new_search()
 
 void SearchThreadPool::reset_new_game()
 {
+    shared_state.reset_new_game();
     position_ = GameState::starting_position();
     std::vector<std::future<void>> futures;
     futures.reserve(search_threads.size());
