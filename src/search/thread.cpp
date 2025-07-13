@@ -113,6 +113,7 @@ void SearchThreadPool::set_position(const GameState& position)
 {
     position_ = position;
     std::vector<std::future<void>> futures;
+    futures.reserve(search_threads.size());
     for (auto* thread : search_threads)
     {
         futures.push_back(thread->set_position(position));
@@ -127,6 +128,7 @@ void SearchThreadPool::reset_new_search()
 {
     shared_state.reset_new_search();
     std::vector<std::future<void>> futures;
+    futures.reserve(search_threads.size());
     for (auto* thread : search_threads)
     {
         futures.push_back(thread->reset_new_search());
@@ -141,6 +143,7 @@ void SearchThreadPool::reset_new_game()
 {
     position_ = GameState::starting_position();
     std::vector<std::future<void>> futures;
+    futures.reserve(search_threads.size());
     for (auto* thread : search_threads)
     {
         futures.push_back(thread->reset_new_game());
