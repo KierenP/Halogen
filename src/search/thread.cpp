@@ -51,7 +51,10 @@ std::future<void> SearchThread::enqueue_task(std::function<void()> func)
 
 void SearchThread::terminate()
 {
-    enqueue_task([this]() { stop = true; });
+    // due to the race of signaling the condition variable and destroying it we don't use enqueue_task here
+    std::lock_guard lock(mutex);
+    tasks.emplace([this]() { stop = true; });
+    cv.notify_one();
 }
 
 std::future<void> SearchThread::set_position(const GameState& position)
