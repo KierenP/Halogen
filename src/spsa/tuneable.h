@@ -12,10 +12,10 @@
 
 constexpr inline int LMR_SCALE = 1024;
 
-TUNEABLE_CONSTANT float LMR_constant = -0.03465;
-TUNEABLE_CONSTANT float LMR_depth_coeff = 0.2479;
-TUNEABLE_CONSTANT float LMR_move_coeff = 2.113;
-TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.5157;
+TUNEABLE_CONSTANT float LMR_constant = -0.7851;
+TUNEABLE_CONSTANT float LMR_depth_coeff = 1.041;
+TUNEABLE_CONSTANT float LMR_move_coeff = 2.126;
+TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.6481;
 
 inline auto Initialise_LMR_reduction()
 {
@@ -41,54 +41,54 @@ TUNEABLE_CONSTANT int aspiration_window_size = 10;
 
 TUNEABLE_CONSTANT int nmp_const = 6;
 TUNEABLE_CONSTANT int nmp_d = 7;
-TUNEABLE_CONSTANT int nmp_s = 242;
-TUNEABLE_CONSTANT int nmp_sd = 4;
+TUNEABLE_CONSTANT int nmp_s = 247;
+TUNEABLE_CONSTANT int nmp_sd = 5;
 
-TUNEABLE_CONSTANT int se_d = 43;
-TUNEABLE_CONSTANT int se_de = 12;
+TUNEABLE_CONSTANT int se_d = 45;
+TUNEABLE_CONSTANT int se_de = 10;
 
-TUNEABLE_CONSTANT int lmr_pv = 1048;
-TUNEABLE_CONSTANT int lmr_cut = 1137;
-TUNEABLE_CONSTANT int lmr_improving = 617;
-TUNEABLE_CONSTANT int lmr_loud = 460;
-TUNEABLE_CONSTANT int lmr_h = 2434;
-TUNEABLE_CONSTANT int lmr_offset = 611;
+TUNEABLE_CONSTANT int lmr_pv = 1132;
+TUNEABLE_CONSTANT int lmr_cut = 1286;
+TUNEABLE_CONSTANT int lmr_improving = 969;
+TUNEABLE_CONSTANT int lmr_loud = 640;
+TUNEABLE_CONSTANT int lmr_h = 2565;
+TUNEABLE_CONSTANT int lmr_offset = 417;
 
-TUNEABLE_CONSTANT int fifty_mr_scale_a = 289;
-TUNEABLE_CONSTANT int fifty_mr_scale_b = 246;
+TUNEABLE_CONSTANT int fifty_mr_scale_a = 303;
+TUNEABLE_CONSTANT int fifty_mr_scale_b = 256;
 
 TUNEABLE_CONSTANT int rfp_max_d = 9;
-TUNEABLE_CONSTANT int rfp_d = 68;
+TUNEABLE_CONSTANT int rfp_d = 51;
 
 TUNEABLE_CONSTANT int lmp_max_d = 7;
 TUNEABLE_CONSTANT int lmp_const = 3;
 TUNEABLE_CONSTANT int lmp_depth = 4;
 
 TUNEABLE_CONSTANT int fp_max_d = 10;
-TUNEABLE_CONSTANT int fp_const = 36;
-TUNEABLE_CONSTANT int fp_depth = 12;
-TUNEABLE_CONSTANT int fp_quad = 13;
+TUNEABLE_CONSTANT int fp_const = 42;
+TUNEABLE_CONSTANT int fp_depth = 13;
+TUNEABLE_CONSTANT int fp_quad = 14;
 
 TUNEABLE_CONSTANT int see_d = 108;
-TUNEABLE_CONSTANT int see_h = 140;
+TUNEABLE_CONSTANT int see_h = 147;
 
 TUNEABLE_CONSTANT int se_max_d = 6;
-TUNEABLE_CONSTANT int see_tt_d = 4;
+TUNEABLE_CONSTANT int see_tt_d = 3;
 
-TUNEABLE_CONSTANT int delta_c = 346;
+TUNEABLE_CONSTANT int delta_c = 334;
 
-TUNEABLE_CONSTANT int eval_scale_knight = 520;
-TUNEABLE_CONSTANT int eval_scale_bishop = 450;
-TUNEABLE_CONSTANT int eval_scale_rook = 710;
-TUNEABLE_CONSTANT int eval_scale_queen = 1220;
-TUNEABLE_CONSTANT int eval_scale_const = 26505;
+TUNEABLE_CONSTANT int eval_scale_knight = 534;
+TUNEABLE_CONSTANT int eval_scale_bishop = 466;
+TUNEABLE_CONSTANT int eval_scale_rook = 742;
+TUNEABLE_CONSTANT int eval_scale_queen = 1368;
+TUNEABLE_CONSTANT int eval_scale_const = 25618;
 
-TUNEABLE_CONSTANT std::array see_values = { 103, 503, 510, 775, 1415, 5000 };
+TUNEABLE_CONSTANT std::array see_values = { 108, 527, 484, 757, 1457, 5000 };
 
-TUNEABLE_CONSTANT float soft_tm = 0.4065;
-TUNEABLE_CONSTANT float node_tm_base = 0.5868;
-TUNEABLE_CONSTANT float node_tm_scale = 2.279;
-TUNEABLE_CONSTANT int blitz_tc_a = 42;
-TUNEABLE_CONSTANT int blitz_tc_b = 714;
+TUNEABLE_CONSTANT float soft_tm = 0.3682;
+TUNEABLE_CONSTANT float node_tm_base = 0.5434;
+TUNEABLE_CONSTANT float node_tm_scale = 2.021;
+TUNEABLE_CONSTANT int blitz_tc_a = 45;
+TUNEABLE_CONSTANT int blitz_tc_b = 608;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
 TUNEABLE_CONSTANT int repeating_tc = 96;
