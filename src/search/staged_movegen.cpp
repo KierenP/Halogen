@@ -152,32 +152,32 @@ bool StagedMoveGenerator::next(Move& move)
 
 void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.add_quiet_history(position, ss, move, positive_adjustment);
+    local.add_quiet_history(ss, move, positive_adjustment);
 
     for (auto const& m : quietMoves)
     {
         if (m.move == move)
             break;
 
-        local.add_quiet_history(position, ss, m.move, negative_adjustment);
+        local.add_quiet_history(ss, m.move, negative_adjustment);
     }
 
     for (auto const& m : loudMoves)
     {
-        local.add_loud_history(position, ss, m.move, negative_adjustment);
+        local.add_loud_history(ss, m.move, negative_adjustment);
     }
 }
 
 void StagedMoveGenerator::update_loud_history(const Move& move, int positive_adjustment, int negative_adjustment) const
 {
-    local.add_loud_history(position, ss, move, positive_adjustment);
+    local.add_loud_history(ss, move, positive_adjustment);
 
     for (auto const& m : loudMoves)
     {
         if (m.move == move)
             break;
 
-        local.add_loud_history(position, ss, m.move, negative_adjustment);
+        local.add_loud_history(ss, m.move, negative_adjustment);
     }
 }
 
@@ -213,7 +213,7 @@ void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            moves[i].score = local.get_quiet_history(position, ss, moves[i].move);
+            moves[i].score = local.get_quiet_history(ss, moves[i].move);
         }
     }
 }
@@ -248,7 +248,7 @@ void StagedMoveGenerator::score_loud_moves(ExtendedMoveList& moves)
         // Captures
         else
         {
-            moves[i].score = local.get_loud_history(position, ss, moves[i].move);
+            moves[i].score = local.get_loud_history(ss, moves[i].move);
         }
     }
 }

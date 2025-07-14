@@ -15,6 +15,7 @@ SRCS := \
 	movegen/move.cpp \
 	movegen/movegen.cpp \
 	network/network.cpp \
+	numa/numa.cpp \
 	search/cuckoo.cpp \
 	search/data.cpp \
 	search/history.cpp \
@@ -26,6 +27,7 @@ SRCS := \
 	search/limit/time.cpp \
 	search/transposition/table.cpp \
 	search/transposition/entry.cpp \
+	search/thread.cpp \
 	test/static_exchange_evaluation_test.cpp \
 	third-party/Pyrrhic/tbprobe.cpp \
 	uci/uci.cpp \
@@ -47,7 +49,10 @@ RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
 DFLAGS = -O0 $(AFLAGS) -Werror
 
-LDFLAGS   = -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+LDFLAGS += -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+
+LDFLAGS += $(EXTRA_LDFLAGS)
+CXXFLAGS += $(EXTRA_CXXFLAGS)
 
 # Different instruction sets targeting different architectures.
 

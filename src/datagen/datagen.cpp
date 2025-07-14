@@ -5,16 +5,19 @@
 #include "evaluation/evaluate.h"
 #include "movegen/movegen.h"
 #include "search/data.h"
+#include "search/limit/limits.h"
 #include "search/search.h"
+#include "search/thread.h"
 
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <thread>
 
-void self_play_game(SearchSharedState& shared, GameState& position, std::ofstream& data_file);
+void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLimits& limits, std::ofstream& data_file);
 
 std::atomic<uint64_t> games;
 std::atomic<uint64_t> fens;
@@ -74,16 +77,14 @@ void info_thread(std::chrono::seconds datagen_time)
 
 void generation_thread(std::string_view output_path)
 {
-    // A bit hacky, SearchSharedState requires a UCI to print output, but UCI also maintains the engine state (which we
-    // end up not needing here)
-    UCI::Uci uci { "datagen" };
-    uci.handle_setoption_output_level(UCI::OutputLevel::None);
+    UCI::UciOutput output;
+    SearchThreadPool pool { output, 1 };
+    pool.set_hash(1);
 
-    SearchSharedState shared { uci };
+    SearchLimits limits;
+    limits.nodes = 40000;
+
     GameState position = GameState::starting_position();
-
-    shared.limits.nodes = 40000;
-    shared.transposition_table.set_size(1, 1);
 
     int output_rotation = 0;
     auto output_file_path = [&] { return std::string(output_path) + std::to_string(output_rotation) + ".data"; };
@@ -93,9 +94,8 @@ void generation_thread(std::string_view output_path)
     while (!stop)
     {
         position = GameState::starting_position();
-        shared.transposition_table.clear(shared.get_threads_setting());
-        shared.reset_new_game();
-        self_play_game(shared, position, data_file);
+        pool.reset_new_game();
+        self_play_game(position, pool, limits, data_file);
 
         // rotate output file each hour
         auto now = std::chrono::steady_clock::now();
@@ -117,7 +117,7 @@ void datagen(std::string_view output_path, std::chrono::seconds duration)
     data.join();
 }
 
-void self_play_game(SearchSharedState& data, GameState& position, std::ofstream& data_file)
+void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLimits& limits, std::ofstream& data_file)
 {
     thread_local std::random_device rd;
     thread_local std::mt19937 gen(rd());
@@ -162,9 +162,9 @@ void self_play_game(SearchSharedState& data, GameState& position, std::ofstream&
             continue;
         }
 
-        launch_search(position, data);
-        auto result = data.get_best_search_result();
-        auto eval = result.score;
+        pool.set_position(position);
+        const auto& search_result = pool.launch_search(limits);
+        auto eval = search_result.score;
 
         // check static eval is within set margin
         if (std::abs(eval.value()) < 500)
@@ -234,8 +234,8 @@ void self_play_game(SearchSharedState& data, GameState& position, std::ofstream&
 
         // -----------------------------
 
-        launch_search(position, data);
-        const auto search_result = data.get_best_search_result();
+        pool.set_position(position);
+        const auto& search_result = pool.launch_search(limits);
         const auto best_move = search_result.pv[0];
         const auto white_relative_score = (position.board().stm == WHITE ? 1 : -1) * search_result.score.value();
         score_moves.emplace_back(white_relative_score, best_move);

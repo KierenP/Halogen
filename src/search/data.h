@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "bitboard/define.h"
+#include "chessboard/game_state.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "network/network.h"
@@ -37,7 +38,7 @@ constexpr std::size_t hardware_destructive_interference_size = 64;
 
 namespace UCI
 {
-class Uci;
+class UciOutput;
 }
 
 // Holds information about the search state for a particular recursion depth.
@@ -110,13 +111,12 @@ public:
 
     bool should_skip_root_move(Move move);
     void reset_new_search();
-    void reset_new_game();
 
-    int get_quiet_history(const GameState& position, const SearchStackState* ss, Move move);
-    int get_loud_history(const GameState& position, const SearchStackState* ss, Move move);
+    int get_quiet_history(const SearchStackState* ss, Move move);
+    int get_loud_history(const SearchStackState* ss, Move move);
 
-    void add_quiet_history(const GameState& position, const SearchStackState* ss, Move move, int change);
-    void add_loud_history(const GameState& position, const SearchStackState* ss, Move move, int change);
+    void add_quiet_history(const SearchStackState* ss, Move move, int change);
+    void add_loud_history(const SearchStackState* ss, Move move, int change);
 
     int thread_id;
     SearchStack search_stack;
@@ -154,6 +154,8 @@ public:
     int limit_check_counter = 0;
 
     NN::Network net;
+
+    GameState position = GameState::starting_position();
 };
 
 struct SearchResults
@@ -161,6 +163,7 @@ struct SearchResults
     int depth = 0;
     int sel_septh = 0;
     int multi_pv = 0;
+    int64_t nodes = 0;
     Score score = SCORE_UNDEFINED;
     StaticVector<Move, MAX_DEPTH> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
@@ -170,7 +173,7 @@ struct SearchResults
 class SearchSharedState
 {
 public:
-    SearchSharedState(UCI::Uci& uci);
+    SearchSharedState(UCI::UciOutput& uci);
 
     // Below functions are not thread-safe and should not be called during search
     // ------------------------------------
@@ -179,6 +182,7 @@ public:
     void reset_new_game();
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
+    void set_hash(int hash_size_mb);
 
     // Below functions are thread-safe and blocking
     // ------------------------------------
@@ -196,16 +200,17 @@ public:
     int get_threads_setting() const;
     int get_multi_pv_setting() const;
 
-    SearchLocalState& get_local_state(int thread_id);
-    void report_thread_wants_to_stop(int thread_id);
+    void report_thread_wants_to_stop();
 
     bool chess_960 {};
     SearchLimits limits;
     Timer search_timer;
-    UCI::Uci& uci_handler;
+    UCI::UciOutput& uci_handler;
 
     AtomicRelaxed<bool> stop_searching = false;
     Transposition::Table transposition_table;
+
+    std::vector<const SearchLocalState*> search_local_states_;
 
 private:
     mutable std::recursive_mutex lock_;
@@ -216,8 +221,4 @@ private:
     std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
 
     std::optional<SearchResults> best_search_result_;
-
-    // We persist the SearchLocalStates for each thread we have, so that they don't need to be reconstructed each time
-    // we start a search.
-    std::vector<std::unique_ptr<SearchLocalState>> search_local_states_;
 };
