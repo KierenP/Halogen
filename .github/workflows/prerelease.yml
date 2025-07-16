@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     name: Build and Verify
+    timeout-minutes: 10
     strategy:
       matrix:
         arch: [ legacy, sse4, avx, avx2, avx2-pext, avx512, avx512vnni ]
@@ -106,6 +107,7 @@ jobs:
         path: ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
 
   release:
+    timeout-minutes: 10
     name: Create Prerelease and Upload Release Assets
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
