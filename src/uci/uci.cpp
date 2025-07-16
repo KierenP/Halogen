@@ -597,7 +597,12 @@ void Uci::process_input(std::string_view command)
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
         Consume { "probe", Invoke { [this] { handle_probe(); } } },
         Consume { "shuffle_network", Invoke { [this] { handle_shuffle_network(); } } },
-        Consume { "permute_network", Invoke { [this] { handle_permute_network(); } } } },
+        Consume { "permute_network", Invoke { [this] { handle_permute_network(); } } },
+        Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
+            Repeat { OneOf {
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
+                Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
     EndCommand{}
     };
     // clang-format on
