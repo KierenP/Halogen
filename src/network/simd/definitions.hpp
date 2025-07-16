@@ -376,9 +376,10 @@ inline vecs fmadd_ps(const vecs& a, const vecs& b, const vecs& c)
     return _mm512_fmadd_ps(a, b, c);
 #elif defined(USE_AVX2)
     return _mm256_fmadd_ps(a, b, c);
-#elif defined(USE_SSE4)
-    // TODO: this is AVX only, SSE4 needs to do separate mul/add
+#elif defined(USE_AVX)
     return _mm_fmadd_ps(a, b, c);
+#elif defined(USE_SSE4)
+    return _mm_add_ps(c, _mm_mul_ps(a, b));
 #endif
 }
 
