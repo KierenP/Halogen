@@ -6,7 +6,7 @@
 #include "test/static_exchange_evaluation_test.h"
 #include "uci/uci.h"
 
-constexpr std::string_view version = "13.10.0";
+constexpr std::string_view version = "13.10.1";
 
 void PrintVersion()
 {
