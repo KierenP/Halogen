@@ -311,20 +311,16 @@ void L2_activation(const std::array<float, L1_SIZE>& l1_activation,
     }
 
 #else
-    std::array<float, L1_SIZE> l1_float;
     for (size_t i = 0; i < L1_SIZE; i++)
     {
-        // 127 to match FT_activation adjustment
-        l1_float[i] = float(l1_activation[i]) * (1.f / 127 / L1_SCALE);
+        for (size_t j = 0; j < L2_SIZE; j++)
+        {
+            output[j] += l1_activation[i] * l2_weight[i][j];
+        }
     }
 
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            output[i] += l1_float[j] * l2_weight[i][j];
-        }
-
         output[i] = std::clamp(output[i], 0.f, 1.f);
     }
 #endif
