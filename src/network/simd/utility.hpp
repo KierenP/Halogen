@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <immintrin.h>
 #include <iostream>
-#include <simd/Definitions.hpp>
+#include <network/simd/definitions.hpp>
 
 namespace NN::SIMD
 {

@@ -1,12 +1,13 @@
 #pragma once
 
-#include "BitBoardDefine.h"
+#include "bitboard/enum.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 
 constexpr size_t INPUT_SIZE = 12 * 64;
-constexpr size_t FT_SIZE = 1024;
+constexpr size_t FT_SIZE = 1536;
 constexpr size_t L1_SIZE = 16;
 constexpr size_t L2_SIZE = 32;
 
