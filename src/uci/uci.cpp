@@ -583,22 +583,22 @@ void Uci::process_input(std::string_view command)
         Consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
-        consume { "perft", next_token { to_int { [this](auto value) { PerftDivide(value, position, false); } } } },
-        consume { "test", one_of {
-            consume { "perft", invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
-            consume { "perft960", invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
-            consume { "perft_legality", invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
-            consume { "perft960_legality", invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
-        consume { "bench", one_of  {
-            sequence { end_command{}, invoke { [this]{ handle_bench(10); } } },
-            next_token { to_int { [this](auto value){ handle_bench(value); } } } } },
-        consume { "print", invoke { [this] { handle_print(); } } },
-        consume { "spsa", invoke { [this] { handle_spsa(); } } },
-        consume { "eval", invoke { [this] { handle_eval(); } } },
-        consume { "probe", invoke { [this] { handle_probe(); } } },
-        consume { "shuffle_network", invoke { [this] { handle_shuffle_network(); } } },
-        consume { "permute_network", invoke { [this] { handle_permute_network(); } } } },
-    end_command{}
+        Consume { "perft", NextToken { ToInt { [this](auto value) { PerftDivide(value, position, false); } } } },
+        Consume { "test", OneOf {
+            Consume { "perft", Invoke { [] { PerftSuite("test/perftsuite.txt", 0, false); } } },
+            Consume { "perft960", Invoke { [] { PerftSuite("test/perft960.txt", 0, false); } } },
+            Consume { "perft_legality", Invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
+            Consume { "perft960_legality", Invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
+        Consume { "bench", OneOf  {
+            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(10); } } },
+            NextToken { ToInt { [this](auto value){ handle_bench(value); } } } } },
+        Consume { "print", Invoke { [this] { handle_print(); } } },
+        Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
+        Consume { "eval", Invoke { [this] { handle_eval(); } } },
+        Consume { "probe", Invoke { [this] { handle_probe(); } } },
+        Consume { "shuffle_network", Invoke { [this] { handle_shuffle_network(); } } },
+        Consume { "permute_network", Invoke { [this] { handle_permute_network(); } } } },
+    EndCommand{}
     };
     // clang-format on
 
@@ -733,44 +733,6 @@ void UciOutput::print_error(const std::string& error_str)
     std::cout << "info string Error: " << error_str << std::endl;
 }
 
-void Uci::handle_print()
-{
-    std::cout << position.Board() << std::endl;
-}
-
-void Uci::handle_spsa()
-{
-    options_handler().spsa_input_print(std::cout);
-}
-
-void Uci::handle_eval()
-{
-    std::cout << position.Board() << std::endl;
-    std::cout << "Eval: " << Network::SlowEval(position.Board()) << std::endl;
-}
-
-void Uci::handle_probe()
-{
-    std::cout << position.Board() << std::endl;
-    auto probe = Syzygy::probe_dtz_root(position.Board());
-
-    if (!probe)
-    {
-        std::cout << "Failed probe" << std::endl;
-        return;
-    }
-
-    std::cout << " move |   rank\n";
-    std::cout << "------+---------\n";
-
-    for (const auto& [move, tb_rank] : probe->root_moves)
-    {
-        std::cout << std::setw(5) << move << " | " << std::setw(7) << tb_rank << "\n";
-    }
-
-    std::cout << std::endl;
-}
-
 void Uci::handle_shuffle_network()
 {
 #ifdef NETWORK_SHUFFLE
@@ -781,5 +743,7 @@ void Uci::handle_shuffle_network()
 
 void Uci::handle_permute_network()
 {
-    permute_network();
+    NN::permute_network();
+}
+
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nn/Arch.hpp"
+#include "network/arch.hpp"
 #include <chrono>
 #include <iostream>
 #include <limits>

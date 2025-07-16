@@ -12,15 +12,13 @@
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "network/accumulator.hpp"
+#include "network/arch.hpp"
 #include "network/inference.hpp"
-#include "nn/Arch.hpp"
+#include "network/simd/definitions.hpp"
 #include "third-party/incbin/incbin.h"
 
 namespace NN
 {
-
-#include "network/Features.hpp"
-#include "simd/Definitions.hpp"
 
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
@@ -359,7 +357,7 @@ void Accumulator::recalculate(const BoardState& board_)
 void Accumulator::recalculate(const BoardState& board_, Side view)
 {
     side[view] = net.ft_bias;
-    auto king = board_.GetKing(view);
+    auto king = board_.get_king_sq(view);
 
     for (int i = 0; i < N_PIECES; i++)
     {

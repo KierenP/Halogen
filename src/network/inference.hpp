@@ -1,12 +1,8 @@
 #pragma once
 
-#include "BitBoardDefine.h"
-#include "Network.h"
-#include "StaticVector.h"
+#include "bitboard/define.h"
 #include "network/simd/definitions.hpp"
 #include "network/simd/utility.hpp"
-#include "simd/Definitions.hpp"
-#include "simd/Utility.hpp"
 #include "tools/sparse_shuffle.hpp"
 #include <array>
 #include <cstddef>
@@ -49,7 +45,7 @@ struct SparseAffineTable
             size_t idx = 0;
             while (bits)
             {
-                entry[i].indicies[idx++] = LSBpop(bits);
+                entry[i].indicies[idx++] = lsbpop(bits);
             }
             entry[i].count = idx;
         }
