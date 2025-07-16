@@ -198,7 +198,7 @@ tune: EXE = $(BINARY_DIR)/Halogen-tune
 tune: binary
 
 .PHONY: shuffle
-shuffle: CXXFLAGS += $(RFLAGS) $(AVXFLAGS) -DNETWORK_SHUFFLE -fopenmp
+shuffle: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) -DNETWORK_SHUFFLE -fopenmp
 shuffle: LDFLAGS += -flto -fopenmp
 shuffle: EXE = $(BINARY_DIR)/Halogen-shuffle
 shuffle: binary
