@@ -6,10 +6,13 @@
 
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
-#include "nn/Arch.hpp"
+#include "network/arch.hpp"
 #include "search/score.h"
 
 class Move;
+
+namespace NN
+{
 
 // represents a single input on one accumulator side
 struct Input
