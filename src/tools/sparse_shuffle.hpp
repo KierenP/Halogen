@@ -13,8 +13,7 @@ public:
     void report_ft_activations(const std::array<uint8_t, FT_SIZE>& ft_activation)
     {
         // We need to remember we do a pairwise mul (so each activation refers to a pair of ft neurons), we have a duel
-        // perspective net (so each ft_activation array is really 2 observations for each ft neuron). We also ensure we
-        // are using sse4 mode so that we don't need to adjust for the packus shuffling.
+        // perspective net (so each ft_activation array is really 2 observations for each ft neuron).
 
         for (size_t i = 0; i < FT_SIZE; i++)
         {
