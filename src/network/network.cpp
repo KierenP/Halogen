@@ -42,34 +42,34 @@ struct raw_network
     return true;
 }();
 
-auto adjust_for_packus(const decltype(raw_network::l1_weight)& input)
+auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight, const decltype(raw_network::ft_bias)& ft_bias)
 {
-    auto output = std::make_unique<decltype(raw_network::l1_weight)>();
+    auto permuted_weight = std::make_unique<decltype(raw_network::ft_weight)>();
+    auto permuted_bias = std::make_unique<decltype(raw_network::ft_bias)>();
 
 #if defined(USE_AVX2)
-    // shuffle around l1 weights to match packus interleaving
-    for (size_t i = 0; i < raw_net.l1_weight.size(); i++)
+    // shuffle around ft weights to match packus interleaving
+    for (size_t i = 0; i < INPUT_SIZE * KING_BUCKET_COUNT; i++)
     {
-        for (size_t j = 0; j < raw_net.l1_weight[i].size(); j++)
+        for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
         {
-            for (size_t k = 0; k < raw_net.l1_weight[i][j].size(); k += SIMD::vec_size)
-            {
 #if defined(USE_AVX512)
-                constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
+            constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
 #else
-                constexpr std::array mapping = { 0, 2, 1, 3 };
+            constexpr std::array mapping = { 0, 2, 1, 3 };
 #endif
-                for (size_t x = 0; x < SIMD::vec_size; x++)
-                {
-                    (*output)[i][j][k + x] = input[i][j][k + mapping[x / 8] * 8 + x % 8];
-                }
+            for (size_t x = 0; x < SIMD::vec_size; x++)
+            {
+                (*permuted_weight)[i][j + mapping[x / 8] * 8 + x % 8] = ft_weight[i][j + x];
+                (*permuted_bias)[j + mapping[x / 8] * 8 + x % 8] = ft_bias[j + x];
             }
         }
     }
 #else
-    (*output) = input;
+    (*permuted_weight) = ft_weight;
+    (*permuted_bias) = ft_bias;
 #endif
-    return output;
+    return std::make_tuple(std::move(permuted_weight), std::move(permuted_bias));
 }
 
 auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
@@ -232,15 +232,12 @@ struct network
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = []
 {
-    auto l1_weight_2 = adjust_for_packus(raw_net.l1_weight);
-    auto l1_bias = rescale_l1_bias(raw_net.l1_bias);
-    auto l1_weight_3 = interleave_for_l1_sparsity(*l1_weight_2);
-
+    auto [ft_weight, ft_bias] = adjust_for_packus(raw_net.ft_weight, raw_net.ft_bias);
     auto final_net = std::make_unique<network>();
-    final_net->ft_weight = raw_net.ft_weight;
-    final_net->ft_bias = raw_net.ft_bias;
-    final_net->l1_weight = *cast_l1_weight_int8(*l1_weight_3);
-    final_net->l1_bias = *cast_l1_bias_int32(*l1_bias);
+    final_net->ft_weight = *ft_weight;
+    final_net->ft_bias = *ft_bias;
+    final_net->l1_weight = *cast_l1_weight_int8(*interleave_for_l1_sparsity(raw_net.l1_weight));
+    final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net.l1_bias));
     final_net->l2_weight = *transpose_l2_weights(raw_net.l2_weight);
     final_net->l2_bias = raw_net.l2_bias;
     final_net->l3_weight = raw_net.l3_weight;
