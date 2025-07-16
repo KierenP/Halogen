@@ -53,7 +53,9 @@ private:
     {
         // Count the number of times this group would result in a zero block.
         int64_t score = 0;
+#ifdef NETWORK_SHUFFLE
 #pragma omp parallel for reduction(+ : score)
+#endif
         for (size_t i = 0; i < activation_data_count; i++)
         {
             if (!activation[group[0]][i] && !activation[group[1]][i] && !activation[group[2]][i]
@@ -69,8 +71,9 @@ private:
     {
         int64_t total = num_groups * activation_data_count;
         int64_t nnz = 0;
-
+#ifdef NETWORK_SHUFFLE
 #pragma omp parallel for reduction(+ : nnz)
+#endif
         for (size_t i = 0; i < activation_data_count; i++)
         {
             for (size_t j = 0; j < groups.size(); j++)

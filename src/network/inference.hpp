@@ -261,15 +261,15 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
     {
-        output[i] = bias[i];
+        int32_t int_output = l1_bias[i];
 
         for (size_t j = 0; j < FT_SIZE; j++)
         {
-            output[i] += ft_activation[j] * l1_weight[i * FT_SIZE + j];
+            int_output += ft_activation[j] * l1_weight[i * FT_SIZE + j];
         }
 
         // 127 to match the FT_activation adjustment
-        output[i] = std::clamp(output[i], int32_t(0), int32_t(127 * L1_SCALE));
+        output[i] = std::clamp(int_output / float(127 * L1_SCALE), 0.f, 1.f);
     }
 #endif
 }
