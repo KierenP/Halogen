@@ -6,7 +6,7 @@ BINARY_DIR := ../bin
 ifndef EVALFILE
 	NET_HASH := c73b45d8
 	EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
-    NO_EVALFILE_SET = true
+	NO_EVALFILE_SET = true
 endif
 
 SRCS := \
