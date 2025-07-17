@@ -268,7 +268,7 @@ ifdef NO_EVALFILE_SET
 endif
 
 verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
-	@ mkdir -p $(BINARY_DIR)
+	@ mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(LDFLAGS)
 
 $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
