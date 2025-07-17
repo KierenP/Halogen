@@ -25,3 +25,6 @@ uint64_t capture_threat_mask(const BoardState& board, Side colour);
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceType pieceType>
 uint64_t attack_bb(Square sq, uint64_t occupied = EMPTY);
+
+template <Side STM>
+uint64_t pinned_bb(const BoardState& board);

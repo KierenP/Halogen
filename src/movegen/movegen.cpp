@@ -48,8 +48,6 @@ template <Side STM>
 bool ep_is_legal(const BoardState& board, const Move& move);
 template <Side STM>
 bool king_move_is_legal(const BoardState& board, const Move& move);
-template <Side STM>
-uint64_t pinned_bb(const BoardState& board);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Side colour>
 bool is_square_threatened(const BoardState& board, Square square);
@@ -81,11 +79,11 @@ void loud_moves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return add_loud_moves<WHITE>(board, moves, pinned_bb<WHITE>(board));
+        return add_loud_moves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return add_loud_moves<BLACK>(board, moves, pinned_bb<BLACK>(board));
+        return add_loud_moves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -134,11 +132,11 @@ void quiet_moves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return add_quiet_moves<WHITE>(board, moves, pinned_bb<WHITE>(board));
+        return add_quiet_moves<WHITE>(board, moves, board.pinned_pieces[WHITE]);
     }
     else
     {
-        return add_quiet_moves<BLACK>(board, moves, pinned_bb<BLACK>(board));
+        return add_quiet_moves<BLACK>(board, moves, board.pinned_pieces[BLACK]);
     }
 }
 
@@ -752,7 +750,7 @@ bool is_legal(const BoardState& board, const Move& move)
     if (move.flag() == A_SIDE_CASTLE || move.flag() == H_SIDE_CASTLE)
     {
         StaticVector<Move, 4> moves;
-        castle_moves<STM>(board, moves, pinned_bb<STM>(board));
+        castle_moves<STM>(board, moves, board.pinned_pieces[STM]);
         for (size_t i = 0; i < moves.size(); i++)
         {
             if (moves[i] == move)
@@ -1020,3 +1018,6 @@ template void loud_moves<BasicMoveList>(const BoardState& board, BasicMoveList& 
 
 template void quiet_moves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void quiet_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+
+template uint64_t pinned_bb<WHITE>(const BoardState& board);
+template uint64_t pinned_bb<BLACK>(const BoardState& board);

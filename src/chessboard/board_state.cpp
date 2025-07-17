@@ -130,6 +130,8 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
     // minor_key = Zobrist::minor_key(*this);
     // major_key = Zobrist::major_key(*this);
+    pinned_pieces[WHITE] = pinned_bb<WHITE>(*this);
+    pinned_pieces[BLACK] = pinned_bb<BLACK>(*this);
     return true;
 }
 
@@ -709,6 +711,8 @@ void BoardState::apply_move(Move move)
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     // assert(minor_key == Zobrist::minor_key(*this));
     // assert(major_key == Zobrist::major_key(*this));
+    pinned_pieces[WHITE] = pinned_bb<WHITE>(*this);
+    pinned_pieces[BLACK] = pinned_bb<BLACK>(*this);
 }
 
 void BoardState::apply_null_move()

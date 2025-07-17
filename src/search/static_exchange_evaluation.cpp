@@ -110,6 +110,14 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     uint64_t attack_def = attackers_to_sq(board, to, occ);
     attack_def ^= SquareBB[from];
 
+    const auto white_pinned = board.pinned_pieces[WHITE];
+    const auto black_pinned = board.pinned_pieces[BLACK];
+    const auto white_king_to_ray = RayBB[to][board.get_king_sq(WHITE)];
+    const auto black_king_to_ray = RayBB[to][board.get_king_sq(BLACK)];
+    const auto allowed = ~(white_pinned & ~white_king_to_ray) & ~(black_pinned & ~black_king_to_ray);
+
+    attack_def &= allowed;
+
     while (true)
     {
         stm = !stm;
@@ -134,7 +142,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(pawns)];
-                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ));
+                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ)) & RayBB[to][lsb(pawns)];
                 continue;
             }
         }
@@ -159,7 +167,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(bishops)];
-                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ));
+                attack_def |= occ & (bishop_queen & attack_bb<BISHOP>(to, occ)) & RayBB[to][lsb(bishops)];
                 continue;
             }
         }
@@ -172,7 +180,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(rooks)];
-                attack_def |= occ & (rook_queen & attack_bb<ROOK>(to, occ));
+                attack_def |= occ & (rook_queen & attack_bb<ROOK>(to, occ)) & RayBB[to][lsb(rooks)];
                 continue;
             }
         }
@@ -185,8 +193,9 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
                 if (swap <= 0)
                     break;
                 occ ^= SquareBB[lsb(queens)];
-                attack_def
-                    |= occ & ((bishop_queen & attack_bb<BISHOP>(to, occ)) | (rook_queen & attack_bb<ROOK>(to, occ)));
+                attack_def |= occ
+                    & ((bishop_queen & attack_bb<BISHOP>(to, occ)) | (rook_queen & attack_bb<ROOK>(to, occ)))
+                    & RayBB[to][lsb(queens)];
                 continue;
             }
         }
