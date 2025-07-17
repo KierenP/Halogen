@@ -104,5 +104,4 @@ private:
     AccumulatorTable table;
 };
 
-void permute_network();
 }

@@ -31,3 +31,12 @@ constexpr size_t KING_BUCKET_COUNT = []()
     auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
     return *max - *min + 1;
 }();
+
+// These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
+// possible. In particular, we must avoid the following:
+//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
+//  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
+
+constexpr int16_t FT_SCALE = 255;
+constexpr int16_t L1_SCALE = 64;
+constexpr double SCALE_FACTOR = 160;

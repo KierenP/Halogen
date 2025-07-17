@@ -24,202 +24,6 @@ namespace NN
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
 
-struct raw_network
-{
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
-    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
-    alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
-    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
-} const& raw_net = reinterpret_cast<const raw_network&>(*gNetData);
-
-[[maybe_unused]] auto verify_network_size = []
-{
-    assert(sizeof(raw_network) == gNetSize);
-    return true;
-}();
-
-auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight, const decltype(raw_network::ft_bias)& ft_bias)
-{
-    auto permuted_weight = std::make_unique<decltype(raw_network::ft_weight)>();
-    auto permuted_bias = std::make_unique<decltype(raw_network::ft_bias)>();
-
-#if defined(USE_AVX2)
-    // shuffle around ft weights to match packus interleaving
-    for (size_t i = 0; i < INPUT_SIZE * KING_BUCKET_COUNT; i++)
-    {
-        for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
-        {
-#if defined(USE_AVX512)
-            constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
-#else
-            constexpr std::array mapping = { 0, 2, 1, 3 };
-#endif
-            for (size_t x = 0; x < SIMD::vec_size; x++)
-            {
-                (*permuted_weight)[i][j + mapping[x / 8] * 8 + x % 8] = ft_weight[i][j + x];
-                (*permuted_bias)[j + mapping[x / 8] * 8 + x % 8] = ft_bias[j + x];
-            }
-        }
-    }
-#else
-    (*permuted_weight) = ft_weight;
-    (*permuted_bias) = ft_bias;
-#endif
-    return std::make_tuple(std::move(permuted_weight), std::move(permuted_bias));
-}
-
-auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
-{
-    auto output = std::make_unique<decltype(raw_network::l1_bias)>();
-
-    // rescale l1 bias to account for FT_activation adjusting to 0-127 scale
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            (*output)[i][j] = input[i][j] * 127 / FT_SCALE;
-        }
-    }
-
-    return output;
-}
-
-auto interleave_for_l1_sparsity(const decltype(raw_network::l1_weight)& input)
-{
-    auto output = std::make_unique<std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>>();
-
-#if defined(SIMD_ENABLED)
-    // transpose and interleave the weights in blocks of 4 FT activations
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            for (size_t k = 0; k < FT_SIZE; k++)
-            {
-                // we want something that looks like:
-                //[bucket][nibble][output][4]
-                (*output)[i][(k / 4) * (4 * L1_SIZE) + (j * 4) + (k % 4)] = input[i][j][k];
-            }
-        }
-    }
-#else
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            for (size_t k = 0; k < FT_SIZE; k++)
-            {
-                (*output)[i][j * FT_SIZE + k] = input[i][j][k];
-            }
-        }
-    }
-#endif
-    return output;
-}
-
-auto cast_l1_weight_int8(const std::array<std::array<int16_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>& input)
-{
-    auto output = std::make_unique<std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS>>();
-
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < FT_SIZE * L1_SIZE; j++)
-        {
-            (*output)[i][j] = static_cast<int8_t>(input[i][j]);
-        }
-    }
-
-    return output;
-}
-
-auto cast_l1_bias_int32(const decltype(raw_network::l1_bias)& input)
-{
-    auto output = std::make_unique<std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS>>();
-
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            (*output)[i][j] = static_cast<int32_t>(input[i][j]);
-        }
-    }
-
-    return output;
-}
-
-auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
-    const decltype(raw_network::ft_bias)& ft_bias, const decltype(raw_network::l1_weight)& l1_weight)
-{
-    auto ft_weight_output = std::make_unique<decltype(raw_network::ft_weight)>();
-    auto ft_bias_output = std::make_unique<decltype(raw_network::ft_bias)>();
-    auto l1_weight_output = std::make_unique<decltype(raw_network::l1_weight)>();
-
-    // Put the shuffle order in here
-    constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = {};
-
-    for (size_t i = 0; i < FT_SIZE / 2; i++)
-    {
-        auto old_idx = shuffle_order[i];
-
-        (*ft_bias_output)[i] = ft_bias[old_idx];
-        (*ft_bias_output)[i + FT_SIZE / 2] = ft_bias[old_idx + FT_SIZE / 2];
-
-        for (size_t j = 0; j < INPUT_SIZE * KING_BUCKET_COUNT; j++)
-        {
-            (*ft_weight_output)[j][i] = ft_weight[j][old_idx];
-            (*ft_weight_output)[j][i + FT_SIZE / 2] = ft_weight[j][old_idx + FT_SIZE / 2];
-        }
-
-        for (size_t j = 0; j < OUTPUT_BUCKETS; j++)
-        {
-            for (size_t k = 0; k < L1_SIZE; k++)
-            {
-                (*l1_weight_output)[j][k][i] = l1_weight[j][k][old_idx];
-                (*l1_weight_output)[j][k][i + FT_SIZE / 2] = l1_weight[j][k][old_idx + FT_SIZE / 2];
-            }
-        }
-    }
-
-    return std::make_tuple(std::move(ft_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
-}
-
-void permute_network()
-{
-    auto net = std::make_unique<raw_network>();
-    *net = raw_net;
-
-    auto [ft_weight, ft_bias, l1_weight] = shuffle_ft_neurons(raw_net.ft_weight, raw_net.ft_bias, raw_net.l1_weight);
-    net->ft_weight = *ft_weight;
-    net->ft_bias = *ft_bias;
-    net->l1_weight = *l1_weight;
-
-    // write the network as a binary file
-    std::ofstream out("permuted.bin", std::ios::binary);
-    out.write(reinterpret_cast<const char*>(net.get()), sizeof(raw_network));
-}
-
-auto transpose_l2_weights(const decltype(raw_net.l2_weight)& input)
-{
-    auto output = std::make_unique<std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS>>();
-
-    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
-    {
-        for (size_t j = 0; j < L1_SIZE; j++)
-        {
-            for (size_t k = 0; k < L2_SIZE; k++)
-            {
-                (*output)[i][j][k] = input[i][k][j];
-            }
-        }
-    }
-
-    return output;
-}
-
 struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
@@ -230,22 +34,18 @@ struct network
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
-} const& net = []
+} const& net = reinterpret_cast<const network&>(*gNetData);
+
+[[maybe_unused]] auto verify_network_size = []
 {
-    auto [ft_weight, ft_bias] = adjust_for_packus(raw_net.ft_weight, raw_net.ft_bias);
-    auto final_net = std::make_unique<network>();
-    final_net->ft_weight = *ft_weight;
-    final_net->ft_bias = *ft_bias;
-    final_net->l1_weight = *cast_l1_weight_int8(*interleave_for_l1_sparsity(raw_net.l1_weight));
-    final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net.l1_bias));
-    final_net->l2_weight = *transpose_l2_weights(raw_net.l2_weight);
-    final_net->l2_bias = raw_net.l2_bias;
-    final_net->l3_weight = raw_net.l3_weight;
-    final_net->l3_bias = raw_net.l3_bias;
-    return *final_net;
+    if (sizeof(network) != gNetSize)
+    {
+        std::cout << "Error: embedded network is not the expected size. Expected " << sizeof(network)
+                  << " bytes actual " << gNetSize << " bytes." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    return true;
 }();
-constexpr int16_t L2_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
 
 int get_king_bucket(Square king_sq, Side view)
 {

@@ -9,14 +9,6 @@
 #include <cstdint>
 #include <iostream>
 
-// These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
-// possible. In particular, we must avoid the following:
-//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
-//  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
-constexpr int16_t FT_SCALE = 255;
-constexpr int16_t L1_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
-
 // For the expensive FT -> L1 matmul, we want to do a sparse multiplication. The naive approach would be to construct a
 // vector of non zero FT activations, and then multiply by the corresponding L1 weights. Because we want to accumulate
 // u8*i8 into i32 using two madd instructions, it makes it much easier if we work in groups of 4 FT activations at a

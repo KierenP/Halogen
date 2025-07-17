@@ -44,7 +44,7 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 # Define compiler flags and instruction sets
 
 WFLAGS = -Wall -Wextra -Wshadow
-AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(EVALFILE)\"
+AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
 CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
 RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
 # only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
@@ -267,6 +267,13 @@ ifdef NO_EVALFILE_SET
 	curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
 endif
 
+verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
+	@ mkdir -p $(BINARY_DIR)
+	$(CXX) $(CXXFLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(LDFLAGS)
+
+$(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
+	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
+
 #----------------------------------------------------------------------------------------------------------------------
 
 # The final build step.
@@ -276,7 +283,7 @@ binary: $(OBJS)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 # Build step for C++ source
-$(BUILD_DIR)/%.o: % $(EVALFILE) FORCE
+$(BUILD_DIR)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 

@@ -597,7 +597,6 @@ void Uci::process_input(std::string_view command)
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
         Consume { "probe", Invoke { [this] { handle_probe(); } } },
         Consume { "shuffle_network", Invoke { [this] { handle_shuffle_network(); } } },
-        Consume { "permute_network", Invoke { [this] { handle_permute_network(); } } },
         Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
             Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
@@ -744,11 +743,6 @@ void Uci::handle_shuffle_network()
     handle_bench(10);
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
-}
-
-void Uci::handle_permute_network()
-{
-    NN::permute_network();
 }
 
 }
