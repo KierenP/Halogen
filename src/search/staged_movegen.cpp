@@ -104,8 +104,11 @@ bool StagedMoveGenerator::next(Move& move)
         }
     }
 
-    if (skipQuiets)
-        return false;
+    if (skipQuiets && (stage == Stage::GEN_QUIET || stage == Stage::GIVE_QUIET))
+    {
+        current = bad_loudMoves.begin();
+        stage = Stage::GIVE_BAD_LOUD;
+    }
 
     if (stage == Stage::GEN_QUIET)
     {
