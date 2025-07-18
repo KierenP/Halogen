@@ -10,7 +10,8 @@
 #include <iostream>
 #include <memory>
 
-using namespace NN;
+namespace NN
+{
 
 struct raw_network
 {
@@ -239,6 +240,10 @@ struct network
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 };
+
+}
+
+using namespace NN;
 
 int main(int argc, char* argv[])
 {
