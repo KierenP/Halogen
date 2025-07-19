@@ -15,9 +15,9 @@ enum class Stage : int8_t
     GIVE_KILLER_1,
     GEN_KILLER_2,
     GIVE_KILLER_2,
-    GIVE_BAD_LOUD,
     GEN_QUIET,
-    GIVE_QUIET
+    GIVE_QUIET,
+    GIVE_BAD_LOUD,
 };
 
 // Encapsulation of staged move generation. To loop through moves:

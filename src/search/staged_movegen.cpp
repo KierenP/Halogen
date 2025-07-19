@@ -77,7 +77,6 @@ bool StagedMoveGenerator::next(Move& move)
         if (quiescence)
             return false;
 
-        current = bad_loudMoves.begin();
         stage = Stage::GIVE_KILLER_1;
     }
 
@@ -96,7 +95,7 @@ bool StagedMoveGenerator::next(Move& move)
     if (stage == Stage::GIVE_KILLER_2)
     {
         Killer2 = ss->killers[1];
-        stage = Stage::GIVE_BAD_LOUD;
+        stage = Stage::GEN_QUIET;
 
         if (Killer2 != TTmove && is_legal(position.board(), Killer2))
         {
@@ -105,22 +104,11 @@ bool StagedMoveGenerator::next(Move& move)
         }
     }
 
-    if (stage == Stage::GIVE_BAD_LOUD)
+    if (skipQuiets && (stage == Stage::GEN_QUIET || stage == Stage::GIVE_QUIET))
     {
-        if (current != bad_loudMoves.end())
-        {
-            move = current->move;
-            ++current;
-            return true;
-        }
-        else
-        {
-            stage = Stage::GEN_QUIET;
-        }
+        current = bad_loudMoves.begin();
+        stage = Stage::GIVE_BAD_LOUD;
     }
-
-    if (skipQuiets)
-        return false;
 
     if (stage == Stage::GEN_QUIET)
     {
@@ -145,6 +133,19 @@ bool StagedMoveGenerator::next(Move& move)
             ++current;
             return true;
         }
+
+        current = bad_loudMoves.begin();
+        stage = Stage::GIVE_BAD_LOUD;
+    }
+
+    if (stage == Stage::GIVE_BAD_LOUD)
+    {
+        if (current != bad_loudMoves.end())
+        {
+            move = current->move;
+            ++current;
+            return true;
+        }
     }
 
     return false;
@@ -164,6 +165,9 @@ void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_ad
 
     for (auto const& m : loudMoves)
     {
+        if (!bad_loudMoves.empty() && m.move == bad_loudMoves.front().move)
+            break;
+
         local.add_loud_history(ss, m.move, negative_adjustment);
     }
 }
