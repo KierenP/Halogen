@@ -47,7 +47,6 @@ struct SearchStackState
     SearchStackState(int distance_from_root_);
 
     StaticVector<Move, MAX_DEPTH> pv = {};
-    std::array<Move, 1> killers = {};
 
     Move move = Move::Uninitialized;
     Piece moved_piece = N_PIECES;

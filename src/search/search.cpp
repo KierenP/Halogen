@@ -520,14 +520,6 @@ void UpdatePV(Move move, SearchStackState* ss)
     ss->pv.insert(ss->pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 }
 
-void AddKiller(Move move, std::array<Move, 1>& killers)
-{
-    if (move.is_capture() || move.is_promotion())
-        return;
-
-    killers[0] = move;
-}
-
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     if (move.is_capture() || move.is_promotion())
@@ -560,7 +552,6 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 
             if (alpha >= beta)
             {
-                AddKiller(search_move, ss->killers);
                 AddHistory(gen, search_move, depth);
                 return true;
             }
@@ -931,7 +922,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             local.root_moves[idx].score = search_score;
         }
 
-        // Step 17: Update history/killer move tables and check for fail-high
+        // Step 17: Update history move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;

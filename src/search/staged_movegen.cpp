@@ -77,19 +77,7 @@ bool StagedMoveGenerator::next(Move& move)
         if (quiescence)
             return false;
 
-        stage = Stage::GIVE_KILLER_1;
-    }
-
-    if (stage == Stage::GIVE_KILLER_1)
-    {
-        Killer1 = ss->killers[0];
         stage = Stage::GEN_QUIET;
-
-        if (Killer1 != TTmove && is_legal(position.board(), Killer1))
-        {
-            move = Killer1;
-            return true;
-        }
     }
 
     if (skipQuiets && (stage == Stage::GEN_QUIET || stage == Stage::GIVE_QUIET))
@@ -184,13 +172,6 @@ void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
     {
         // Hash move
         if (moves[i].move == TTmove)
-        {
-            moves.erase(moves.begin() + i);
-            i--;
-        }
-
-        // Killers
-        else if (moves[i].move == Killer1)
         {
             moves.erase(moves.begin() + i);
             i--;
