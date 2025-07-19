@@ -869,7 +869,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         bool is_loud_move = move.is_capture() || move.is_promotion();
         int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_history(ss, move));
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
+        if (!pv_node && score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && depth <= 6
             && !see_ge(position.board(), move, -see_d * depth - history / see_h))
         {
             continue;
