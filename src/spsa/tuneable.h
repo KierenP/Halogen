@@ -47,7 +47,7 @@ TUNEABLE_CONSTANT int nmp_sd = 5;
 TUNEABLE_CONSTANT int se_d = 45;
 TUNEABLE_CONSTANT int se_de = 10;
 
-TUNEABLE_CONSTANT int lmr_pv = 1132;
+TUNEABLE_CONSTANT int lmr_pv = 566;
 TUNEABLE_CONSTANT int lmr_cut = 1286;
 TUNEABLE_CONSTANT int lmr_improving = 969;
 TUNEABLE_CONSTANT int lmr_loud = 640;
