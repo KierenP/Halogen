@@ -165,6 +165,9 @@ void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_ad
 
     for (auto const& m : loudMoves)
     {
+        if (!bad_loudMoves.empty() && m.move == bad_loudMoves.front().move)
+            break;
+
         local.add_loud_history(ss, m.move, negative_adjustment);
     }
 }
