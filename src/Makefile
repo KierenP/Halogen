@@ -4,7 +4,7 @@ BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
 ifndef EVALFILE
-	NET_HASH := c73b45d8
+	NET_HASH := 1407c11b
 	EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
 	NO_EVALFILE_SET = true
 endif
