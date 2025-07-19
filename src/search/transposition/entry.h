@@ -15,12 +15,13 @@ Score convert_to_tt_score(Score val, int distance_from_root);
 Score convert_from_tt_score(Score val, int distance_from_root);
 int8_t get_generation(int currentTurnCount, int distanceFromRoot);
 
-constexpr static int GENERATION_MAX = 1 << 6;
+constexpr static int GENERATION_MAX = 1 << 5;
 
 struct Meta
 {
     SearchResultType type : 2;
-    uint8_t generation : 6;
+    bool pv : 1;
+    uint8_t generation : 5;
 };
 
 // 10 bytes

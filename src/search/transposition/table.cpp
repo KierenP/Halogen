@@ -25,7 +25,7 @@ Table::~Table()
     dealloc();
 }
 
-void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
+void Table::add_entry(const Move& best, uint64_t ZobristKey, bool pv, Score score, int Depth, int Turncount,
     int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
 {
     score = convert_to_tt_score(score, distanceFromRoot);
@@ -46,7 +46,7 @@ void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int De
         entry.score = score;
         entry.static_eval = static_eval;
         entry.depth = Depth;
-        entry.meta = Meta { Cutoff, (uint8_t)current_generation };
+        entry.meta = Meta { Cutoff, pv, (uint8_t)current_generation };
     };
 
     for (size_t i = 0; i < Bucket::size; i++)

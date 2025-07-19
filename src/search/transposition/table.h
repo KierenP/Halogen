@@ -31,8 +31,8 @@ public:
     // will wipe the table and reconstruct a new empty table with a set size. units in MB!
     void set_size(uint64_t MB, int thread_count);
 
-    void add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount, int distanceFromRoot,
-        SearchResultType Cutoff, Score static_eval);
+    void add_entry(const Move& best, uint64_t ZobristKey, bool pv, Score score, int Depth, int Turncount,
+        int distanceFromRoot, SearchResultType Cutoff, Score static_eval);
 
     void prefetch(uint64_t key) const;
 
