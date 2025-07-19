@@ -711,7 +711,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     constexpr bool pv_node = search_type != SearchType::ZW;
     constexpr bool root_node = search_type == SearchType::ROOT;
     assert(!(pv_node && cut_node));
-    [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
+    const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = is_in_check(position.board());
 
@@ -817,7 +817,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
     // new nodes in the tree at high depths
-    if (!tt_entry && depth > 3)
+    if (!allNode && !tt_entry && depth > 3)
     {
         depth--;
     }
