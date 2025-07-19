@@ -6,36 +6,13 @@
 
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "network/arch.hpp"
 #include "search/score.h"
 
 class Move;
 
 namespace NN
 {
-
-constexpr size_t INPUT_NEURONS = 12 * 64;
-constexpr size_t HIDDEN_NEURONS = 1536;
-
-constexpr size_t OUTPUT_BUCKETS = 8;
-
-// clang-format off
-constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
-    0, 1, 2, 3, 3, 2, 1, 0,
-    4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-};
-// clang-format on
-
-constexpr size_t KING_BUCKET_COUNT = []()
-{
-    auto [min, max] = std::minmax_element(KING_BUCKETS.begin(), KING_BUCKETS.end());
-    return *max - *min + 1;
-}();
 
 // represents a single input on one accumulator side
 struct Input
@@ -57,7 +34,7 @@ struct InputPair
 // stored the accumulated first layer values for each side
 struct Accumulator
 {
-    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, N_SIDES> side = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, N_SIDES> side = {};
 
     bool operator==(const Accumulator& rhs) const
     {

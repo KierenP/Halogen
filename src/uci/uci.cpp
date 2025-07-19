@@ -35,6 +35,7 @@
 #include "search/thread.h"
 #include "search/transposition/table.h"
 #include "spsa/tuneable.h"
+#include "tools/sparse_shuffle.hpp"
 #include "uci/options.h"
 #include "uci/parse.h"
 #include "utility/atomic.h"
@@ -595,8 +596,9 @@ void Uci::process_input(std::string_view command)
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
         Consume { "probe", Invoke { [this] { handle_probe(); } } },
+        Consume { "shuffle_network", Invoke { [this] { handle_shuffle_network(); } } },
         Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
-             Repeat { OneOf {
+            Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
                 Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
             Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
@@ -733,6 +735,14 @@ void UciOutput::print_error(const std::string& error_str)
 {
     std::lock_guard io { output_mutex };
     std::cout << "info string Error: " << error_str << std::endl;
+}
+
+void Uci::handle_shuffle_network()
+{
+#ifdef NETWORK_SHUFFLE
+    handle_bench(10);
+    shuffle_network_data.GroupNeuronsByCoactivation();
+#endif
 }
 
 }

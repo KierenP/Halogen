@@ -2,14 +2,19 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <fstream>
 #include <initializer_list>
+#include <memory>
 
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "network/accumulator.hpp"
+#include "network/arch.hpp"
 #include "network/inference.hpp"
+#include "network/simd/definitions.hpp"
 #include "third-party/incbin/incbin.h"
 
 namespace NN
@@ -21,77 +26,26 @@ INCBIN(Net, EVALFILE);
 
 struct network
 {
-    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS>, INPUT_NEURONS * KING_BUCKET_COUNT> hiddenWeights = {};
-    alignas(64) std::array<int16_t, HIDDEN_NEURONS> hiddenBias = {};
-    alignas(64) std::array<std::array<int16_t, HIDDEN_NEURONS * 2>, OUTPUT_BUCKETS> outputWeights = {};
-    alignas(64) std::array<int16_t, OUTPUT_BUCKETS> outputBias = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
 
 [[maybe_unused]] auto verify_network_size = []
 {
-    assert(sizeof(network) == gNetSize);
+    if (sizeof(network) != gNetSize)
+    {
+        std::cout << "Error: embedded network is not the expected size. Expected " << sizeof(network)
+                  << " bytes actual " << gNetSize << " bytes." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
     return true;
 }();
-
-constexpr int16_t L2_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
-
-template <typename T, size_t SIZE>
-[[nodiscard]] std::array<T, SIZE> ReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-        ret[i] = std::max(T(0), source[i]);
-
-    return ret;
-}
-
-template <typename T, size_t SIZE>
-[[nodiscard]] std::array<T, SIZE> CReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-        ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
-
-    return ret;
-}
-
-template <typename T, size_t SIZE>
-[[nodiscard]] std::array<T, SIZE> SCReLU(const std::array<T, SIZE>& source)
-{
-    std::array<T, SIZE> ret;
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        ret[i] = std::clamp(source[i], T(0), T(L1_SCALE));
-        ret[i] = ret[i] * ret[i] / L1_SCALE;
-    }
-
-    return ret;
-}
-
-template <typename T_out, typename T_in, size_t SIZE>
-void DotProductSCReLU(const std::array<T_in, SIZE>& stm, const std::array<T_in, SIZE>& other,
-    const std::array<T_in, SIZE * 2>& weights, T_out& output)
-{
-    // This uses the lizard-SCReLU trick: Given stm[i] < 255, and weights[i] < 126, we want to compute stm[i] * stm[i] *
-    // weights[i] to do the SCReLU dot product. By first doing stm[i] * weights[i], the result fits within the int16_t
-    // type. Then multiply by stm[i] and accumulate.
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        int16_t partial = stm[i] * weights[i];
-        output += partial * stm[i];
-    }
-
-    for (size_t i = 0; i < SIZE; i++)
-    {
-        int16_t partial = other[i] * weights[i + SIZE];
-        output += partial * other[i];
-    }
-}
 
 int get_king_bucket(Square king_sq, Side view)
 {
@@ -116,7 +70,7 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
 
-    add1sub1(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index]);
+    add1sub1(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[sub1_index]);
 }
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
@@ -132,8 +86,8 @@ void Add1Sub2(
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    add1sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[sub1_index],
-        net.hiddenWeights[sub2_index]);
+    add1sub2(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[sub1_index],
+        net.ft_weight[sub2_index]);
 }
 
 void Add1Sub2(
@@ -153,8 +107,8 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, con
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
     size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
 
-    add2sub2(next.side[view], prev.side[view], net.hiddenWeights[add1_index], net.hiddenWeights[add2_index],
-        net.hiddenWeights[sub1_index], net.hiddenWeights[sub2_index]);
+    add2sub2(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[add2_index],
+        net.ft_weight[sub1_index], net.ft_weight[sub2_index]);
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
@@ -175,7 +129,7 @@ void Accumulator::add_input(const InputPair& input)
 void Accumulator::add_input(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    add1(side[view], net.hiddenWeights[side_index]);
+    add1(side[view], net.ft_weight[side_index]);
 }
 
 void Accumulator::sub_input(const InputPair& input)
@@ -187,7 +141,7 @@ void Accumulator::sub_input(const InputPair& input)
 void Accumulator::sub_input(const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    sub1(side[view], net.hiddenWeights[side_index]);
+    sub1(side[view], net.ft_weight[side_index]);
 }
 
 void Accumulator::recalculate(const BoardState& board_)
@@ -199,7 +153,7 @@ void Accumulator::recalculate(const BoardState& board_)
 
 void Accumulator::recalculate(const BoardState& board_, Side view)
 {
-    side[view] = net.hiddenBias;
+    side[view] = net.ft_bias;
     auto king = board_.get_king_sq(view);
 
     for (int i = 0; i < N_PIECES; i++)
@@ -268,7 +222,7 @@ void Network::reset_new_search(const BoardState& board, Accumulator& acc)
     for (auto& entry : table.king_bucket)
     {
         entry.acc = {};
-        entry.acc.side = { net.hiddenBias, net.hiddenBias };
+        entry.acc.side = { net.ft_bias, net.ft_bias };
         entry.white_bb = {};
         entry.black_bb = {};
     }
@@ -277,7 +231,7 @@ void Network::reset_new_search(const BoardState& board, Accumulator& acc)
 bool Network::verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
-    expected.side = { net.hiddenBias, net.hiddenBias };
+    expected.side = { net.ft_bias, net.ft_bias };
     auto w_king = board.get_king_sq(WHITE);
     auto b_king = board.get_king_sq(BLACK);
 
@@ -559,11 +513,25 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(popcount(board.get_pieces_bb()));
 
-    int32_t output = 0;
-    inference_output(acc.side[stm], acc.side[!stm], net.outputWeights[output_bucket], output);
+    alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
+    alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
+    size_t sparse_nibbles_size = 0;
+    NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
+    assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
-    return (int64_t(output) + int64_t(net.outputBias[output_bucket]) * L1_SCALE) * SCALE_FACTOR / L1_SCALE / L1_SCALE
-        / L2_SCALE;
+    alignas(64) std::array<float, L1_SIZE> l1_activation;
+    NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], net.l1_bias[output_bucket],
+        sparse_ft_nibbles, sparse_nibbles_size, l1_activation);
+    assert(std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
+
+    alignas(64) std::array<float, L2_SIZE> l2_activation = net.l2_bias[output_bucket];
+    NN::Features::L2_activation(l1_activation, net.l2_weight[output_bucket], l2_activation);
+    assert(std::all_of(l2_activation.begin(), l2_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
+
+    float output = net.l3_bias[output_bucket];
+    NN::Features::L3_activation(l2_activation, net.l3_weight[output_bucket], output);
+
+    return output * SCALE_FACTOR;
 }
 
 Score Network::slow_eval(const BoardState& board)
