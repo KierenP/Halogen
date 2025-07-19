@@ -9,8 +9,6 @@ namespace NN::SIMD
 {
 
 // https://stackoverflow.com/questions/60108658/fastest-method-to-calculate-sum-of-all-packed-32-bit-integers-using-avx512-or-av
-//
-// This produces slightly better assembly than _mm512_reduce_add_epi32
 
 #if defined(USE_SSE4)
 inline int32_t hsum_epi32(__m128i x)
@@ -47,14 +45,12 @@ inline float hsum_ps(__m256 v)
 #if defined(USE_AVX512)
 inline int32_t hsum_epi32(__m512i v)
 {
-    auto sum256 = _mm256_add_epi32(_mm512_castsi512_si256(v), _mm512_extracti64x4_epi64(v, 1));
-    return hsum_epi32(sum256);
+    return _mm512_reduce_add_epi32(v);
 }
 
 inline float hsum_ps(__m512 v)
 {
-    __m256 sum256 = _mm256_add_ps(_mm512_castps512_ps256(v), _mm512_extractf32x8_ps(v, 1));
-    return hsum_ps(sum256);
+    return _mm512_reduce_add_ps(v);
 }
 #endif
 

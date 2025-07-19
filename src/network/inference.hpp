@@ -198,7 +198,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const std::array<int8_t, FT_SIZE * L1_SIZE>& l1_weight, const std::array<int32_t, L1_SIZE>& l1_bias,
-    [[maybe_unused]] const std::array<int16_t, FT_SIZE / 4> sparse_nibbles,
+    [[maybe_unused]] const std::array<int16_t, FT_SIZE / 4>& sparse_nibbles,
     [[maybe_unused]] const size_t sparse_nibbles_size, std::array<float, L1_SIZE>& output)
 {
 #ifdef NETWORK_SHUFFLE
@@ -230,7 +230,6 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
         const auto ft_nibble = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_idx);
         const auto ft_vec = SIMD::set1_epi32(ft_nibble);
-        static_assert(L1_SIZE % (stride) == 0);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
             output_reg[j / stride] = SIMD::dpbusd_epi32(

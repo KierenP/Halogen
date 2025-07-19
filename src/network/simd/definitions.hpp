@@ -253,8 +253,12 @@ static const auto madd_helper = SIMD::set1_epi16(1);
 
 inline veci dpbusd_epi32(const veci& source, const veci& a, const veci& b)
 {
-#if defined(USE_AVX512_VNNI_)
-    return _mm512_dpbusd_epi32(source, a, b);
+// In my testing, _mm512_dpbusd_epi32 seems to be slower even on Zen5.
+#if defined(USE_AVX512_VNNI)
+    // return _mm512_dpbusd_epi32(source, a, b);
+    auto dot = _mm512_maddubs_epi16(a, b);
+    dot = _mm512_madd_epi16(dot, madd_helper);
+    return _mm512_add_epi32(source, dot);
 #elif defined(USE_AVX512)
     auto dot = _mm512_maddubs_epi16(a, b);
     dot = _mm512_madd_epi16(dot, madd_helper);
