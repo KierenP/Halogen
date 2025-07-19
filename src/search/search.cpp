@@ -852,7 +852,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < fp_max_d
+        if (!ttpv && !InCheck && depth < fp_max_d
             && eval + fp_const + fp_depth * depth + fp_quad * depth * depth < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
