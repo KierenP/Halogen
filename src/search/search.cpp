@@ -780,7 +780,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
+    if (!ttpv && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
         && eval - rfp_d * (depth - improving) >= beta)
     {
         return (beta.value() + eval.value()) / 2;
