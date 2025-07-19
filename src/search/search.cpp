@@ -520,12 +520,11 @@ void UpdatePV(Move move, SearchStackState* ss)
     ss->pv.insert(ss->pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 }
 
-void AddKiller(Move move, std::array<Move, 2>& killers)
+void AddKiller(Move move, std::array<Move, 1>& killers)
 {
-    if (move.is_capture() || move.is_promotion() || killers[0] == move)
+    if (move.is_capture() || move.is_promotion())
         return;
 
-    killers[1] = killers[0];
     killers[0] = move;
 }
 
