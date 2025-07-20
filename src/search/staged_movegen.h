@@ -11,7 +11,6 @@ enum class Stage : int8_t
     TT_MOVE,
     GEN_LOUD,
     GIVE_GOOD_LOUD,
-    GIVE_KILLER_1,
     GEN_QUIET,
     GIVE_QUIET,
     GIVE_BAD_LOUD,
@@ -23,7 +22,7 @@ enum class Stage : int8_t
 //     ...
 // }
 //
-// Also responsible for updating history and killer tables
+// Also responsible for updating history
 
 class StagedMoveGenerator
 {
@@ -77,7 +76,6 @@ private:
     ExtendedMoveList::iterator sorted_end;
 
     const Move TTmove = Move::Uninitialized;
-    Move Killer1 = Move::Uninitialized;
 
     bool skipQuiets = false;
 };
