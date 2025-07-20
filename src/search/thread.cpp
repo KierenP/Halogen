@@ -87,13 +87,12 @@ const SearchLocalState& SearchThread::get_local_state()
     return *local_state;
 }
 
-SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads)
+SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size_t multi_pv, size_t hash_size_mb)
     : shared_state(uci)
 {
-    for (size_t i = 0; i < num_threads; ++i)
-    {
-        create_thread();
-    }
+    set_threads(num_threads);
+    set_multi_pv(multi_pv);
+    set_hash(hash_size_mb);
 }
 
 SearchThreadPool::~SearchThreadPool()
