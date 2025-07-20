@@ -19,7 +19,7 @@ struct raw_network
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L1_SIZE>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<std::array<float, L1_SIZE * 2>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
@@ -213,11 +213,11 @@ auto cast_l1_bias_int32(const decltype(raw_network::l1_bias)& input)
 
 auto transpose_l2_weights(const decltype(raw_network::l2_weight)& input)
 {
-    auto output = std::make_unique<std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS>>();
+    auto output = std::make_unique<std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS>>();
 
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
-        for (size_t j = 0; j < L1_SIZE; j++)
+        for (size_t j = 0; j < L1_SIZE * 2; j++)
         {
             for (size_t k = 0; k < L2_SIZE; k++)
             {
@@ -235,7 +235,7 @@ struct network
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
