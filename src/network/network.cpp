@@ -30,7 +30,7 @@ struct network
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
@@ -519,7 +519,7 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
-    alignas(64) std::array<float, L1_SIZE> l1_activation;
+    alignas(64) std::array<float, L1_SIZE * 2> l1_activation;
     NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], net.l1_bias[output_bucket],
         sparse_ft_nibbles, sparse_nibbles_size, l1_activation);
     assert(std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
