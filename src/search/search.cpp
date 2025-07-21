@@ -866,7 +866,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
         if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && history < -3000 * depth - 500)
         {
-            break;
+            gen.skip_quiets();
+            continue;
         }
 
         int extensions = 0;
