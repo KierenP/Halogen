@@ -41,8 +41,8 @@ MarlinFormat convert(BoardState board, float result)
     }
 
     format.stm_ep = (board.stm == WHITE ? 0 : 0x80) | (board.en_passant == N_SQUARES ? 64 : board.en_passant);
-    format.half_move_clock = 0; // unused
-    format.full_move_counter = 0; // unused
+    format.half_move_clock = board.fifty_move_count;
+    format.full_move_counter = (board.half_turn_count + 1) / 2;
     format.score = 0; // unused
     format.result = result * 2; // convert to [0-2] scale
     format.padding = 0; // unused

@@ -41,7 +41,7 @@ private:
 class SearchThreadPool
 {
 public:
-    SearchThreadPool(UCI::UciOutput& uci, size_t num_threads);
+    SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size_t multi_pv = 1, size_t hash_size_mb = 32);
     ~SearchThreadPool();
 
     SearchThreadPool(const SearchThreadPool&) = delete;

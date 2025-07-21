@@ -8,6 +8,7 @@
 #include "search/limit/limits.h"
 #include "search/search.h"
 #include "search/thread.h"
+#include "uci/uci.h"
 
 #include <atomic>
 #include <chrono>
@@ -77,9 +78,8 @@ void info_thread(std::chrono::seconds datagen_time)
 
 void generation_thread(std::string_view output_path)
 {
-    UCI::UciOutput output;
-    SearchThreadPool pool { output, 1 };
-    pool.set_hash(1);
+    UCI::UciOutput output { UCI::OutputLevel::None };
+    SearchThreadPool pool { output, 1, 1, 1 };
 
     SearchLimits limits;
     limits.nodes = 40000;
@@ -237,8 +237,8 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
         pool.set_position(position);
         const auto& search_result = pool.launch_search(limits);
         const auto best_move = search_result.pv[0];
-        const auto white_relative_score = (position.board().stm == WHITE ? 1 : -1) * search_result.score.value();
-        score_moves.emplace_back(white_relative_score, best_move);
+        const auto score = search_result.score.value();
+        score_moves.emplace_back(score, best_move);
         position.apply_move(best_move);
     }
 
