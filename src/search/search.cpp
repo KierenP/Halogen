@@ -828,16 +828,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         const int64_t prev_nodes = local.nodes;
         seen_moves++;
 
-        // Step 11: Late move pruning
-        //
-        // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
-        // pruning
-        if (depth < lmp_max_d && seen_moves >= lmp_const + lmp_depth * depth * (1 + improving)
-            && score > Score::tb_loss_in(MAX_DEPTH))
-        {
-            gen.skip_quiets();
-        }
-
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
