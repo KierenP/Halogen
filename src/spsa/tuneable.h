@@ -44,6 +44,8 @@ TUNEABLE_CONSTANT int nmp_d = 7;
 TUNEABLE_CONSTANT int nmp_s = 250;
 TUNEABLE_CONSTANT int nmp_sd = 5;
 
+TUNEABLE_CONSTANT int iid_depth = 3;
+
 TUNEABLE_CONSTANT int se_sbeta_depth = 40;
 TUNEABLE_CONSTANT int se_double = 5;
 TUNEABLE_CONSTANT int se_double_pv = 450;

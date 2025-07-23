@@ -807,7 +807,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
     // new nodes in the tree at high depths
-    if (!tt_entry && depth > 3)
+    if (!tt_entry && depth > iid_depth)
     {
         depth--;
     }

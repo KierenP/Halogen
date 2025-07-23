@@ -276,6 +276,8 @@ auto Uci::options_handler()
         tuneable_int(nmp_s, 200, 300),
         tuneable_int(nmp_sd, 1, 10),
 
+        tuneable_int(iid_depth, 1, 10),
+
         tuneable_int(se_sbeta_depth, 20, 80),
         tuneable_int(se_double, 0, 30),
         tuneable_int(se_double_pv, 200, 600),
