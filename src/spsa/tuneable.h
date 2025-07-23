@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
@@ -68,8 +70,8 @@ TUNEABLE_CONSTANT int rfp_max_d = 9;
 TUNEABLE_CONSTANT int rfp_d = 51;
 
 TUNEABLE_CONSTANT int lmp_max_d = 7;
-TUNEABLE_CONSTANT int lmp_const = 3;
-TUNEABLE_CONSTANT int lmp_depth = 3;
+TUNEABLE_CONSTANT int lmp_const = 6;
+TUNEABLE_CONSTANT int lmp_depth = 6;
 
 TUNEABLE_CONSTANT int fp_max_d = 9;
 TUNEABLE_CONSTANT int fp_const = 39;
@@ -102,3 +104,11 @@ TUNEABLE_CONSTANT int blitz_tc_a = 49;
 TUNEABLE_CONSTANT int blitz_tc_b = 619;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
 TUNEABLE_CONSTANT int repeating_tc = 96;
+
+TUNEABLE_CONSTANT int history_bonus_const = 0;
+TUNEABLE_CONSTANT int history_bonus_depth = 0;
+TUNEABLE_CONSTANT int history_bonus_quad = 64;
+
+TUNEABLE_CONSTANT int history_penalty_const = 0;
+TUNEABLE_CONSTANT int history_penalty_depth = 0;
+TUNEABLE_CONSTANT int history_penalty_quad = 64;
