@@ -448,13 +448,11 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     ss->singular_exclusion = Move::Uninitialized;
 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (!pv_node && se_score < sbeta - se_de && ss->distance_from_root < local.curr_depth)
+    if (se_score < sbeta)
     {
-        extensions += 2;
-    }
-    else if (se_score < sbeta)
-    {
-        extensions += 1;
+        auto double_margin = se_de + 450 * pv_node + 300 * (ss->distance_from_root >= local.curr_depth)
+            - 4 * !(tt_move.is_capture() || tt_move.is_promotion());
+        extensions += 1 + (se_score < sbeta - double_margin);
     }
 
     // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
