@@ -44,8 +44,13 @@ TUNEABLE_CONSTANT int nmp_d = 7;
 TUNEABLE_CONSTANT int nmp_s = 250;
 TUNEABLE_CONSTANT int nmp_sd = 5;
 
-TUNEABLE_CONSTANT int se_d = 40;
-TUNEABLE_CONSTANT int se_de = 5;
+TUNEABLE_CONSTANT int se_sbeta_depth = 40;
+TUNEABLE_CONSTANT int se_double = 5;
+TUNEABLE_CONSTANT int se_double_pv = 450;
+TUNEABLE_CONSTANT int se_double_hd = 300;
+TUNEABLE_CONSTANT int se_double_quiet = 4;
+TUNEABLE_CONSTANT int se_min_depth = 6;
+TUNEABLE_CONSTANT int se_tt_depth = 4;
 
 TUNEABLE_CONSTANT int lmr_pv = 1252;
 TUNEABLE_CONSTANT int lmr_cut = 1176;
@@ -69,11 +74,14 @@ TUNEABLE_CONSTANT int fp_const = 39;
 TUNEABLE_CONSTANT int fp_depth = 13;
 TUNEABLE_CONSTANT int fp_quad = 13;
 
-TUNEABLE_CONSTANT int see_d = 106;
-TUNEABLE_CONSTANT int see_h = 149;
+TUNEABLE_CONSTANT int see_quiet_depth = 106;
+TUNEABLE_CONSTANT int see_quiet_hist = 149;
+TUNEABLE_CONSTANT int see_loud_depth = 36;
+TUNEABLE_CONSTANT int see_loud_hist = 142;
+TUNEABLE_CONSTANT int see_max_depth = 6;
 
-TUNEABLE_CONSTANT int se_max_d = 6;
-TUNEABLE_CONSTANT int see_tt_d = 4;
+TUNEABLE_CONSTANT int hist_prune_depth = 3000;
+TUNEABLE_CONSTANT int hist_prune = 500;
 
 TUNEABLE_CONSTANT int delta_c = 346;
 

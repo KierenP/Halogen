@@ -438,7 +438,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move, const Score beta, int& extensions,
     bool cut_node)
 {
-    Score sbeta = tt_score - se_d * depth / 64;
+    Score sbeta = tt_score - se_sbeta_depth * depth / 64;
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
@@ -450,8 +450,9 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
     if (se_score < sbeta)
     {
-        auto double_margin = se_de + 450 * pv_node + 300 * (ss->distance_from_root >= local.curr_depth)
-            - 4 * !(tt_move.is_capture() || tt_move.is_promotion());
+        auto double_margin = se_double + se_double_pv * pv_node
+            + se_double_hd * (ss->distance_from_root >= local.curr_depth)
+            - se_double_quiet * !(tt_move.is_capture() || tt_move.is_promotion());
         extensions += 1 + (se_score < sbeta - double_margin);
     }
 
@@ -857,14 +858,16 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // material.
         bool is_loud_move = move.is_capture() || move.is_promotion();
         int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_history(ss, move));
-        auto see_pruning_margin = is_loud_move ? -36 * depth * depth - history / 142 : -see_d * depth - history / see_h;
+        auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
+                                               : -see_quiet_depth * depth - history / see_quiet_hist;
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= 6 && !see_ge(position.board(), move, see_pruning_margin))
+        if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= see_max_depth
+            && !see_ge(position.board(), move, see_pruning_margin))
         {
             continue;
         }
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && history < -3000 * depth - 500)
+        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
         {
             gen.skip_quiets();
             continue;
@@ -880,8 +883,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // testing for singularity. To test for singularity, we do a reduced depth search on the TT score lowered by
         // some margin. If this search fails low, this implies all alternative moves are much worse and the TT move
         // is singular.
-        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= se_max_d
-            && tt_depth + see_tt_d >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
+        if (!root_node && ss->singular_exclusion == Move::Uninitialized && depth >= se_min_depth
+            && tt_depth + se_tt_depth >= depth && tt_cutoff != SearchResultType::UPPER_BOUND && tt_move == move
             && tt_score != SCORE_UNDEFINED)
         {
             if (auto value = singular_extensions<pv_node>(
