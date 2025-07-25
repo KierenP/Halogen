@@ -339,6 +339,13 @@ auto Uci::options_handler()
         tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
+        tuneable_int(history_bonus_const, -50, 50),
+        tuneable_int(history_bonus_depth, -50, 50),
+        tuneable_int(history_bonus_quad, 32, 128),
+        tuneable_int(history_penalty_const, -50, 50),
+        tuneable_int(history_penalty_depth, -50, 50),
+        tuneable_int(history_penalty_quad, 32, 128),
+
         tuneable_int(PawnHistory::max_value, 1000, 32000),
         tuneable_int(PawnHistory::scale, 20, 50),
         tuneable_int(ThreatHistory::max_value, 1000, 32000),

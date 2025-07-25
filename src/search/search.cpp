@@ -521,13 +521,18 @@ void UpdatePV(Move move, SearchStackState* ss)
 
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
+    const auto bonus = history_bonus_const + history_bonus_depth * depthRemaining / 64
+        + history_bonus_quad * depthRemaining * depthRemaining / 64;
+    const auto penalty = -history_penalty_const - history_penalty_depth * depthRemaining / 64
+        - history_penalty_quad * depthRemaining * depthRemaining / 64;
+
     if (move.is_capture() || move.is_promotion())
     {
-        gen.update_loud_history(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+        gen.update_loud_history(move, bonus, penalty);
     }
     else
     {
-        gen.update_quiet_history(move, depthRemaining * depthRemaining, -depthRemaining * depthRemaining);
+        gen.update_quiet_history(move, bonus, penalty);
     }
 }
 
