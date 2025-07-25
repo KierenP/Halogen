@@ -453,7 +453,9 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
         auto double_margin = se_double + se_double_pv * pv_node
             + se_double_hd * (ss->distance_from_root >= local.curr_depth)
             - se_double_quiet * !(tt_move.is_capture() || tt_move.is_promotion());
-        extensions += 1 + (se_score < sbeta - double_margin);
+        auto triple_margin = 100 + se_double_pv * pv_node + se_double_hd * (ss->distance_from_root >= local.curr_depth)
+            - se_double_quiet * !(tt_move.is_capture() || tt_move.is_promotion());
+        extensions += 1 + (se_score < sbeta - double_margin) + (se_score < sbeta - triple_margin);
     }
 
     // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
