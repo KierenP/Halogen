@@ -3,17 +3,17 @@
 <img
   width="500"
   alt="Halogen Logo"
-  src="assets/halogen_lightbumbonly-1.png">
+  src="assets/halogen_lightbulbonly-1.png">
 
 <img
   width="500"
   alt="Halogen Logo"
-  src="assets/halogen_lightbumbonly-2.png">
+  src="assets/halogen_lightbulbonly-2.png">
 
 <img
   width="500"
   alt="Halogen Logo"
-  src="assets/halogen_lightbumbonly-3.png">
+  src="assets/halogen_lightbulbonly-3.png">
 
 # Halogen
 
