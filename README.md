@@ -1,5 +1,20 @@
 <div align="center">
 
+<img
+  width="500"
+  alt="Halogen Logo"
+  src="assets/halogen_lightbumbonly-1.png">
+
+<img
+  width="500"
+  alt="Halogen Logo"
+  src="assets/halogen_lightbumbonly-2.png">
+
+<img
+  width="500"
+  alt="Halogen Logo"
+  src="assets/halogen_lightbumbonly-3.png">
+
 # Halogen
 
 [![License](https://img.shields.io/github/license/KierenP/Halogen?style=for-the-badge)](https://github.com/KierenP/Halogen/blob/master/LICENSE)

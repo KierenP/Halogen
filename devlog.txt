@@ -1,0 +1,55 @@
+[X] Quiescent Search
+[X] Transposition Table
+[X] Basic Move Ordering (sorting TT move first, captures by MVV-LVA)
+[X] Iterative Deepening
+[X] PVS
+[X] RFP
+[X] NMP
+[X] LMR (log formula is most principled ~ there are a number of adjustments you can experiment with)
+[X] Butterfly history heuristic
+[X] Killer moves
+[X] LMP
+[X] Futility pruning
+[X] Internal Iterative Reduction (IIR)
+[X] Improving heuristic
+[.] QS SEE pruning
+[X] PVS SEE pruning (captures and quiets)
+[.] Continuation history (CMH + FMH etc..)
+[X] Capture history heuristic
+[X] History pruning
+[X] Singular extensions
+[X] Multicut (using singular search result)
+[.] Double/triple/negative extensions
+[X] Cutnode (as apart of negative extensions, LMR, etc)
+[X] Static eval correction history
+[ ] QS futility pruning
+
+A reasonable search feature progression assuming you have the fundamentals i.e. negamax and alpha/beta pruning (ideally in a fail-soft framework)
+QS SEE pruning
+Continuation history (CMH + FMH etc..)
+Double/triple/negative extensions
+Static eval correction history
+QS futility pruning
+
+For the soft bound the progression can go something like this
+Best move stability
+Eval stability
+
+Additionally, should be a healthy amount of parameter tweaking after each addition.
+There are other minor features that top engines have, but these will constitute the majority of the elo you will find in them. 
+
+---------------------
+
+- Swap erase in move sorting
+- lmr corrhist
+- capture threat history
+
+NN:
+- try removing datagen4 (bad data?)
+- try ranger with beta1 = 0.95 https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer
+- try 75% flat then 25% cosine decay LR
+
+Usability:
+- TT should just copy the 10 bytes
+- define `network` in arch header
+- move start/stop scripts into src/tools?
