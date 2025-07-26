@@ -521,10 +521,12 @@ void UpdatePV(Move move, SearchStackState* ss)
 
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
-    const auto bonus = history_bonus_const + history_bonus_depth * depthRemaining / 64
-        + history_bonus_quad * depthRemaining * depthRemaining / 64;
-    const auto penalty = -history_penalty_const - history_penalty_depth * depthRemaining / 64
-        - history_penalty_quad * depthRemaining * depthRemaining / 64;
+    const auto bonus = (history_bonus_const + history_bonus_depth * depthRemaining
+                           + history_bonus_quad * depthRemaining * depthRemaining)
+        / 64;
+    const auto penalty = -(history_penalty_const + history_penalty_depth * depthRemaining
+                             + history_penalty_quad * depthRemaining * depthRemaining)
+        / 64;
 
     if (move.is_capture() || move.is_promotion())
     {
@@ -773,8 +775,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
+    const auto rfp_margin
+        = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)) / 64;
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
-        && eval - rfp_d * (depth - improving) >= beta)
+        && eval - rfp_margin >= beta)
     {
         return (beta.value() + eval.value()) / 2;
     }
@@ -836,8 +840,9 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        if (depth < lmp_max_d && seen_moves >= lmp_const + lmp_depth * depth * (1 + improving)
-            && score > Score::tb_loss_in(MAX_DEPTH))
+        const auto lmp_margin
+            = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)) / 64;
+        if (depth < lmp_max_d && seen_moves >= lmp_margin && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.skip_quiets();
         }
@@ -846,7 +851,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
-            && eval + fp_const + fp_depth * depth + fp_quad * depth * depth < alpha
+            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha
             && score > Score::tb_loss_in(MAX_DEPTH))
         {
             gen.skip_quiets();

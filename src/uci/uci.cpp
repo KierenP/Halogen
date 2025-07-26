@@ -297,16 +297,19 @@ auto Uci::options_handler()
         tuneable_int(fifty_mr_scale_b, 100, 350),
 
         tuneable_int(rfp_max_d, 5, 15),
-        tuneable_int(rfp_d, 50, 150),
+        tuneable_int(rfp_const, -1000, 1000),
+        tuneable_int(rfp_depth, 1500, 6000),
+        tuneable_int(rfp_quad, 0, 500),
 
         tuneable_int(lmp_max_d, 3, 9),
-        tuneable_int(lmp_const, 1, 10),
-        tuneable_int(lmp_depth, 1, 10),
+        tuneable_int(lmp_const, 64, 640),
+        tuneable_int(lmp_depth, 64, 640),
+        tuneable_int(lmp_quad, 0, 500),
 
         tuneable_int(fp_max_d, 5, 15),
-        tuneable_int(fp_const, 10, 50),
-        tuneable_int(fp_depth, 5, 15),
-        tuneable_int(fp_quad, 5, 25),
+        tuneable_int(fp_const, 1200, 2800),
+        tuneable_int(fp_depth, 450, 1800),
+        tuneable_int(fp_quad, 450, 1800),
 
         tuneable_int(see_quiet_depth, 50, 150),
         tuneable_int(see_quiet_hist, 50, 250),
@@ -319,10 +322,10 @@ auto Uci::options_handler()
 
         tuneable_int(delta_c, 0, 500),
 
-        tuneable_int(eval_scale_knight, 200, 800),
-        tuneable_int(eval_scale_bishop, 200, 800),
-        tuneable_int(eval_scale_rook, 400, 1200),
-        tuneable_int(eval_scale_queen, 600, 2400),
+        tuneable_int(eval_scale[KNIGHT], 200, 800),
+        tuneable_int(eval_scale[BISHOP], 200, 800),
+        tuneable_int(eval_scale[ROOK], 400, 1200),
+        tuneable_int(eval_scale[QUEEN], 600, 2400),
         tuneable_int(eval_scale_const, 15000, 40000),
 
         tuneable_int(see_values[PAWN], 50, 200),
@@ -339,11 +342,11 @@ auto Uci::options_handler()
         tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
-        tuneable_int(history_bonus_const, -50, 50),
-        tuneable_int(history_bonus_depth, -50, 50),
+        tuneable_int(history_bonus_const, 450, 1800),
+        tuneable_int(history_bonus_depth, -500, 500),
         tuneable_int(history_bonus_quad, 32, 128),
-        tuneable_int(history_penalty_const, -50, 50),
-        tuneable_int(history_penalty_depth, -50, 50),
+        tuneable_int(history_penalty_const, 500, 2000),
+        tuneable_int(history_penalty_depth, -500, 500),
         tuneable_int(history_penalty_quad, 32, 128),
 
         tuneable_int(PawnHistory::max_value, 1000, 32000),
