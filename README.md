@@ -1,7 +1,7 @@
 <div align="center">
 
 <img
-  width="300"
+  width="200"
   alt="Halogen Logo"
   src="assets/halogen_lightbulbonly-1.png">
 
