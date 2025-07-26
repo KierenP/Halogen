@@ -30,10 +30,10 @@ Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
     Score eval = NN::Network::eval(board, ss->acc);
 
     // Apply material scaling factor
-    const auto npMaterial = eval_scale_knight * popcount(board.get_pieces_bb(KNIGHT))
-        + eval_scale_bishop * popcount(board.get_pieces_bb(BISHOP))
-        + eval_scale_rook * popcount(board.get_pieces_bb(ROOK))
-        + eval_scale_queen * popcount(board.get_pieces_bb(QUEEN));
+    const auto npMaterial = eval_scale[KNIGHT] * popcount(board.get_pieces_bb(KNIGHT))
+        + eval_scale[BISHOP] * popcount(board.get_pieces_bb(BISHOP))
+        + eval_scale[ROOK] * popcount(board.get_pieces_bb(ROOK))
+        + eval_scale[QUEEN] * popcount(board.get_pieces_bb(QUEEN));
     eval = eval.value() * (eval_scale_const + npMaterial) / 32768;
 
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);

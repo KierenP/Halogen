@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
@@ -65,16 +67,19 @@ TUNEABLE_CONSTANT int fifty_mr_scale_a = 325;
 TUNEABLE_CONSTANT int fifty_mr_scale_b = 234;
 
 TUNEABLE_CONSTANT int rfp_max_d = 9;
-TUNEABLE_CONSTANT int rfp_d = 53;
+TUNEABLE_CONSTANT int rfp_const = 0;
+TUNEABLE_CONSTANT int rfp_depth = 3392;
+TUNEABLE_CONSTANT int rfp_quad = 0;
 
 TUNEABLE_CONSTANT int lmp_max_d = 7;
-TUNEABLE_CONSTANT int lmp_const = 6;
-TUNEABLE_CONSTANT int lmp_depth = 6;
+TUNEABLE_CONSTANT int lmp_const = 384;
+TUNEABLE_CONSTANT int lmp_depth = 384;
+TUNEABLE_CONSTANT int lmp_quad = 0;
 
 TUNEABLE_CONSTANT int fp_max_d = 9;
-TUNEABLE_CONSTANT int fp_const = 38;
-TUNEABLE_CONSTANT int fp_depth = 14;
-TUNEABLE_CONSTANT int fp_quad = 14;
+TUNEABLE_CONSTANT int fp_const = 2432;
+TUNEABLE_CONSTANT int fp_depth = 896;
+TUNEABLE_CONSTANT int fp_quad = 896;
 
 TUNEABLE_CONSTANT int see_quiet_depth = 109;
 TUNEABLE_CONSTANT int see_quiet_hist = 155;
@@ -87,10 +92,7 @@ TUNEABLE_CONSTANT int hist_prune = 344;
 
 TUNEABLE_CONSTANT int delta_c = 367;
 
-TUNEABLE_CONSTANT int eval_scale_knight = 564;
-TUNEABLE_CONSTANT int eval_scale_bishop = 460;
-TUNEABLE_CONSTANT int eval_scale_rook = 681;
-TUNEABLE_CONSTANT int eval_scale_queen = 1645;
+TUNEABLE_CONSTANT std::array eval_scale = { 0, 564, 460, 681, 1645 };
 TUNEABLE_CONSTANT int eval_scale_const = 23008;
 
 TUNEABLE_CONSTANT std::array see_values = { 112, 452, 452, 817, 1553, 5000 };
@@ -103,10 +105,10 @@ TUNEABLE_CONSTANT int blitz_tc_b = 500;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
 TUNEABLE_CONSTANT int repeating_tc = 96;
 
-TUNEABLE_CONSTANT int history_bonus_const = 14;
+TUNEABLE_CONSTANT int history_bonus_const = 896;
 TUNEABLE_CONSTANT int history_bonus_depth = 2;
 TUNEABLE_CONSTANT int history_bonus_quad = 76;
 
-TUNEABLE_CONSTANT int history_penalty_const = 16;
+TUNEABLE_CONSTANT int history_penalty_const = 1024;
 TUNEABLE_CONSTANT int history_penalty_depth = 3;
 TUNEABLE_CONSTANT int history_penalty_quad = 54;
