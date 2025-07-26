@@ -1,19 +1,9 @@
 <div align="center">
 
 <img
-  width="500"
+  width="300"
   alt="Halogen Logo"
   src="assets/halogen_lightbulbonly-1.png">
-
-<img
-  width="500"
-  alt="Halogen Logo"
-  src="assets/halogen_lightbulbonly-2.png">
-
-<img
-  width="500"
-  alt="Halogen Logo"
-  src="assets/halogen_lightbulbonly-3.png">
 
 # Halogen
 
