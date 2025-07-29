@@ -19,6 +19,7 @@
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
+#include "datagen/analyse.h"
 #include "datagen/datagen.h"
 #include "misc/benchmark.h"
 #include "movegen/list.h"
@@ -614,6 +615,7 @@ void Uci::process_input(std::string_view command)
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
         Consume { "probe", Invoke { [this] { handle_probe(); } } },
         Consume { "shuffle_network", Invoke { [this] { handle_shuffle_network(); } } },
+        Consume { "analyse", NextToken { [this](auto path){ handle_analyse(path); } } },
         Consume { "datagen", WithContext { datagen_ctx{}, Sequence {
             Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
@@ -760,6 +762,11 @@ void Uci::handle_shuffle_network()
     handle_bench(10);
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
+}
+
+void Uci::handle_analyse(std::string_view path)
+{
+    analyse_viribin(path);
 }
 
 }

@@ -87,6 +87,7 @@ public:
     void handle_probe();
     void handle_datagen(const datagen_ctx& ctx);
     void handle_shuffle_network();
+    void handle_analyse(std::string_view path);
 
 private:
     void join_search_thread();
