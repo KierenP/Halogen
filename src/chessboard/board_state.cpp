@@ -348,7 +348,8 @@ void BoardState::apply_move(Move move)
                 // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
                 // minor_key ^= Zobrist::piece_square(piece, move.to());
             }
-            else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
+            else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN
+                || enum_to<PieceType>(piece) == KING)
             {
                 major_key ^= Zobrist::piece_square(piece, move.from());
                 major_key ^= Zobrist::piece_square(piece, move.to());
@@ -411,6 +412,8 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        major_key ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
+        major_key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
@@ -436,6 +439,8 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        major_key ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
+        major_key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
@@ -466,7 +471,8 @@ void BoardState::apply_move(Move move)
                 // minor_key ^= Zobrist::piece_square(piece, move.GetFrom());
                 // minor_key ^= Zobrist::piece_square(piece, move.to());
             }
-            else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN)
+            else if (enum_to<PieceType>(piece) == ROOK || enum_to<PieceType>(piece) == QUEEN
+                || enum_to<PieceType>(piece) == KING)
             {
                 major_key ^= Zobrist::piece_square(piece, move.from());
                 major_key ^= Zobrist::piece_square(piece, move.to());
