@@ -31,7 +31,7 @@ int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*,
     const auto cap_piece
         = move.flag() == EN_PASSANT ? PAWN : enum_to<PieceType>(position.board().get_square_piece(move.to()));
 
-    return &table[stm][curr_piece][move.to()][cap_piece];
+    return &table[stm][curr_piece][move.from()][cap_piece][move.to()];
 }
 
 int16_t* PieceMoveHistory::get(const GameState& position, const SearchStackState*, Move move)
