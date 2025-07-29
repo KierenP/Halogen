@@ -62,7 +62,7 @@ struct CaptureHistory : HistoryTable<CaptureHistory>
 {
     static TUNEABLE_CONSTANT int max_value = 19616;
     static TUNEABLE_CONSTANT int scale = 40;
-    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
+    int16_t table[N_SIDES][2][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 

@@ -24,14 +24,16 @@ int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* s
     return &table[stm][from_square_threat][move.from()][move.to()];
 }
 
-int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
+int16_t* CaptureHistory::get(const GameState& position, const SearchStackState* ss, Move move)
 {
     const auto& stm = position.board().stm;
     const auto curr_piece = enum_to<PieceType>(position.board().get_square_piece(move.from()));
     const auto cap_piece
         = move.flag() == EN_PASSANT ? PAWN : enum_to<PieceType>(position.board().get_square_piece(move.to()));
+    const uint64_t& threat_mask = ss->threat_mask;
+    const bool from_square_threat = threat_mask & SquareBB[move.from()];
 
-    return &table[stm][curr_piece][move.to()][cap_piece];
+    return &table[stm][from_square_threat][curr_piece][move.to()][cap_piece];
 }
 
 int16_t* PieceMoveHistory::get(const GameState& position, const SearchStackState*, Move move)
