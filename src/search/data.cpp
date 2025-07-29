@@ -76,7 +76,34 @@ void SearchLocalState::reset_new_search()
     std::ranges::copy(moves, std::back_inserter(root_moves));
 }
 
-int SearchLocalState::get_quiet_history(const SearchStackState* ss, Move move)
+int SearchLocalState::get_quiet_search_history(const SearchStackState* ss, Move move)
+{
+    int total = 0;
+
+    if (auto* hist = pawn_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if (auto* hist = threat_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if ((ss - 1)->cont_hist_subtable)
+    {
+        total += *(ss - 1)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    if ((ss - 2)->cont_hist_subtable)
+    {
+        total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    return total;
+}
+
+int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
 

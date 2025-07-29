@@ -180,7 +180,7 @@ void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
         // Quiet
         else
         {
-            moves[i].score = local.get_quiet_history(ss, moves[i].move);
+            moves[i].score = local.get_quiet_order_history(ss, moves[i].move);
         }
     }
 }

@@ -111,7 +111,8 @@ public:
     bool should_skip_root_move(Move move);
     void reset_new_search();
 
-    int get_quiet_history(const SearchStackState* ss, Move move);
+    int get_quiet_search_history(const SearchStackState* ss, Move move);
+    int get_quiet_order_history(const SearchStackState* ss, Move move);
     int get_loud_history(const SearchStackState* ss, Move move);
 
     void add_quiet_history(const SearchStackState* ss, Move move, int change);
