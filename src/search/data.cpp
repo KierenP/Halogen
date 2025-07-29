@@ -127,9 +127,9 @@ int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move m
         total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
     }
 
-    if ((ss - 3)->cont_hist_subtable)
+    if ((ss - 4)->cont_hist_subtable)
     {
-        total += *(ss - 3)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 4)->cont_hist_subtable->get(position, ss, move);
     }
 
     return total;
@@ -153,8 +153,8 @@ void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, 
         (ss - 1)->cont_hist_subtable->add(position, ss, move, change);
     if ((ss - 2)->cont_hist_subtable)
         (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
-    if ((ss - 3)->cont_hist_subtable)
-        (ss - 3)->cont_hist_subtable->add(position, ss, move, change);
+    if ((ss - 4)->cont_hist_subtable)
+        (ss - 4)->cont_hist_subtable->add(position, ss, move, change);
 }
 
 void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, int change)
