@@ -775,7 +775,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     //
     // If the static score is far above beta we fail high.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
-        && eval - rfp_d * (depth - improving) - 200 * (ss->threat_mask != 0) >= beta)
+        && eval - rfp_d * (depth - improving) - 50 * (ss->threat_mask != 0) >= beta)
     {
         return (beta.value() + eval.value()) / 2;
     }
