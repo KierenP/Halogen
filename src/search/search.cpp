@@ -769,11 +769,12 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+    ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
+    if (!pv_node && !InCheck && !ss->threat_mask && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
         && eval - rfp_d * (depth - improving) >= beta)
     {
         return (beta.value() + eval.value()) / 2;
@@ -805,7 +806,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
-    ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
 
     // Step 9: Rebel style IID
     //
