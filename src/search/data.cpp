@@ -76,7 +76,7 @@ void SearchLocalState::reset_new_search()
     std::ranges::copy(moves, std::back_inserter(root_moves));
 }
 
-int SearchLocalState::get_quiet_history(const SearchStackState* ss, Move move)
+int SearchLocalState::get_quiet_search_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
 
@@ -103,6 +103,38 @@ int SearchLocalState::get_quiet_history(const SearchStackState* ss, Move move)
     return total;
 }
 
+int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move move)
+{
+    int total = 0;
+
+    if (auto* hist = pawn_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if (auto* hist = threat_hist.get(position, ss, move))
+    {
+        total += *hist;
+    }
+
+    if ((ss - 1)->cont_hist_subtable)
+    {
+        total += *(ss - 1)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    if ((ss - 2)->cont_hist_subtable)
+    {
+        total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    if ((ss - 4)->cont_hist_subtable)
+    {
+        total += *(ss - 4)->cont_hist_subtable->get(position, ss, move);
+    }
+
+    return total;
+}
+
 int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
@@ -121,6 +153,8 @@ void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, 
         (ss - 1)->cont_hist_subtable->add(position, ss, move, change);
     if ((ss - 2)->cont_hist_subtable)
         (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
+    if ((ss - 4)->cont_hist_subtable)
+        (ss - 4)->cont_hist_subtable->add(position, ss, move, change);
 }
 
 void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, int change)

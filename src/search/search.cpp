@@ -862,7 +862,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
         // material.
         bool is_loud_move = move.is_capture() || move.is_promotion();
-        int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_history(ss, move));
+        int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_search_history(ss, move));
         auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
                                                : -see_quiet_depth * depth - history / see_quiet_hist;
 

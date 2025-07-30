@@ -68,8 +68,8 @@ struct SearchStackState
 
 class SearchStack
 {
-    // The search accesses [ss-2, ss+1]
-    constexpr static int min_access = -2;
+    // The search accesses [ss-4, ss+1]
+    constexpr static int min_access = -4;
     constexpr static int max_access = 1;
     constexpr static size_t size = MAX_DEPTH + max_access - min_access;
 
@@ -111,7 +111,8 @@ public:
     bool should_skip_root_move(Move move);
     void reset_new_search();
 
-    int get_quiet_history(const SearchStackState* ss, Move move);
+    int get_quiet_search_history(const SearchStackState* ss, Move move);
+    int get_quiet_order_history(const SearchStackState* ss, Move move);
     int get_loud_history(const SearchStackState* ss, Move move);
 
     void add_quiet_history(const SearchStackState* ss, Move move, int change);
