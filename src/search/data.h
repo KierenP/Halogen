@@ -51,6 +51,7 @@ struct SearchStackState
     Move move = Move::Uninitialized;
     Piece moved_piece = N_PIECES;
     uint64_t threat_mask = EMPTY;
+    uint64_t threat_hash = EMPTY;
 
     Move singular_exclusion = Move::Uninitialized;
 
@@ -126,6 +127,7 @@ public:
     CaptureHistory capt_hist;
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
+    ThreatCorrHistory threat_corr_hist;
     int sel_septh = 0;
     AtomicRelaxed<int64_t> tb_hits = 0;
     AtomicRelaxed<int64_t> nodes = 0;

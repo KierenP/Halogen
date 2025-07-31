@@ -5,6 +5,7 @@
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
 #include "search/data.h"
+#include <random>
 
 int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
@@ -89,4 +90,25 @@ void NonPawnCorrHistory::add(const GameState& position, Side side, int depth, in
 Score NonPawnCorrHistory::get_correction_score(const GameState& position, Side side)
 {
     return *get(position, side) / eval_scale();
+}
+
+int16_t* ThreatCorrHistory::get(const GameState& position, const SearchStackState* ss)
+{
+    const auto& stm = position.board().stm;
+    uint64_t hash = ss->threat_hash;
+    return &table[stm][hash % hash_table_size];
+}
+
+void ThreatCorrHistory::add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff)
+{
+    auto* entry = get(position, ss);
+
+    int change = std::clamp(eval_diff * depth * corr_hist_scale / 64, -correction_max * eval_scale() / 4,
+        correction_max * eval_scale() / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
+}
+
+Score ThreatCorrHistory::get_correction_score(const GameState& position, const SearchStackState* ss)
+{
+    return *get(position, ss) / eval_scale();
 }

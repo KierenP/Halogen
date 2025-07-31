@@ -141,3 +141,27 @@ private:
         return 16384 / correction_max;
     };
 };
+
+struct ThreatCorrHistory
+{
+    // must be a power of 2, for fast hash lookup
+    static constexpr size_t hash_table_size = 16384;
+    static TUNEABLE_CONSTANT int correction_max = 60;
+
+    int16_t table[N_SIDES][hash_table_size] = {};
+
+    int16_t* get(const GameState& position, const SearchStackState* ss);
+    void add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position, const SearchStackState* ss);
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+
+private:
+    static int eval_scale()
+    {
+        return 16384 / correction_max;
+    };
+};

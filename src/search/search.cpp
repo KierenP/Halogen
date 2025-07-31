@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
@@ -626,7 +627,8 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     {
         return eval + local.pawn_corr_hist.get_correction_score(position)
             + local.non_pawn_corr[WHITE].get_correction_score(position, WHITE)
-            + local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
+            + local.non_pawn_corr[BLACK].get_correction_score(position, BLACK)
+            + local.threat_corr_hist.get_correction_score(position, ss);
     };
 
     if (tt_entry)
@@ -806,6 +808,14 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     int seen_moves = 0;
     bool noLegalMoves = true;
     ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
+    ss->threat_hash = 0;
+    {
+        auto threat_mask = ss->threat_mask;
+        while (threat_mask)
+        {
+            ss->threat_hash ^= Zobrist::piece_square(WHITE_PAWN, lsbpop(threat_mask));
+        }
+    }
 
     // Step 9: Rebel style IID
     //
@@ -979,6 +989,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         local.pawn_corr_hist.add(position, depth, adj);
         local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
         local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
+        local.threat_corr_hist.add(position, ss, depth, adj);
     }
 
     // Step 21: Update transposition table
