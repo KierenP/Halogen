@@ -622,12 +622,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         return eval.value() * (fifty_mr_scale_a - (int)position.board().fifty_move_count) / fifty_mr_scale_b;
     };
 
-    auto eval_corr_history = [&](Score eval)
-    {
-        return eval + local.pawn_corr_hist.get_correction_score(position)
-            + local.non_pawn_corr[WHITE].get_correction_score(position, WHITE)
-            + local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
-    };
+    auto eval_corr_history = [&](Score eval) { return eval; };
 
     if (tt_entry)
     {
@@ -976,9 +971,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
         const auto adj = score.value() - ss->adjusted_eval.value();
-        local.pawn_corr_hist.add(position, depth, adj);
-        local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
-        local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
     }
 
     // Step 21: Update transposition table
