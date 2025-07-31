@@ -145,7 +145,7 @@ uint64_t major_key(const BoardState& board)
 
     for (const auto side : { WHITE, BLACK })
     {
-        for (const auto piece_type : { ROOK, QUEEN })
+        for (const auto piece_type : { ROOK, QUEEN, KING })
         {
             const auto piece = get_piece(piece_type, side);
             uint64_t bitboard = board.get_pieces_bb(piece);

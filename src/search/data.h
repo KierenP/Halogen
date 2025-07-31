@@ -124,6 +124,7 @@ public:
     ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
+    MajorCorrHistory major_corr_hist;
     int sel_septh = 0;
     AtomicRelaxed<int64_t> tb_hits = 0;
     AtomicRelaxed<int64_t> nodes = 0;
