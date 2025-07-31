@@ -96,7 +96,11 @@ int16_t* ThreatCorrHistory::get(const GameState& position, const SearchStackStat
 {
     const auto& stm = position.board().stm;
     uint64_t hash = ss->threat_hash;
-    return &table[stm][hash % hash_table_size];
+
+    const auto piece = enum_to<PieceType>((ss - 1)->moved_piece);
+    const auto to = (ss - 1)->move.to();
+
+    return &table[stm][hash % hash_table_size][piece][to];
 }
 
 void ThreatCorrHistory::add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff)

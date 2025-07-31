@@ -145,10 +145,10 @@ private:
 struct ThreatCorrHistory
 {
     // must be a power of 2, for fast hash lookup
-    static constexpr size_t hash_table_size = 16384;
+    static constexpr size_t hash_table_size = 512;
     static TUNEABLE_CONSTANT int correction_max = 60;
 
-    int16_t table[N_SIDES][hash_table_size] = {};
+    int16_t table[N_SIDES][hash_table_size][N_PIECE_TYPES][N_SQUARES] = {};
 
     int16_t* get(const GameState& position, const SearchStackState* ss);
     void add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff);
