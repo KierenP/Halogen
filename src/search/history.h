@@ -141,3 +141,35 @@ private:
         return 16384 / correction_max;
     };
 };
+
+struct PieceMoveCorrHistory
+{
+    static TUNEABLE_CONSTANT int correction_max = 59;
+
+    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
+
+    int16_t* get(const GameState& position, const SearchStackState* ss);
+    void add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff);
+    Score get_correction_score(const GameState& position, const SearchStackState* ss);
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+
+private:
+    static int eval_scale()
+    {
+        return 16384 / correction_max;
+    };
+};
+
+struct ContinuationCorrHistory
+{
+    PieceMoveCorrHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+};

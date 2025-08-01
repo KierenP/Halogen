@@ -60,6 +60,7 @@ struct SearchStackState
     int distance_from_root;
 
     PieceMoveHistory* cont_hist_subtable = nullptr;
+    PieceMoveCorrHistory* cont_corr_hist_subtable = nullptr;
 
     NN::Accumulator acc;
 
@@ -124,6 +125,7 @@ public:
     ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
+    ContinuationCorrHistory cont_corr_hist;
     int sel_septh = 0;
     AtomicRelaxed<int64_t> tb_hits = 0;
     AtomicRelaxed<int64_t> nodes = 0;

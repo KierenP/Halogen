@@ -396,6 +396,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
     ss->cont_hist_subtable = nullptr;
+    ss->cont_corr_hist_subtable = nullptr;
     position.apply_null_move();
     // TODO: separate out the accumulator stack from search stack. Then we can make this a no-op
     local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, Move::Uninitialized);
@@ -622,7 +623,14 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         return eval.value() * (fifty_mr_scale_a - (int)position.board().fifty_move_count) / fifty_mr_scale_b;
     };
 
-    auto eval_corr_history = [&](Score eval) { return eval; };
+    auto eval_corr_history = [&](Score eval)
+    {
+        if ((ss - 2)->cont_corr_hist_subtable)
+        {
+            eval += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position, ss);
+        }
+        return eval;
+    };
 
     if (tt_entry)
     {
@@ -898,6 +906,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+        ss->cont_corr_hist_subtable
+            = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
@@ -971,6 +981,11 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
         const auto adj = score.value() - ss->adjusted_eval.value();
+
+        if ((ss - 2)->cont_corr_hist_subtable)
+        {
+            (ss - 2)->cont_corr_hist_subtable->add(position, ss, depth, adj);
+        }
     }
 
     // Step 21: Update transposition table
@@ -1055,6 +1070,8 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+        ss->cont_corr_hist_subtable
+            = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         // TODO: prefetch
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
