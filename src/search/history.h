@@ -122,7 +122,7 @@ struct NonPawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t hash_table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 77;
+    static TUNEABLE_CONSTANT int correction_max = 60;
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
@@ -146,7 +146,7 @@ struct MinorCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 62;
+    static TUNEABLE_CONSTANT int correction_max = 50;
 
     int16_t table[N_SIDES][table_size] = {};
 
