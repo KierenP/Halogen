@@ -816,7 +816,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     }
 
     const Score prob_cut_beta = beta + 100;
-    if (!pv_node && depth >= 6 && eval > beta)
+    if (!pv_node && !InCheck && depth >= 6 && eval > beta)
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
