@@ -789,7 +789,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     const Score prob_cut_beta = beta + 100;
-    if (!pv_node && depth >= 3)
+    if (!pv_node && depth >= 6)
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
