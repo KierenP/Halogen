@@ -777,7 +777,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
-    const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+    bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+    improving |= ss->adjusted_eval > beta;
     ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
