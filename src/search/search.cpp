@@ -635,6 +635,10 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         {
             eval += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position, ss);
         }
+        if ((ss - 3)->cont_corr_hist_subtable)
+        {
+            eval += (ss - 3)->cont_corr_hist_subtable->get_correction_score(position, ss);
+        }
         return eval;
     };
 
@@ -996,6 +1000,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         if ((ss - 2)->cont_corr_hist_subtable)
         {
             (ss - 2)->cont_corr_hist_subtable->add(position, ss, depth, adj);
+        }
+        if ((ss - 3)->cont_corr_hist_subtable)
+        {
+            (ss - 3)->cont_corr_hist_subtable->add(position, ss, depth, adj);
         }
     }
 
