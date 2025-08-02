@@ -1,6 +1,7 @@
 #pragma once
 #include "movegen/list.h"
 #include "movegen/move.h"
+#include "search/score.h"
 
 class GameState;
 struct SearchLocalState;
@@ -8,6 +9,10 @@ struct SearchStackState;
 
 enum class Stage : int8_t
 {
+    PROBCUT_TT_MOVE,
+    PROBCUT_GEN_LOUD,
+    PROBCUT_GIVE_GOOD_LOUD,
+
     TT_MOVE,
     GEN_LOUD,
     GIVE_GOOD_LOUD,
@@ -30,11 +35,8 @@ public:
     StagedMoveGenerator(const GameState& position, const SearchStackState* ss, SearchLocalState& local, Move tt_move,
         bool good_loud_only = false);
 
-    ~StagedMoveGenerator() = default;
-    StagedMoveGenerator(const StagedMoveGenerator&) = delete;
-    StagedMoveGenerator& operator=(const StagedMoveGenerator&) = delete;
-    StagedMoveGenerator(StagedMoveGenerator&&) = delete;
-    StagedMoveGenerator& operator=(StagedMoveGenerator&&) = delete;
+    static StagedMoveGenerator probcut(const GameState& position, const SearchStackState* ss, SearchLocalState& local,
+        Move tt_move, Score probcut_see_margin);
 
     // Returns false if no more legal moves
     bool next(Move& move);
@@ -78,4 +80,5 @@ private:
     const Move TTmove = Move::Uninitialized;
 
     bool skipQuiets = false;
+    Score probcut_see_margin;
 };

@@ -788,6 +788,43 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
+    const Score prob_cut_beta = beta + 100;
+    if (!pv_node && depth >= 3)
+    {
+        StagedMoveGenerator probcut_gen
+            = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
+        int prob_cut_depth = depth - 5;
+
+        Move move;
+        while (probcut_gen.next(move))
+        {
+            if (move == ss->singular_exclusion)
+            {
+                continue;
+            }
+
+            ss->move = move;
+            ss->moved_piece = position.board().get_square_piece(move.from());
+            ss->cont_hist_subtable
+                = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            ss->cont_corr_hist_subtable
+                = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            position.apply_move(move);
+            shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
+            local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
+
+            auto value = -search<SearchType::ZW>(
+                position, ss + 1, local, shared, prob_cut_depth, -prob_cut_beta, -prob_cut_beta + 1, !cut_node);
+
+            position.revert_move();
+
+            if (value >= prob_cut_beta)
+            {
+                return beta;
+            }
+        }
+    }
+
     // Step 8: Mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
     beta = std::min(Score::mate_in(distance_from_root + 1), beta);
