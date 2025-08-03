@@ -508,7 +508,7 @@ int late_move_reduction(
         r -= lmr_loud;
     }
 
-    r -= (correction_value * correction_value) * 1024 / 1048576;
+    r -= (correction_value * correction_value) * 1024 / 1024;
 
     r -= history * lmr_h / 16384;
 
