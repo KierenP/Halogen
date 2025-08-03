@@ -65,6 +65,7 @@ struct SearchStackState
     NN::Accumulator acc;
 
     Score adjusted_eval = 0;
+    Score correction_value = 0;
 };
 
 class SearchStack

@@ -478,7 +478,8 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 }
 
 template <bool pv_node>
-int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud)
+int late_move_reduction(
+    int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud, int correction_value)
 {
     if (seen_moves == 1)
     {
@@ -506,6 +507,8 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
     {
         r -= lmr_loud;
     }
+
+    r -= (correction_value * correction_value) * 256 / 1048576;
 
     r -= history * lmr_h / 16384;
 
@@ -612,6 +615,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     if (in_check)
     {
         ss->adjusted_eval = (ss - 2)->adjusted_eval;
+        ss->correction_value = 0;
         return { SCORE_UNDEFINED, SCORE_UNDEFINED };
     }
 
@@ -627,15 +631,16 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto eval_corr_history = [&](Score eval)
     {
-        eval += local.pawn_corr_hist.get_correction_score(position);
-        eval += local.non_pawn_corr[WHITE].get_correction_score(position, WHITE);
-        eval += local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
+        ss->correction_value = 0;
+        ss->correction_value += local.pawn_corr_hist.get_correction_score(position);
+        ss->correction_value += local.non_pawn_corr[WHITE].get_correction_score(position, WHITE);
+        ss->correction_value += local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
 
         if ((ss - 2)->cont_corr_hist_subtable)
         {
-            eval += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position, ss);
+            ss->correction_value += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position, ss);
         }
-        return eval;
+        return eval + ss->correction_value;
     };
 
     if (tt_entry)
@@ -929,7 +934,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
 
         // Step 16: Late move reductions
-        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+        int r = late_move_reduction<pv_node>(
+            depth, seen_moves, history, cut_node, improving, is_loud_move, ss->correction_value.value());
         Score search_score = search_move<pv_node>(
             position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
 
