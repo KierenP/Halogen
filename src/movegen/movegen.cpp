@@ -933,54 +933,6 @@ bool king_move_is_legal(const BoardState& board, const Move& move)
     return true;
 }
 
-template <Side us>
-uint64_t capture_threat_mask(const BoardState& board)
-{
-    const uint64_t occ = board.get_pieces_bb();
-
-    uint64_t threats = EMPTY;
-    uint64_t vulnerable = board.get_pieces_bb(!us);
-
-    // Pawn capture non-pawn
-    vulnerable ^= board.get_pieces_bb(PAWN, !us);
-    for (uint64_t pieces = board.get_pieces_bb(PAWN, us); pieces != 0;)
-    {
-        threats |= PawnAttacks[us][lsbpop(pieces)] & vulnerable;
-    }
-
-    // Bishop/Knight capture Rook/Queen
-    vulnerable ^= board.get_pieces_bb(KNIGHT, !us) | board.get_pieces_bb(BISHOP, !us);
-    for (uint64_t pieces = board.get_pieces_bb(KNIGHT, us); pieces != 0;)
-    {
-        threats |= attack_bb<KNIGHT>(lsbpop(pieces), occ) & vulnerable;
-    }
-    for (uint64_t pieces = board.get_pieces_bb(BISHOP, us); pieces != 0;)
-    {
-        threats |= attack_bb<BISHOP>(lsbpop(pieces), occ) & vulnerable;
-    }
-
-    // Rook capture queen
-    vulnerable ^= board.get_pieces_bb(ROOK, !us);
-    for (uint64_t pieces = board.get_pieces_bb(ROOK, us); pieces != 0;)
-    {
-        threats |= attack_bb<ROOK>(lsbpop(pieces), occ) & vulnerable;
-    }
-
-    return threats;
-}
-
-uint64_t capture_threat_mask(const BoardState& board, Side colour)
-{
-    if (colour == WHITE)
-    {
-        return capture_threat_mask<WHITE>(board);
-    }
-    else
-    {
-        return capture_threat_mask<BLACK>(board);
-    }
-}
-
 template <>
 uint64_t attack_bb<KNIGHT>(Square sq, uint64_t)
 {
@@ -1009,6 +961,53 @@ template <>
 uint64_t attack_bb<KING>(Square sq, uint64_t)
 {
     return KingAttacks[sq];
+}
+
+std::array<uint64_t, N_PIECE_TYPES> capture_threat_mask(const BoardState& board, Side colour)
+{
+    std::array<uint64_t, N_PIECE_TYPES> threats = {};
+    const uint64_t occ = board.get_pieces_bb();
+
+    uint64_t attacks = EMPTY;
+
+    // Pawn capture non-pawn
+    for (uint64_t pieces = board.get_pieces_bb(PAWN, colour); pieces != 0;)
+    {
+        attacks |= PawnAttacks[colour][lsbpop(pieces)];
+    }
+
+    threats[KNIGHT] = attacks;
+    threats[BISHOP] = attacks;
+
+    // Bishop/Knight capture Rook/Queen
+    for (uint64_t pieces = board.get_pieces_bb(KNIGHT, colour); pieces != 0;)
+    {
+        attacks |= attack_bb<KNIGHT>(lsbpop(pieces), occ);
+    }
+    for (uint64_t pieces = board.get_pieces_bb(BISHOP, colour); pieces != 0;)
+    {
+        attacks |= attack_bb<BISHOP>(lsbpop(pieces), occ);
+    }
+
+    threats[ROOK] = attacks;
+
+    // Rook capture queen
+    for (uint64_t pieces = board.get_pieces_bb(ROOK, colour); pieces != 0;)
+    {
+        attacks |= attack_bb<ROOK>(lsbpop(pieces), occ);
+    }
+
+    threats[QUEEN] = attacks;
+
+    // queen threats
+    for (uint64_t pieces = board.get_pieces_bb(QUEEN, colour); pieces != 0;)
+    {
+        attacks |= attack_bb<QUEEN>(lsbpop(pieces), occ);
+    }
+
+    threats[KING] = attacks;
+
+    return threats;
 }
 
 // Explicit template instantiation

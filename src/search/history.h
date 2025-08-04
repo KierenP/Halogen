@@ -54,7 +54,7 @@ struct ThreatHistory : HistoryTable<ThreatHistory>
 {
     static TUNEABLE_CONSTANT int max_value = 5440;
     static TUNEABLE_CONSTANT int scale = 40;
-    int16_t table[N_SIDES][2][N_SQUARES][N_SQUARES] = {};
+    int16_t table[N_SIDES][2][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 

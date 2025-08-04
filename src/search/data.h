@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/game_state.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
@@ -50,7 +51,7 @@ struct SearchStackState
 
     Move move = Move::Uninitialized;
     Piece moved_piece = N_PIECES;
-    uint64_t threat_mask = EMPTY;
+    std::array<uint64_t, N_PIECE_TYPES> threat_mask = {};
 
     Move singular_exclusion = Move::Uninitialized;
 

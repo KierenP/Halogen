@@ -18,10 +18,10 @@ int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Mo
 int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* ss, Move move)
 {
     const auto& stm = position.board().stm;
-    const uint64_t& threat_mask = ss->threat_mask;
-    const bool from_square_threat = threat_mask & SquareBB[move.from()];
+    const bool from_square_threat = (ss->threat_mask[KING] & SquareBB[move.from()]);
+    const bool to_square_threat = (ss->threat_mask[KING] & SquareBB[move.to()]);
 
-    return &table[stm][from_square_threat][move.from()][move.to()];
+    return &table[stm][from_square_threat][to_square_threat][move.from()][move.to()];
 }
 
 int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*, Move move)
