@@ -918,8 +918,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
+        const bool to_square_threat = (ss->threat_mask[KING] & SquareBB[move.to()]);
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            = &local.cont_hist
+                   .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()][to_square_threat];
         ss->cont_corr_hist_subtable
             = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
@@ -1084,8 +1086,10 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
+        const bool to_square_threat = (ss->threat_mask[KING] & SquareBB[move.to()]);
         ss->cont_hist_subtable
-            = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            = &local.cont_hist
+                   .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()][to_square_threat];
         ss->cont_corr_hist_subtable
             = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);

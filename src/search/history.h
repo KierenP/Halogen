@@ -70,7 +70,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
     static TUNEABLE_CONSTANT int max_value = 9770;
     static TUNEABLE_CONSTANT int scale = 34;
-    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
+    int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][2] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
@@ -82,7 +82,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 struct ContinuationHistory
 {
     static constexpr int cont_hist_depth = 2;
-    PieceMoveHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
+    PieceMoveHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES][2] = {};
 
     constexpr void reset()
     {
