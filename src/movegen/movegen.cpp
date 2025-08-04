@@ -970,20 +970,23 @@ std::array<uint64_t, N_PIECE_TYPES> capture_threat_mask(const BoardState& board,
 
     uint64_t attacks = EMPTY;
 
-    // Pawn capture non-pawn
+    // pawn threats
     for (uint64_t pieces = board.get_pieces_bb(PAWN, colour); pieces != 0;)
     {
         attacks |= PawnAttacks[colour][lsbpop(pieces)];
     }
 
     threats[KNIGHT] = attacks;
-    threats[BISHOP] = attacks;
 
-    // Bishop/Knight capture Rook/Queen
+    // knight threats
     for (uint64_t pieces = board.get_pieces_bb(KNIGHT, colour); pieces != 0;)
     {
         attacks |= attack_bb<KNIGHT>(lsbpop(pieces), occ);
     }
+
+    threats[BISHOP] = attacks;
+
+    // bishop threats
     for (uint64_t pieces = board.get_pieces_bb(BISHOP, colour); pieces != 0;)
     {
         attacks |= attack_bb<BISHOP>(lsbpop(pieces), occ);
@@ -991,7 +994,7 @@ std::array<uint64_t, N_PIECE_TYPES> capture_threat_mask(const BoardState& board,
 
     threats[ROOK] = attacks;
 
-    // Rook capture queen
+    // rook threats
     for (uint64_t pieces = board.get_pieces_bb(ROOK, colour); pieces != 0;)
     {
         attacks |= attack_bb<ROOK>(lsbpop(pieces), occ);
