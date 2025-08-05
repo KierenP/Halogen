@@ -34,6 +34,7 @@
 #include "spsa/tuneable.h"
 #include "uci/uci.h"
 #include "utility/atomic.h"
+#include "utility/splitmix64.h"
 #include "utility/static_vector.h"
 
 enum class SearchType : int8_t
@@ -630,6 +631,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         eval += local.pawn_corr_hist.get_correction_score(position);
         eval += local.non_pawn_corr[WHITE].get_correction_score(position, WHITE);
         eval += local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
+        eval += local.threat_corr_hist.get_correction_score(position, ss);
 
         if ((ss - 2)->cont_corr_hist_subtable)
         {
@@ -779,6 +781,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
     ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
+    ss->threat_hash = hash_uint64(ss->threat_mask[KING]);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
@@ -998,6 +1001,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         local.pawn_corr_hist.add(position, depth, adj);
         local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
         local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
+        local.threat_corr_hist.add(position, ss, depth, adj);
         if ((ss - 2)->cont_corr_hist_subtable)
         {
             (ss - 2)->cont_corr_hist_subtable->add(position, ss, depth, adj);

@@ -110,3 +110,24 @@ Score PieceMoveCorrHistory::get_correction_score(const GameState& position, cons
 {
     return *get(position, ss) / eval_scale();
 }
+
+int16_t* ThreatCorrHistory::get(const GameState& position, const SearchStackState* ss)
+{
+    const auto& stm = position.board().stm;
+    const auto hash = ss->threat_hash;
+    return &table[stm][hash % hash_table_size];
+}
+
+void ThreatCorrHistory::add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff)
+{
+    auto* entry = get(position, ss);
+
+    int change = std::clamp(eval_diff * depth * corr_hist_scale / 64, -correction_max * eval_scale() / 4,
+        correction_max * eval_scale() / 4);
+    *entry += change - *entry * abs(change) / (correction_max * eval_scale());
+}
+
+Score ThreatCorrHistory::get_correction_score(const GameState& position, const SearchStackState* ss)
+{
+    return *get(position, ss) / eval_scale();
+}
