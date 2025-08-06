@@ -120,11 +120,13 @@ Score aspiration_window(
     Score delta = aspiration_window_size;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
     Score beta = std::min<Score>(Score::Limits::MATE, mid_score + delta);
+    int fail_high_count = 0;
 
     while (true)
     {
         local.sel_septh = 0;
-        auto score = search<SearchType::ROOT>(position, ss, local, shared, local.curr_depth, alpha, beta, false);
+        auto adjusted_depth = std::max(1, local.curr_depth - fail_high_count);
+        auto score = search<SearchType::ROOT>(position, ss, local, shared, adjusted_depth, alpha, beta, false);
 
         if (local.aborting_search)
         {
@@ -143,6 +145,7 @@ Score aspiration_window(
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
+            fail_high_count = 0;
         }
 
         if (score >= beta)
@@ -150,6 +153,7 @@ Score aspiration_window(
             score = beta;
             shared.report_search_result(ss, local, score, SearchResultType::LOWER_BOUND);
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
+            fail_high_count++;
         }
 
         delta = delta + delta / 2;
