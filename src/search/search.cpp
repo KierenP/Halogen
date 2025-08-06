@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <thread>
 #include <tuple>
@@ -80,6 +81,9 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         {
             local.curr_multi_pv = multi_pv;
             auto score = aspiration_window(position, ss, local, shared, mid_score);
+
+            shared.set_best_search_result({ local.root_moves[0].search_depth, local.sel_septh, 1, shared.nodes(),
+                local.root_moves[0].score, local.root_moves[0].pv, local.root_moves[0].type });
 
             if (local.aborting_search)
             {
@@ -955,6 +959,26 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                 local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
             local.root_moves[idx].nodes += local.nodes - prev_nodes;
             local.root_moves[idx].score = search_score;
+            local.root_moves[idx].search_depth = local.curr_depth;
+            local.root_moves[idx].pv = ss->pv;
+
+            // If the search aborts half way through a particular depth, we may be able to make use of this partial
+            // result. root_moves[0] contains the best move so far, so any exact or lower-bound scores can be used to
+            // potentially beat this. If the first move fails low, then we can fall back to a lower depth exact result
+            // which is shown to be better.
+            if (score > original_alpha || seen_moves == 1)
+            {
+                local.root_moves[idx].score = search_score;
+            }
+            else
+            {
+                local.root_moves[idx].score = std::numeric_limits<Score>::min();
+            }
+
+            local.root_moves[idx].type = score <= original_alpha ? SearchResultType::UPPER_BOUND
+                : score >= beta                                  ? SearchResultType::LOWER_BOUND
+                                                                 : SearchResultType::EXACT;
+            std::ranges::stable_sort(local.root_moves, std::greater {}, &RootMove::score);
         }
 
         // Step 17: Update history move tables and check for fail-high
