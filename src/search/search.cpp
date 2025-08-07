@@ -850,15 +850,15 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         Move move;
         Score bns_threshold = alpha + (beta - alpha) / 4;
         int moves_above_threshold = 0;
+        int seen_moves = 0;
 
         while (gen.next(move))
         {
-            if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
+            if (root_node && local.should_skip_root_move(move))
             {
                 continue;
             }
 
-            noLegalMoves = false;
             const int64_t prev_nodes = local.nodes;
             seen_moves++;
 
@@ -867,17 +867,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             if (depth < lmp_max_d && seen_moves >= lmp_margin && score > Score::tb_loss_in(MAX_DEPTH))
             {
                 gen.skip_quiets();
-            }
-
-            if (!pv_node && !InCheck && depth < fp_max_d
-                && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha
-                && score > Score::tb_loss_in(MAX_DEPTH))
-            {
-                gen.skip_quiets();
-                if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
-                {
-                    goto mainloop;
-                }
             }
 
             bool is_loud_move = move.is_capture() || move.is_promotion();
@@ -928,13 +917,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                 return SCORE_UNDEFINED;
             }
 
-            if (root_node)
-            {
-                const auto idx = std::ranges::distance(
-                    local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
-                local.root_moves[idx].nodes += local.nodes - prev_nodes;
-                local.root_moves[idx].score = search_score;
-            }
+            const auto idx = std::ranges::distance(
+                local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
+            local.root_moves[idx].nodes += local.nodes - prev_nodes;
+            local.root_moves[idx].score = search_score;
 
             if (search_score > bns_threshold)
             {
