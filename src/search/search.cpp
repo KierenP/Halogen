@@ -844,11 +844,12 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
     // This is a hacky impl that just copies the main search loop. We use a while loop so we can break out of it and
     // continue down to the regular search loop, but also return early if we find a move that fails high.
-    while (root_node)
+    if (root_node)
     {
         StagedMoveGenerator gen(position, ss, local, tt_move, false);
         Move move;
         Score bns_threshold = alpha + (beta - alpha) / 4;
+        auto score = std::numeric_limits<Score>::min();
         int moves_above_threshold = 0;
         int seen_moves = 0;
 
@@ -932,12 +933,14 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                 {
                     goto mainloop;
                 }
+
+                UpdatePV(move, ss);
             }
         }
 
         if (moves_above_threshold == 0 || moves_above_threshold)
         {
-            break;
+            goto mainloop;
         }
 
         assert(moves_above_threshold == 1);
