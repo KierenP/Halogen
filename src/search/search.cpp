@@ -156,7 +156,7 @@ Score aspiration_window(
             fail_high_count++;
         }
 
-        delta = delta + delta / 2;
+        delta = delta + delta / 3;
     }
 }
 
