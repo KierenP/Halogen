@@ -837,6 +837,134 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         depth--;
     }
 
+    // Root best node search
+    // For the root node specifically, we only care about which move is the best move and not the exact score. By
+    // carefully choosing a threshold, we can do a series of zero width searches such that exactly one move fails
+    // high. If this occurs, we can be confident this move is proven to be the best.
+
+    // This is a hacky impl that just copies the main search loop. We use a while loop so we can break out of it and
+    // continue down to the regular search loop, but also return early if we find a move that fails high.
+    while (root_node)
+    {
+        StagedMoveGenerator gen(position, ss, local, tt_move, false);
+        Move move;
+        Score bns_threshold = alpha + (beta - alpha) / 4;
+        int moves_above_threshold = 0;
+
+        while (gen.next(move))
+        {
+            if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
+            {
+                continue;
+            }
+
+            noLegalMoves = false;
+            const int64_t prev_nodes = local.nodes;
+            seen_moves++;
+
+            const auto lmp_margin
+                = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)) / 64;
+            if (depth < lmp_max_d && seen_moves >= lmp_margin && score > Score::tb_loss_in(MAX_DEPTH))
+            {
+                gen.skip_quiets();
+            }
+
+            if (!pv_node && !InCheck && depth < fp_max_d
+                && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha
+                && score > Score::tb_loss_in(MAX_DEPTH))
+            {
+                gen.skip_quiets();
+                if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
+                {
+                    goto mainloop;
+                }
+            }
+
+            bool is_loud_move = move.is_capture() || move.is_promotion();
+            int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_search_history(ss, move));
+            auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
+                                                   : -see_quiet_depth * depth - history / see_quiet_hist;
+
+            if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= see_max_depth
+                && !see_ge(position.board(), move, see_pruning_margin))
+            {
+                continue;
+            }
+
+            if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move
+                && history < -hist_prune_depth * depth - hist_prune)
+            {
+                gen.skip_quiets();
+                continue;
+            }
+
+            int extensions = 0;
+
+            ss->move = move;
+            ss->moved_piece = position.board().get_square_piece(move.from());
+            ss->cont_hist_subtable
+                = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            ss->cont_corr_hist_subtable
+                = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
+            position.apply_move(move);
+            shared.transposition_table.prefetch(
+                Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
+            local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
+
+            if (is_in_check(position.board()))
+            {
+                extensions += 1;
+            }
+
+            int reductions
+                = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+            Score search_score = -search<SearchType::ZW>(position, ss + 1, local, shared,
+                depth + extensions - reductions - 1, -(bns_threshold + 1), -bns_threshold, true);
+
+            position.revert_move();
+
+            if (local.aborting_search)
+            {
+                return SCORE_UNDEFINED;
+            }
+
+            if (root_node)
+            {
+                const auto idx = std::ranges::distance(
+                    local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
+                local.root_moves[idx].nodes += local.nodes - prev_nodes;
+                local.root_moves[idx].score = search_score;
+            }
+
+            if (search_score > bns_threshold)
+            {
+                moves_above_threshold++;
+
+                // if more than one move is above the threshold, we break out of the loop and fall back to the main
+                // search
+                if (moves_above_threshold > 1)
+                {
+                    goto mainloop;
+                }
+            }
+
+            if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
+            {
+                goto mainloop;
+            }
+        }
+
+        if (moves_above_threshold == 0 || moves_above_threshold)
+        {
+            break;
+        }
+
+        assert(moves_above_threshold == 1);
+        score = std::clamp(score, min_score, max_score);
+        return score;
+    }
+
+mainloop:
     StagedMoveGenerator gen(position, ss, local, tt_move, false);
     Move move;
 
