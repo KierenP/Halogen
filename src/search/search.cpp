@@ -475,7 +475,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // move as heavily.
     else if (tt_score >= beta)
     {
-        extensions += -1;
+        extensions += -2;
     }
 
     else if (cut_node)
