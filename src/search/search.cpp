@@ -933,11 +933,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                     goto mainloop;
                 }
             }
-
-            if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
-            {
-                goto mainloop;
-            }
         }
 
         if (moves_above_threshold == 0 || moves_above_threshold)
