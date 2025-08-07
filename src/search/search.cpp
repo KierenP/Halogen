@@ -923,6 +923,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             local.root_moves[idx].nodes += local.nodes - prev_nodes;
             local.root_moves[idx].score = search_score;
 
+            score = std::max(score, search_score);
+
             if (search_score > bns_threshold)
             {
                 moves_above_threshold++;
