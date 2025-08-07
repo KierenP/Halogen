@@ -966,7 +966,8 @@ uint64_t attack_bb<KING>(Square sq, uint64_t)
 std::array<uint64_t, N_PIECE_TYPES> capture_threat_mask(const BoardState& board, Side colour)
 {
     std::array<uint64_t, N_PIECE_TYPES> threats = {};
-    const uint64_t occ = board.get_pieces_bb();
+    uint64_t occ = board.get_pieces_bb();
+    occ ^= board.get_pieces_bb(KING, !colour); // consider skewers through the enemy king
 
     uint64_t attacks = EMPTY;
 
