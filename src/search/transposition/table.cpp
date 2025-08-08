@@ -1,4 +1,5 @@
 #include "search/transposition/table.h"
+#include "spsa/tuneable.h"
 
 #include <algorithm>
 #include <array>
@@ -63,7 +64,7 @@ void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int De
         {
             // always replace if exact, or if the depth is sufficiently high. There's a trade-off here between wanting
             // to save the higher depth entry, and wanting to save the newer entry (which might have better bounds)
-            if (Cutoff == SearchResultType::EXACT || Depth >= bucket[i].depth - 3)
+            if (Cutoff == SearchResultType::EXACT || Depth >= bucket[i].depth - tt_replace_self_depth)
             {
                 write_to_entry(bucket[i]);
             }
@@ -72,7 +73,9 @@ void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int De
 
         Meta meta = bucket[i].meta;
         int8_t age_diff = (int8_t)current_generation - (int8_t)meta.generation;
-        scores[i] = bucket[i].depth - 4 * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX);
+        scores[i] = (tt_replace_depth * bucket[i].depth
+                        - tt_replace_age * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX))
+            / 64;
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
