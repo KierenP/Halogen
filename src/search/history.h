@@ -90,13 +90,12 @@ struct ContinuationHistory
     }
 };
 
-TUNEABLE_CONSTANT int corr_hist_scale = 129;
-
 struct PawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t pawn_hash_table_size = 16384;
     static TUNEABLE_CONSTANT int correction_max = 61;
+    static TUNEABLE_CONSTANT int scale = 129;
 
     int16_t table[N_SIDES][pawn_hash_table_size] = {};
 
@@ -123,6 +122,7 @@ struct NonPawnCorrHistory
     // must be a power of 2, for fast hash lookup
     static constexpr size_t hash_table_size = 16384;
     static TUNEABLE_CONSTANT int correction_max = 81;
+    static TUNEABLE_CONSTANT int scale = 129;
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
@@ -145,6 +145,7 @@ private:
 struct PieceMoveCorrHistory
 {
     static TUNEABLE_CONSTANT int correction_max = 59;
+    static TUNEABLE_CONSTANT int scale = 129;
 
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
 

@@ -24,6 +24,7 @@
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
+#include "network/arch.hpp"
 #include "network/network.h"
 #include "search/data.h"
 #include "search/history.h"
@@ -265,8 +266,8 @@ auto Uci::options_handler()
 
 #ifdef TUNE
         tuneable_float(LMR_constant, -2.5, -0.5),
-        tuneable_float(LMR_depth_coeff, 0.1, 2.1),
-        tuneable_float(LMR_move_coeff, 1.7, 3.7),
+        tuneable_float(LMR_depth_coeff, 0.4, 2.4),
+        tuneable_float(LMR_move_coeff, 1.5, 3.5),
         tuneable_float(LMR_depth_move_coeff, -1.07, -0.57),
 
         tuneable_int(aspiration_window_size, 5, 15),
@@ -282,14 +283,14 @@ auto Uci::options_handler()
         tuneable_int(se_double, 0, 30),
         tuneable_int(se_double_pv, 200, 600),
         tuneable_int(se_double_hd, 150, 600),
-        tuneable_int(se_double_quiet, 0, 30),
+        tuneable_int(se_double_quiet, -30, 30),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
-        tuneable_int(lmr_pv, 500, 1500),
-        tuneable_int(lmr_cut, 500, 1500),
-        tuneable_int(lmr_improving, 500, 1500),
-        tuneable_int(lmr_loud, 500, 1500),
+        tuneable_int(lmr_pv, 700, 2800),
+        tuneable_int(lmr_cut, 700, 2800),
+        tuneable_int(lmr_improving, 500, 2000),
+        tuneable_int(lmr_loud, 400, 1600),
         tuneable_int(lmr_h, 2000, 3000),
         tuneable_int(lmr_offset, 0, 1000),
 
@@ -300,6 +301,7 @@ auto Uci::options_handler()
         tuneable_int(rfp_const, -1000, 1000),
         tuneable_int(rfp_depth, 1500, 6000),
         tuneable_int(rfp_quad, 0, 500),
+        tuneable_int(rfp_threat, 0, 100),
 
         tuneable_int(lmp_max_d, 3, 9),
         tuneable_int(lmp_const, 64, 640),
@@ -318,10 +320,11 @@ auto Uci::options_handler()
         tuneable_int(see_max_depth, 3, 12),
 
         tuneable_int(hist_prune_depth, 1500, 6000),
-        tuneable_int(hist_prune, 0, 2000),
+        tuneable_int(hist_prune, -2000, 2000),
 
         tuneable_int(delta_c, 0, 500),
 
+        tuneable_int(eval_scale[PAWN], -200, 200),
         tuneable_int(eval_scale[KNIGHT], 200, 800),
         tuneable_int(eval_scale[BISHOP], 200, 800),
         tuneable_int(eval_scale[ROOK], 400, 1200),
@@ -338,16 +341,20 @@ auto Uci::options_handler()
         tuneable_float(node_tm_base, 0.2, 0.8),
         tuneable_float(node_tm_scale, 1.0, 3.0),
         tuneable_int(blitz_tc_a, 20, 80),
-        tuneable_int(blitz_tc_b, 300, 1200),
+        tuneable_int(blitz_tc_b, 150, 600),
         tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
         tuneable_int(history_bonus_const, 450, 1800),
         tuneable_int(history_bonus_depth, -500, 500),
-        tuneable_int(history_bonus_quad, 32, 128),
+        tuneable_int(history_bonus_quad, 40, 160),
         tuneable_int(history_penalty_const, 500, 2000),
         tuneable_int(history_penalty_depth, -500, 500),
-        tuneable_int(history_penalty_quad, 32, 128),
+        tuneable_int(history_penalty_quad, 20, 80),
+
+        tuneable_int(tt_replace_self_depth, 0, 6),
+        tuneable_int(tt_replace_depth, 32, 128),
+        tuneable_int(tt_replace_age, 128, 512),
 
         tuneable_int(PawnHistory::max_value, 1000, 32000),
         tuneable_int(PawnHistory::scale, 20, 50),
@@ -361,9 +368,13 @@ auto Uci::options_handler()
         tuneable_int(PieceMoveHistory::scale, 20, 50),
 
         tuneable_int(PawnCorrHistory::correction_max, 32, 128),
+        tuneable_int(PawnCorrHistory::scale, 64, 256),
         tuneable_int(NonPawnCorrHistory::correction_max, 32, 128),
+        tuneable_int(NonPawnCorrHistory::scale, 64, 256),
+        tuneable_int(PieceMoveCorrHistory::correction_max, 32, 128),
+        tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
 
-        tuneable_int(corr_hist_scale, 64, 256),
+        tuneable_float(SCALE_FACTOR, 80, 320),
 
         tuneable_int(good_loud_see, 0, 200),
         tuneable_int(good_loud_see_hist, 0, 100),

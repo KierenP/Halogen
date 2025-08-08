@@ -308,6 +308,7 @@ void SearchSharedState::report_thread_wants_to_stop()
         }
     }
 
+    // TODO: SPSA SMP tune this?
     if (abort_votes * 2 >= threads_setting)
     {
         stop_searching = true;
