@@ -290,8 +290,9 @@ constexpr bool path_clear(Square from, Square to, uint64_t pieces)
     return (BetweenBB[from][to] & pieces) == 0;
 }
 
-// TODO: MAX_DEPTH and MAX_RECURSION should be defined separately
-const int MAX_DEPTH = 100;
+const int MAX_ITERATIVE_DEEPENING = 128;
+const int MAX_RECURSION = 128;
+inline constexpr size_t MAX_LEGAL_MOVES = 256;
 
 enum class Shift : int8_t
 {

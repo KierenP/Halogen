@@ -47,7 +47,7 @@ struct SearchStackState
 {
     SearchStackState(int distance_from_root_);
 
-    StaticVector<Move, MAX_DEPTH> pv = {};
+    StaticVector<Move, MAX_RECURSION> pv = {};
 
     Move move = Move::Uninitialized;
     Piece moved_piece = N_PIECES;
@@ -73,7 +73,7 @@ class SearchStack
     // The search accesses [ss-4, ss+1]
     constexpr static int min_access = -4;
     constexpr static int max_access = 1;
-    constexpr static size_t size = MAX_DEPTH + max_access - min_access;
+    constexpr static size_t size = MAX_RECURSION + max_access - min_access;
 
 public:
     const SearchStackState* root() const;
@@ -143,7 +143,7 @@ public:
     // If we don't think we can complete the next depth within the iterative deepening loop before running out of time,
     // we want to stop the search early and save the leftover time. When multiple threads are involved, we don't want
     // the threads stopping early if other threads are continuing. This signal lets the SearchSharedData check which
-    // threads want to stop and if all threads do then we stop the search. TODO: could use a consensus model?
+    // threads want to stop and if half of the threads do then we stop the search.
     AtomicRelAcq<bool> thread_wants_to_stop = false;
 
     // If set, these restrict the possible root moves considered. A root move will be skipped if it is present in the
@@ -151,7 +151,7 @@ public:
     BasicMoveList root_move_whitelist {};
     BasicMoveList root_move_blacklist {};
 
-    StaticVector<RootMove, 256> root_moves;
+    StaticVector<RootMove, MAX_LEGAL_MOVES> root_moves;
 
     // Each time we check the time remaining, we reset this counter to schedule a later time to recheck
     int limit_check_counter = 0;
@@ -168,7 +168,7 @@ struct SearchResults
     int multi_pv = 0;
     int64_t nodes = 0;
     Score score = SCORE_UNDEFINED;
-    StaticVector<Move, MAX_DEPTH> pv = {};
+    StaticVector<Move, MAX_RECURSION> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
 };
 
@@ -221,7 +221,7 @@ private:
     int threads_setting {};
 
     // [thread_id][multi_pv][depth]
-    std::vector<std::vector<std::array<SearchResults, MAX_DEPTH>>> search_results_;
+    std::vector<std::vector<std::array<SearchResults, MAX_ITERATIVE_DEEPENING>>> search_results_;
 
     std::optional<SearchResults> best_search_result_;
 };

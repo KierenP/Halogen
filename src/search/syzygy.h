@@ -19,7 +19,7 @@ public:
         int32_t tb_rank;
     };
 
-    StaticVector<RootMove, 256> root_moves;
+    StaticVector<RootMove, MAX_LEGAL_MOVES> root_moves;
 };
 
 class Syzygy

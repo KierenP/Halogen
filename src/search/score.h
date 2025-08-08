@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bitboard/define.h"
 #include <cstdint>
 #include <cstdlib>
 #include <ostream>
@@ -19,11 +20,11 @@ public:
         static constexpr int MATED = -10000;
         static constexpr int MATE = 10000;
 
-        static constexpr int TB_LOSS_SCORE = -9900;
-        static constexpr int TB_WIN_SCORE = 9900;
+        static constexpr int TB_LOSS_SCORE = MATED + MAX_RECURSION + 1;
+        static constexpr int TB_WIN_SCORE = MATE - MAX_RECURSION - 1;
 
-        static constexpr int EVAL_MIN = -9800;
-        static constexpr int EVAL_MAX = 9800;
+        static constexpr int EVAL_MIN = TB_LOSS_SCORE + MAX_RECURSION + 1;
+        static constexpr int EVAL_MAX = TB_WIN_SCORE - MAX_RECURSION - 1;
 
         static constexpr int DRAW = 0;
     };
@@ -146,6 +147,27 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const Score& s)
     {
         return os << s.value() << "cp";
+    }
+
+    // helper functions
+    [[nodiscard]] constexpr bool is_win() const
+    {
+        return *this >= Score::tb_win_in(MAX_RECURSION);
+    }
+
+    [[nodiscard]] constexpr bool is_draw() const
+    {
+        return *this == Score::draw();
+    }
+
+    [[nodiscard]] constexpr bool is_loss() const
+    {
+        return *this <= Score::tb_loss_in(MAX_RECURSION);
+    }
+
+    [[nodiscard]] constexpr bool is_decisive() const
+    {
+        return is_win() || is_loss();
     }
 
 private:

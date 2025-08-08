@@ -258,7 +258,7 @@ auto Uci::options_handler()
         CheckOption { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
         SpinOption { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
         SpinOption { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
-        SpinOption { "MultiPV", 1, 1, 256, [this](auto value) { handle_setoption_multipv(value); } },
+        SpinOption { "MultiPV", 1, 1, MAX_LEGAL_MOVES, [this](auto value) { handle_setoption_multipv(value); } },
         StringOption { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         ComboOption {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
@@ -544,7 +544,6 @@ void Uci::process_input_stream(std::istream& is)
 
 void Uci::process_input(std::string_view command)
 {
-    // TODO: Should not be needed, the parsing should just take string_view by value everywhere
     auto original = command;
 
     // We first try to handle the UCI commands that we expect to get during the search. If we cannot, then we join the
@@ -692,12 +691,13 @@ void UciOutput::print_search_info(
 
     std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
 
-    if (Score(abs(data.score.value())) > Score::mate_in(MAX_DEPTH))
+    if (data.score >= Score::mate_in(MAX_RECURSION))
     {
-        if (data.score > 0)
-            std::cout << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
-        else
-            std::cout << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+        std::cout << " score mate " << ((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
+    }
+    else if (data.score <= Score::mated_in(MAX_RECURSION))
+    {
+        std::cout << " score mate " << -((Score::Limits::MATE - abs(data.score.value())) + 1) / 2;
     }
     else
     {
