@@ -43,7 +43,7 @@ struct HistoryTable
 
 struct PawnHistory : HistoryTable<PawnHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 7392;
+    static TUNEABLE_CONSTANT int max_value = 7200;
     static TUNEABLE_CONSTANT int scale = 38;
     static constexpr size_t pawn_states = 512;
     int16_t table[N_SIDES][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
@@ -52,24 +52,24 @@ struct PawnHistory : HistoryTable<PawnHistory>
 
 struct ThreatHistory : HistoryTable<ThreatHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 5440;
-    static TUNEABLE_CONSTANT int scale = 40;
+    static TUNEABLE_CONSTANT int max_value = 4768;
+    static TUNEABLE_CONSTANT int scale = 41;
     int16_t table[N_SIDES][2][2][N_SQUARES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 18829;
-    static TUNEABLE_CONSTANT int scale = 41;
+    static TUNEABLE_CONSTANT int max_value = 17843;
+    static TUNEABLE_CONSTANT int scale = 44;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
 
 struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 {
-    static TUNEABLE_CONSTANT int max_value = 9770;
-    static TUNEABLE_CONSTANT int scale = 34;
+    static TUNEABLE_CONSTANT int max_value = 10409;
+    static TUNEABLE_CONSTANT int scale = 35;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
     int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
 };
@@ -90,7 +90,7 @@ struct ContinuationHistory
     }
 };
 
-TUNEABLE_CONSTANT int corr_hist_scale = 133;
+TUNEABLE_CONSTANT int corr_hist_scale = 129;
 
 struct PawnCorrHistory
 {
@@ -122,7 +122,7 @@ struct NonPawnCorrHistory
 {
     // must be a power of 2, for fast hash lookup
     static constexpr size_t hash_table_size = 16384;
-    static TUNEABLE_CONSTANT int correction_max = 77;
+    static TUNEABLE_CONSTANT int correction_max = 81;
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
