@@ -473,9 +473,14 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // might decide to reduce the TT move search. The TT move doesn't have LMR applied, to heuristically this
     // reduction can be thought of as evening out the search depth between the moves and not favouring the TT
     // move as heavily.
-    else if (tt_score >= beta || cut_node)
+    else if (tt_score >= beta)
     {
         extensions += -1;
+    }
+
+    else if (cut_node)
+    {
+        extensions += -2;
     }
 
     return std::nullopt;
