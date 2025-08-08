@@ -480,7 +480,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 
     else if (cut_node)
     {
-        extensions += -2;
+        extensions += -3;
     }
 
     return std::nullopt;
