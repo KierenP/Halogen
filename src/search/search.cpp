@@ -66,7 +66,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     auto* ss = local.search_stack.root();
     Score mid_score = 0;
 
-    for (int depth = 1; depth < MAX_DEPTH; depth++)
+    for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
         if (shared.limits.depth && depth > shared.limits.depth)
         {
@@ -218,7 +218,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     local.sel_septh = std::max(local.sel_septh, distance_from_root);
     local.nodes.fetch_add(1, std::memory_order_relaxed);
 
-    if (distance_from_root >= MAX_DEPTH)
+    if (distance_from_root >= MAX_RECURSION)
     {
         return 0;
     }
@@ -275,11 +275,11 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
         {
             const auto bound = [tb_score]()
             {
-                if (tb_score == Score::draw())
+                if (tb_score.is_draw())
                 {
                     return SearchResultType::EXACT;
                 }
-                else if (tb_score >= Score::tb_win_in(MAX_DEPTH))
+                else if (tb_score.is_win())
                 {
                     return SearchResultType::LOWER_BOUND;
                 }
@@ -321,7 +321,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
 
         if constexpr (pv_node)
         {
-            if (tb_score >= Score::tb_win_in(MAX_DEPTH))
+            if (tb_score.is_win())
             {
                 min_score = tb_score;
                 alpha = std::max(alpha, tb_score);
@@ -464,7 +464,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
     // the TT move having a LOWER_BOUND score of significantly above beta. In this case, we can assume the node
     // will fail high and we return a soft bound. Avoid returning false mate scores.
-    else if (sbeta >= beta && std::abs(sbeta) < Score::tb_win_in(MAX_DEPTH))
+    else if (sbeta >= beta && !sbeta.is_decisive())
     {
         return sbeta;
     }
@@ -663,7 +663,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         ss->adjusted_eval = adjusted_eval;
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
-        if (tt_score != SCORE_UNDEFINED && (!is_qsearch || std::abs(tt_score) < Score::tb_win_in(MAX_DEPTH))
+        if (tt_score != SCORE_UNDEFINED && (!is_qsearch || !tt_score.is_decisive())
             && (tt_cutoff == SearchResultType::EXACT
                 || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adjusted_eval)
                 || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adjusted_eval)))
@@ -863,7 +863,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // pruning
         const auto lmp_margin
             = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)) / 64;
-        if (depth < lmp_max_d && seen_moves >= lmp_margin && score > Score::tb_loss_in(MAX_DEPTH))
+        if (depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
         {
             gen.skip_quiets();
         }
@@ -872,8 +872,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
-            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha
-            && score > Score::tb_loss_in(MAX_DEPTH))
+            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha && !score.is_loss())
         {
             gen.skip_quiets();
             if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
@@ -892,13 +891,12 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
                                                : -see_quiet_depth * depth - history / see_quiet_hist;
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && depth <= see_max_depth
-            && !see_ge(position.board(), move, see_pruning_margin))
+        if (!score.is_loss() && depth <= see_max_depth && !see_ge(position.board(), move, see_pruning_margin))
         {
             continue;
         }
 
-        if (score > Score::tb_loss_in(MAX_DEPTH) && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
+        if (!score.is_loss() && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
         {
             gen.skip_quiets();
             continue;

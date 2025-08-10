@@ -10,9 +10,9 @@ Score convert_to_tt_score(Score val, int distance_from_root)
 {
     if (val == SCORE_UNDEFINED)
         return val;
-    if (val >= Score::tb_win_in(MAX_DEPTH))
+    if (val.is_win())
         return val + distance_from_root;
-    if (val <= Score::tb_loss_in(MAX_DEPTH))
+    if (val.is_loss())
         return val - distance_from_root;
     return val;
 }
@@ -21,9 +21,9 @@ Score convert_from_tt_score(Score val, int distance_from_root)
 {
     if (val == SCORE_UNDEFINED)
         return val;
-    if (val >= Score::tb_win_in(MAX_DEPTH))
+    if (val.is_win())
         return val - distance_from_root;
-    if (val <= Score::tb_loss_in(MAX_DEPTH))
+    if (val.is_loss())
         return val + distance_from_root;
     return val;
 }
