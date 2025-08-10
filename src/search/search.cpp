@@ -896,12 +896,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             continue;
         }
 
-        if (!score.is_loss() && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
-        {
-            gen.skip_quiets();
-            continue;
-        }
-
         int extensions = 0;
 
         // Step 14: Singular extensions.
