@@ -248,7 +248,6 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         crelu = SIMD::mul_ps(crelu, one_reciprocal);
         auto screlu = SIMD::mul_ps(crelu, crelu);
         crelu = SIMD::max_ps(zero, crelu);
-        screlu = SIMD::max_ps(zero, screlu);
         crelu = SIMD::min_ps(one, crelu);
         screlu = SIMD::min_ps(one, screlu);
         SIMD::store_ps(&output[i], crelu);
@@ -331,14 +330,43 @@ void L3_activation(
     constexpr auto stride = SIMD::vec_size / sizeof(float);
     static_assert(L2_SIZE % stride == 0);
 
-    auto result = SIMD::setzero_ps();
+    SIMD::vecs results[L2_SIZE / stride];
+
+    for (size_t i = 0; i < L2_SIZE; i += stride)
+    {
+        results[i / stride] = SIMD::setzero_ps();
+    }
+
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
         auto vec = SIMD::load_ps(&l2_activation[i]);
-        result = SIMD::fmadd_ps(vec, SIMD::load_ps(&l3_weight[i]), result);
+        results[i / stride] = SIMD::mul_ps(vec, SIMD::load_ps(&l3_weight[i]));
     }
 
-    output += SIMD::hsum_ps(result);
+    // To make Halogen produce a stable bench on different platforms, we must add the floats in exactly the same way. To
+    // achieve this, we can carefully combine the results together in the following way:
+
+#if defined(USE_AVX512)
+    results[0] = SIMD::add_ps(results[0], results[1]);
+    output += SIMD::hsum_ps(results[0]);
+#elif defined(USE_AVX2)
+    results[0] = SIMD::add_ps(results[0], results[2]);
+    results[1] = SIMD::add_ps(results[1], results[3]);
+    results[0] = SIMD::add_ps(results[0], results[1]);
+    output += SIMD::hsum_ps(results[0]);
+#elif defined(USE_SSE4)
+    results[0] = SIMD::add_ps(results[0], results[4]);
+    results[1] = SIMD::add_ps(results[1], results[5]);
+    results[2] = SIMD::add_ps(results[2], results[6]);
+    results[3] = SIMD::add_ps(results[3], results[7]);
+    results[0] = SIMD::add_ps(results[0], results[2]);
+    results[1] = SIMD::add_ps(results[1], results[3]);
+    results[0] = SIMD::add_ps(results[0], results[1]);
+    output += SIMD::hsum_ps(results[0]);
+#else
+    static_assert(false, "Unsupported SIMD vector size");
+#endif
+
 #else
     for (size_t i = 0; i < L2_SIZE; i++)
     {
