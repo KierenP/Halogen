@@ -45,12 +45,14 @@ inline float hsum_ps(__m256 v)
 #if defined(USE_AVX512)
 inline int32_t hsum_epi32(__m512i v)
 {
-    return _mm512_reduce_add_epi32(v);
+    __m256i sum256 = _mm256_add_epi32(_mm512_castsi512_si256(v), _mm512_extracti64x4_epi64(v, 1));
+    return hsum_epi32(sum256);
 }
 
 inline float hsum_ps(__m512 v)
 {
-    return _mm512_reduce_add_ps(v);
+    __m256 sum256 = _mm256_add_ps(_mm512_castps512_ps256(v), _mm512_extractf32x8_ps(v, 1));
+    return hsum_ps(sum256);
 }
 #endif
 
