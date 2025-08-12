@@ -609,7 +609,7 @@ void Uci::process_input(std::string_view command)
             Consume { "perft_legality", Invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
             Consume { "perft960_legality", Invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
         Consume { "bench", OneOf  {
-            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(10); } } },
+            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(14); } } },
             NextToken { ToInt { [this](auto value){ handle_bench(value); } } } } },
         Consume { "print", Invoke { [this] { handle_print(); } } },
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
