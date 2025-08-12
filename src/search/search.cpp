@@ -554,11 +554,11 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 {
     if (search_score > best_score)
     {
-        best_move = search_move;
         best_score = search_score;
 
         if (best_score > alpha)
         {
+            best_move = search_move;
             alpha = best_score;
 
             if constexpr (pv_node)
@@ -997,7 +997,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                                                : SearchResultType::EXACT;
 
     // Step 20: Adjust eval correction history
-    if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
+    if (!InCheck && (bestMove == Move::Uninitialized || (!bestMove.is_capture() && !bestMove.is_promotion()))
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
