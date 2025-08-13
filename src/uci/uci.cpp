@@ -364,6 +364,8 @@ auto Uci::options_handler()
         tuneable_int(NonPawnCorrHistory::correction_max, 32, 128),
 
         tuneable_int(corr_hist_scale, 64, 256),
+
+        tuneable_int(good_loud_see, -250, 0),
 #else
 #endif
     };
