@@ -61,7 +61,7 @@ bool StagedMoveGenerator::next(Move& move)
     {
         while (current != loudMoves.end())
         {
-            if (see_ge(position.board(), current->move, -good_loud_see - current->score * 30 / 1024))
+            if (see_ge(position.board(), current->move, -good_loud_see - current->score * 70 / 1024))
             {
                 move = current->move;
                 ++current;
