@@ -796,7 +796,9 @@ uint64_t BoardState::active_lesser_threats() const
 
 void BoardState::update_lesser_threats()
 {
-    const uint64_t occ = get_pieces_bb();
+    // x-ray through own king: this has no effect on search, but makes lesser threats useful for king evasion movegen.
+    uint64_t occ = get_pieces_bb();
+    occ ^= get_pieces_bb(KING, stm);
 
     uint64_t attacks = EMPTY;
 
