@@ -62,9 +62,13 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
+    uint64_t active_lesser_threats() const;
+
 private:
     void recalculate_side_bb();
     void update_castle_rights(Move move);
+
+    void update_lesser_threats();
 
 public:
     uint64_t key = 0;
@@ -72,6 +76,11 @@ public:
     std::array<uint64_t, 2> non_pawn_key {};
     // uint64_t minor_key = 0;
     // uint64_t major_key = 0;
+
+    // mask of squares threatened by a lesser piece e.g lesser_threats[BISHOP] contains all squares attacked by enemy
+    // pawns and knights
+    std::array<uint64_t, N_PIECE_TYPES> lesser_threats {};
+
 private:
     std::array<uint64_t, N_PIECES> board = {};
     std::array<uint64_t, 2> side_bb = {};
