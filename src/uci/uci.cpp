@@ -365,7 +365,8 @@ auto Uci::options_handler()
 
         tuneable_int(corr_hist_scale, 64, 256),
 
-        tuneable_int(good_loud_see, -250, 0),
+        tuneable_int(good_loud_see, 0, 200),
+        tuneable_int(good_loud_see_hist, 0, 100),
 #else
 #endif
     };
