@@ -112,3 +112,4 @@ TUNEABLE_CONSTANT int history_penalty_depth = -10;
 TUNEABLE_CONSTANT int history_penalty_quad = 40;
 
 TUNEABLE_CONSTANT int good_loud_see = 100;
+TUNEABLE_CONSTANT int good_loud_see_hist = 51;
