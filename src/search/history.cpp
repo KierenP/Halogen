@@ -15,11 +15,11 @@ int16_t* PawnHistory::get(const GameState& position, const SearchStackState*, Mo
     return &table[stm][pawn_hash][piece][move.to()];
 }
 
-int16_t* ThreatHistory::get(const GameState& position, const SearchStackState* ss, Move move)
+int16_t* ThreatHistory::get(const GameState& position, const SearchStackState*, Move move)
 {
     const auto& stm = position.board().stm;
-    const bool from_square_threat = (ss->threat_mask[KING] & SquareBB[move.from()]);
-    const bool to_square_threat = (ss->threat_mask[KING] & SquareBB[move.to()]);
+    const bool from_square_threat = (position.board().lesser_threats[KING] & SquareBB[move.from()]);
+    const bool to_square_threat = (position.board().lesser_threats[KING] & SquareBB[move.to()]);
 
     return &table[stm][from_square_threat][to_square_threat][move.from()][move.to()];
 }

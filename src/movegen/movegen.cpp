@@ -544,17 +544,10 @@ void generate_king_moves(const BoardState& board, T& moves, Square from)
     const uint64_t occupied = board.get_pieces_bb();
     const auto flag = capture ? CAPTURE : QUIET;
 
-    uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied);
+    uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied)
+        & ~board.lesser_threats[KING] & ~attack_bb<KING>(board.get_king_sq(!STM), occupied);
 
-    while (targets != 0)
-    {
-        const Square target = lsbpop(targets);
-        const Move move(from, target, flag);
-        if (king_move_is_legal<STM>(board, move))
-        {
-            moves.emplace_back(move);
-        }
-    }
+    append_legal_moves<STM>(from, targets, flag, moves);
 }
 
 template <Side colour>
@@ -961,56 +954,6 @@ template <>
 uint64_t attack_bb<KING>(Square sq, uint64_t)
 {
     return KingAttacks[sq];
-}
-
-std::array<uint64_t, N_PIECE_TYPES> capture_threat_mask(const BoardState& board, Side colour)
-{
-    std::array<uint64_t, N_PIECE_TYPES> threats = {};
-    const uint64_t occ = board.get_pieces_bb();
-
-    uint64_t attacks = EMPTY;
-
-    // pawn threats
-    for (uint64_t pieces = board.get_pieces_bb(PAWN, colour); pieces != 0;)
-    {
-        attacks |= PawnAttacks[colour][lsbpop(pieces)];
-    }
-
-    threats[KNIGHT] = attacks;
-
-    // knight threats
-    for (uint64_t pieces = board.get_pieces_bb(KNIGHT, colour); pieces != 0;)
-    {
-        attacks |= attack_bb<KNIGHT>(lsbpop(pieces), occ);
-    }
-
-    threats[BISHOP] = attacks;
-
-    // bishop threats
-    for (uint64_t pieces = board.get_pieces_bb(BISHOP, colour); pieces != 0;)
-    {
-        attacks |= attack_bb<BISHOP>(lsbpop(pieces), occ);
-    }
-
-    threats[ROOK] = attacks;
-
-    // rook threats
-    for (uint64_t pieces = board.get_pieces_bb(ROOK, colour); pieces != 0;)
-    {
-        attacks |= attack_bb<ROOK>(lsbpop(pieces), occ);
-    }
-
-    threats[QUEEN] = attacks;
-
-    // queen threats
-    for (uint64_t pieces = board.get_pieces_bb(QUEEN, colour); pieces != 0;)
-    {
-        attacks |= attack_bb<QUEEN>(lsbpop(pieces), occ);
-    }
-
-    threats[KING] = attacks;
-
-    return threats;
 }
 
 // Explicit template instantiation
