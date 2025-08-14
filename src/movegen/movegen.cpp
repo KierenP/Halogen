@@ -47,8 +47,6 @@ bool move_puts_self_in_check(const BoardState& board, const Move& move);
 template <Side STM>
 bool ep_is_legal(const BoardState& board, const Move& move);
 template <Side STM>
-bool king_move_is_legal(const BoardState& board, const Move& move);
-template <Side STM>
 uint64_t pinned_bb(const BoardState& board);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Side colour>
@@ -61,7 +59,7 @@ bool is_legal(const BoardState& board, const Move& move);
 
 // special generators for when in check
 template <bool capture, Side STM, typename T>
-void king_evasions(const BoardState& board, T& moves, Square from, uint64_t threats);
+void king_evasions(const BoardState& board, T& moves, Square from);
 // capture the attacker	(single threat only)
 template <Side STM, typename T>
 void capture_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
@@ -99,7 +97,7 @@ void add_loud_moves(const BoardState& board, T& moves, uint64_t pinned)
     if (popcount(threats) == 2)
     {
         // double check
-        king_evasions<true, STM>(board, moves, king, threats);
+        king_evasions<true, STM>(board, moves, king);
     }
     else if (popcount(threats) == 1)
     {
@@ -107,7 +105,7 @@ void add_loud_moves(const BoardState& board, T& moves, uint64_t pinned)
         pawn_captures<STM>(board, moves, pinned, threats);
         pawn_ep<STM>(board, moves);
         pawn_promotions<STM>(board, moves, pinned, BetweenBB[lsb(threats)][king]);
-        king_evasions<true, STM>(board, moves, king, threats);
+        king_evasions<true, STM>(board, moves, king);
         capture_threat<STM>(board, moves, threats, pinned);
     }
     else
@@ -152,7 +150,7 @@ void add_quiet_moves(const BoardState& board, T& moves, uint64_t pinned)
     if (popcount(threats) == 2)
     {
         // double check
-        king_evasions<false, STM>(board, moves, king, threats);
+        king_evasions<false, STM>(board, moves, king);
     }
     else if (popcount(threats) == 1)
     {
@@ -160,7 +158,7 @@ void add_quiet_moves(const BoardState& board, T& moves, uint64_t pinned)
         const auto block_squares = BetweenBB[lsb(threats)][king];
         pawn_pushes<STM>(board, moves, pinned, block_squares);
         pawn_double_pushes<STM>(board, moves, pinned, block_squares);
-        king_evasions<false, STM>(board, moves, king, threats);
+        king_evasions<false, STM>(board, moves, king);
         block_threat<STM>(board, moves, threats, pinned);
     }
     else
@@ -241,46 +239,15 @@ void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
 }
 
 template <bool capture, Side STM, typename T>
-void king_evasions(const BoardState& board, T& moves, Square from, uint64_t threats)
+void king_evasions(const BoardState& board, T& moves, Square from)
 {
     const uint64_t occupied = board.get_pieces_bb();
     const auto flag = capture ? CAPTURE : QUIET;
-    const auto sliding_threats = threats
-        & (board.get_pieces_bb(QUEEN, !STM) | board.get_pieces_bb(ROOK, !STM) | board.get_pieces_bb(BISHOP, !STM));
 
-    uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied);
+    uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied)
+        & ~board.lesser_threats[KING] & ~attack_bb<KING>(board.get_king_sq(!STM), occupied);
 
-    // if there is a sliding threat, we cannot stay on that same rank/file/diagonal. But we *can* capture that threat
-
-    if (sliding_threats & RankBB[enum_to<Rank>(from)])
-    {
-        targets &= ~RankBB[enum_to<Rank>(from)] | (capture ? threats : EMPTY);
-    }
-
-    if (sliding_threats & FileBB[enum_to<File>(from)])
-    {
-        targets &= ~FileBB[enum_to<File>(from)] | (capture ? threats : EMPTY);
-    }
-
-    if (sliding_threats & DiagonalBB[enum_to<Diagonal>(from)])
-    {
-        targets &= ~DiagonalBB[enum_to<Diagonal>(from)] | (capture ? threats : EMPTY);
-    }
-
-    if (sliding_threats & AntiDiagonalBB[enum_to<AntiDiagonal>(from)])
-    {
-        targets &= ~AntiDiagonalBB[enum_to<AntiDiagonal>(from)] | (capture ? threats : EMPTY);
-    }
-
-    while (targets != 0)
-    {
-        const Square target = lsbpop(targets);
-        const Move move(from, target, flag);
-        if (king_move_is_legal<STM>(board, move))
-        {
-            moves.emplace_back(move);
-        }
-    }
+    append_legal_moves<STM>(from, targets, flag, moves);
 }
 
 template <Side STM, typename T>
@@ -887,36 +854,6 @@ bool ep_is_legal(const BoardState& board, const Move& move)
     occ &= ~SquareBB[move.from()];
     occ &= ~SquareBB[get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()))];
     occ |= SquareBB[move.to()];
-
-    if (attack_bb<BISHOP>(king, occ) & (bishops | queens))
-        return false;
-    if (attack_bb<ROOK>(king, occ) & (rooks | queens))
-        return false;
-
-    return true;
-}
-
-template <Side STM>
-bool king_move_is_legal(const BoardState& board, const Move& move)
-{
-    const Square king = move.to();
-
-    if (attack_bb<KNIGHT>(king) & board.get_pieces_bb(KNIGHT, !STM))
-        return false;
-
-    if (PawnAttacks[STM][king] & board.get_pieces_bb(PAWN, !STM))
-        return false;
-
-    if (attack_bb<KING>(king) & board.get_pieces_bb(KING, !STM))
-        return false;
-
-    const uint64_t queens = board.get_pieces_bb(QUEEN, !STM) & ~SquareBB[move.to()];
-    const uint64_t bishops = board.get_pieces_bb(BISHOP, !STM) & ~SquareBB[move.to()];
-    const uint64_t rooks = board.get_pieces_bb(ROOK, !STM) & ~SquareBB[move.to()];
-    uint64_t occ = board.get_pieces_bb();
-
-    // where this function is called, we already filter out attacks going through the 'from' square, so we don't need to
-    // update occ to apply the king move
 
     if (attack_bb<BISHOP>(king, occ) & (bishops | queens))
         return false;
