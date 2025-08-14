@@ -231,7 +231,7 @@ avx2: EXE = $(BINARY_DIR)/Halogen-avx2
 avx2: binary
 
 .PHONY: avx2-pext
-avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
+avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 avx2-pext: LDFLAGS += -flto -static 
 avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
 avx2-pext: binary
