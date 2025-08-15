@@ -185,6 +185,62 @@ constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal)
     return antidiagonal;
 }
 
+// clang-format off
+static constexpr File square_to_file[N_SQUARES] = {
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+};
+
+static constexpr Rank square_to_rank[N_SQUARES] = {
+    RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1,
+    RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2,
+    RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3,
+    RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4,
+    RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5,
+    RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6,
+    RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7,
+    RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8,
+};
+
+static constexpr Diagonal square_to_diagonal[N_SQUARES] = {
+    DIAG_A1H8, DIAG_B1H7, DIAG_C1H6, DIAG_D1H5, DIAG_E1H4, DIAG_F1H3, DIAG_G1H2, DIAG_H1H1,
+    DIAG_A2G8, DIAG_A1H8, DIAG_B1H7, DIAG_C1H6, DIAG_D1H5, DIAG_E1H4, DIAG_F1H3, DIAG_G1H2,
+    DIAG_A3F8, DIAG_A2G8, DIAG_A1H8, DIAG_B1H7, DIAG_C1H6, DIAG_D1H5, DIAG_E1H4, DIAG_F1H3,
+    DIAG_A4E8, DIAG_A3F8, DIAG_A2G8, DIAG_A1H8, DIAG_B1H7, DIAG_C1H6, DIAG_D1H5, DIAG_E1H4,
+    DIAG_A5D8, DIAG_A4E8, DIAG_A3F8, DIAG_A2G8, DIAG_A1H8, DIAG_B1H7, DIAG_C1H6, DIAG_D1H5,
+    DIAG_A6C8, DIAG_A5D8, DIAG_A4E8, DIAG_A3F8, DIAG_A2G8, DIAG_A1H8, DIAG_B1H7, DIAG_C1H6,
+    DIAG_A7B8, DIAG_A6C8, DIAG_A5D8, DIAG_A4E8, DIAG_A3F8, DIAG_A2G8, DIAG_A1H8, DIAG_B1H7,
+    DIAG_A8A8, DIAG_A7B8, DIAG_A6C8, DIAG_A5D8, DIAG_A4E8, DIAG_A3F8, DIAG_A2G8, DIAG_A1H8
+};
+
+static constexpr AntiDiagonal square_to_antidiagonal[N_SQUARES] = {
+    DIAG_A1A1, DIAG_A2B1, DIAG_A3C1, DIAG_A4D1, DIAG_A5E1, DIAG_A6F1, DIAG_A7G1, DIAG_A8H1,
+    DIAG_A2B1, DIAG_A3C1, DIAG_A4D1, DIAG_A5E1, DIAG_A6F1, DIAG_A7G1, DIAG_A8H1, DIAG_B8H2,
+    DIAG_A3C1, DIAG_A4D1, DIAG_A5E1, DIAG_A6F1, DIAG_A7G1, DIAG_A8H1, DIAG_B8H2, DIAG_C8H3,
+    DIAG_A4D1, DIAG_A5E1, DIAG_A6F1, DIAG_A7G1, DIAG_A8H1, DIAG_B8H2, DIAG_C8H3, DIAG_D8H4,
+    DIAG_A5E1, DIAG_A6F1, DIAG_A7G1, DIAG_A8H1, DIAG_B8H2, DIAG_C8H3, DIAG_D8H4, DIAG_E8H5,
+    DIAG_A6F1, DIAG_A7G1, DIAG_A8H1, DIAG_B8H2, DIAG_C8H3, DIAG_D8H4, DIAG_E8H5, DIAG_F8H6,
+    DIAG_A7G1, DIAG_A8H1, DIAG_B8H2, DIAG_C8H3, DIAG_D8H4, DIAG_E8H5, DIAG_F8H6, DIAG_G8H7,
+    DIAG_A8H1, DIAG_B8H2, DIAG_C8H3, DIAG_D8H4, DIAG_E8H5, DIAG_F8H6, DIAG_G8H7, DIAG_H8H8
+};
+
+static constexpr Side piece_to_side[N_PIECES] = {
+    BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
+    WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
+};
+
+static constexpr PieceType piece_to_type[N_PIECES] = {
+    PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+    PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+};
+// clang-format on
+
 template <typename T, typename U>
 constexpr T enum_to(U u);
 
@@ -192,42 +248,42 @@ template <>
 constexpr Side enum_to(Piece piece)
 {
     assert(piece < N_PIECES);
-    return static_cast<Side>((int)piece / (int)N_PIECE_TYPES);
+    return piece_to_side[piece];
 }
 
 template <>
 constexpr PieceType enum_to(Piece piece)
 {
-    return static_cast<PieceType>((int)piece % (int)N_PIECE_TYPES);
+    assert(piece < N_PIECES);
+    return piece_to_type[piece];
 }
 
 template <>
 constexpr File enum_to(Square square)
 {
     assert(square < N_SQUARES);
-    return static_cast<File>(square % 8);
+    return square_to_file[square];
 }
 
 template <>
 constexpr Rank enum_to(Square square)
 {
     assert(square < N_SQUARES);
-    return static_cast<Rank>(square / 8);
+    return square_to_rank[square];
 }
 
 template <>
 constexpr Diagonal enum_to(Square square)
 {
     assert(square < N_SQUARES);
-    return static_cast<Diagonal>((RANK_8 - enum_to<Rank>(square)) + enum_to<File>(square));
+    return square_to_diagonal[square];
 }
 
 template <>
 constexpr AntiDiagonal enum_to(Square square)
 {
     assert(square < N_SQUARES);
-    return static_cast<AntiDiagonal>(
-        (int)RANK_8 + (int)FILE_H - (int)enum_to<Rank>(square) - (int)enum_to<File>(square));
+    return square_to_antidiagonal[square];
 }
 
 constexpr int rank_diff(Square sq1, Square sq2)
