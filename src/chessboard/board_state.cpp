@@ -803,10 +803,9 @@ void BoardState::update_lesser_threats()
     uint64_t attacks = EMPTY;
 
     // pawn threats
-    for (uint64_t pieces = get_pieces_bb(PAWN, !stm); pieces != 0;)
-    {
-        attacks |= PawnAttacks[!stm][lsbpop(pieces)];
-    }
+    uint64_t opp_pawns = get_pieces_bb(PAWN, !stm);
+    attacks |= (stm == WHITE ? shift_bb<Shift::SE>(opp_pawns) : shift_bb<Shift::NE>(opp_pawns));
+    attacks |= (stm == WHITE ? shift_bb<Shift::SW>(opp_pawns) : shift_bb<Shift::NW>(opp_pawns));
 
     lesser_threats[KNIGHT] = attacks;
 
