@@ -50,8 +50,9 @@ bool StagedMoveGenerator::next(Move& move)
 
     if (stage == Stage::GEN_LOUD)
     {
-        loud_moves(position.board(), loudMoves);
-        score_loud_moves(loudMoves);
+        BasicMoveList moves;
+        loud_moves(position.board(), moves);
+        score_loud_moves(moves);
         current = loudMoves.begin();
         selection_sort(current, loudMoves.end(), loudMoves.end());
         stage = Stage::GIVE_GOOD_LOUD;
@@ -88,8 +89,9 @@ bool StagedMoveGenerator::next(Move& move)
 
     if (stage == Stage::GEN_QUIET)
     {
-        quiet_moves(position.board(), quietMoves);
-        score_quiet_moves(quietMoves);
+        BasicMoveList moves;
+        quiet_moves(position.board(), moves);
+        score_quiet_moves(moves);
         current = sorted_end = quietMoves.begin();
         stage = Stage::GIVE_QUIET;
     }
@@ -166,26 +168,25 @@ void StagedMoveGenerator::skip_quiets()
     skipQuiets = true;
 }
 
-void StagedMoveGenerator::score_quiet_moves(ExtendedMoveList& moves)
+void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
 {
     for (size_t i = 0; i < moves.size(); i++)
     {
         // Hash move
-        if (moves[i].move == TTmove)
+        if (moves[i] == TTmove)
         {
-            moves.erase(moves.begin() + i);
-            i--;
+            continue;
         }
 
         // Quiet
         else
         {
-            moves[i].score = local.get_quiet_order_history(ss, moves[i].move);
+            quietMoves.emplace_back(moves[i], local.get_quiet_order_history(ss, moves[i]));
         }
     }
 }
 
-void StagedMoveGenerator::score_loud_moves(ExtendedMoveList& moves)
+void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
 {
     static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
     static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
@@ -193,29 +194,28 @@ void StagedMoveGenerator::score_loud_moves(ExtendedMoveList& moves)
     for (size_t i = 0; i < moves.size(); i++)
     {
         // Hash move
-        if (moves[i].move == TTmove)
+        if (moves[i] == TTmove)
         {
-            moves.erase(moves.begin() + i);
-            i--;
+            continue;
         }
 
         // Promotions
-        else if (moves[i].move.is_promotion())
+        else if (moves[i].is_promotion())
         {
-            if (moves[i].move.flag() == QUEEN_PROMOTION || moves[i].move.flag() == QUEEN_PROMOTION_CAPTURE)
+            if (moves[i].flag() == QUEEN_PROMOTION || moves[i].flag() == QUEEN_PROMOTION_CAPTURE)
             {
-                moves[i].score = SCORE_QUEEN_PROMOTION;
+                loudMoves.emplace_back(moves[i], SCORE_QUEEN_PROMOTION);
             }
             else
             {
-                moves[i].score = SCORE_UNDER_PROMOTION;
+                loudMoves.emplace_back(moves[i], SCORE_UNDER_PROMOTION);
             }
         }
 
         // Captures
         else
         {
-            moves[i].score = local.get_loud_history(ss, moves[i].move);
+            loudMoves.emplace_back(moves[i], local.get_loud_history(ss, moves[i]));
         }
     }
 }

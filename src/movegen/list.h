@@ -9,14 +9,9 @@
 struct ExtendedMove
 {
     ExtendedMove() = default;
-    ExtendedMove(const Move _move)
+    ExtendedMove(const Move _move, int _score)
         : move(_move)
-        , score(0)
-    {
-    }
-    ExtendedMove(Square from, Square to, MoveFlag flag)
-        : move(from, to, flag)
-        , score(0)
+        , score(_score)
     {
     }
 
