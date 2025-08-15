@@ -200,7 +200,7 @@ uint64_t pinned_bb(const BoardState& board)
             // if there is just one piece and it's ours it's pinned
             if (popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
             {
-                pins |= SquareBB[lsb(possible_pins)];
+                pins |= possible_pins;
             }
         }
     };
@@ -383,24 +383,34 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 
     auto generate_attacks = [&](uint64_t attacks, Shift forward, auto get_cardinal)
     {
-        while (attacks != 0)
+        auto normal_captures = attacks & ~(RankBB[RANK_1] | RankBB[RANK_8]);
+        auto promotion_captures = attacks & (RankBB[RANK_1] | RankBB[RANK_8]);
+
+        while (normal_captures != 0)
         {
-            const Square end = lsbpop(attacks);
+            const Square end = lsbpop(normal_captures);
             const Square start = end - forward;
 
             // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
             if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.get_king_sq(STM))))
                 continue;
 
-            if (enum_to<Rank>(end) == RANK_1 || enum_to<Rank>(end) == RANK_8)
-            {
-                moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
-                moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
-                moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
-                moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
-            }
-            else
-                moves.emplace_back(start, end, CAPTURE);
+            moves.emplace_back(start, end, CAPTURE);
+        }
+
+        while (promotion_captures != 0)
+        {
+            const Square end = lsbpop(promotion_captures);
+            const Square start = end - forward;
+
+            // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
+            if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.get_king_sq(STM))))
+                continue;
+
+            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
         }
     };
 
