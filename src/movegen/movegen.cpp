@@ -425,17 +425,7 @@ bool check_castle_move(
     }
 
     uint64_t king_path = BetweenBB[king_start_sq][king_end_sq] | SquareBB[king_start_sq] | SquareBB[king_end_sq];
-
-    while (king_path)
-    {
-        Square sq = lsbpop(king_path);
-        if (is_square_threatened<STM>(board, sq))
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return !((board.lesser_threats[KING] | attack_bb<KING>(board.get_king_sq(!STM))) & king_path);
 }
 
 template <Side STM, typename T>
@@ -520,41 +510,18 @@ void generate_king_moves(const BoardState& board, T& moves, Square from)
 template <Side colour>
 bool is_square_threatened(const BoardState& board, Square square)
 {
-    if (attack_bb<KNIGHT>(square) & board.get_pieces_bb(KNIGHT, !colour))
-        return true;
-    if (PawnAttacks[colour][square] & board.get_pieces_bb(PAWN, !colour))
-        return true;
-    if (attack_bb<KING>(square) & board.get_pieces_bb(KING, !colour))
-        return true;
-
-    const uint64_t queens = board.get_pieces_bb(QUEEN, !colour);
-    const uint64_t bishops = board.get_pieces_bb(BISHOP, !colour);
-    const uint64_t rooks = board.get_pieces_bb(ROOK, !colour);
-    const uint64_t occ = board.get_pieces_bb();
-
-    if (attack_bb<BISHOP>(square, occ) & (bishops | queens))
-        return true;
-    if (attack_bb<ROOK>(square, occ) & (rooks | queens))
-        return true;
-
-    return false;
-}
-
-template <Side colour>
-bool IsInCheck(const BoardState& board)
-{
-    return is_square_threatened<colour>(board, board.get_king_sq(colour));
+    return (board.lesser_threats[KING] | attack_bb<KING>(board.get_king_sq(!colour))) & SquareBB[square];
 }
 
 bool is_in_check(const BoardState& board, Side colour)
 {
     if (colour == WHITE)
     {
-        return IsInCheck<WHITE>(board);
+        return is_square_threatened<WHITE>(board, board.get_king_sq(WHITE));
     }
     else
     {
-        return IsInCheck<BLACK>(board);
+        return is_square_threatened<BLACK>(board, board.get_king_sq(BLACK));
     }
 }
 
