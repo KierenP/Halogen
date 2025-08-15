@@ -948,11 +948,8 @@ uint64_t attack_bb<KING>(Square sq, uint64_t)
 }
 
 // Explicit template instantiation
-template void legal_moves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void legal_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
 
-template void loud_moves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void loud_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
 
-template void quiet_moves<ExtendedMoveList>(const BoardState& board, ExtendedMoveList& moves);
 template void quiet_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);

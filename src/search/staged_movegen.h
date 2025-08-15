@@ -58,8 +58,8 @@ public:
     }
 
 private:
-    void score_quiet_moves(ExtendedMoveList& moves);
-    void score_loud_moves(ExtendedMoveList& moves);
+    void score_quiet_moves(BasicMoveList& moves);
+    void score_loud_moves(BasicMoveList& moves);
 
     // Data needed for use in ordering or generating moves
     const GameState& position;
