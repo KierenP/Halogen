@@ -6,6 +6,7 @@
 
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "move.h"
 #include "movegen/list.h" // IWYU pragma: keep
 #include "movegen/magic.h"
 #include "movegen/move.h"
@@ -222,20 +223,96 @@ uint64_t pinned_bb(const BoardState& board)
 template <Side STM, typename T>
 void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
 {
+#ifdef USE_AVX512_VNNI
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
+    alignas(64) static constexpr std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16>
+        legal_moves_from_sq_template = []
+    {
+        std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
+        for (int flag = 0; flag < 16; ++flag)
+        {
+            for (Square from = SQ_A1; from < N_SQUARES; ++from)
+            {
+                for (Square to = SQ_A1; to < N_SQUARES; ++to)
+                {
+                    cache[flag][from][to] = (from | (to << 6) | (flag << 12));
+                }
+            }
+        }
+        return cache;
+    }();
+
+    const auto& moves_from_sq = legal_moves_from_sq_template[flag][from];
+    const auto low_mask = static_cast<uint32_t>(to);
+    const auto high_mask = static_cast<uint32_t>(to >> 32);
+
+    // Extract out the template moves (32 in low, 32 in high)
+    __m512i low_template = _mm512_load_si512(&moves_from_sq[0]);
+    __m512i high_template = _mm512_load_si512(&moves_from_sq[32]);
+
+    // Using to as a mask, compress the moves
+    __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
+    __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
+
+    // Store the compressed moves into the moves vector
+    _mm512_storeu_epi16(moves.end(), low_compressed);
+    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    _mm512_storeu_epi16(moves.end(), high_compressed);
+    moves.unsafe_resize(moves.size() + popcount(high_mask));
+#else
     while (to != 0)
     {
         moves.emplace_back(from, lsbpop(to), flag);
     }
+#endif
 }
 
 // Moves going to a square from squares on a bitboard
 template <Side STM, typename T>
 void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
 {
+#ifdef USE_AVX512_VNNI
+    // Precomputed table of move encodings: move from square -> to square, with a flag
+    alignas(64) static constexpr std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16>
+        legal_moves_to_sq_template = []
+    {
+        std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
+        for (int flag = 0; flag < 16; ++flag)
+        {
+            for (Square from = SQ_A1; from < N_SQUARES; ++from)
+            {
+                for (Square to = SQ_A1; to < N_SQUARES; ++to)
+                {
+                    cache[flag][to][from] = (from | (to << 6) | (flag << 12));
+                }
+            }
+        }
+        return cache;
+    }();
+
+    const auto& moves_to_sq = legal_moves_to_sq_template[flag][to];
+    const auto low_mask = static_cast<uint32_t>(from);
+    const auto high_mask = static_cast<uint32_t>(from >> 32);
+
+    // Load precomputed move templates
+    __m512i low_template = _mm512_load_si512(&moves_to_sq[0]);
+    __m512i high_template = _mm512_load_si512(&moves_to_sq[32]);
+
+    // Compress using the 'from' bitboard as mask
+    __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
+    __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
+
+    // Store to moves vector
+    _mm512_storeu_epi16(moves.end(), low_compressed);
+    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    _mm512_storeu_epi16(moves.end(), high_compressed);
+    moves.unsafe_resize(moves.size() + popcount(high_mask));
+#else
     while (from != 0)
     {
         moves.emplace_back(lsbpop(from), to, flag);
     }
+#endif
 }
 
 template <bool capture, Side STM, typename T>

@@ -255,4 +255,11 @@ public:
         assert(size_ > 0);
         size_--;
     }
+
+    // extensions
+    void unsafe_resize(std::size_t new_size)
+    {
+        assert(new_size <= N);
+        size_ = new_size;
+    }
 };
