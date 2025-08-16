@@ -51,7 +51,6 @@ struct SearchStackState
 
     Move move = Move::Uninitialized;
     Piece moved_piece = N_PIECES;
-    std::array<uint64_t, N_PIECE_TYPES> threat_mask = {};
 
     Move singular_exclusion = Move::Uninitialized;
 

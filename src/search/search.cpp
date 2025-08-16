@@ -788,16 +788,11 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
-    ss->threat_mask = capture_threat_mask(position.board(), !position.board().stm);
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
-    const bool has_active_threat
-        = (ss->threat_mask[KNIGHT] & position.board().get_pieces_bb(KNIGHT, position.board().stm))
-        | (ss->threat_mask[BISHOP] & position.board().get_pieces_bb(BISHOP, position.board().stm))
-        | (ss->threat_mask[ROOK] & position.board().get_pieces_bb(ROOK, position.board().stm))
-        | (ss->threat_mask[QUEEN] & position.board().get_pieces_bb(QUEEN, position.board().stm));
+    const bool has_active_threat = position.board().active_lesser_threats();
     const auto rfp_margin
         = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)) / 64;
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d

@@ -130,6 +130,7 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
     // minor_key = Zobrist::minor_key(*this);
     // major_key = Zobrist::major_key(*this);
+    update_lesser_threats();
     return true;
 }
 
@@ -709,6 +710,7 @@ void BoardState::apply_move(Move move)
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     // assert(minor_key == Zobrist::minor_key(*this));
     // assert(major_key == Zobrist::major_key(*this));
+    update_lesser_threats();
 }
 
 void BoardState::apply_null_move()
@@ -732,6 +734,7 @@ void BoardState::apply_null_move()
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     // assert(minor_key == Zobrist::minor_key(*this));
     // assert(major_key == Zobrist::major_key(*this));
+    update_lesser_threats();
 }
 
 MoveFlag BoardState::infer_move_flag(Square from, Square to) const
@@ -782,4 +785,59 @@ MoveFlag BoardState::infer_move_flag(Square from, Square to) const
     }
 
     return QUIET;
+}
+
+uint64_t BoardState::active_lesser_threats() const
+{
+    return (lesser_threats[KNIGHT] & get_pieces_bb(KNIGHT, stm)) | (lesser_threats[BISHOP] & get_pieces_bb(BISHOP, stm))
+        | (lesser_threats[ROOK] & get_pieces_bb(ROOK, stm)) | (lesser_threats[QUEEN] & get_pieces_bb(QUEEN, stm))
+        | (lesser_threats[KING] & get_pieces_bb(KING, stm));
+}
+
+void BoardState::update_lesser_threats()
+{
+    // x-ray through own king: this has no effect on search, but makes lesser threats useful for king evasion movegen.
+    uint64_t occ = get_pieces_bb();
+    occ ^= get_pieces_bb(KING, stm);
+
+    uint64_t attacks = EMPTY;
+
+    // pawn threats
+    uint64_t opp_pawns = get_pieces_bb(PAWN, !stm);
+    attacks |= (stm == WHITE ? shift_bb<Shift::SE>(opp_pawns) : shift_bb<Shift::NE>(opp_pawns));
+    attacks |= (stm == WHITE ? shift_bb<Shift::SW>(opp_pawns) : shift_bb<Shift::NW>(opp_pawns));
+
+    lesser_threats[KNIGHT] = attacks;
+
+    // knight threats
+    for (uint64_t pieces = get_pieces_bb(KNIGHT, !stm); pieces != 0;)
+    {
+        attacks |= attack_bb<KNIGHT>(lsbpop(pieces), occ);
+    }
+
+    lesser_threats[BISHOP] = attacks;
+
+    // bishop threats
+    for (uint64_t pieces = get_pieces_bb(BISHOP, !stm); pieces != 0;)
+    {
+        attacks |= attack_bb<BISHOP>(lsbpop(pieces), occ);
+    }
+
+    lesser_threats[ROOK] = attacks;
+
+    // rook threats
+    for (uint64_t pieces = get_pieces_bb(ROOK, !stm); pieces != 0;)
+    {
+        attacks |= attack_bb<ROOK>(lsbpop(pieces), occ);
+    }
+
+    lesser_threats[QUEEN] = attacks;
+
+    // queen threats
+    for (uint64_t pieces = get_pieces_bb(QUEEN, !stm); pieces != 0;)
+    {
+        attacks |= attack_bb<QUEEN>(lsbpop(pieces), occ);
+    }
+
+    lesser_threats[KING] = attacks;
 }
