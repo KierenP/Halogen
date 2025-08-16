@@ -272,7 +272,7 @@ template <Side STM, typename T>
 void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
 {
 #ifdef USE_AVX512_VNNI
-    // Precomputed table of move encodings: move from square -> to square, with a flag
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
     alignas(64) static constexpr std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16>
         legal_moves_to_sq_template = []
     {
