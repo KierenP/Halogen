@@ -229,13 +229,13 @@ void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
         legal_moves_from_sq_template = []
     {
         std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
-        for (int flag = 0; flag < 16; ++flag)
+        for (int flag_ = 0; flag_ < 16; ++flag_)
         {
-            for (Square from = SQ_A1; from < N_SQUARES; ++from)
+            for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
             {
-                for (Square to = SQ_A1; to < N_SQUARES; ++to)
+                for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
                 {
-                    cache[flag][from][to] = (from | (to << 6) | (flag << 12));
+                    cache[flag_][from_][to_] = (from_ | (to_ << 6) | (flag_ << 12));
                 }
             }
         }
@@ -277,13 +277,13 @@ void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
         legal_moves_to_sq_template = []
     {
         std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
-        for (int flag = 0; flag < 16; ++flag)
+        for (int flag_ = 0; flag_ < 16; ++flag_)
         {
-            for (Square from = SQ_A1; from < N_SQUARES; ++from)
+            for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
             {
-                for (Square to = SQ_A1; to < N_SQUARES; ++to)
+                for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
                 {
-                    cache[flag][to][from] = (from | (to << 6) | (flag << 12));
+                    cache[flag_][to_][from_] = (from_ | (to_ << 6) | (flag_ << 12));
                 }
             }
         }
