@@ -246,15 +246,15 @@ void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
     const auto low_mask = static_cast<uint32_t>(to);
     const auto high_mask = static_cast<uint32_t>(to >> 32);
 
-    // Extract out the template moves (32 in low, 32 in high)
+    // Load precomputed move templates
     __m512i low_template = _mm512_load_si512(&moves_from_sq[0]);
     __m512i high_template = _mm512_load_si512(&moves_from_sq[32]);
 
-    // Using to as a mask, compress the moves
+    // Using the mask, compress the moves
     __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
     __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
-    // Store the compressed moves into the moves vector
+    // Store to moves vector
     _mm512_storeu_epi16(moves.end(), low_compressed);
     moves.unsafe_resize(moves.size() + popcount(low_mask));
     _mm512_storeu_epi16(moves.end(), high_compressed);
@@ -298,7 +298,7 @@ void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
     __m512i low_template = _mm512_load_si512(&moves_to_sq[0]);
     __m512i high_template = _mm512_load_si512(&moves_to_sq[32]);
 
-    // Compress using the 'from' bitboard as mask
+    // Using the mask, compress the moves
     __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
     __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
@@ -392,7 +392,7 @@ void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t ta
     __m512i low_template = _mm512_load_si512(&splat_template[0]);
     __m512i high_template = _mm512_load_si512(&splat_template[32]);
 
-    // Compress using the 'from' bitboard as mask
+    // Using the mask, compress the moves
     __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
     __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
@@ -442,7 +442,7 @@ void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_
     // Load precomputed move templates
     __m512i move_template = _mm512_load_si512(&splat_template[shift]);
 
-    // Compress using the 'from' bitboard as mask
+    // Using the mask, compress the moves
     __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
 
     // Store to moves vector
@@ -493,7 +493,7 @@ void pawn_double_pushes(const BoardState& board, T& moves, uint64_t pinned, uint
     // Load precomputed move templates
     __m512i move_template = _mm512_load_si512(&splat_template[shift]);
 
-    // Compress using the 'from' bitboard as mask
+    // Using the mask, compress the moves
     __m512i move_compressed = _mm512_maskz_compress_epi16(mask, move_template);
 
     // Store to moves vector
@@ -564,7 +564,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
         __m512i low_template = _mm512_load_si512(&splat_template[0]);
         __m512i high_template = _mm512_load_si512(&splat_template[32]);
 
-        // Compress using the 'from' bitboard as mask
+        // Using the mask, compress the moves
         __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
         __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
@@ -607,7 +607,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
         // Load precomputed move templates
         __m512i move_template = _mm512_load_si512(&splat_template[shift]);
 
-        // Compress using the 'from' bitboard as mask
+        // Using the mask, compress the moves
         __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
 
         // Store to moves vector
@@ -650,7 +650,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
         __m512i low_template = _mm512_load_si512(&splat_template[0]);
         __m512i high_template = _mm512_load_si512(&splat_template[32]);
 
-        // Compress using the 'from' bitboard as mask
+        // Using the mask, compress the moves
         __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
         __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
@@ -693,7 +693,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
         // Load precomputed move templates
         __m512i move_template = _mm512_load_si512(&splat_template[shift]);
 
-        // Compress using the 'from' bitboard as mask
+        // Using the mask, compress the moves
         __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
 
         // Store to moves vector
