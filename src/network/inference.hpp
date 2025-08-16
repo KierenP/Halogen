@@ -52,6 +52,16 @@ namespace NN::Features
 
 const static SparseAffineTable sparse_affine_table;
 
+alignas(64) static constexpr std::array<int16_t, 32> nibble_offset_table = []
+{
+    std::array<int16_t, 32> cache {};
+    for (int16_t i = 0; i < 32; ++i)
+    {
+        cache[i] = i;
+    }
+    return cache;
+}();
+
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int16_t, FT_SIZE>& nstm,
     std::array<uint8_t, FT_SIZE>& output, [[maybe_unused]] std::array<int16_t, FT_SIZE / 4>& sparse_nibbles,
     [[maybe_unused]] size_t& sparse_nibbles_size)
@@ -62,8 +72,13 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     static_assert((FT_SIZE / 2) % (stride * 4) == 0);
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi16(FT_SCALE);
+#if defined(USE_AVX512_VNNI)
+    auto sparse_nibble_offset = SIMD::set1_epi16(0);
+    const auto sparse_nibble_offset_adj = SIMD::set1_epi16(32);
+#else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
     const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
+#endif
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to
@@ -114,6 +129,16 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #else
         uint8_t mask = mask1 | (mask2 << 4);
 #endif
+
+#if defined(USE_AVX512_VNNI)
+        auto indicies = SIMD::load_si(nibble_offset_table.data());
+        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
+        auto compressed = _mm512_maskz_compress_epi16(mask, indicies);
+        assert(sparse_nibbles_size + popcount(mask) <= sparse_nibbles.size());
+        _mm512_storeu_si512(&sparse_nibbles[sparse_nibbles_size], compressed);
+        sparse_nibbles_size += popcount(mask);
+        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
         // 1 byte for SSE, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
@@ -129,6 +154,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
             sparse_nibbles_size += entry.count;
             sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
         }
+#endif
     }
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
@@ -165,6 +191,17 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #else
         uint8_t mask = mask1 | (mask2 << 4);
 #endif
+
+#if defined(USE_AVX512_VNNI)
+        auto indicies = SIMD::load_si(nibble_offset_table.data());
+        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
+        auto compressed = _mm512_maskz_compress_epi16(mask, indicies);
+        assert(sparse_nibbles_size + popcount(mask) <= sparse_nibbles.size());
+        _mm512_storeu_si512(&sparse_nibbles[sparse_nibbles_size], compressed);
+        sparse_nibbles_size += popcount(mask);
+        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
+        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
@@ -177,6 +214,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
             sparse_nibbles_size += entry.count;
             sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
         }
+#endif
     }
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
