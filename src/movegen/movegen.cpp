@@ -220,29 +220,25 @@ uint64_t pinned_bb(const BoardState& board)
 }
 
 // Moves going from a square to squares on a bitboard
-template <Side STM, typename T>
-void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
+template <Side STM, MoveFlag flag, typename T>
+void append_legal_moves(Square from, uint64_t to, T& moves)
 {
 #ifdef USE_AVX512_VNNI
     // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
-    alignas(64) static constexpr std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16>
-        legal_moves_from_sq_template = []
+    alignas(64) static constexpr std::array<std::array<int16_t, N_SQUARES>, N_SQUARES> legal_moves_from_sq_template = []
     {
-        std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
-        for (int flag_ = 0; flag_ < 16; ++flag_)
+        std::array<std::array<int16_t, N_SQUARES>, N_SQUARES> cache {};
+        for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
         {
-            for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
             {
-                for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
-                {
-                    cache[flag_][from_][to_] = (from_ | (to_ << 6) | (flag_ << 12));
-                }
+                cache[from_][to_] = (from_ | (to_ << 6) | (flag << 12));
             }
         }
         return cache;
     }();
 
-    const auto& moves_from_sq = legal_moves_from_sq_template[flag][from];
+    const auto& moves_from_sq = legal_moves_from_sq_template[from];
     const auto low_mask = static_cast<uint32_t>(to);
     const auto high_mask = static_cast<uint32_t>(to >> 32);
 
@@ -268,29 +264,25 @@ void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
 }
 
 // Moves going to a square from squares on a bitboard
-template <Side STM, typename T>
-void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
+template <Side STM, MoveFlag flag, typename T>
+void append_legal_moves(uint64_t from, Square to, T& moves)
 {
 #ifdef USE_AVX512_VNNI
     // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
-    alignas(64) static constexpr std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16>
-        legal_moves_to_sq_template = []
+    alignas(64) static constexpr std::array<std::array<int16_t, N_SQUARES>, N_SQUARES> legal_moves_to_sq_template = []
     {
-        std::array<std::array<std::array<int16_t, N_SQUARES>, N_SQUARES>, 16> cache {};
-        for (int flag_ = 0; flag_ < 16; ++flag_)
+        std::array<std::array<int16_t, N_SQUARES>, N_SQUARES> cache {};
+        for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
         {
-            for (Square from_ = SQ_A1; from_ < N_SQUARES; ++from_)
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
             {
-                for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
-                {
-                    cache[flag_][to_][from_] = (from_ | (to_ << 6) | (flag_ << 12));
-                }
+                cache[to_][from_] = (from_ | (to_ << 6) | (flag << 12));
             }
         }
         return cache;
     }();
 
-    const auto& moves_to_sq = legal_moves_to_sq_template[flag][to];
+    const auto& moves_to_sq = legal_moves_to_sq_template[to];
     const auto low_mask = static_cast<uint32_t>(from);
     const auto high_mask = static_cast<uint32_t>(from >> 32);
 
@@ -324,7 +316,7 @@ void king_evasions(const BoardState& board, T& moves, Square from)
     uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied)
         & ~board.lesser_threats[KING] & ~attack_bb<KING>(board.get_king_sq(!STM), occupied);
 
-    append_legal_moves<STM>(from, targets, flag, moves);
+    append_legal_moves<STM, flag>(from, targets, moves);
 }
 
 template <Side STM, typename T>
@@ -337,7 +329,7 @@ void capture_threat(const BoardState& board, T& moves, uint64_t threats, uint64_
         & ~board.get_pieces_bb(PAWN, STM) // Pawn captures handelled elsewhere
         & ~pinned; // any pinned pieces cannot legally capture the threat
 
-    append_legal_moves<STM>(potentialCaptures, square, CAPTURE, moves);
+    append_legal_moves<STM, CAPTURE>(potentialCaptures, square, moves);
 }
 
 template <Side STM, typename T>
@@ -359,7 +351,7 @@ void block_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t 
         // blocking moves are legal iff the piece is not pinned
         const uint64_t potentialBlockers
             = attacks_to_sq<!STM>(board, square) & ~board.get_pieces_bb(PAWN, STM) & ~pinned;
-        append_legal_moves<STM>(potentialBlockers, square, QUIET, moves);
+        append_legal_moves<STM, QUIET>(potentialBlockers, square, moves);
     }
 }
 
@@ -780,7 +772,7 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square)
     const uint64_t occupied = board.get_pieces_bb();
     const uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KNIGHT>(square, occupied);
     const auto flag = capture ? CAPTURE : QUIET;
-    append_legal_moves<STM>(square, targets, flag, moves);
+    append_legal_moves<STM, flag>(square, targets, moves);
 }
 
 template <PieceType piece, bool capture, Side STM, typename T>
@@ -792,11 +784,11 @@ void generate_sliding_moves(const BoardState& board, T& moves, Square square, ui
 
     if (!(pinned & SquareBB[square]))
     {
-        append_legal_moves<STM>(square, targets, flag, moves);
+        append_legal_moves<STM, flag>(square, targets, moves);
     }
     else
     {
-        append_legal_moves<STM>(square, targets & RayBB[king][square], flag, moves);
+        append_legal_moves<STM, flag>(square, targets & RayBB[king][square], moves);
     }
 }
 
@@ -809,7 +801,7 @@ void generate_king_moves(const BoardState& board, T& moves, Square from)
     uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KING>(from, occupied)
         & ~board.lesser_threats[KING] & ~attack_bb<KING>(board.get_king_sq(!STM), occupied);
 
-    append_legal_moves<STM>(from, targets, flag, moves);
+    append_legal_moves<STM, flag>(from, targets, moves);
 }
 
 template <Side colour>
