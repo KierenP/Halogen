@@ -124,9 +124,13 @@ endif
 
 # Detect the highest AVX instruction set supported
 
+# We use some instructions (dpbusd_epi32, mask_compressstoreu_epi16) which are slower on Zen 4, so we disable them for that architecture.
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_AVX512_VNNI
+	ifeq ($(findstring __znver4, $(SUPPORTED)),)
+		CFLAGS += -DUSE_AVX512_VNNI
+	endif
 endif
+
 ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
 	CFLAGS += -DUSE_AVX512
 endif
