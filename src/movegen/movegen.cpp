@@ -246,15 +246,15 @@ void append_legal_moves(Square from, uint64_t to, MoveFlag flag, T& moves)
     const auto low_mask = static_cast<uint32_t>(to);
     const auto high_mask = static_cast<uint32_t>(to >> 32);
 
-    // Extract out the template moves (32 in low, 32 in high)
+    // Load precomputed move templates
     __m512i low_template = _mm512_load_si512(&moves_from_sq[0]);
     __m512i high_template = _mm512_load_si512(&moves_from_sq[32]);
 
-    // Using to as a mask, compress the moves
+    // Using the mask, compress the moves
     __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
     __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
-    // Store the compressed moves into the moves vector
+    // Store to moves vector
     _mm512_storeu_epi16(moves.end(), low_compressed);
     moves.unsafe_resize(moves.size() + popcount(low_mask));
     _mm512_storeu_epi16(moves.end(), high_compressed);
@@ -298,7 +298,7 @@ void append_legal_moves(uint64_t from, Square to, MoveFlag flag, T& moves)
     __m512i low_template = _mm512_load_si512(&moves_to_sq[0]);
     __m512i high_template = _mm512_load_si512(&moves_to_sq[32]);
 
-    // Compress using the 'from' bitboard as mask
+    // Using the mask, compress the moves
     __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
     __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
 
@@ -367,45 +367,98 @@ template <Side STM, typename T>
 void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
-    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM);
+    const uint64_t pawnSquares
+        = board.get_pieces_bb(PAWN, STM) & (~pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
     const uint64_t targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb() & target_squares;
     uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); // pushes that aren't to the back ranks
 
+#ifdef USE_AVX512_VNNI
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
+    alignas(64) static constexpr std::array<int16_t, N_SQUARES> splat_template = []
+    {
+        std::array<int16_t, N_SQUARES> cache {};
+        for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+        {
+            cache[to_] = ((to_ - foward) | (to_ << 6) | (QUIET << 12));
+        }
+
+        return cache;
+    }();
+
+    const auto low_mask = static_cast<uint32_t>(pawnPushes);
+    const auto high_mask = static_cast<uint32_t>(pawnPushes >> 32);
+
+    // Load precomputed move templates
+    __m512i low_template = _mm512_load_si512(&splat_template[0]);
+    __m512i high_template = _mm512_load_si512(&splat_template[32]);
+
+    // Using the mask, compress the moves
+    __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
+    __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
+
+    // Store to moves vector
+    _mm512_storeu_epi16(moves.end(), low_compressed);
+    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    _mm512_storeu_epi16(moves.end(), high_compressed);
+    moves.unsafe_resize(moves.size() + popcount(high_mask));
+#else
     while (pawnPushes != 0)
     {
         const Square end = lsbpop(pawnPushes);
         const Square start = end - foward;
-
-        // If we are pinned, the move is legal iff we are on the same file as the king
-        if (!(pinned & SquareBB[start]) || (enum_to<File>(start) == enum_to<File>(board.get_king_sq(STM))))
-        {
-            moves.emplace_back(start, end, QUIET);
-        }
+        moves.emplace_back(start, end, QUIET);
     }
+#endif
 }
 
 template <Side STM, typename T>
 void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
-    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM);
+    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM) & ~pinned;
     const uint64_t targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb() & target_squares;
     uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); // pushes that are to the back ranks
 
+#ifdef USE_AVX512
+    // Using AVX512F instructions, we can splat moves in parallel. We do this in groups of
+    // 4x16bit integers for the different promotions
+    alignas(64) static constexpr std::array<uint64_t, N_SQUARES> splat_template = []
+    {
+        std::array<uint64_t, N_SQUARES> cache {};
+        for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+        {
+            cache[to_] |= uint64_t((to_ - foward) | (to_ << 6) | (KNIGHT_PROMOTION << 12));
+            cache[to_] |= uint64_t((to_ - foward) | (to_ << 6) | (ROOK_PROMOTION << 12)) << 16;
+            cache[to_] |= uint64_t((to_ - foward) | (to_ << 6) | (BISHOP_PROMOTION << 12)) << 32;
+            cache[to_] |= uint64_t((to_ - foward) | (to_ << 6) | (QUEEN_PROMOTION << 12)) << 48;
+        }
+
+        return cache;
+    }();
+
+    constexpr static auto shift = STM == WHITE ? 56 : 0;
+    const auto mask = static_cast<uint8_t>(pawnPromotions >> shift);
+
+    // Load precomputed move templates
+    __m512i move_template = _mm512_load_si512(&splat_template[shift]);
+
+    // Using the mask, compress the moves
+    __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
+
+    // Store to moves vector
+    _mm512_storeu_epi16(moves.end(), move_compressed);
+    moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+#else
     while (pawnPromotions != 0)
     {
         const Square end = lsbpop(pawnPromotions);
         const Square start = end - foward;
-
-        // If we are pinned, the move is legal iff we are on the same file as the king
-        if ((pinned & SquareBB[start]) && (enum_to<File>(start) != enum_to<File>(board.get_king_sq(STM))))
-            continue;
-
         moves.emplace_back(start, end, KNIGHT_PROMOTION);
         moves.emplace_back(start, end, ROOK_PROMOTION);
         moves.emplace_back(start, end, BISHOP_PROMOTION);
         moves.emplace_back(start, end, QUEEN_PROMOTION);
     }
+#endif
 }
 
 template <Side STM, typename T>
@@ -414,21 +467,46 @@ void pawn_double_pushes(const BoardState& board, T& moves, uint64_t pinned, uint
     constexpr Shift foward2 = STM == WHITE ? Shift::NN : Shift::SS;
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     constexpr uint64_t RankMask = STM == WHITE ? RankBB[RANK_2] : RankBB[RANK_7];
-    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM) & RankMask;
+    const uint64_t pawnSquares
+        = board.get_pieces_bb(PAWN, STM) & RankMask & (~pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
 
     uint64_t targets = 0;
     targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb();
     targets = shift_bb<foward>(targets) & board.get_empty_bb() & target_squares;
 
+#ifdef USE_AVX512_VNNI
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
+    alignas(64) static constexpr std::array<int16_t, N_SQUARES> splat_template = []
+    {
+        std::array<int16_t, N_SQUARES> cache {};
+        for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+        {
+            cache[to_] = ((to_ - foward2) | (to_ << 6) | (PAWN_DOUBLE_MOVE << 12));
+        }
+
+        return cache;
+    }();
+
+    constexpr static auto shift = STM == WHITE ? 0 : 32;
+    const auto mask = static_cast<uint32_t>(targets >> shift);
+
+    // Load precomputed move templates
+    __m512i move_template = _mm512_load_si512(&splat_template[shift]);
+
+    // Using the mask, compress the moves
+    __m512i move_compressed = _mm512_maskz_compress_epi16(mask, move_template);
+
+    // Store to moves vector
+    _mm512_storeu_epi16(moves.end(), move_compressed);
+    moves.unsafe_resize(moves.size() + popcount(mask));
+#else
     while (targets != 0)
     {
         const Square end = lsbpop(targets);
         const Square start = end - foward2;
-
-        // If we are pinned, the move is legal iff we are on the same file as the king
-        if (!(pinned & SquareBB[start]) || (enum_to<File>(start) == enum_to<File>(board.get_king_sq(STM))))
-            moves.emplace_back(start, end, PAWN_DOUBLE_MOVE);
+        moves.emplace_back(start, end, PAWN_DOUBLE_MOVE);
     }
+#endif
 }
 
 template <Side STM, typename T>
@@ -453,46 +531,186 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 {
     constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SE;
     constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SW;
-    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM);
 
-    const uint64_t leftAttack = shift_bb<fowardleft>(pawnSquares) & board.get_pieces_bb(!STM) & target_squares;
-    const uint64_t rightAttack = shift_bb<fowardright>(pawnSquares) & board.get_pieces_bb(!STM) & target_squares;
+    const uint64_t leftpawnSquares
+        = board.get_pieces_bb(PAWN, STM) & (~pinned | AntiDiagonalBB[enum_to<AntiDiagonal>(board.get_king_sq(STM))]);
+    const uint64_t rightpawnSquares
+        = board.get_pieces_bb(PAWN, STM) & (~pinned | DiagonalBB[enum_to<Diagonal>(board.get_king_sq(STM))]);
 
-    auto generate_attacks = [&](uint64_t attacks, Shift forward, auto get_cardinal)
+    const uint64_t leftAttack = shift_bb<fowardleft>(leftpawnSquares) & board.get_pieces_bb(!STM) & target_squares;
+    const uint64_t rightAttack = shift_bb<fowardright>(rightpawnSquares) & board.get_pieces_bb(!STM) & target_squares;
+
+    auto left_normal_captures = leftAttack & ~(RankBB[RANK_1] | RankBB[RANK_8]);
+    auto left_promotion_captures = leftAttack & (RankBB[RANK_1] | RankBB[RANK_8]);
+
+#ifdef USE_AVX512_VNNI
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
     {
-        auto normal_captures = attacks & ~(RankBB[RANK_1] | RankBB[RANK_8]);
-        auto promotion_captures = attacks & (RankBB[RANK_1] | RankBB[RANK_8]);
-
-        while (normal_captures != 0)
+        alignas(64) static constexpr std::array<int16_t, N_SQUARES> splat_template = []
         {
-            const Square end = lsbpop(normal_captures);
-            const Square start = end - forward;
+            std::array<int16_t, N_SQUARES> cache {};
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+            {
+                cache[to_] = ((to_ - fowardleft) | (to_ << 6) | (CAPTURE << 12));
+            }
 
-            // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
-            if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.get_king_sq(STM))))
-                continue;
+            return cache;
+        }();
 
-            moves.emplace_back(start, end, CAPTURE);
-        }
+        const auto low_mask = static_cast<uint32_t>(left_normal_captures);
+        const auto high_mask = static_cast<uint32_t>(left_normal_captures >> 32);
 
-        while (promotion_captures != 0)
+        // Load precomputed move templates
+        __m512i low_template = _mm512_load_si512(&splat_template[0]);
+        __m512i high_template = _mm512_load_si512(&splat_template[32]);
+
+        // Using the mask, compress the moves
+        __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
+        __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
+
+        // Store to moves vector
+        _mm512_storeu_epi16(moves.end(), low_compressed);
+        moves.unsafe_resize(moves.size() + popcount(low_mask));
+        _mm512_storeu_epi16(moves.end(), high_compressed);
+        moves.unsafe_resize(moves.size() + popcount(high_mask));
+    }
+#else
+    while (left_normal_captures != 0)
+    {
+        const Square end = lsbpop(left_normal_captures);
+        const Square start = end - fowardleft;
+        moves.emplace_back(start, end, CAPTURE);
+    }
+#endif
+
+#ifdef USE_AVX512
+    // Using AVX512F instructions, we can splat moves in parallel. We do this in groups of
+    // 4x16bit integers for the different promotions
+    {
+        alignas(64) static constexpr std::array<uint64_t, N_SQUARES> splat_template = []
         {
-            const Square end = lsbpop(promotion_captures);
-            const Square start = end - forward;
+            std::array<uint64_t, N_SQUARES> cache {};
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+            {
+                cache[to_] |= uint64_t((to_ - fowardleft) | (to_ << 6) | (KNIGHT_PROMOTION_CAPTURE << 12));
+                cache[to_] |= uint64_t((to_ - fowardleft) | (to_ << 6) | (ROOK_PROMOTION_CAPTURE << 12)) << 16;
+                cache[to_] |= uint64_t((to_ - fowardleft) | (to_ << 6) | (BISHOP_PROMOTION_CAPTURE << 12)) << 32;
+                cache[to_] |= uint64_t((to_ - fowardleft) | (to_ << 6) | (QUEEN_PROMOTION_CAPTURE << 12)) << 48;
+            }
 
-            // If we are pinned, the move is legal iff we are on the same [anti]diagonal as the king
-            if ((pinned & SquareBB[start]) && (get_cardinal(start) != get_cardinal(board.get_king_sq(STM))))
-                continue;
+            return cache;
+        }();
 
-            moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
-            moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
-        }
-    };
+        constexpr static auto shift = STM == WHITE ? 56 : 0;
+        const auto mask = static_cast<uint8_t>(left_promotion_captures >> shift);
 
-    generate_attacks(leftAttack, fowardleft, enum_to<AntiDiagonal, Square>);
-    generate_attacks(rightAttack, fowardright, enum_to<Diagonal, Square>);
+        // Load precomputed move templates
+        __m512i move_template = _mm512_load_si512(&splat_template[shift]);
+
+        // Using the mask, compress the moves
+        __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
+
+        // Store to moves vector
+        _mm512_storeu_epi16(moves.end(), move_compressed);
+        moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+    }
+#else
+    while (left_promotion_captures != 0)
+    {
+        const Square end = lsbpop(left_promotion_captures);
+        const Square start = end - fowardleft;
+        moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
+    }
+#endif
+
+    auto right_normal_captures = rightAttack & ~(RankBB[RANK_1] | RankBB[RANK_8]);
+    auto right_promotion_captures = rightAttack & (RankBB[RANK_1] | RankBB[RANK_8]);
+
+#ifdef USE_AVX512_VNNI
+    // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
+    {
+        alignas(64) static constexpr std::array<int16_t, N_SQUARES> splat_template = []
+        {
+            std::array<int16_t, N_SQUARES> cache {};
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+            {
+                cache[to_] = ((to_ - fowardright) | (to_ << 6) | (CAPTURE << 12));
+            }
+
+            return cache;
+        }();
+
+        const auto low_mask = static_cast<uint32_t>(right_normal_captures);
+        const auto high_mask = static_cast<uint32_t>(right_normal_captures >> 32);
+
+        // Load precomputed move templates
+        __m512i low_template = _mm512_load_si512(&splat_template[0]);
+        __m512i high_template = _mm512_load_si512(&splat_template[32]);
+
+        // Using the mask, compress the moves
+        __m512i low_compressed = _mm512_maskz_compress_epi16(low_mask, low_template);
+        __m512i high_compressed = _mm512_maskz_compress_epi16(high_mask, high_template);
+
+        // Store to moves vector
+        _mm512_storeu_epi16(moves.end(), low_compressed);
+        moves.unsafe_resize(moves.size() + popcount(low_mask));
+        _mm512_storeu_epi16(moves.end(), high_compressed);
+        moves.unsafe_resize(moves.size() + popcount(high_mask));
+    }
+#else
+    while (right_normal_captures != 0)
+    {
+        const Square end = lsbpop(right_normal_captures);
+        const Square start = end - fowardright;
+        moves.emplace_back(start, end, CAPTURE);
+    }
+#endif
+
+#ifdef USE_AVX512
+    // Using AVX512F instructions, we can splat moves in parallel. We do this in groups of
+    // 4x16bit integers for the different promotions
+    {
+        alignas(64) static constexpr std::array<uint64_t, N_SQUARES> splat_template = []
+        {
+            std::array<uint64_t, N_SQUARES> cache {};
+            for (Square to_ = SQ_A1; to_ < N_SQUARES; ++to_)
+            {
+                cache[to_] |= uint64_t((to_ - fowardright) | (to_ << 6) | (KNIGHT_PROMOTION_CAPTURE << 12));
+                cache[to_] |= uint64_t((to_ - fowardright) | (to_ << 6) | (ROOK_PROMOTION_CAPTURE << 12)) << 16;
+                cache[to_] |= uint64_t((to_ - fowardright) | (to_ << 6) | (BISHOP_PROMOTION_CAPTURE << 12)) << 32;
+                cache[to_] |= uint64_t((to_ - fowardright) | (to_ << 6) | (QUEEN_PROMOTION_CAPTURE << 12)) << 48;
+            }
+
+            return cache;
+        }();
+
+        constexpr static auto shift = STM == WHITE ? 56 : 0;
+        const auto mask = static_cast<uint8_t>(right_promotion_captures >> shift);
+
+        // Load precomputed move templates
+        __m512i move_template = _mm512_load_si512(&splat_template[shift]);
+
+        // Using the mask, compress the moves
+        __m512i move_compressed = _mm512_maskz_compress_epi64(mask, move_template);
+
+        // Store to moves vector
+        _mm512_storeu_epi16(moves.end(), move_compressed);
+        moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+    }
+#else
+    while (right_promotion_captures != 0)
+    {
+        const Square end = lsbpop(right_promotion_captures);
+        const Square start = end - fowardright;
+        moves.emplace_back(start, end, KNIGHT_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, ROOK_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, BISHOP_PROMOTION_CAPTURE);
+        moves.emplace_back(start, end, QUEEN_PROMOTION_CAPTURE);
+    }
+#endif
 }
 
 template <Side STM>
