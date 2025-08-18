@@ -281,9 +281,6 @@ auto Uci::options_handler()
 
         tuneable_int(se_sbeta_depth, 20, 80),
         tuneable_int(se_double, 0, 30),
-        tuneable_int(se_double_pv, 200, 600),
-        tuneable_int(se_double_hd, 150, 600),
-        tuneable_int(se_double_quiet, -30, 30),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
@@ -300,13 +297,13 @@ auto Uci::options_handler()
         tuneable_int(rfp_max_d, 5, 15),
         tuneable_int(rfp_const, -1000, 1000),
         tuneable_int(rfp_depth, 1500, 6000),
-        tuneable_int(rfp_quad, 0, 500),
+        tuneable_int(rfp_quad, 0, 50),
         tuneable_int(rfp_threat, 0, 100),
 
-        tuneable_int(lmp_max_d, 3, 9),
+        tuneable_int(lmp_max_d, 3, 14),
         tuneable_int(lmp_const, 64, 640),
         tuneable_int(lmp_depth, 64, 640),
-        tuneable_int(lmp_quad, 0, 500),
+        tuneable_int(lmp_quad, 0, 50),
 
         tuneable_int(fp_max_d, 5, 15),
         tuneable_int(fp_const, 1200, 2800),
@@ -319,10 +316,10 @@ auto Uci::options_handler()
         tuneable_int(see_loud_hist, 50, 250),
         tuneable_int(see_max_depth, 3, 12),
 
-        tuneable_int(hist_prune_depth, 1500, 6000),
-        tuneable_int(hist_prune, -2000, 2000),
+        tuneable_int(hist_prune_depth, 1000, 4000),
+        tuneable_int(hist_prune, 0, 600),
 
-        tuneable_int(delta_c, 0, 500),
+        tuneable_int(delta_c, 0, 1000),
 
         tuneable_int(eval_scale[PAWN], -200, 200),
         tuneable_int(eval_scale[KNIGHT], 200, 800),
@@ -339,33 +336,36 @@ auto Uci::options_handler()
 
         tuneable_float(soft_tm, 0.1, 0.9),
         tuneable_float(node_tm_base, 0.2, 0.8),
-        tuneable_float(node_tm_scale, 1.0, 3.0),
+        tuneable_float(node_tm_scale, 1.0, 5.0),
         tuneable_int(blitz_tc_a, 20, 80),
         tuneable_int(blitz_tc_b, 150, 600),
         tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
         tuneable_int(history_bonus_const, 450, 1800),
-        tuneable_int(history_bonus_depth, -500, 500),
+        tuneable_int(history_bonus_depth, -5000, 5000),
         tuneable_int(history_bonus_quad, 40, 160),
         tuneable_int(history_penalty_const, 500, 2000),
-        tuneable_int(history_penalty_depth, -500, 500),
+        tuneable_int(history_penalty_depth, -5000, 5000),
         tuneable_int(history_penalty_quad, 20, 80),
 
         tuneable_int(tt_replace_self_depth, 0, 6),
         tuneable_int(tt_replace_depth, 32, 128),
         tuneable_int(tt_replace_age, 128, 512),
 
+        tuneable_int(good_loud_see, 0, 200),
+        tuneable_int(good_loud_see_hist, 0, 100),
+
         tuneable_int(PawnHistory::max_value, 1000, 32000),
-        tuneable_int(PawnHistory::scale, 20, 50),
+        tuneable_int(PawnHistory::scale, 20, 80),
         tuneable_int(ThreatHistory::max_value, 1000, 32000),
-        tuneable_int(ThreatHistory::scale, 20, 50),
+        tuneable_int(ThreatHistory::scale, 20, 80),
         tuneable_int(CaptureHistory::max_value, 1000, 32000),
-        tuneable_int(CaptureHistory::scale, 20, 60),
+        tuneable_int(CaptureHistory::scale, 20, 80),
         tuneable_int(PawnHistory::max_value, 1000, 32000),
-        tuneable_int(PawnHistory::scale, 20, 50),
+        tuneable_int(PawnHistory::scale, 20, 80),
         tuneable_int(PieceMoveHistory::max_value, 1000, 32000),
-        tuneable_int(PieceMoveHistory::scale, 20, 50),
+        tuneable_int(PieceMoveHistory::scale, 20, 80),
 
         tuneable_int(PawnCorrHistory::correction_max, 32, 128),
         tuneable_int(PawnCorrHistory::scale, 64, 256),
@@ -375,9 +375,6 @@ auto Uci::options_handler()
         tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
 
         tuneable_float(SCALE_FACTOR, 80, 320),
-
-        tuneable_int(good_loud_see, 0, 200),
-        tuneable_int(good_loud_see_hist, 0, 100),
 #else
 #endif
     };
