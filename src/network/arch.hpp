@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitboard/enum.h"
+#include "spsa/tuneable.h"
 
 #include <algorithm>
 #include <array>
@@ -39,4 +40,4 @@ constexpr size_t KING_BUCKET_COUNT = []()
 
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
-constexpr double SCALE_FACTOR = 160;
+TUNEABLE_CONSTANT float SCALE_FACTOR = 165.3f;
