@@ -336,7 +336,7 @@ auto Uci::options_handler()
 
         tuneable_float(soft_tm, 0.1, 0.9),
         tuneable_float(node_tm_base, 0.2, 0.8),
-        tuneable_float(node_tm_scale, 1.0, 5.0),
+        tuneable_float(node_tm_scale, 1.0, 3.0),
         tuneable_int(blitz_tc_a, 20, 80),
         tuneable_int(blitz_tc_b, 150, 600),
         tuneable_int(sudden_death_tc, 25, 100),
