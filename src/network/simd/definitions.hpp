@@ -204,6 +204,17 @@ inline veci slli_epi16(const veci& a, int imm)
 #endif
 }
 
+inline veci slli_epi32(const veci& a, int imm)
+{
+#if defined(USE_AVX512)
+    return _mm512_slli_epi32(a, imm);
+#elif defined(USE_AVX2)
+    return _mm256_slli_epi32(a, imm);
+#elif defined(USE_SSE4)
+    return _mm_slli_epi32(a, imm);
+#endif
+}
+
 inline veci mulhi_epi16(const veci& a, const veci& b)
 {
 #if defined(USE_AVX512)
@@ -249,6 +260,15 @@ inline uint16_t cmpgt_epi32_mask(const veci& a)
 #endif
 }
 
+inline auto cmpgt_epi8_mask(const veci& a)
+{
+#if defined(USE_AVX512)
+    return _mm512_cmpgt_epi8_mask(a, _mm512_setzero_si512());
+#else
+    __not_implemented
+#endif
+}
+
 static const auto madd_helper = SIMD::set1_epi16(1);
 
 inline veci dpbusd_epi32(const veci& source, const veci& a, const veci& b)
@@ -267,6 +287,17 @@ inline veci dpbusd_epi32(const veci& source, const veci& a, const veci& b)
     auto dot = _mm_maddubs_epi16(a, b);
     dot = _mm_madd_epi16(dot, madd_helper);
     return _mm_add_epi32(source, dot);
+#endif
+}
+
+inline veci or_epi32(const veci& a, const veci& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_or_si512(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_or_si256(a, b);
+#elif defined(USE_SSE4)
+    return _mm_or_si128(a, b);
 #endif
 }
 

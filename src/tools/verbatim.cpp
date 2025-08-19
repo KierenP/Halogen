@@ -228,6 +228,78 @@ auto transpose_l2_weights(const decltype(raw_network::l2_weight)& input)
     return output;
 }
 
+auto pad_l1_weight_int32(const decltype(raw_network::l1_weight)& input)
+{
+    auto output = std::make_unique<std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>, OUTPUT_BUCKETS>>();
+
+    for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
+    {
+        for (size_t j = 0; j < FT_SIZE; j++)
+        {
+            for (size_t k = 0; k < L1_SIZE; k++)
+            {
+                int8_t padded[4] = { static_cast<int8_t>(input[i][k][j]), 0, 0, 0 };
+                (*output)[i][j][k] = *reinterpret_cast<int32_t*>(&padded);
+            }
+        }
+    }
+
+    return output;
+}
+}
+
+#if defined(USE_AVX512_VNNI)
+
+struct network
+{
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
+    alignas(64) std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
+};
+
+using namespace NN;
+
+int main(int argc, char* argv[])
+{
+    if (argc != 3)
+    {
+        std::cout << "Error: expected 2 command line arguments <input> and <output>" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (auto size = std::filesystem::file_size(argv[1]); size != sizeof(raw_network))
+    {
+        std::cout << "Error: expected to read " << sizeof(raw_network) << " bytes but file size is " << size << " bytes"
+                  << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    auto raw_net = std::make_unique<raw_network>();
+    std::ifstream in(argv[1], std::ios::binary);
+    in.read(reinterpret_cast<char*>(raw_net.get()), sizeof(raw_network));
+
+    auto [ft_weight1, ft_bias1] = adjust_for_packus(raw_net->ft_weight, raw_net->ft_bias);
+    auto final_net = std::make_unique<network>();
+    final_net->ft_weight = *ft_weight1;
+    final_net->ft_bias = *ft_bias1;
+    final_net->l1_weight = *pad_l1_weight_int32(raw_net->l1_weight);
+    final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net->l1_bias));
+    final_net->l2_weight = *transpose_l2_weights(raw_net->l2_weight);
+    final_net->l2_bias = raw_net->l2_bias;
+    final_net->l3_weight = raw_net->l3_weight;
+    final_net->l3_bias = raw_net->l3_bias;
+
+    std::ofstream out(argv[2], std::ios::binary);
+    out.write(reinterpret_cast<const char*>(final_net.get()), sizeof(network));
+
+    std::cout << "Created embedded network" << std::endl;
+}
+#else
 struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
@@ -239,8 +311,6 @@ struct network
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 };
-
-}
 
 using namespace NN;
 
@@ -280,3 +350,4 @@ int main(int argc, char* argv[])
 
     std::cout << "Created embedded network" << std::endl;
 }
+#endif

@@ -24,6 +24,19 @@ namespace NN
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
 
+#if defined(USE_AVX512_VNNI)
+struct network
+{
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
+    alignas(64) std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
+} const& net = reinterpret_cast<const network&>(*gNetData);
+#else
 struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
@@ -35,6 +48,7 @@ struct network
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 } const& net = reinterpret_cast<const network&>(*gNetData);
+#endif
 
 [[maybe_unused]] auto verify_network_size = []
 {
@@ -514,7 +528,7 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     auto output_bucket = calculate_output_bucket(popcount(board.get_pieces_bb()));
 
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
-    alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
+    alignas(64) std::array<int16_t, FT_SIZE> sparse_ft_nibbles {}; // only needs to be zeroed for AVX512_VNNI
     size_t sparse_nibbles_size = 0;
     NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
