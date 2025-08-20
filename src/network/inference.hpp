@@ -73,7 +73,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     const auto zero = SIMD::setzero_si();
     const auto one = SIMD::set1_epi16(FT_SCALE);
 #if defined(USE_AVX512_VNNI)
-    auto sparse_nibble_offset = SIMD::set1_epi16(0);
+    auto indicies = SIMD::load_si(nibble_offset_table.data());
     const auto sparse_nibble_offset_adj = SIMD::set1_epi16(32);
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
@@ -131,11 +131,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 
 #if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load_si(nibble_offset_table.data());
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
         _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
         sparse_nibbles_size += popcount(mask);
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj);
 #else
         // 1 byte for SSE, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
@@ -191,11 +189,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 
 #if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load_si(nibble_offset_table.data());
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
         _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
         sparse_nibbles_size += popcount(mask);
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj);
 #else
         // 1 byte for SSE, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
