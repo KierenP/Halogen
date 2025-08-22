@@ -124,8 +124,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         auto mask2 = SIMD::cmpgt_epi16_mask(stm_vec3);
         auto compressed_1 = _mm512_maskz_compress_epi16(mask1, stm_vec1);
         auto compressed_2 = _mm512_maskz_compress_epi16(mask2, stm_vec3);
-        SIMD::store_si(&output[sparse_nibbles_size * 2], compressed_1);
-        SIMD::store_si(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
+        _mm512_storeu_epi16(&output[sparse_nibbles_size * 2], compressed_1);
+        _mm512_storeu_epi16(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
 
         // extract out the indicies of the non-zero activation pairs
         auto indicies = SIMD::load_si(nibble_offset_table.data());
@@ -135,9 +135,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
         auto compressed_index_pairs_2 = _mm512_maskz_compress_epi16(mask2, indicies);
 
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
+        _mm512_storeu_epi16(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
         sparse_nibbles_size += popcount(mask1);
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
+        _mm512_storeu_epi16(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
         sparse_nibbles_size += popcount(mask2);
 
         sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_64);
@@ -208,8 +208,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         auto mask2 = SIMD::cmpgt_epi16_mask(nstm_vec3);
         auto compressed_1 = _mm512_maskz_compress_epi16(mask1, nstm_vec1);
         auto compressed_2 = _mm512_maskz_compress_epi16(mask2, nstm_vec3);
-        SIMD::store_si(&output[sparse_nibbles_size * 2], compressed_1);
-        SIMD::store_si(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
+        _mm512_storeu_epi16(&output[sparse_nibbles_size * 2], compressed_1);
+        _mm512_storeu_epi16(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
 
         auto indicies = SIMD::load_si(nibble_offset_table.data());
 
@@ -218,9 +218,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
         auto compressed_index_pairs_2 = _mm512_maskz_compress_epi16(mask2, indicies);
 
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
+        _mm512_storeu_epi16(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
         sparse_nibbles_size += popcount(mask1);
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
+        _mm512_storeu_epi16(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
         sparse_nibbles_size += popcount(mask2);
 
         sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_64);
