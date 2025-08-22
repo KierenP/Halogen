@@ -169,6 +169,13 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
             sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
         }
 #endif
+#ifdef NETWORK_SHUFFLE
+        alignas(64) uint8_t activations[SIMD::vec_size];
+        SIMD::store_si(&activations, stm_vec1);
+        shuffle_network_data.report_ft_activations(i, activations);
+        SIMD::store_si(&activations, stm_vec3);
+        shuffle_network_data.report_ft_activations(i + stride * 2, activations);
+#endif
     }
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
@@ -243,6 +250,13 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
             sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
         }
 #endif
+#ifdef NETWORK_SHUFFLE
+        alignas(64) uint8_t activations[SIMD::vec_size];
+        SIMD::store_si(&activations, nstm_vec1);
+        shuffle_network_data.report_ft_activations(i, activations);
+        SIMD::store_si(&activations, nstm_vec3);
+        shuffle_network_data.report_ft_activations(i + stride * 2, activations);
+#endif
     }
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
@@ -269,6 +283,23 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     [[maybe_unused]] const std::array<int16_t, FT_SIZE>& sparse_ft_pair_activations,
     [[maybe_unused]] const size_t sparse_ft_pair_activations_size, std::array<float, L1_SIZE * 2>& output)
 {
+#ifdef NETWORK_SHUFFLE
+    static size_t block_count = 0;
+    static size_t block_nnz = 0;
+    static size_t neuron_count = 0;
+    static size_t neuron_nnz = 0;
+    block_count += FT_SIZE / 2;
+    block_nnz += sparse_ft_pair_activations_size;
+    neuron_count += FT_SIZE;
+    neuron_nnz += std::count_if(ft_activation.begin(), ft_activation.begin() + sparse_ft_pair_activations_size * 2,
+        [](auto val) { return val > 0; });
+    if (block_count % (FT_SIZE / 4 * 1024) == 0)
+    {
+        std::cout << "Average block NNZ: " << float(block_nnz) / float(block_count) * 100 << "%\n";
+        std::cout << "Average neuron NNZ: " << float(neuron_nnz) / float(neuron_count) * 100 << "%\n";
+    }
+#endif
+
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
     SIMD::veci output_reg[L1_SIZE / stride];

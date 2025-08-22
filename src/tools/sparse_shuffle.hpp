@@ -5,25 +5,25 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <span>
 #include <vector>
 
 class SparseL1Shuffle
 {
 public:
-    void report_ft_activations(const std::array<uint8_t, FT_SIZE>& ft_activation)
+    void report_ft_activations(size_t index_offset, std::span<uint8_t> ft_activation)
     {
-        // We need to remember we do a pairwise mul (so each activation refers to a pair of ft neurons), we have a duel
-        // perspective net (so each ft_activation array is really 2 observations for each ft neuron).
-
-        for (size_t i = 0; i < FT_SIZE; i++)
+        for (size_t i = 0; i < ft_activation.size(); i++)
         {
-            activation[i % (FT_SIZE / 2)].push_back(ft_activation[i] > 0);
+            activation[index_offset + i].push_back(ft_activation[i] > 0);
         }
-
-        activation_data_count += 2;
     }
 
+#if defined(USE_AVX512_VNNI)
+    constexpr static size_t group_size = 2;
+#else
     constexpr static size_t group_size = 4;
+#endif
     constexpr static size_t num_groups = (FT_SIZE / 2) / group_size;
     static_assert(group_size * num_groups == (FT_SIZE / 2));
 
@@ -32,13 +32,20 @@ public:
 
     void GroupNeuronsByCoactivation()
     {
+        size_t number_of_observations = activation[0].size();
+        if (std::ranges::any_of(activation, [&](const auto& vec) { return vec.size() != number_of_observations; }))
+        {
+            std::cout << "Error: inconsistent number of observations" << std::endl;
+            return;
+        }
+
         Groups groups;
 
         for (size_t i = 0; i < num_groups; i++)
         {
             for (size_t j = 0; j < group_size; j++)
             {
-                groups[i][j] = i * 4 + j;
+                groups[i][j] = i * group_size + j;
             }
         }
 
@@ -55,10 +62,18 @@ private:
 #ifdef NETWORK_SHUFFLE
 #pragma omp parallel for reduction(+ : score)
 #endif
-        for (size_t i = 0; i < activation_data_count; i++)
+        for (size_t i = 0; i < activation[0].size(); i++)
         {
-            if (!activation[group[0]][i] && !activation[group[1]][i] && !activation[group[2]][i]
-                && !activation[group[3]][i])
+            bool all_zero = true;
+            for (size_t idx = 0; idx < group_size; idx++)
+            {
+                if (activation[group[idx]][i])
+                {
+                    all_zero = false;
+                    break;
+                }
+            }
+            if (all_zero)
             {
                 score++;
             }
@@ -68,17 +83,25 @@ private:
 
     void EstimateNNZ(const Groups& groups)
     {
-        int64_t total = num_groups * activation_data_count;
+        int64_t total = num_groups * activation[0].size();
         int64_t nnz = 0;
 #ifdef NETWORK_SHUFFLE
 #pragma omp parallel for reduction(+ : nnz)
 #endif
-        for (size_t i = 0; i < activation_data_count; i++)
+        for (size_t i = 0; i < activation[0].size(); i++)
         {
             for (size_t j = 0; j < groups.size(); j++)
             {
-                if (activation[groups[j][0]][i] || activation[groups[j][1]][i] || activation[groups[j][2]][i]
-                    || activation[groups[j][3]][i])
+                bool all_zero = true;
+                for (size_t idx = 0; idx < group_size; idx++)
+                {
+                    if (activation[groups[j][idx]][i])
+                    {
+                        all_zero = false;
+                        break;
+                    }
+                }
+                if (!all_zero)
                 {
                     nnz++;
                 }
@@ -116,9 +139,9 @@ private:
                 for (size_t g2 = g1 + 1; g2 < groups.size(); g2++)
                 {
                     std::cout << "Trying to swap groups " << g1 << " and " << g2 << std::endl;
-                    for (size_t i = 0; i < 4; i++)
+                    for (size_t i = 0; i < group_size; i++)
                     {
-                        for (size_t j = 0; j < 4; j++)
+                        for (size_t j = 0; j < group_size; j++)
                         {
                             auto g1_copy = groups[g1];
                             auto g2_copy = groups[g2];
@@ -157,7 +180,6 @@ private:
 
     // faster to store std::vector<uint8_t> than std::vector<bool> for auto-vectorization
     std::array<std::vector<uint8_t>, FT_SIZE / 2> activation = {};
-    size_t activation_data_count = 0;
 };
 
 #ifdef NETWORK_SHUFFLE
