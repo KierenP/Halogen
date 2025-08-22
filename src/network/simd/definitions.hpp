@@ -260,10 +260,10 @@ inline uint16_t cmpgt_epi32_mask(const veci& a)
 #endif
 }
 
-inline auto cmpgt_epi8_mask(const veci& a)
+inline auto cmpgt_epi16_mask(const veci& a)
 {
 #if defined(USE_AVX512)
-    return _mm512_cmpgt_epi8_mask(a, _mm512_setzero_si512());
+    return _mm512_cmpgt_epi16_mask(a, _mm512_setzero_si512());
 #else
     __not_implemented
 #endif

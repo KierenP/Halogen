@@ -228,18 +228,19 @@ auto transpose_l2_weights(const decltype(raw_network::l2_weight)& input)
     return output;
 }
 
-auto pad_l1_weight_int32(const decltype(raw_network::l1_weight)& input)
+auto form_l1_weight_pairs(const decltype(raw_network::l1_weight)& input)
 {
-    auto output = std::make_unique<std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>, OUTPUT_BUCKETS>>();
+    auto output = std::make_unique<std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE / 2>, OUTPUT_BUCKETS>>();
 
     for (size_t i = 0; i < OUTPUT_BUCKETS; i++)
     {
-        for (size_t j = 0; j < FT_SIZE; j++)
+        for (size_t j = 0; j < FT_SIZE; j += 2)
         {
             for (size_t k = 0; k < L1_SIZE; k++)
             {
-                int8_t padded[4] = { static_cast<int8_t>(input[i][k][j]), 0, 0, 0 };
-                (*output)[i][j][k] = *reinterpret_cast<int32_t*>(&padded);
+                int8_t padded[4]
+                    = { static_cast<int8_t>(input[i][k][j]), static_cast<int8_t>(input[i][k][j + 1]), 0, 0 };
+                (*output)[i][j / 2][k] = *reinterpret_cast<int32_t*>(&padded);
             }
         }
     }
@@ -254,7 +255,7 @@ struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<std::array<int32_t, L1_SIZE>, FT_SIZE / 2>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
@@ -287,7 +288,7 @@ int main(int argc, char* argv[])
     auto final_net = std::make_unique<network>();
     final_net->ft_weight = *ft_weight1;
     final_net->ft_bias = *ft_bias1;
-    final_net->l1_weight = *pad_l1_weight_int32(raw_net->l1_weight);
+    final_net->l1_weight = *form_l1_weight_pairs(raw_net->l1_weight);
     final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net->l1_bias));
     final_net->l2_weight = *transpose_l2_weights(raw_net->l2_weight);
     final_net->l2_bias = raw_net->l2_bias;

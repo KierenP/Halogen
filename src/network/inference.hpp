@@ -75,7 +75,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #if defined(USE_AVX512_VNNI)
     auto sparse_nibble_offset = SIMD::set1_epi16(0);
     const auto sparse_nibble_offset_adj_32 = SIMD::set1_epi16(32);
-    const auto sparse_nibble_offset_adj_128 = SIMD::set1_epi16(128);
+    const auto sparse_nibble_offset_adj_64 = SIMD::set1_epi16(64);
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
     const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
@@ -120,35 +120,27 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
 #if defined(USE_AVX512_VNNI)
         // store the compresed non-zero activations
-        auto mask1 = SIMD::cmpgt_epi8_mask(stm_vec1);
-        auto mask2 = SIMD::cmpgt_epi8_mask(stm_vec3);
-        auto compressed_1 = _mm512_maskz_compress_epi8(mask1, stm_vec1);
-        auto compressed_2 = _mm512_maskz_compress_epi8(mask2, stm_vec3);
-        SIMD::store_si(&output[sparse_nibbles_size], compressed_1);
-        SIMD::store_si(&output[sparse_nibbles_size + popcount(mask1)], compressed_2);
+        auto mask1 = SIMD::cmpgt_epi16_mask(stm_vec1);
+        auto mask2 = SIMD::cmpgt_epi16_mask(stm_vec3);
+        auto compressed_1 = _mm512_maskz_compress_epi16(mask1, stm_vec1);
+        auto compressed_2 = _mm512_maskz_compress_epi16(mask2, stm_vec3);
+        SIMD::store_si(&output[sparse_nibbles_size * 2], compressed_1);
+        SIMD::store_si(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
 
-        // extract out the indicies of the non-zero activations
+        // extract out the indicies of the non-zero activation pairs
         auto indicies = SIMD::load_si(nibble_offset_table.data());
 
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
-        auto compressed_indicies_1 = _mm512_maskz_compress_epi16(uint32_t(mask1), indicies);
+        auto compressed_index_pairs_1 = _mm512_maskz_compress_epi16(mask1, indicies);
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_2 = _mm512_maskz_compress_epi16(uint32_t(mask1 >> 32), indicies);
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_3 = _mm512_maskz_compress_epi16(uint32_t(mask2), indicies);
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_4 = _mm512_maskz_compress_epi16(uint32_t(mask2 >> 32), indicies);
+        auto compressed_index_pairs_2 = _mm512_maskz_compress_epi16(mask2, indicies);
 
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_1);
-        sparse_nibbles_size += popcount(uint32_t(mask1));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_2);
-        sparse_nibbles_size += popcount(uint32_t(mask1 >> 32));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_3);
-        sparse_nibbles_size += popcount(uint32_t(mask2));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_4);
-        sparse_nibbles_size += popcount(uint32_t(mask2 >> 32));
+        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
+        sparse_nibbles_size += popcount(mask1);
+        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
+        sparse_nibbles_size += popcount(mask2);
 
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_128);
+        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_64);
 #else
         SIMD::store_si(&output[i], stm_vec1);
         SIMD::store_si(&output[i + stride * 2], stm_vec3);
@@ -204,34 +196,27 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec3 = SIMD::packus_epi16(nstm_vec3, nstm_vec4);
 
 #if defined(USE_AVX512_VNNI)
-        auto mask1 = SIMD::cmpgt_epi8_mask(nstm_vec1);
-        auto mask2 = SIMD::cmpgt_epi8_mask(nstm_vec3);
-        auto compressed_1 = _mm512_maskz_compress_epi8(mask1, nstm_vec1);
-        auto compressed_2 = _mm512_maskz_compress_epi8(mask2, nstm_vec3);
-        SIMD::store_si(&output[sparse_nibbles_size], compressed_1);
-        SIMD::store_si(&output[sparse_nibbles_size + popcount(mask1)], compressed_2);
+        // store the compresed non-zero activations
+        auto mask1 = SIMD::cmpgt_epi16_mask(nstm_vec1);
+        auto mask2 = SIMD::cmpgt_epi16_mask(nstm_vec3);
+        auto compressed_1 = _mm512_maskz_compress_epi16(mask1, nstm_vec1);
+        auto compressed_2 = _mm512_maskz_compress_epi16(mask2, nstm_vec3);
+        SIMD::store_si(&output[sparse_nibbles_size * 2], compressed_1);
+        SIMD::store_si(&output[sparse_nibbles_size * 2 + popcount(mask1) * 2], compressed_2);
 
         auto indicies = SIMD::load_si(nibble_offset_table.data());
 
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
-        auto compressed_indicies_1 = _mm512_maskz_compress_epi16(uint32_t(mask1), indicies);
+        auto compressed_index_pairs_1 = _mm512_maskz_compress_epi16(mask1, indicies);
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_2 = _mm512_maskz_compress_epi16(uint32_t(mask1 >> 32), indicies);
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_3 = _mm512_maskz_compress_epi16(uint32_t(mask2), indicies);
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset_adj_32);
-        auto compressed_indicies_4 = _mm512_maskz_compress_epi16(uint32_t(mask2 >> 32), indicies);
+        auto compressed_index_pairs_2 = _mm512_maskz_compress_epi16(mask2, indicies);
 
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_1);
-        sparse_nibbles_size += popcount(uint32_t(mask1));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_2);
-        sparse_nibbles_size += popcount(uint32_t(mask1 >> 32));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_3);
-        sparse_nibbles_size += popcount(uint32_t(mask2));
-        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_indicies_4);
-        sparse_nibbles_size += popcount(uint32_t(mask2 >> 32));
+        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_1);
+        sparse_nibbles_size += popcount(mask1);
+        SIMD::store_si(&sparse_nibbles[sparse_nibbles_size], compressed_index_pairs_2);
+        sparse_nibbles_size += popcount(mask2);
 
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_128);
+        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj_64);
 #else
         SIMD::store_si(&output[i + FT_SIZE / 2], nstm_vec1);
         SIMD::store_si(&output[i + FT_SIZE / 2 + stride * 2], nstm_vec3);
@@ -280,9 +265,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 
 #if defined(USE_AVX512_VNNI)
 void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
-    const std::array<std::array<int32_t, L1_SIZE>, FT_SIZE>& l1_weight, const std::array<int32_t, L1_SIZE>& l1_bias,
-    [[maybe_unused]] const std::array<int16_t, FT_SIZE>& sparse_ft_activations,
-    [[maybe_unused]] const size_t sparse_ft_activations_size, std::array<float, L1_SIZE * 2>& output)
+    const std::array<std::array<int32_t, L1_SIZE>, FT_SIZE / 2>& l1_weight, const std::array<int32_t, L1_SIZE>& l1_bias,
+    [[maybe_unused]] const std::array<int16_t, FT_SIZE>& sparse_ft_pair_activations,
+    [[maybe_unused]] const size_t sparse_ft_pair_activations_size, std::array<float, L1_SIZE * 2>& output)
 {
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
@@ -294,62 +279,37 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     }
 
     size_t sparse_input_idx = 0;
-    for (; sparse_input_idx < sparse_ft_activations_size - 3; sparse_input_idx += 4)
+    for (; sparse_input_idx < sparse_ft_pair_activations_size - 1; sparse_input_idx += 2)
     {
         // I'm not going to bother writing an inner loop, if L1_SIZE changes I can do it later
         static_assert(L1_SIZE * sizeof(int32_t) == SIMD::vec_size);
 
-        // A block of 4 densely packed ft activations [a, b, c, d]
-        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx]);
+        // A block of 4 densely packed ft activations [a, b, c, d], originating from two pairs of adjacent activations
+        // (a, b) and (c, d)
+        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx * 2]);
 
         // For the block above, we have indicies [a, b, c, d] from which the block was formed. We load weights like so:
-        // [ w_a0,    0,    0,    0 ][ w_a1,    0,    0,    0 ] ... [ w_a15,     0,     0,     0 ]
-        // [    0, w_b0,    0,    0 ][    0, w_b1,    0,    0 ] ... [     0, w_b15,     0,     0 ]
-        // [    0,    0, w_c0,    0 ][    0,    0, w_c1,    0 ] ... [     0,     0, w_c15,     0 ]
-        // [    0,    0,    0, w_d0 ][    0,    0,    0, w_d1 ] ... [     0,     0,     0, w_d15 ]
+        // [ w_a0, w_b0,    0,    0 ][ w_a1, w_b1,    0,    0 ] ... [ w_a15, w_b15,     0,     0 ]
+        // [    0,    0, w_c0, w_d0 ][    0,    0, w_c1, w_d1 ] ... [     0,     0, w_c15, w_d15 ]
 
         // then we can squash them together to form the weights vector we want for the dpbusd_epi32
         // [ w_a0, w_b0, w_c0, w_d0 ][ w_a1, w_b1, w_c1, w_d1 ] ... [ w_a15, w_b15, w_c15, w_d15 ]
 
-        auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx]]);
-        auto weights_1 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 1]]);
-        auto weights_2 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 2]]);
-        auto weights_3 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 3]]);
+        auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_pair_activations[sparse_input_idx]]);
+        auto weights_1 = SIMD::load_si(&l1_weight[sparse_ft_pair_activations[sparse_input_idx + 1]]);
 
         // We could precompute the shifts, but they only have a 1 cycle latency
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_1, 8));
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_2, 16));
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_3, 24));
+        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_1, 16));
 
         const auto input_vec = SIMD::set1_epi32(input_block);
         output_reg[0] = SIMD::dpbusd_epi32(output_reg[0], input_vec, weights_0);
     }
 
-    // handle the last 0-3 sparse activations that don't fit into a block of 4
-    if (sparse_input_idx + 3 == sparse_ft_activations_size)
+    // handle the case where we have an odd number of sparse FT activation pairs
+    if (sparse_input_idx + 1 == sparse_ft_pair_activations_size)
     {
-        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx]);
-        auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx]]);
-        auto weights_1 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 1]]);
-        auto weights_2 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 2]]);
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_1, 8));
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_2, 16));
-        const auto input_vec = SIMD::set1_epi32(input_block);
-        output_reg[0] = SIMD::dpbusd_epi32(output_reg[0], input_vec, weights_0);
-    }
-    else if (sparse_input_idx + 2 == sparse_ft_activations_size)
-    {
-        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx]);
-        auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx]]);
-        auto weights_1 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx + 1]]);
-        weights_0 = SIMD::or_epi32(weights_0, SIMD::slli_epi32(weights_1, 8));
-        const auto input_vec = SIMD::set1_epi32(input_block);
-        output_reg[0] = SIMD::dpbusd_epi32(output_reg[0], input_vec, weights_0);
-    }
-    else if (sparse_input_idx + 1 == sparse_ft_activations_size)
-    {
-        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx]);
-        const auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_activations[sparse_input_idx]]);
+        const auto input_block = *reinterpret_cast<const int32_t*>(&ft_activation[sparse_input_idx * 2]);
+        const auto weights_0 = SIMD::load_si(&l1_weight[sparse_ft_pair_activations[sparse_input_idx]]);
         const auto input_vec = SIMD::set1_epi32(input_block);
         output_reg[0] = SIMD::dpbusd_epi32(output_reg[0], input_vec, weights_0);
     }
