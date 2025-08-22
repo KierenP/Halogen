@@ -1,6 +1,7 @@
 #include "search/history.h"
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
@@ -28,8 +29,9 @@ int16_t* CaptureHistory::get(const GameState& position, const SearchStackState*,
 {
     const auto& stm = position.board().stm;
     const auto curr_piece = enum_to<PieceType>(position.board().get_square_piece(move.from()));
-    const auto cap_piece
-        = move.flag() == EN_PASSANT ? PAWN : enum_to<PieceType>(position.board().get_square_piece(move.to()));
+    const auto cap_piece = move.flag() == EN_PASSANT ? PAWN
+        : move.is_promotion() && !move.is_capture()  ? PAWN // TODO: this preserves old behaviour
+                                                     : enum_to<PieceType>(position.board().get_square_piece(move.to()));
 
     return &table[stm][curr_piece][move.to()][cap_piece];
 }
@@ -94,7 +96,10 @@ Score NonPawnCorrHistory::get_correction_score(const GameState& position, Side s
 int16_t* PieceMoveCorrHistory::get(const GameState& position, const SearchStackState* ss)
 {
     const auto& stm = position.board().stm;
-    return &table[!stm][enum_to<PieceType>((ss - 1)->moved_piece)][(ss - 1)->move.to()];
+    // TODO: the following conditions preserve the old behaviour for handling null moves.
+    const auto moved_piece = (ss - 1)->move != Move::Uninitialized ? enum_to<PieceType>((ss - 1)->moved_piece) : PAWN;
+    const auto move_to = (ss - 1)->move != Move::Uninitialized ? (ss - 1)->move.to() : SQ_A1;
+    return &table[!stm][moved_piece][move_to];
 }
 
 void PieceMoveCorrHistory::add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff)
