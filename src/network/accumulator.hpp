@@ -1,6 +1,6 @@
 #pragma once
 
-#include "simd/definitions.hpp"
+#include "simd/intrinsics.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>

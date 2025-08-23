@@ -2,7 +2,7 @@
 
 #include "bitboard/define.h"
 #include "network/arch.hpp"
-#include "network/simd/definitions.hpp"
+#include "network/simd/intrinsics.hpp"
 #include "network/simd/utility.hpp"
 #include "tools/sparse_shuffle.hpp"
 #include <array>
@@ -346,7 +346,7 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
     {
         for (size_t j = 0; j < L2_SIZE; j++)
         {
-            output[j] += l1_activation[i] * l2_weight[i][j];
+            output[j] = std::fma(l1_activation[i], l2_weight[i][j], output[j]);
         }
     }
 
@@ -402,10 +402,22 @@ void L3_activation(
 #endif
 
 #else
+    // this whole song and dance is to match the order the floats are added in the SIMD code above
+    float results[L2_SIZE];
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        output += l2_activation[i] * l3_weight[i];
+        results[i] = l2_activation[i] * l3_weight[i];
     }
+    size_t size = L2_SIZE;
+    while (size > 1)
+    {
+        for (size_t i = 0; i < size / 2; i++)
+        {
+            results[i] += results[i + size / 2];
+        }
+        size /= 2;
+    }
+    output += results[0];
 #endif
 }
 }
