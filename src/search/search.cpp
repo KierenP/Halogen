@@ -1079,12 +1079,6 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
             continue;
         }
 
-        // prune underpromotions
-        if (move.is_promotion() && !(move.flag() == QUEEN_PROMOTION || move.flag() == QUEEN_PROMOTION_CAPTURE))
-        {
-            continue;
-        }
-
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
