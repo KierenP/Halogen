@@ -2,7 +2,7 @@
 
 #include "bitboard/define.h"
 #include "network/arch.hpp"
-#include "network/simd/definitions.hpp"
+#include "network/simd/intrinsics.hpp"
 #include "network/simd/utility.hpp"
 #include "tools/sparse_shuffle.hpp"
 #include <array>

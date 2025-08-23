@@ -220,31 +220,31 @@ sse4: LDFLAGS += -flto -static
 sse4: EXE = $(BINARY_DIR)/Halogen-sse4
 sse4: verbatim_binary binary
 
-avx: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX
+avx: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX
 avx: CXXFLAGS += $(RFLAGS) $(AVXFLAGS)
 avx: LDFLAGS += -flto -static 
 avx: EXE = $(BINARY_DIR)/Halogen-avx
 avx: verbatim_binary binary
 
-avx2: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX2
+avx2: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2
 avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
 avx2: LDFLAGS += -flto -static 
 avx2: EXE = $(BINARY_DIR)/Halogen-avx2
 avx2: verbatim_binary binary
 
-avx2-pext: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX2 -DUSE_PEXT
+avx2-pext: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT
 avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 avx2-pext: LDFLAGS += -flto -static 
 avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
 avx2-pext: verbatim_binary binary
 
-avx512: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX512 -DUSE_PEXT
+avx512: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512
 avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
 avx512: LDFLAGS += -flto -static 
 avx512: EXE = $(BINARY_DIR)/Halogen-avx512
 avx512: verbatim_binary binary
 
-avx512vnni: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX512_VNNI -DUSE_PEXT
+avx512vnni: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI
 avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
 avx512vnni: LDFLAGS += -flto -static 
 avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni

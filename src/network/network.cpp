@@ -14,7 +14,7 @@
 #include "network/accumulator.hpp"
 #include "network/arch.hpp"
 #include "network/inference.hpp"
-#include "network/simd/definitions.hpp"
+#include "network/simd/intrinsics.hpp"
 #include "third-party/incbin/incbin.h"
 
 namespace NN

@@ -2,7 +2,7 @@
 // binary
 
 #include "network/arch.hpp"
-#include "network/simd/definitions.hpp"
+#include "network/simd/define.hpp"
 
 #include <cstdlib>
 #include <filesystem>
