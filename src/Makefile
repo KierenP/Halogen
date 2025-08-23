@@ -4,37 +4,37 @@ BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
 ifndef EVALFILE
-	NET_HASH := 2a2c41df
-	EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
-	NO_EVALFILE_SET = true
+    NET_HASH := 2a2c41df
+    EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
+    NO_EVALFILE_SET = true
 endif
 
 SRCS := \
-	main.cpp \
-	chessboard/board_state.cpp \
-	chessboard/game_state.cpp \
-	evaluation/evaluate.cpp \
-	movegen/move.cpp \
-	movegen/movegen.cpp \
-	network/network.cpp \
-	numa/numa.cpp \
-	search/cuckoo.cpp \
-	search/data.cpp \
-	search/history.cpp \
-	search/search.cpp \
-	search/staged_movegen.cpp \
-	search/static_exchange_evaluation.cpp \
-	search/syzygy.cpp \
-	search/zobrist.cpp \
-	search/limit/time.cpp \
-	search/transposition/table.cpp \
-	search/transposition/entry.cpp \
-	search/thread.cpp \
-	test/static_exchange_evaluation_test.cpp \
-	third-party/Pyrrhic/tbprobe.cpp \
-	uci/uci.cpp \
-	datagen/datagen.cpp \
-	datagen/encode.cpp
+    main.cpp \
+    chessboard/board_state.cpp \
+    chessboard/game_state.cpp \
+    evaluation/evaluate.cpp \
+    movegen/move.cpp \
+    movegen/movegen.cpp \
+    network/network.cpp \
+    numa/numa.cpp \
+    search/cuckoo.cpp \
+    search/data.cpp \
+    search/history.cpp \
+    search/search.cpp \
+    search/staged_movegen.cpp \
+    search/static_exchange_evaluation.cpp \
+    search/syzygy.cpp \
+    search/zobrist.cpp \
+    search/limit/time.cpp \
+    search/transposition/table.cpp \
+    search/transposition/entry.cpp \
+    search/thread.cpp \
+    test/static_exchange_evaluation_test.cpp \
+    third-party/Pyrrhic/tbprobe.cpp \
+    uci/uci.cpp \
+    datagen/datagen.cpp \
+    datagen/encode.cpp
 
 # String substitution for every C/C++ file.
 # As an example, hello.cpp turns into ./build/hello.cpp.o
@@ -90,17 +90,16 @@ ifeq ($(detected_OS),Windows)
     LDFLAGS += -static
 endif
 
-# Detect if CXX is g++ or clang++, in this order.
 ifeq ($(findstring clang++, $(CXX)),)
-	PGOGEN = -fprofile-generate
-	PGOUSE = -fprofile-use -fprofile-partial-training
-	CXXFLAGS += -Wno-interference-size
-  	$(info detected compiler is [g++])
+    PGOGEN = -fprofile-generate
+    PGOUSE = -fprofile-use -fprofile-partial-training
+    CXXFLAGS += -Wno-interference-size
+    $(info detected compiler is [g++])
 else
-	PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
-	PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
-	PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
-  	$(info detected compiler is [clang++])
+    PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
+    PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
+    PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
+    $(info detected compiler is [clang++])
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -108,151 +107,149 @@ endif
 
 SUPPORTED = $(shell echo | $(CC) -march=native -E -dM -)
 
-# Detect POPCNT
 ifneq ($(findstring __POPCNT__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_POPCNT
+    CFLAGS += -DUSE_POPCNT
 endif
 
-# Detect BMI2, but not on zen1 or zen2 architectures
 ifneq ($(findstring __BMI2__, $(SUPPORTED)),)
-	ifeq ($(findstring __znver1, $(SUPPORTED)),)
-		ifeq ($(findstring __znver2, $(SUPPORTED)),)
-			CFLAGS += -DUSE_PEXT
-		endif
-	endif
+    ifeq ($(findstring __znver1, $(SUPPORTED)),)
+        ifeq ($(findstring __znver2, $(SUPPORTED)),)
+            CFLAGS += -DUSE_PEXT
+        endif
+    endif
 endif
 
-# Detect the highest AVX instruction set supported
-
-# We use some instructions (dpbusd_epi32, mask_compressstoreu_epi16) which are slower on Zen 4, so we disable them for that architecture.
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
-	ifeq ($(findstring __znver4, $(SUPPORTED)),)
-		CFLAGS += -DUSE_AVX512_VNNI
-	endif
+    ifeq ($(findstring __znver4, $(SUPPORTED)),)
+        CFLAGS += -DUSE_AVX512_VNNI
+    endif
 endif
 
 ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_AVX512
+    CFLAGS += -DUSE_AVX512
 endif
 ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_AVX2
+    CFLAGS += -DUSE_AVX2
 endif
 ifneq ($(findstring __AVX__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_AVX
+    CFLAGS += -DUSE_AVX
 endif
 ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
-	CFLAGS += -DUSE_SSE4
+    CFLAGS += -DUSE_SSE4
 endif
 
-.PHONY: pgo
-pgo:
-	$(MAKE) pgo-instrumented
-	$(MAKE) pgo-compile
+.PHONY: pgo pgo-instrumented pgo-compile native
 
-.PHONY: pgo-instrumented
+pgo: pgo-instrumented pgo-compile
+
+pgo-instrumented: VERBATIM_FLAGS=$(CFLAGS)
 pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
 pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
 pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented
-pgo-instrumented: binary
+pgo-instrumented: verbatim_binary binary
 	./$(EXE) bench
 	$(PGOMERGE)
 
-.PHONY: pgo-compile
+pgo-compile: pgo-instrumented
+pgo-compile: VERBATIM_FLAGS=$(CFLAGS)
 pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
 pgo-compile: LDFLAGS += -flto $(PGOUSE)
 pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo
-pgo-compile: binary
+pgo-compile: verbatim_binary binary
 
-.PHONY: native
+native: VERBATIM_FLAGS=$(CFLAGS)
 native: CXXFLAGS += $(CFLAGS)
 native: LDFLAGS += -flto
 native: EXE = $(BINARY_DIR)/Halogen-native
-native: binary
+native: verbatim_binary binary
 
 #----------------------------------------------------------------------------------------------------------------------
 # Debug and sanitizer builds
 
-.PHONY: debug
+.PHONY: debug sanitize-address sanitize-undefined sanitize-thread tune shuffle
+
+debug: VERBATIM_FLAGS=$(AFLAGS)
 debug: CXXFLAGS += $(DFLAGS)
 debug: EXE = $(BINARY_DIR)/Halogen-debug
-debug: binary
+debug: verbatim_binary binary
 
-.PHONY: sanitize-address
+sanitize-address: VERBATIM_FLAGS=$(AFLAGS)
 sanitize-address: CXXFLAGS += $(SFLAGS) -fsanitize=address
 sanitize-address: LDFLAGS += -fsanitize=address
 sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address
-sanitize-address: binary
+sanitize-address: verbatim_binary binary
 
-.PHONY: sanitize-undefined
+sanitize-undefined: VERBATIM_FLAGS=$(AFLAGS)
 sanitize-undefined: CXXFLAGS += $(SFLAGS) -fsanitize=undefined
 sanitize-undefined: LDFLAGS += -fsanitize=undefined
 sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined
-sanitize-undefined: binary
+sanitize-undefined: verbatim_binary binary
 
-.PHONY: sanitize-thread
+sanitize-thread: VERBATIM_FLAGS=$(AFLAGS)
 sanitize-thread: CXXFLAGS += $(SFLAGS) -fsanitize=thread
 sanitize-thread: LDFLAGS += -fsanitize=thread
 sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread
-sanitize-thread: binary
+sanitize-thread: verbatim_binary binary
 
-.PHONY: tune
+tune: VERBATIM_FLAGS=$(CFLAGS)
 tune: CXXFLAGS += $(CFLAGS) -DTUNE
 tune: LDFLAGS += -flto
 tune: EXE = $(BINARY_DIR)/Halogen-tune
-tune: binary
+tune: verbatim_binary binary
 
-.PHONY: shuffle
-shuffle: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) -DNETWORK_SHUFFLE -fopenmp
+shuffle: VERBATIM_FLAGS=$(CFLAGS)
+shuffle: CXXFLAGS += $(CFLAGS) -DNETWORK_SHUFFLE -fopenmp
 shuffle: LDFLAGS += -flto -fopenmp
 shuffle: EXE = $(BINARY_DIR)/Halogen-shuffle
-shuffle: binary
+shuffle: verbatim_binary binary
 
 #----------------------------------------------------------------------------------------------------------------------
 # Release builds that are statically linked and target specific instruction sets
 
-.PHONY: legacy
+.PHONY: legacy sse4 avx avx2 avx2-pext avx512 avx512vnni release
+
+legacy: VERBATIM_FLAGS=$(AFLAGS)
 legacy: CXXFLAGS += $(RFLAGS)
 legacy: LDFLAGS += -flto -static 
 legacy: EXE = $(BINARY_DIR)/Halogen-legacy
-legacy: binary
+legacy: verbatim_binary binary
 
-.PHONY: sse4
+sse4: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4
 sse4: CXXFLAGS += $(RFLAGS) $(SSE4FLAGS)
 sse4: LDFLAGS += -flto -static 
 sse4: EXE = $(BINARY_DIR)/Halogen-sse4
-sse4: binary
+sse4: verbatim_binary binary
 
-.PHONY: avx
+avx: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX
 avx: CXXFLAGS += $(RFLAGS) $(AVXFLAGS)
 avx: LDFLAGS += -flto -static 
 avx: EXE = $(BINARY_DIR)/Halogen-avx
-avx: binary
+avx: verbatim_binary binary
 
-.PHONY: avx2
+avx2: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX2
 avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
 avx2: LDFLAGS += -flto -static 
 avx2: EXE = $(BINARY_DIR)/Halogen-avx2
-avx2: binary
+avx2: verbatim_binary binary
 
-.PHONY: avx2-pext
+avx2-pext: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX2 -DUSE_PEXT
 avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
 avx2-pext: LDFLAGS += -flto -static 
 avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
-avx2-pext: binary
+avx2-pext: verbatim_binary binary
 
-.PHONY: avx512
+avx512: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX512 -DUSE_PEXT
 avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
 avx512: LDFLAGS += -flto -static 
 avx512: EXE = $(BINARY_DIR)/Halogen-avx512
-avx512: binary
+avx512: verbatim_binary binary
 
-.PHONY: avx512vnni
+avx512vnni: VERBATIM_FLAGS=$(AFLAGS) -DUSE_AVX512_VNNI -DUSE_PEXT
 avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
 avx512vnni: LDFLAGS += -flto -static 
 avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni
-avx512vnni: binary
+avx512vnni: verbatim_binary binary
 
-.PHONY: release
 release:
 	$(MAKE) legacy
 	$(MAKE) sse4
@@ -273,20 +270,18 @@ endif
 
 verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
 	@ mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(LDFLAGS)
+	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(LDFLAGS)
 
 $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
 	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
 
 #----------------------------------------------------------------------------------------------------------------------
 
-# The final build step.
 .PHONY: binary
 binary: $(OBJS)
 	@ mkdir -p $(BINARY_DIR)
 	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
-# Build step for C++ source
 $(BUILD_DIR)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -299,5 +294,4 @@ clean_build:
 clean: clean_build
 	rm -rf $(BINARY_DIR)
 
-# triggers make to always rebuild anything that depends on this
 FORCE:
