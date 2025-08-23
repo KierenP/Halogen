@@ -346,7 +346,7 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
     {
         for (size_t j = 0; j < L2_SIZE; j++)
         {
-            output[j] += l1_activation[i] * l2_weight[i][j];
+            output[j] = std::fma(l1_activation[i], l2_weight[i][j], output[j]);
         }
     }
 
