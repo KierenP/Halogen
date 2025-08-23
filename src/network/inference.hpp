@@ -402,10 +402,22 @@ void L3_activation(
 #endif
 
 #else
+    // this whole song and dance is to match the order the floats are added in the SIMD code above
+    float results[L2_SIZE];
     for (size_t i = 0; i < L2_SIZE; i++)
     {
-        output += l2_activation[i] * l3_weight[i];
+        results[i] = l2_activation[i] * l3_weight[i];
     }
+    size_t size = L2_SIZE;
+    while (size > 1)
+    {
+        for (size_t i = 0; i < size / 2; i++)
+        {
+            results[i] += results[i + size / 2];
+        }
+        size /= 2;
+    }
+    output += results[0];
 #endif
 }
 }
