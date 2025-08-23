@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdint>
 
+#if defined SIMD_ENABLED
+
 namespace NN::SIMD
 {
 
@@ -363,3 +365,5 @@ inline vecs fmadd_ps(const vecs& a, const vecs& b, const vecs& c)
 }
 
 }
+
+#endif
