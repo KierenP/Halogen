@@ -140,22 +140,24 @@ endif
 
 .PHONY: pgo pgo-instrumented pgo-compile native
 
-pgo: pgo-instrumented pgo-compile
+pgo: VERBATIM_FLAGS=$(CFLAGS)
+pgo: verbatim_binary
+	$(MAKE) pgo-instrumented
+	$(MAKE) pgo-compile
 
 pgo-instrumented: VERBATIM_FLAGS=$(CFLAGS)
 pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
 pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
 pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented
-pgo-instrumented: verbatim_binary binary
+pgo-instrumented: binary
 	./$(EXE) bench
 	$(PGOMERGE)
 
-pgo-compile: pgo-instrumented
 pgo-compile: VERBATIM_FLAGS=$(CFLAGS)
 pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
 pgo-compile: LDFLAGS += -flto $(PGOUSE)
 pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo
-pgo-compile: verbatim_binary binary
+pgo-compile: binary
 
 native: VERBATIM_FLAGS=$(CFLAGS)
 native: CXXFLAGS += $(CFLAGS)
