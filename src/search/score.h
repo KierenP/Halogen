@@ -55,6 +55,12 @@ public:
         return Score(Limits::DRAW);
     }
 
+    // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
+    static constexpr Score draw_random(uint64_t x)
+    {
+        return 8 - (x & 0b1111);
+    }
+
     constexpr int value() const
     {
         return value_;
