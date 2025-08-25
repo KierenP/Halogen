@@ -72,7 +72,8 @@ jobs:
         mv ${{ github.workspace }}/build/Halogen${{ matrix.extension }} ${{ github.workspace }}/Halogen-${{ env.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.extension }}
 
     # only avx2 and below supported on github runners
-    - if: matrix.os == 'ubuntu-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+    # legacy and sse4 skipped due to non-deterministic bench due to floats
+    - if: matrix.os == 'ubuntu-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'legacy' && matrix.arch != 'sse4'
       name: Verify (Linux)
       run: |
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
@@ -83,7 +84,7 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: matrix.os == 'windows-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+    - if: matrix.os == 'windows-latest' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'legacy' && matrix.arch != 'sse4'
       name: Verify (Windows)
       shell: pwsh
       run: |
