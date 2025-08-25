@@ -13,22 +13,22 @@
 #include "utility/static_vector.h"
 
 template <Side STM, typename T>
-void add_loud_moves(const BoardState& board, T& moves, uint64_t pinned); // captures and/or promotions
+void add_loud_moves(const BoardState& board, T& moves); // captures and/or promotions
 template <Side STM, typename T>
-void add_quiet_moves(const BoardState& board, T& moves, uint64_t pinned);
+void add_quiet_moves(const BoardState& board, T& moves);
 
 // Pawn moves
 template <Side STM, typename T>
-void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
+void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
 template <Side STM, typename T>
-void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
+void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
 template <Side STM, typename T>
-void pawn_double_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
+void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
 template <Side STM, typename T>
 // Ep moves are always checked for legality so no need for pinned mask
 void pawn_ep(const BoardState& board, T& moves);
 template <Side STM, typename T>
-void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares = UNIVERSE);
+void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
 
 // All other pieces
 template <bool capture, Side STM, typename T>
@@ -36,19 +36,17 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square);
 template <bool capture, Side STM, typename T>
 void generate_king_moves(const BoardState& board, T& moves, Square from);
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king);
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, Square king);
 
 // misc
 template <Side STM, typename T>
-void castle_moves(const BoardState& board, T& moves, uint64_t pinned);
+void castle_moves(const BoardState& board, T& moves);
 
 // utility functions
 template <Side STM>
 bool move_puts_self_in_check(const BoardState& board, const Move& move);
 template <Side STM>
 bool ep_is_legal(const BoardState& board, const Move& move);
-template <Side STM>
-uint64_t pinned_bb(const BoardState& board);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Side colour>
 bool is_square_threatened(const BoardState& board, Square square);
@@ -63,10 +61,10 @@ template <bool capture, Side STM, typename T>
 void king_evasions(const BoardState& board, T& moves, Square from);
 // capture the attacker	(single threat only)
 template <Side STM, typename T>
-void capture_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
+void capture_threat(const BoardState& board, T& moves);
 // block the attacker (single threat only)
 template <Side STM, typename T>
-void block_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned);
+void block_threat(const BoardState& board, T& moves);
 
 template <typename T>
 void legal_moves(const BoardState& board, T& moves)
@@ -80,50 +78,48 @@ void loud_moves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return add_loud_moves<WHITE>(board, moves, pinned_bb<WHITE>(board));
+        return add_loud_moves<WHITE>(board, moves);
     }
     else
     {
-        return add_loud_moves<BLACK>(board, moves, pinned_bb<BLACK>(board));
+        return add_loud_moves<BLACK>(board, moves);
     }
 }
 
 template <Side STM, typename T>
-void add_loud_moves(const BoardState& board, T& moves, uint64_t pinned)
+void add_loud_moves(const BoardState& board, T& moves)
 {
     const Square king = board.get_king_sq(STM);
-    const uint64_t threats = attacks_to_sq<STM>(board, king);
-    assert(std::popcount(threats) <= 2); // triple or more check is impossible
 
-    if (std::popcount(threats) == 2)
+    if (std::popcount(board.checkers) == 2)
     {
         // double check
         king_evasions<true, STM>(board, moves, king);
     }
-    else if (std::popcount(threats) == 1)
+    else if (std::popcount(board.checkers) == 1)
     {
         // single check
-        pawn_captures<STM>(board, moves, pinned, threats);
+        pawn_captures<STM>(board, moves, board.checkers);
         pawn_ep<STM>(board, moves);
-        pawn_promotions<STM>(board, moves, pinned, BetweenBB[lsb(threats)][king]);
+        pawn_promotions<STM>(board, moves, BetweenBB[lsb(board.checkers)][king]);
         king_evasions<true, STM>(board, moves, king);
-        capture_threat<STM>(board, moves, threats, pinned);
+        capture_threat<STM>(board, moves);
     }
     else
     {
         // not in check
-        pawn_captures<STM>(board, moves, pinned);
+        pawn_captures<STM>(board, moves);
         pawn_ep<STM>(board, moves);
-        pawn_promotions<STM>(board, moves, pinned);
+        pawn_promotions<STM>(board, moves);
         generate_king_moves<true, STM>(board, moves, king);
 
         for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM); pieces != 0;)
-            generate_sliding_moves<QUEEN, true, STM>(board, moves, lsbpop(pieces), pinned, king);
+            generate_sliding_moves<QUEEN, true, STM>(board, moves, lsbpop(pieces), king);
         for (uint64_t pieces = board.get_pieces_bb(ROOK, STM); pieces != 0;)
-            generate_sliding_moves<ROOK, true, STM>(board, moves, lsbpop(pieces), pinned, king);
+            generate_sliding_moves<ROOK, true, STM>(board, moves, lsbpop(pieces), king);
         for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM); pieces != 0;)
-            generate_sliding_moves<BISHOP, true, STM>(board, moves, lsbpop(pieces), pinned, king);
-        for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~pinned; pieces != 0;)
+            generate_sliding_moves<BISHOP, true, STM>(board, moves, lsbpop(pieces), king);
+        for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~board.pinned; pieces != 0;)
             generate_knight_moves<true, STM>(board, moves, lsbpop(pieces));
     }
 }
@@ -133,90 +129,50 @@ void quiet_moves(const BoardState& board, T& moves)
 {
     if (board.stm == WHITE)
     {
-        return add_quiet_moves<WHITE>(board, moves, pinned_bb<WHITE>(board));
+        return add_quiet_moves<WHITE>(board, moves);
     }
     else
     {
-        return add_quiet_moves<BLACK>(board, moves, pinned_bb<BLACK>(board));
+        return add_quiet_moves<BLACK>(board, moves);
     }
 }
 
 template <Side STM, typename T>
-void add_quiet_moves(const BoardState& board, T& moves, uint64_t pinned)
+void add_quiet_moves(const BoardState& board, T& moves)
 {
     const Square king = board.get_king_sq(STM);
-    const uint64_t threats = attacks_to_sq<STM>(board, king);
-    assert(std::popcount(threats) <= 2); // triple or more check is impossible
 
-    if (std::popcount(threats) == 2)
+    if (std::popcount(board.checkers) == 2)
     {
         // double check
         king_evasions<false, STM>(board, moves, king);
     }
-    else if (std::popcount(threats) == 1)
+    else if (std::popcount(board.checkers) == 1)
     {
         // single check
-        const auto block_squares = BetweenBB[lsb(threats)][king];
-        pawn_pushes<STM>(board, moves, pinned, block_squares);
-        pawn_double_pushes<STM>(board, moves, pinned, block_squares);
+        const auto block_squares = BetweenBB[lsb(board.checkers)][king];
+        pawn_pushes<STM>(board, moves, block_squares);
+        pawn_double_pushes<STM>(board, moves, block_squares);
         king_evasions<false, STM>(board, moves, king);
-        block_threat<STM>(board, moves, threats, pinned);
+        block_threat<STM>(board, moves);
     }
     else
     {
-        pawn_pushes<STM>(board, moves, pinned);
-        pawn_double_pushes<STM>(board, moves, pinned);
-        castle_moves<STM>(board, moves, pinned);
+        pawn_pushes<STM>(board, moves);
+        pawn_double_pushes<STM>(board, moves);
+        castle_moves<STM>(board, moves);
 
         for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM); pieces != 0;)
-            generate_sliding_moves<QUEEN, false, STM>(board, moves, lsbpop(pieces), pinned, king);
+            generate_sliding_moves<QUEEN, false, STM>(board, moves, lsbpop(pieces), king);
         for (uint64_t pieces = board.get_pieces_bb(ROOK, STM); pieces != 0;)
-            generate_sliding_moves<ROOK, false, STM>(board, moves, lsbpop(pieces), pinned, king);
+            generate_sliding_moves<ROOK, false, STM>(board, moves, lsbpop(pieces), king);
         for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM); pieces != 0;)
-            generate_sliding_moves<BISHOP, false, STM>(board, moves, lsbpop(pieces), pinned, king);
-        for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~pinned; pieces != 0;)
+            generate_sliding_moves<BISHOP, false, STM>(board, moves, lsbpop(pieces), king);
+        for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~board.pinned; pieces != 0;)
             generate_knight_moves<false, STM>(board, moves, lsbpop(pieces));
 
         generate_king_moves<false, STM>(board, moves, king);
     }
-}
-
-template <Side STM>
-uint64_t pinned_bb(const BoardState& board)
-{
-    const Square king = board.get_king_sq(STM);
-    const uint64_t all_pieces = board.get_pieces_bb();
-    const uint64_t our_pieces = board.get_pieces_bb(STM);
-    uint64_t pins = EMPTY;
-
-    auto check_for_pins = [&](uint64_t threats)
-    {
-        while (threats)
-        {
-            const Square threat_sq = lsbpop(threats);
-
-            // get the pieces standing in between the king and the threat
-            const uint64_t possible_pins = BetweenBB[king][threat_sq] & all_pieces;
-
-            // if there is just one piece and it's ours it's pinned
-            if (std::popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
-            {
-                pins |= possible_pins;
-            }
-        }
-    };
-
-    // get the enemy bishops and queens on the kings diagonal
-    const auto bishops_and_queens = board.get_pieces_bb(BISHOP, !STM) | board.get_pieces_bb(QUEEN, !STM);
-    const auto rooks_and_queens = board.get_pieces_bb(ROOK, !STM) | board.get_pieces_bb(QUEEN, !STM);
-    check_for_pins(DiagonalBB[enum_to<Diagonal>(king)] & bishops_and_queens);
-    check_for_pins(AntiDiagonalBB[enum_to<AntiDiagonal>(king)] & bishops_and_queens);
-    check_for_pins(RankBB[enum_to<Rank>(king)] & rooks_and_queens);
-    check_for_pins(FileBB[enum_to<File>(king)] & rooks_and_queens);
-
-    pins |= SquareBB[king];
-
-    return pins;
 }
 
 // Moves going from a square to squares on a bitboard
@@ -320,22 +276,22 @@ void king_evasions(const BoardState& board, T& moves, Square from)
 }
 
 template <Side STM, typename T>
-void capture_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned)
+void capture_threat(const BoardState& board, T& moves)
 {
-    const Square square = lsbpop(threats);
+    const Square square = lsb(board.checkers);
 
     const uint64_t potentialCaptures = attacks_to_sq<!STM>(board, square)
         & ~SquareBB[board.get_king_sq(STM)] // King captures handelled in GenerateKingMoves()
         & ~board.get_pieces_bb(PAWN, STM) // Pawn captures handelled elsewhere
-        & ~pinned; // any pinned pieces cannot legally capture the threat
+        & ~board.pinned; // any pinned pieces cannot legally capture the threat
 
     append_legal_moves<STM, CAPTURE>(potentialCaptures, square, moves);
 }
 
 template <Side STM, typename T>
-void block_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t pinned)
+void block_threat(const BoardState& board, T& moves)
 {
-    const Square threatSquare = lsbpop(threats);
+    const Square threatSquare = lsb(board.checkers);
     const Piece piece = board.get_square_piece(threatSquare);
 
     if (piece == WHITE_PAWN || piece == BLACK_PAWN || piece == WHITE_KNIGHT || piece == BLACK_KNIGHT)
@@ -349,18 +305,18 @@ void block_threat(const BoardState& board, T& moves, uint64_t threats, uint64_t 
         // there
         const Square square = lsbpop(blockSquares);
         // blocking moves are legal iff the piece is not pinned
-        const uint64_t potentialBlockers
-            = attacks_to_sq<!STM>(board, square) & ~board.get_pieces_bb(PAWN, STM) & ~pinned;
+        const uint64_t potentialBlockers = attacks_to_sq<!STM>(board, square) & ~board.get_pieces_bb(PAWN, STM)
+            & ~board.get_pieces_bb(KING, STM) & ~board.pinned;
         append_legal_moves<STM, QUIET>(potentialBlockers, square, moves);
     }
 }
 
 template <Side STM, typename T>
-void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
+void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     const uint64_t pawnSquares
-        = board.get_pieces_bb(PAWN, STM) & (~pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
+        = board.get_pieces_bb(PAWN, STM) & (~board.pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
     const uint64_t targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb() & target_squares;
     uint64_t pawnPushes = targets & ~(RankBB[RANK_1] | RankBB[RANK_8]); // pushes that aren't to the back ranks
 
@@ -404,10 +360,10 @@ void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t ta
 }
 
 template <Side STM, typename T>
-void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
+void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares)
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
-    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM) & ~pinned;
+    const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM) & ~board.pinned;
     const uint64_t targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb() & target_squares;
     uint64_t pawnPromotions = targets & (RankBB[RANK_1] | RankBB[RANK_8]); // pushes that are to the back ranks
 
@@ -454,13 +410,13 @@ void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_
 }
 
 template <Side STM, typename T>
-void pawn_double_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
+void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares)
 {
     constexpr Shift foward2 = STM == WHITE ? Shift::NN : Shift::SS;
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     constexpr uint64_t RankMask = STM == WHITE ? RankBB[RANK_2] : RankBB[RANK_7];
     const uint64_t pawnSquares
-        = board.get_pieces_bb(PAWN, STM) & RankMask & (~pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
+        = board.get_pieces_bb(PAWN, STM) & RankMask & (~board.pinned | FileBB[enum_to<File>(board.get_king_sq(STM))]);
 
     uint64_t targets = 0;
     targets = shift_bb<foward>(pawnSquares) & board.get_empty_bb();
@@ -519,15 +475,15 @@ void pawn_ep(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t target_squares)
+void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares)
 {
     constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SE;
     constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SW;
 
-    const uint64_t leftpawnSquares
-        = board.get_pieces_bb(PAWN, STM) & (~pinned | AntiDiagonalBB[enum_to<AntiDiagonal>(board.get_king_sq(STM))]);
+    const uint64_t leftpawnSquares = board.get_pieces_bb(PAWN, STM)
+        & (~board.pinned | AntiDiagonalBB[enum_to<AntiDiagonal>(board.get_king_sq(STM))]);
     const uint64_t rightpawnSquares
-        = board.get_pieces_bb(PAWN, STM) & (~pinned | DiagonalBB[enum_to<Diagonal>(board.get_king_sq(STM))]);
+        = board.get_pieces_bb(PAWN, STM) & (~board.pinned | DiagonalBB[enum_to<Diagonal>(board.get_king_sq(STM))]);
 
     const uint64_t leftAttack = shift_bb<fowardleft>(leftpawnSquares) & board.get_pieces_bb(!STM) & target_squares;
     const uint64_t rightAttack = shift_bb<fowardright>(rightpawnSquares) & board.get_pieces_bb(!STM) & target_squares;
@@ -726,12 +682,12 @@ bool check_castle_move(
 }
 
 template <Side STM, typename T>
-void castle_moves(const BoardState& board, T& moves, uint64_t pinned)
+void castle_moves(const BoardState& board, T& moves)
 {
     // tricky edge case, if the rook is pinned then castling will put the king in check,
     // but it is possible none of the squares the king will move through will be threatened
     // before the rook is moved.
-    uint64_t white_castle = board.castle_squares & RankBB[RANK_1] & ~pinned;
+    uint64_t white_castle = board.castle_squares & RankBB[RANK_1] & ~board.pinned;
 
     while (STM == WHITE && white_castle)
     {
@@ -748,7 +704,7 @@ void castle_moves(const BoardState& board, T& moves, uint64_t pinned)
         }
     }
 
-    uint64_t black_castle = board.castle_squares & RankBB[RANK_8] & ~pinned;
+    uint64_t black_castle = board.castle_squares & RankBB[RANK_8] & ~board.pinned;
 
     while (STM == BLACK && black_castle)
     {
@@ -776,13 +732,13 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square)
 }
 
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t pinned, Square king)
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, Square king)
 {
     const uint64_t occupied = board.get_pieces_bb();
     const uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<piece>(square, occupied);
     const auto flag = capture ? CAPTURE : QUIET;
 
-    if (!(pinned & SquareBB[square]))
+    if (!(board.pinned & SquareBB[square]))
     {
         append_legal_moves<STM, flag>(square, targets, moves);
     }
@@ -808,23 +764,6 @@ template <Side colour>
 bool is_square_threatened(const BoardState& board, Square square)
 {
     return (board.lesser_threats[KING] | attack_bb<KING>(board.get_king_sq(!colour))) & SquareBB[square];
-}
-
-bool is_in_check(const BoardState& board, Side colour)
-{
-    if (colour == WHITE)
-    {
-        return is_square_threatened<WHITE>(board, board.get_king_sq(WHITE));
-    }
-    else
-    {
-        return is_square_threatened<BLACK>(board, board.get_king_sq(BLACK));
-    }
-}
-
-bool is_in_check(const BoardState& board)
-{
-    return is_in_check(board, board.stm);
 }
 
 template <Side colour>
@@ -976,7 +915,7 @@ bool is_legal(const BoardState& board, const Move& move)
     if (move.flag() == A_SIDE_CASTLE || move.flag() == H_SIDE_CASTLE)
     {
         StaticVector<Move, 4> moves;
-        castle_moves<STM>(board, moves, pinned_bb<STM>(board));
+        castle_moves<STM>(board, moves);
         for (size_t i = 0; i < moves.size(); i++)
         {
             if (moves[i] == move)
