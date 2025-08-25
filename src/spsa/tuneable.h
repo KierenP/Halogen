@@ -13,8 +13,8 @@
 constexpr inline int LMR_SCALE = 1024;
 
 TUNEABLE_CONSTANT float LMR_constant = -1.672;
-TUNEABLE_CONSTANT float LMR_depth_coeff = 1.530;
-TUNEABLE_CONSTANT float LMR_move_coeff = 2.557;
+TUNEABLE_CONSTANT float LMR_depth_coeff = 1.430;
+TUNEABLE_CONSTANT float LMR_move_coeff = 2.457;
 TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7852;
 
 inline auto Initialise_LMR_reduction()
