@@ -199,7 +199,11 @@ void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
 
         else
         {
-            loudMoves.emplace_back(moves[i], local.get_loud_history(ss, moves[i]));
+            auto capture_piece = moves[i].flag() == EN_PASSANT
+                ? PAWN
+                : enum_to<PieceType>(position.board().get_square_piece(moves[i].to()));
+            auto score = local.get_loud_history(ss, moves[i]) + 10 * see_values[capture_piece];
+            loudMoves.emplace_back(moves[i], score);
         }
     }
 }
