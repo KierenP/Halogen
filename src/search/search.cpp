@@ -1101,7 +1101,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         ss->cont_corr_hist_subtable
             = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
-        // TODO: prefetch
+        shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
         auto search_score = -qsearch<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
         position.revert_move();
