@@ -16,11 +16,11 @@
 #include "search/static_exchange_evaluation.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
-    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool Quiescence)
+    const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
     : position(Position)
     , local(Local)
     , ss(SS)
-    , quiescence(Quiescence)
+    , good_loud_only(good_loud_only_)
     , stage(Stage::TT_MOVE)
     , TTmove(tt_move)
 {
@@ -41,7 +41,7 @@ bool StagedMoveGenerator::next(Move& move)
     {
         stage = Stage::GEN_LOUD;
 
-        if ((!quiescence || TTmove.is_capture() || TTmove.is_promotion()) && is_legal(position.board(), TTmove))
+        if ((!good_loud_only || TTmove.is_capture() || TTmove.is_promotion()) && is_legal(position.board(), TTmove))
         {
             move = TTmove;
             return true;
@@ -75,7 +75,7 @@ bool StagedMoveGenerator::next(Move& move)
             }
         }
 
-        if (quiescence)
+        if (good_loud_only)
             return false;
 
         stage = Stage::GEN_QUIET;
@@ -188,8 +188,6 @@ void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
 
 void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
 {
-    static constexpr int16_t SCORE_QUEEN_PROMOTION = 30000;
-    static constexpr int16_t SCORE_UNDER_PROMOTION = -30000;
 
     for (size_t i = 0; i < moves.size(); i++)
     {
@@ -199,20 +197,6 @@ void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
             continue;
         }
 
-        // Promotions
-        else if (moves[i].is_promotion())
-        {
-            if (moves[i].flag() == QUEEN_PROMOTION || moves[i].flag() == QUEEN_PROMOTION_CAPTURE)
-            {
-                loudMoves.emplace_back(moves[i], SCORE_QUEEN_PROMOTION);
-            }
-            else
-            {
-                loudMoves.emplace_back(moves[i], SCORE_UNDER_PROMOTION);
-            }
-        }
-
-        // Captures
         else
         {
             loudMoves.emplace_back(moves[i], local.get_loud_history(ss, moves[i]));

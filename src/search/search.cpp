@@ -730,7 +730,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     const bool InCheck = is_in_check(position.board());
 
     // Step 1: Drop into q-search
-    if (depth <= 0 && !InCheck)
+    if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
         return qsearch<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
@@ -838,7 +838,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         depth--;
     }
 
-    StagedMoveGenerator gen(position, ss, local, tt_move, false);
+    StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
     // Step 10: Iterate over each potential move until we reach the end or find a beta cutoff
@@ -1022,6 +1022,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
     constexpr bool pv_node = search_type != SearchType::ZW;
     const auto distance_from_root = ss->distance_from_root;
+    assert(ss->singular_exclusion == Move::Uninitialized);
 
     // Step 1: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
@@ -1052,38 +1053,47 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         }
     }
 
-    // TODO: When q-search does check evasions we can fix this, for now, we pass in_check = false so we eval the
-    // position
+    const bool in_check = is_in_check(position.board());
     const auto [raw_eval, eval] = get_search_eval<true>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, false);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, in_check);
+    auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
     // score
-    alpha = std::max(alpha, eval);
-    if (alpha >= beta)
+    if (!in_check)
     {
-        return alpha;
+        alpha = std::max(alpha, eval);
+        if (alpha >= beta)
+        {
+            return alpha;
+        }
     }
 
     Move bestmove = Move::Uninitialized;
-    auto score = eval;
     auto original_alpha = alpha;
-
-    StagedMoveGenerator gen(position, ss, local, tt_move, true);
+    bool no_legal_moves = true;
+    int seen_moves = 0;
+    StagedMoveGenerator gen(position, ss, local, tt_move, !in_check);
     Move move;
 
     while (gen.next(move))
     {
-        if (!move.is_promotion() && !see_ge(position.board(), move, alpha - eval - delta_c))
+        no_legal_moves = false;
+
+        if (!score.is_loss() && seen_moves >= 2)
+        {
+            break;
+        }
+
+        bool is_loud_move = move.is_capture() || move.is_promotion();
+
+        if (!score.is_loss() && !is_loud_move
+            && !see_ge(position.board(), move, local.get_quiet_search_history(ss, move) / 168))
         {
             continue;
         }
 
-        // prune underpromotions
-        if (move.is_promotion() && !(move.flag() == QUEEN_PROMOTION || move.flag() == QUEEN_PROMOTION_CAPTURE))
-        {
-            continue;
-        }
+        seen_moves++;
 
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
@@ -1109,8 +1119,13 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         }
     }
 
-    // Step 6: Return early when in a singular extension root search
-    if (local.aborting_search || ss->singular_exclusion != Move::Uninitialized)
+    // Step 6: Handle terminal node conditions
+    if (no_legal_moves && in_check)
+    {
+        return Score::mated_in(distance_from_root);
+    }
+
+    if (local.aborting_search)
     {
         return score;
     }
