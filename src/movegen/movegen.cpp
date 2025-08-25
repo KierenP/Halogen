@@ -93,14 +93,14 @@ void add_loud_moves(const BoardState& board, T& moves, uint64_t pinned)
 {
     const Square king = board.get_king_sq(STM);
     const uint64_t threats = attacks_to_sq<STM>(board, king);
-    assert(popcount(threats) <= 2); // triple or more check is impossible
+    assert(std::popcount(threats) <= 2); // triple or more check is impossible
 
-    if (popcount(threats) == 2)
+    if (std::popcount(threats) == 2)
     {
         // double check
         king_evasions<true, STM>(board, moves, king);
     }
-    else if (popcount(threats) == 1)
+    else if (std::popcount(threats) == 1)
     {
         // single check
         pawn_captures<STM>(board, moves, pinned, threats);
@@ -146,14 +146,14 @@ void add_quiet_moves(const BoardState& board, T& moves, uint64_t pinned)
 {
     const Square king = board.get_king_sq(STM);
     const uint64_t threats = attacks_to_sq<STM>(board, king);
-    assert(popcount(threats) <= 2); // triple or more check is impossible
+    assert(std::popcount(threats) <= 2); // triple or more check is impossible
 
-    if (popcount(threats) == 2)
+    if (std::popcount(threats) == 2)
     {
         // double check
         king_evasions<false, STM>(board, moves, king);
     }
-    else if (popcount(threats) == 1)
+    else if (std::popcount(threats) == 1)
     {
         // single check
         const auto block_squares = BetweenBB[lsb(threats)][king];
@@ -199,7 +199,7 @@ uint64_t pinned_bb(const BoardState& board)
             const uint64_t possible_pins = BetweenBB[king][threat_sq] & all_pieces;
 
             // if there is just one piece and it's ours it's pinned
-            if (popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
+            if (std::popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
             {
                 pins |= possible_pins;
             }
@@ -252,9 +252,9 @@ void append_legal_moves(Square from, uint64_t to, T& moves)
 
     // Store to moves vector
     _mm512_storeu_epi16(moves.end(), low_compressed);
-    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(low_mask));
     _mm512_storeu_epi16(moves.end(), high_compressed);
-    moves.unsafe_resize(moves.size() + popcount(high_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(high_mask));
 #else
     while (to != 0)
     {
@@ -296,9 +296,9 @@ void append_legal_moves(uint64_t from, Square to, T& moves)
 
     // Store to moves vector
     _mm512_storeu_epi16(moves.end(), low_compressed);
-    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(low_mask));
     _mm512_storeu_epi16(moves.end(), high_compressed);
-    moves.unsafe_resize(moves.size() + popcount(high_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(high_mask));
 #else
     while (from != 0)
     {
@@ -390,9 +390,9 @@ void pawn_pushes(const BoardState& board, T& moves, uint64_t pinned, uint64_t ta
 
     // Store to moves vector
     _mm512_storeu_epi16(moves.end(), low_compressed);
-    moves.unsafe_resize(moves.size() + popcount(low_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(low_mask));
     _mm512_storeu_epi16(moves.end(), high_compressed);
-    moves.unsafe_resize(moves.size() + popcount(high_mask));
+    moves.unsafe_resize(moves.size() + std::popcount(high_mask));
 #else
     while (pawnPushes != 0)
     {
@@ -439,7 +439,7 @@ void pawn_promotions(const BoardState& board, T& moves, uint64_t pinned, uint64_
 
     // Store to moves vector
     _mm512_storeu_epi16(moves.end(), move_compressed);
-    moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+    moves.unsafe_resize(moves.size() + std::popcount(mask) * 4); // 4 promotions per move
 #else
     while (pawnPromotions != 0)
     {
@@ -490,7 +490,7 @@ void pawn_double_pushes(const BoardState& board, T& moves, uint64_t pinned, uint
 
     // Store to moves vector
     _mm512_storeu_epi16(moves.end(), move_compressed);
-    moves.unsafe_resize(moves.size() + popcount(mask));
+    moves.unsafe_resize(moves.size() + std::popcount(mask));
 #else
     while (targets != 0)
     {
@@ -562,9 +562,9 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 
         // Store to moves vector
         _mm512_storeu_epi16(moves.end(), low_compressed);
-        moves.unsafe_resize(moves.size() + popcount(low_mask));
+        moves.unsafe_resize(moves.size() + std::popcount(low_mask));
         _mm512_storeu_epi16(moves.end(), high_compressed);
-        moves.unsafe_resize(moves.size() + popcount(high_mask));
+        moves.unsafe_resize(moves.size() + std::popcount(high_mask));
     }
 #else
     while (left_normal_captures != 0)
@@ -604,7 +604,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 
         // Store to moves vector
         _mm512_storeu_epi16(moves.end(), move_compressed);
-        moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+        moves.unsafe_resize(moves.size() + std::popcount(mask) * 4); // 4 promotions per move
     }
 #else
     while (left_promotion_captures != 0)
@@ -648,9 +648,9 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 
         // Store to moves vector
         _mm512_storeu_epi16(moves.end(), low_compressed);
-        moves.unsafe_resize(moves.size() + popcount(low_mask));
+        moves.unsafe_resize(moves.size() + std::popcount(low_mask));
         _mm512_storeu_epi16(moves.end(), high_compressed);
-        moves.unsafe_resize(moves.size() + popcount(high_mask));
+        moves.unsafe_resize(moves.size() + std::popcount(high_mask));
     }
 #else
     while (right_normal_captures != 0)
@@ -690,7 +690,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t pinned, uint64_t 
 
         // Store to moves vector
         _mm512_storeu_epi16(moves.end(), move_compressed);
-        moves.unsafe_resize(moves.size() + popcount(mask) * 4); // 4 promotions per move
+        moves.unsafe_resize(moves.size() + std::popcount(mask) * 4); // 4 promotions per move
     }
 #else
     while (right_promotion_captures != 0)

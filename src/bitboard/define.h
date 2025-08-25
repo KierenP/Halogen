@@ -7,24 +7,13 @@
 #include <cassert>
 #include <cstdint>
 
-constexpr int popcount(uint64_t bb)
-{
-// TODO: use std::popcount?
-#if defined(__GNUG__) && defined(USE_POPCNT)
-    return __builtin_popcountll(bb);
-#else
-    // https://www.chessprogramming.org/Population_Count
-    const uint64_t k1 = uint64_t(0x5555555555555555); /*  -1/3   */
-    const uint64_t k2 = uint64_t(0x3333333333333333); /*  -1/5   */
-    const uint64_t k4 = uint64_t(0x0f0f0f0f0f0f0f0f); /*  -1/17  */
-    const uint64_t kf = uint64_t(0x0101010101010101); /*  -1/255 */
-    bb = bb - ((bb >> 1) & k1); /* put count of each 2 bits into those 2 bits */
-    bb = (bb & k2) + ((bb >> 2) & k2); /* put count of each 4 bits into those 4 bits */
-    bb = (bb + (bb >> 4)) & k4; /* put count of each 8 bits into those 8 bits */
-    bb = (bb * kf) >> 56; /* returns 8 most significant bits of x + (x<<8) + (x<<16) + (x<<24) + ...  */
-    return (int)bb;
-#endif
-}
+// C++23 [[assume]]
+#define HALOGEN_ASSUME(...)                                                                                            \
+    if (!(__VA_ARGS__))                                                                                                \
+    {                                                                                                                  \
+        assert(false);                                                                                                 \
+        __builtin_unreachable();                                                                                       \
+    }
 
 constexpr Square flip_square_vertical(Square sq)
 {
@@ -209,38 +198,13 @@ constexpr auto QueenAttacks = []()
 
 constexpr Square lsb(uint64_t bb)
 {
-    assert(bb != 0);
-
-#if defined(__GNUG__) && defined(USE_POPCNT)
-    return static_cast<Square>(__builtin_ctzll(bb));
-#else
-    /**
-     * bitScanForward
-     * @author Kim Walisch (2012)
-     * @param bb bitboard to scan
-     * @precondition bb != 0
-     * @return index (0..63) of least significant one bit
-     */
-    // clang-format off
-    constexpr std::array<int, N_SQUARES> index64 = {
-        0, 47, 1, 56, 48, 27, 2, 60,
-        57, 49, 41, 37, 28, 16, 3, 61,
-        54, 58, 35, 52, 50, 42, 21, 44,
-        38, 32, 29, 23, 17, 11, 4, 62,
-        46, 55, 26, 59, 40, 36, 15, 53,
-        34, 51, 20, 43, 31, 22, 10, 45,
-        25, 39, 14, 33, 19, 30, 9, 24,
-        13, 18, 8, 12, 7, 6, 5, 63
-    };
-    // clang-format on
-    constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-    return static_cast<Square>(index64[((bb ^ (bb - 1)) * debruijn64) >> 58]);
-#endif
+    HALOGEN_ASSUME(bb != 0);
+    return static_cast<Square>(std::countr_zero(bb));
 }
 
 constexpr Square lsbpop(uint64_t& bb)
 {
-    assert(bb != 0);
+    HALOGEN_ASSUME(bb != 0);
 
     auto index = lsb(bb);
     bb &= bb - 1;
@@ -250,39 +214,8 @@ constexpr Square lsbpop(uint64_t& bb)
 
 constexpr Square msb(uint64_t bb)
 {
-    assert(bb != 0);
-
-#if defined(__GNUG__) && defined(USE_POPCNT)
-    return static_cast<Square>(SQ_H8 - __builtin_clzll(bb));
-#else
-    /**
-     * bitScanReverse
-     * @authors Kim Walisch, Mark Dickinson
-     * @param bb bitboard to scan
-     * @precondition bb != 0
-     * @return index (0..63) of most significant one bit
-     */
-    // clang-format off
-    constexpr std::array<int, N_SQUARES> index64 = {
-        0, 47, 1, 56, 48, 27, 2, 60,
-        57, 49, 41, 37, 28, 16, 3, 61,
-        54, 58, 35, 52, 50, 42, 21, 44,
-        38, 32, 29, 23, 17, 11, 4, 62,
-        46, 55, 26, 59, 40, 36, 15, 53,
-        34, 51, 20, 43, 31, 22, 10, 45,
-        25, 39, 14, 33, 19, 30, 9, 24,
-        13, 18, 8, 12, 7, 6, 5, 63
-    };
-    // clang-format on
-    constexpr uint64_t debruijn64 = uint64_t(0x03f79d71b4cb0a89);
-    bb |= bb >> 1;
-    bb |= bb >> 2;
-    bb |= bb >> 4;
-    bb |= bb >> 8;
-    bb |= bb >> 16;
-    bb |= bb >> 32;
-    return static_cast<Square>(index64[(bb * debruijn64) >> 58]);
-#endif
+    HALOGEN_ASSUME(bb != 0);
+    return static_cast<Square>(SQ_H8 - std::countl_zero(bb));
 }
 
 constexpr bool path_clear(Square from, Square to, uint64_t pieces)
