@@ -239,7 +239,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     if (position.board().fifty_move_count >= 100)
     {
-        if (is_in_check(position.board()))
+        if (position.board().checkers)
         {
             BasicMoveList moves;
             legal_moves(position.board(), moves);
@@ -727,7 +727,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     assert(!(pv_node && cut_node));
     [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
-    const bool InCheck = is_in_check(position.board());
+    const bool InCheck = position.board().checkers;
 
     // Step 1: Drop into q-search
     if (depth <= 0)
@@ -931,7 +931,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
 
         // Step 15: Check extensions
-        if (is_in_check(position.board()))
+        if (position.board().checkers)
         {
             extensions += 1;
         }
@@ -1053,7 +1053,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         }
     }
 
-    const bool in_check = is_in_check(position.board());
+    const bool in_check = position.board().checkers;
     const auto [raw_eval, eval] = get_search_eval<true>(
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, in_check);
     auto score = in_check ? std::numeric_limits<Score>::min() : eval;

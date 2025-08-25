@@ -14,9 +14,6 @@ void loud_moves(const BoardState& board, T& moves);
 template <typename T>
 void quiet_moves(const BoardState& board, T& moves);
 
-bool is_in_check(const BoardState& board, Side colour);
-bool is_in_check(const BoardState& board);
-
 bool is_legal(const BoardState& board, const Move& move);
 bool ep_is_legal(const BoardState& board, const Move& move);
 
