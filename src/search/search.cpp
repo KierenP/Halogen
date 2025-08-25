@@ -853,13 +853,20 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         const int64_t prev_nodes = local.nodes;
         seen_moves++;
 
+        bool is_loud_move = move.is_capture() || move.is_promotion();
+        int history = is_loud_move ? local.get_loud_history(ss, move) : local.get_quiet_search_history(ss, move);
+        int reduction = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+
+        int reduced_depth = depth - reduction;
+
         // Step 11: Late move pruning
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
-        const auto lmp_margin
-            = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)) / 64;
-        if (depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
+        const auto lmp_margin = (lmp_const + lmp_depth * reduced_depth * (1 + improving)
+                                    + lmp_quad * reduced_depth * reduced_depth * (1 + improving))
+            / 64;
+        if (reduced_depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
         {
             gen.skip_quiets();
         }
@@ -867,8 +874,9 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // Step 12: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < fp_max_d
-            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha && !score.is_loss())
+        if (!pv_node && !InCheck && reduced_depth < fp_max_d
+            && eval + (fp_const + fp_depth * reduced_depth + fp_quad * reduced_depth * reduced_depth) / 64 < alpha
+            && !score.is_loss())
         {
             gen.skip_quiets();
             if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
@@ -882,17 +890,16 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // If a move appears to lose material we prune it. The margin is adjusted based on depth and history. This means
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
         // material.
-        bool is_loud_move = move.is_capture() || move.is_promotion();
-        int history = is_loud_move ? local.get_loud_history(ss, move) : (local.get_quiet_search_history(ss, move));
-        auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
-                                               : -see_quiet_depth * depth - history / see_quiet_hist;
+        auto see_pruning_margin = is_loud_move
+            ? -see_loud_depth * reduced_depth * reduced_depth - history / see_loud_hist
+            : -see_quiet_depth * reduced_depth - history / see_quiet_hist;
 
-        if (!score.is_loss() && depth <= see_max_depth && !see_ge(position.board(), move, see_pruning_margin))
+        if (!score.is_loss() && reduced_depth <= see_max_depth && !see_ge(position.board(), move, see_pruning_margin))
         {
             continue;
         }
 
-        if (!score.is_loss() && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
+        if (!score.is_loss() && !is_loud_move && history < -hist_prune_depth * reduced_depth - hist_prune)
         {
             gen.skip_quiets();
             continue;
@@ -937,9 +944,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
 
         // Step 16: Late move reductions
-        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
-            position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
+            position, ss, local, shared, depth, extensions, reduction, alpha, beta, seen_moves, cut_node);
 
         position.revert_move();
 
