@@ -511,7 +511,7 @@ int calculate_output_bucket(int pieces)
 Score Network::eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
-    auto output_bucket = calculate_output_bucket(popcount(board.get_pieces_bb()));
+    auto output_bucket = calculate_output_bucket(std::popcount(board.get_pieces_bb()));
 
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
     alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;

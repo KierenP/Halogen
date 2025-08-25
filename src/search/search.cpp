@@ -390,7 +390,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
-    if (IsEndGame(position.board()) || popcount(position.board().get_pieces_bb()) < 5)
+    if (IsEndGame(position.board()) || std::popcount(position.board().get_pieces_bb()) < 5)
     {
         return std::nullopt;
     }

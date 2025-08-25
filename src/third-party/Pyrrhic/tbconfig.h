@@ -40,7 +40,7 @@
 
 #include "movegen/movegen.h"
 
-#define PYRRHIC_POPCOUNT(x) (popcount(x))
+#define PYRRHIC_POPCOUNT(x) (std::popcount(x))
 #define PYRRHIC_LSB(x) (lsb(x))
 #define PYRRHIC_POPLSB(x) (lsbpop(*x))
 

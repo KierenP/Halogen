@@ -30,11 +30,11 @@ Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
     Score eval = NN::Network::eval(board, ss->acc);
 
     // Apply material scaling factor
-    const auto npMaterial = eval_scale[PAWN] * popcount(board.get_pieces_bb(PAWN))
-        + eval_scale[KNIGHT] * popcount(board.get_pieces_bb(KNIGHT))
-        + eval_scale[BISHOP] * popcount(board.get_pieces_bb(BISHOP))
-        + eval_scale[ROOK] * popcount(board.get_pieces_bb(ROOK))
-        + eval_scale[QUEEN] * popcount(board.get_pieces_bb(QUEEN));
+    const auto npMaterial = eval_scale[PAWN] * std::popcount(board.get_pieces_bb(PAWN))
+        + eval_scale[KNIGHT] * std::popcount(board.get_pieces_bb(KNIGHT))
+        + eval_scale[BISHOP] * std::popcount(board.get_pieces_bb(BISHOP))
+        + eval_scale[ROOK] * std::popcount(board.get_pieces_bb(ROOK))
+        + eval_scale[QUEEN] * std::popcount(board.get_pieces_bb(QUEEN));
     eval = eval.value() * (eval_scale_const + npMaterial) / 32768;
 
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
@@ -66,10 +66,10 @@ bool insufficient_material(const BoardState& board)
     */
 
     // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = popcount(board.get_pieces_bb(WHITE_BISHOP));
-    int BlackBishops = popcount(board.get_pieces_bb(BLACK_BISHOP));
-    int WhiteKnights = popcount(board.get_pieces_bb(WHITE_KNIGHT));
-    int BlackKnights = popcount(board.get_pieces_bb(BLACK_KNIGHT));
+    int WhiteBishops = std::popcount(board.get_pieces_bb(WHITE_BISHOP));
+    int BlackBishops = std::popcount(board.get_pieces_bb(BLACK_BISHOP));
+    int WhiteKnights = std::popcount(board.get_pieces_bb(WHITE_KNIGHT));
+    int BlackKnights = std::popcount(board.get_pieces_bb(BLACK_KNIGHT));
     int WhiteMinor = WhiteBishops + WhiteKnights;
     int BlackMinor = BlackBishops + BlackKnights;
 
