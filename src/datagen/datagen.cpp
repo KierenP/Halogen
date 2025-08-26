@@ -186,7 +186,7 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
         legal_moves(position.board(), moves);
         if (moves.size() == 0)
         {
-            if (is_in_check(position.board()))
+            if (position.board().checkers)
             {
                 if (position.board().stm == WHITE)
                 {

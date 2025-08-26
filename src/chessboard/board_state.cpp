@@ -129,6 +129,8 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
     non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
     update_lesser_threats();
+    update_checkers();
+    update_pinned();
     return true;
 }
 
@@ -641,6 +643,8 @@ void BoardState::apply_move(Move move)
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     update_lesser_threats();
+    update_checkers();
+    update_pinned();
 }
 
 void BoardState::apply_null_move()
@@ -663,6 +667,8 @@ void BoardState::apply_null_move()
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
     update_lesser_threats();
+    update_checkers();
+    update_pinned();
 }
 
 MoveFlag BoardState::infer_move_flag(Square from, Square to) const
@@ -768,4 +774,57 @@ void BoardState::update_lesser_threats()
     }
 
     lesser_threats[KING] = attacks;
+}
+
+void BoardState::update_checkers()
+{
+    checkers = EMPTY;
+
+    const auto king = get_king_sq(stm);
+
+    const uint64_t queens = get_pieces_bb(QUEEN, !stm);
+    const uint64_t bishops = get_pieces_bb(BISHOP, !stm);
+    const uint64_t rooks = get_pieces_bb(ROOK, !stm);
+    const uint64_t occ = get_pieces_bb();
+
+    checkers |= (attack_bb<KNIGHT>(king) & get_pieces_bb(KNIGHT, !stm));
+    checkers |= (PawnAttacks[stm][king] & get_pieces_bb(PAWN, !stm));
+    checkers |= (attack_bb<KING>(king) & get_pieces_bb(KING, !stm));
+    checkers |= (attack_bb<BISHOP>(king, occ) & (bishops | queens));
+    checkers |= (attack_bb<ROOK>(king, occ) & (rooks | queens));
+
+    assert(std::popcount(checkers) <= 2); // triple or more check is impossible
+}
+
+void BoardState::update_pinned()
+{
+    const Square king = get_king_sq(stm);
+    const uint64_t all_pieces = get_pieces_bb();
+    const uint64_t our_pieces = get_pieces_bb(stm);
+    pinned = EMPTY;
+
+    auto check_for_pins = [&](uint64_t threats)
+    {
+        while (threats)
+        {
+            const Square threat_sq = lsbpop(threats);
+
+            // get the pieces standing in between the king and the threat
+            const uint64_t possible_pins = BetweenBB[king][threat_sq] & all_pieces;
+
+            // if there is just one piece and it's ours it's pinned
+            if (std::popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
+            {
+                pinned |= possible_pins;
+            }
+        }
+    };
+
+    // get the enemy bishops and queens on the kings diagonal
+    const auto bishops_and_queens = get_pieces_bb(BISHOP, !stm) | get_pieces_bb(QUEEN, !stm);
+    const auto rooks_and_queens = get_pieces_bb(ROOK, !stm) | get_pieces_bb(QUEEN, !stm);
+    check_for_pins(DiagonalBB[enum_to<Diagonal>(king)] & bishops_and_queens);
+    check_for_pins(AntiDiagonalBB[enum_to<AntiDiagonal>(king)] & bishops_and_queens);
+    check_for_pins(RankBB[enum_to<Rank>(king)] & rooks_and_queens);
+    check_for_pins(FileBB[enum_to<File>(king)] & rooks_and_queens);
 }
