@@ -793,7 +793,7 @@ void BoardState::update_checkers()
     checkers |= (attack_bb<BISHOP>(king, occ) & (bishops | queens));
     checkers |= (attack_bb<ROOK>(king, occ) & (rooks | queens));
 
-    assert(popcount(checkers) <= 2); // triple or more check is impossible
+    assert(std::popcount(checkers) <= 2); // triple or more check is impossible
 }
 
 void BoardState::update_pinned()
@@ -813,7 +813,7 @@ void BoardState::update_pinned()
             const uint64_t possible_pins = BetweenBB[king][threat_sq] & all_pieces;
 
             // if there is just one piece and it's ours it's pinned
-            if (popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
+            if (std::popcount(possible_pins) == 1 && (possible_pins & our_pieces) != EMPTY)
             {
                 pinned |= possible_pins;
             }
