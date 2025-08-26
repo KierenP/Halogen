@@ -119,46 +119,6 @@ uint64_t non_pawn_key(const BoardState& board, Side side)
     return key;
 }
 
-uint64_t minor_key(const BoardState& board)
-{
-    uint64_t key = 0;
-
-    for (const auto side : { WHITE, BLACK })
-    {
-        for (const auto piece_type : { KNIGHT, BISHOP })
-        {
-            const auto piece = get_piece(piece_type, side);
-            uint64_t bitboard = board.get_pieces_bb(piece);
-            while (bitboard != 0)
-            {
-                key ^= piece_square(piece, lsbpop(bitboard));
-            }
-        }
-    }
-
-    return key;
-}
-
-uint64_t major_key(const BoardState& board)
-{
-    uint64_t key = 0;
-
-    for (const auto side : { WHITE, BLACK })
-    {
-        for (const auto piece_type : { ROOK, QUEEN })
-        {
-            const auto piece = get_piece(piece_type, side);
-            uint64_t bitboard = board.get_pieces_bb(piece);
-            while (bitboard != 0)
-            {
-                key ^= piece_square(piece, lsbpop(bitboard));
-            }
-        }
-    }
-
-    return key;
-}
-
 constexpr size_t fifty_move_buckets = 10;
 
 const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
