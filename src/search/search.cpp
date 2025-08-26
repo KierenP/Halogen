@@ -858,7 +858,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             {
                 // save probcut result to TT
                 shared.transposition_table.add_entry(move, Zobrist::get_fifty_move_adj_key(position.board()), value,
-                    std::max(0, prob_cut_depth), position.board().half_turn_count, distance_from_root,
+                    std::max(0, prob_cut_depth + 1), position.board().half_turn_count, distance_from_root,
                     SearchResultType::LOWER_BOUND, raw_eval);
 
                 return beta;
