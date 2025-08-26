@@ -788,33 +788,6 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
-    // Step 6: Static null move pruning (a.k.a reverse futility pruning)
-    //
-    // If the static score is far above beta we fail high.
-    const bool has_active_threat = position.board().active_lesser_threats();
-    const auto rfp_margin
-        = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)) / 64;
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
-        && eval - rfp_margin - rfp_threat * has_active_threat >= beta)
-    {
-        return (beta.value() + eval.value()) / 2;
-    }
-
-    // Step 7: Null move pruning
-    //
-    // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
-    // fail high assuming there is at least one move in the current position that would allow us to improve. This
-    // heruistic fails in zugzwang positions, so we have a verification search.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && eval > beta
-        && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
-    {
-        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, eval, beta))
-        {
-            return *value;
-        }
-    }
-
     // Step 8: Mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
     beta = std::min(Score::mate_in(distance_from_root + 1), beta);
