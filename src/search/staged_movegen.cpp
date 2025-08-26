@@ -59,8 +59,9 @@ bool StagedMoveGenerator::next(Move& move)
 
     if (stage == Stage::PROBCUT_GEN_LOUD)
     {
-        loud_moves(position.board(), loudMoves);
-        score_loud_moves(loudMoves);
+        BasicMoveList moves;
+        loud_moves(position.board(), moves);
+        score_loud_moves(moves);
         current = loudMoves.begin();
         selection_sort(current, loudMoves.end(), loudMoves.end());
         stage = Stage::PROBCUT_GIVE_GOOD_LOUD;
