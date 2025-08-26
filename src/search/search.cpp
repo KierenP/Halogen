@@ -840,8 +840,16 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
             local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
 
-            auto value = -search<SearchType::ZW>(
-                position, ss + 1, local, shared, prob_cut_depth, -prob_cut_beta, -prob_cut_beta + 1, !cut_node);
+            // verify the move looks good before doing a probcut search (idea from Ethereal)
+            auto value = -qsearch<SearchType::ZW>(
+                position, ss + 1, local, shared, prob_cut_depth, -prob_cut_beta, -prob_cut_beta + 1);
+
+            // if qsearch looked good, do probcut search
+            if (value >= prob_cut_beta && prob_cut_depth > 0)
+            {
+                value = -search<SearchType::ZW>(
+                    position, ss + 1, local, shared, prob_cut_depth, -prob_cut_beta, -prob_cut_beta + 1, !cut_node);
+            }
 
             position.revert_move();
 
