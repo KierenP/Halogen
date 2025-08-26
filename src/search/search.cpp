@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
@@ -855,6 +856,11 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
             if (value >= prob_cut_beta)
             {
+                // save probcut result to TT
+                shared.transposition_table.add_entry(move, Zobrist::get_fifty_move_adj_key(position.board()), value,
+                    std::max(0, prob_cut_depth), position.board().half_turn_count, distance_from_root,
+                    SearchResultType::LOWER_BOUND, raw_eval);
+
                 return beta;
             }
         }
