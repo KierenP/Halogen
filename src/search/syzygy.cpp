@@ -53,10 +53,11 @@ void Syzygy::init(std::string_view path, bool print)
     }
 }
 
-std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int distance_from_root)
+std::optional<Score> Syzygy::probe_wdl_search(const SearchLocalState& local, int distance_from_root)
 {
     // Can't probe Syzygy if there is too many pieces on the board, if there is casteling rights, or fifty move isn't
     // zero
+    const auto& board = local.position.board();
     if (board.fifty_move_count != 0 || std::popcount(board.get_pieces_bb()) > TB_LARGEST
         || board.castle_squares != EMPTY)
     {
@@ -89,7 +90,7 @@ std::optional<Score> Syzygy::probe_wdl_search(const BoardState& board, int dista
     case TB_BLESSED_LOSS:
     case TB_DRAW:
     case TB_CURSED_WIN:
-        return Score::draw();
+        return Score::draw_random(local.nodes);
     case TB_WIN:
         return Score::tb_win_in(distance_from_root);
     }

@@ -227,14 +227,13 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
     if (insufficient_material(position.board()))
     {
-        // TODO: apply draw randomness to all draws, and then adjust uci output to correct them to zero
-        return 0;
+        return Score::draw_random(local.nodes);
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
     if (position.is_repetition(distance_from_root))
     {
-        return 8 - (local.nodes & 0b1111);
+        return Score::draw_random(local.nodes);
     }
 
     if (position.board().fifty_move_count >= 100)
@@ -249,7 +248,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
             }
         }
 
-        return 8 - (local.nodes & 0b1111);
+        return Score::draw_random(local.nodes);
     }
 
     if (!ss->nmp_verification_root)
@@ -265,7 +264,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
     SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
     const int depth)
 {
-    auto probe = Syzygy::probe_wdl_search(position.board(), distance_from_root);
+    auto probe = Syzygy::probe_wdl_search(local, distance_from_root);
     if (probe.has_value())
     {
         local.tb_hits.fetch_add(1, std::memory_order_relaxed);
@@ -275,17 +274,17 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
         {
             const auto bound = [tb_score]()
             {
-                if (tb_score.is_draw())
-                {
-                    return SearchResultType::EXACT;
-                }
-                else if (tb_score.is_win())
+                if (tb_score.is_win())
                 {
                     return SearchResultType::LOWER_BOUND;
                 }
-                else
+                else if (tb_score.is_loss())
                 {
                     return SearchResultType::UPPER_BOUND;
+                }
+                else
+                {
+                    return SearchResultType::EXACT;
                 }
             }();
 
@@ -976,7 +975,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
         else
         {
-            return Score::draw();
+            return Score::draw_random(local.nodes);
         }
     }
 
