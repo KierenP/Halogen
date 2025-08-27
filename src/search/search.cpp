@@ -618,11 +618,11 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     SearchLocalState& local, Transposition::Entry* const tt_entry, const Score tt_eval, const Score tt_score,
     const SearchResultType tt_cutoff, int depth, int distance_from_root, bool in_check)
 {
-    if (in_check)
+    /*if (in_check)
     {
         ss->adjusted_eval = (ss - 2)->adjusted_eval;
         return { SCORE_UNDEFINED, SCORE_UNDEFINED };
-    }
+    }*/
 
     Score raw_eval;
     Score adjusted_eval;
