@@ -26,6 +26,15 @@ StagedMoveGenerator::StagedMoveGenerator(
 {
 }
 
+StagedMoveGenerator StagedMoveGenerator::probcut(const GameState& position, const SearchStackState* ss,
+    SearchLocalState& local, Move tt_move, Score probcut_see_margin_)
+{
+    auto gen = StagedMoveGenerator(position, ss, local, tt_move, false);
+    gen.stage = Stage::PROBCUT_TT_MOVE;
+    gen.probcut_see_margin = probcut_see_margin_;
+    return gen;
+}
+
 void selection_sort(
     ExtendedMoveList::iterator begin, ExtendedMoveList::iterator sort_end, ExtendedMoveList::iterator end)
 {
@@ -37,6 +46,39 @@ void selection_sort(
 
 bool StagedMoveGenerator::next(Move& move)
 {
+    if (stage == Stage::PROBCUT_TT_MOVE)
+    {
+        stage = Stage::PROBCUT_GEN_LOUD;
+
+        if ((TTmove.is_capture() || TTmove.is_promotion()) && is_legal(position.board(), TTmove))
+        {
+            move = TTmove;
+            return true;
+        }
+    }
+
+    if (stage == Stage::PROBCUT_GEN_LOUD)
+    {
+        BasicMoveList moves;
+        loud_moves(position.board(), moves);
+        score_loud_moves(moves);
+        current = loudMoves.begin();
+        selection_sort(current, loudMoves.end(), loudMoves.end());
+        stage = Stage::PROBCUT_GIVE_GOOD_LOUD;
+    }
+
+    if (stage == Stage::PROBCUT_GIVE_GOOD_LOUD)
+    {
+        while (current != loudMoves.end() && see_ge(position.board(), current->move, probcut_see_margin))
+        {
+            move = current->move;
+            ++current;
+            return true;
+        }
+
+        return false;
+    }
+
     if (stage == Stage::TT_MOVE)
     {
         stage = Stage::GEN_LOUD;
