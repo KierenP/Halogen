@@ -53,7 +53,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     Score alpha, Score beta, bool cut_node);
 
 template <SearchType search_type>
-Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     Score alpha, Score beta);
 
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
@@ -732,7 +732,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
-        return qsearch<qsearch_type>(position, ss, local, shared, depth, alpha, beta);
+        return qsearch<qsearch_type>(position, ss, local, shared, alpha, beta);
     }
 
     // Step 2: Check for abort or draw and update stats in the local state and search stack
@@ -1014,7 +1014,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 }
 
 template <SearchType search_type>
-Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
+Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
     Score alpha, Score beta)
 {
     static_assert(search_type != SearchType::ROOT);
@@ -1043,8 +1043,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         = probe_tt(shared, position, distance_from_root);
 
     // Step 3: Check if we can use the TT entry to return early
-    if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
-        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+    if (!pv_node && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
@@ -1054,7 +1053,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
     const bool in_check = position.board().checkers;
     const auto [raw_eval, eval] = get_search_eval<true>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, in_check);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, 0, distance_from_root, in_check);
     auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
@@ -1103,7 +1102,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         position.apply_move(move);
         shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
         local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
-        auto search_score = -qsearch<search_type>(position, ss + 1, local, shared, depth - 1, -beta, -alpha);
+        auto search_score = -qsearch<search_type>(position, ss + 1, local, shared, -beta, -alpha);
         position.revert_move();
 
         if (local.aborting_search)
@@ -1112,7 +1111,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         }
 
         // Step 5: Update best score and check for fail-high
-        if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestmove, alpha, beta))
+        if (update_search_stats<pv_node>(ss, gen, 0, search_score, move, score, bestmove, alpha, beta))
         {
             break;
         }
@@ -1139,7 +1138,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
                                                : SearchResultType::EXACT;
 
     // Step 7: Update transposition table
-    shared.transposition_table.add_entry(bestmove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
+    shared.transposition_table.add_entry(bestmove, Zobrist::get_fifty_move_adj_key(position.board()), score, 0,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
