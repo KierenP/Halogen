@@ -761,10 +761,10 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     // If we are in a singular move search, we don't want to do any early pruning
 
     // Step 3: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval, tt_pv]
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval, tt_was_pv]
         = probe_tt(shared, position, distance_from_root);
 
-    const bool ttpv = pv_node | (tt_entry && tt_pv);
+    const bool tt_pv = pv_node | (tt_entry && tt_was_pv);
 
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
@@ -780,14 +780,14 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, shared, local, ss, ttpv, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, shared, local, ss, tt_pv, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, ttpv, depth, distance_from_root, InCheck);
+        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, tt_pv, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
@@ -1053,7 +1053,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     }
 
     // Step 21: Update transposition table
-    shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), ttpv, score,
+    shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), tt_pv, score,
         depth, position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
     return score;
@@ -1085,10 +1085,10 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
     }
 
     // Step 2: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval, tt_pv]
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval, tt_was_pv]
         = probe_tt(shared, position, distance_from_root);
 
-    const bool ttpv = pv_node | (tt_entry && tt_pv);
+    const bool tt_pv = pv_node | (tt_entry && tt_was_pv);
 
     // Step 3: Check if we can use the TT entry to return early
     if (!pv_node && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
