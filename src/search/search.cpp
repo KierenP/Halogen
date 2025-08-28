@@ -815,12 +815,12 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
     }
 
-    const Score prob_cut_beta = beta + 200;
-    if (!pv_node && !InCheck && depth >= 3 && eval > prob_cut_beta)
+    const Score prob_cut_beta = beta + probcut_beta;
+    if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta)
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
-        int prob_cut_depth = depth - 5;
+        int prob_cut_depth = depth - probcut_depth_const;
 
         Move move;
         while (probcut_gen.next(move))
@@ -1122,7 +1122,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
     {
         no_legal_moves = false;
 
-        if (!score.is_loss() && seen_moves >= 2)
+        if (!score.is_loss() && seen_moves >= qsearch_lmp)
         {
             break;
         }
@@ -1130,7 +1130,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
         bool is_loud_move = move.is_capture() || move.is_promotion();
 
         if (!score.is_loss() && !is_loud_move
-            && !see_ge(position.board(), move, local.get_quiet_search_history(ss, move) / 168))
+            && !see_ge(position.board(), move, local.get_quiet_search_history(ss, move) / qsearch_see_hist))
         {
             continue;
         }

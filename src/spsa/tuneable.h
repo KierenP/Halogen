@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
@@ -48,9 +50,6 @@ TUNEABLE_CONSTANT int iid_depth = 3;
 
 TUNEABLE_CONSTANT int se_sbeta_depth = 48;
 TUNEABLE_CONSTANT int se_double = 7;
-TUNEABLE_CONSTANT int se_double_pv = 477;
-TUNEABLE_CONSTANT int se_double_hd = 303;
-TUNEABLE_CONSTANT int se_double_quiet = 0;
 TUNEABLE_CONSTANT int se_min_depth = 6;
 TUNEABLE_CONSTANT int se_tt_depth = 4;
 
@@ -89,12 +88,10 @@ TUNEABLE_CONSTANT int see_max_depth = 8;
 TUNEABLE_CONSTANT int hist_prune_depth = 2057;
 TUNEABLE_CONSTANT int hist_prune = 290;
 
-TUNEABLE_CONSTANT int delta_c = 484;
-
 TUNEABLE_CONSTANT std::array eval_scale = { 0, 585, 495, 674, 1810 };
 TUNEABLE_CONSTANT int eval_scale_const = 20310;
 
-TUNEABLE_CONSTANT std::array see_values = { 135, 478, 428, 734, 1693, 5000 };
+TUNEABLE_CONSTANT std::array see_values = { 135, 478, 428, 734, 1693 };
 
 TUNEABLE_CONSTANT float soft_tm = 0.2726;
 TUNEABLE_CONSTANT float node_tm_base = 0.3899;
@@ -118,3 +115,10 @@ TUNEABLE_CONSTANT int good_loud_see_hist = 51;
 TUNEABLE_CONSTANT int tt_replace_self_depth = 4;
 TUNEABLE_CONSTANT int tt_replace_depth = 58;
 TUNEABLE_CONSTANT int tt_replace_age = 235;
+
+TUNEABLE_CONSTANT int qsearch_lmp = 2;
+TUNEABLE_CONSTANT int qsearch_see_hist = 168;
+
+TUNEABLE_CONSTANT int probcut_beta = 200;
+TUNEABLE_CONSTANT int probcut_min_depth = 3;
+TUNEABLE_CONSTANT int probcut_depth_const = 5;

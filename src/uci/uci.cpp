@@ -281,9 +281,6 @@ auto Uci::options_handler()
 
         tuneable_int(se_sbeta_depth, 20, 80),
         tuneable_int(se_double, 0, 30),
-        tuneable_int(se_double_pv, 200, 600),
-        tuneable_int(se_double_hd, 150, 600),
-        tuneable_int(se_double_quiet, -30, 30),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
@@ -322,8 +319,6 @@ auto Uci::options_handler()
         tuneable_int(hist_prune_depth, 1500, 6000),
         tuneable_int(hist_prune, -2000, 2000),
 
-        tuneable_int(delta_c, 0, 500),
-
         tuneable_int(eval_scale[PAWN], -200, 200),
         tuneable_int(eval_scale[KNIGHT], 200, 800),
         tuneable_int(eval_scale[BISHOP], 200, 800),
@@ -356,6 +351,16 @@ auto Uci::options_handler()
         tuneable_int(tt_replace_depth, 32, 128),
         tuneable_int(tt_replace_age, 128, 512),
 
+        tuneable_int(good_loud_see, 0, 200),
+        tuneable_int(good_loud_see_hist, 0, 100),
+
+        tuneable_int(qsearch_lmp, 1, 4),
+        tuneable_int(qsearch_see_hist, 100, 200),
+
+        tuneable_int(probcut_beta, 150, 250),
+        tuneable_int(probcut_min_depth, 1, 5),
+        tuneable_int(probcut_depth_const, 3, 7),
+
         tuneable_int(PawnHistory::max_value, 1000, 32000),
         tuneable_int(PawnHistory::scale, 20, 50),
         tuneable_int(ThreatHistory::max_value, 1000, 32000),
@@ -375,9 +380,6 @@ auto Uci::options_handler()
         tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
 
         tuneable_float(SCALE_FACTOR, 80, 320),
-
-        tuneable_int(good_loud_see, 0, 200),
-        tuneable_int(good_loud_see_hist, 0, 100),
 #else
 #endif
     };
