@@ -91,7 +91,7 @@ TUNEABLE_CONSTANT int hist_prune = 290;
 TUNEABLE_CONSTANT std::array eval_scale = { 0, 585, 495, 674, 1810 };
 TUNEABLE_CONSTANT int eval_scale_const = 20310;
 
-TUNEABLE_CONSTANT std::array see_values = { 135, 478, 428, 734, 1693 };
+TUNEABLE_CONSTANT std::array see_values = { 135, 478, 428, 734, 1693, 5000 };
 
 TUNEABLE_CONSTANT float soft_tm = 0.2726;
 TUNEABLE_CONSTANT float node_tm_base = 0.3899;
