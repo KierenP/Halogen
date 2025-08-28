@@ -796,7 +796,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     const bool has_active_threat = position.board().active_lesser_threats();
     const auto rfp_margin
         = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)) / 64;
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
+    if (!tt_pv && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
         && eval - rfp_margin - rfp_threat * has_active_threat >= beta)
     {
         return (beta.value() + eval.value()) / 2;
