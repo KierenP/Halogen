@@ -36,7 +36,7 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square);
 template <bool capture, Side STM, typename T>
 void generate_king_moves(const BoardState& board, T& moves, Square from);
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, Square king);
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations);
 
 // misc
 template <Side STM, typename T>
@@ -113,12 +113,31 @@ void add_loud_moves(const BoardState& board, T& moves)
         pawn_promotions<STM>(board, moves);
         generate_king_moves<true, STM>(board, moves, king);
 
-        for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM); pieces != 0;)
-            generate_sliding_moves<QUEEN, true, STM>(board, moves, lsbpop(pieces), king);
-        for (uint64_t pieces = board.get_pieces_bb(ROOK, STM); pieces != 0;)
-            generate_sliding_moves<ROOK, true, STM>(board, moves, lsbpop(pieces), king);
-        for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM); pieces != 0;)
-            generate_sliding_moves<BISHOP, true, STM>(board, moves, lsbpop(pieces), king);
+        if (board.pinned)
+        {
+            for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<QUEEN, true, STM>(board, moves, from, RayBB[king][from]);
+            }
+            for (uint64_t pieces = board.get_pieces_bb(ROOK, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<ROOK, true, STM>(board, moves, from, RayBB[king][from]);
+            }
+            for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<BISHOP, true, STM>(board, moves, from, RayBB[king][from]);
+            }
+        }
+
+        for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<QUEEN, true, STM>(board, moves, lsbpop(pieces), UNIVERSE);
+        for (uint64_t pieces = board.get_pieces_bb(ROOK, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<ROOK, true, STM>(board, moves, lsbpop(pieces), UNIVERSE);
+        for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<BISHOP, true, STM>(board, moves, lsbpop(pieces), UNIVERSE);
         for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~board.pinned; pieces != 0;)
             generate_knight_moves<true, STM>(board, moves, lsbpop(pieces));
     }
@@ -162,12 +181,31 @@ void add_quiet_moves(const BoardState& board, T& moves)
         pawn_double_pushes<STM>(board, moves);
         castle_moves<STM>(board, moves);
 
-        for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM); pieces != 0;)
-            generate_sliding_moves<QUEEN, false, STM>(board, moves, lsbpop(pieces), king);
-        for (uint64_t pieces = board.get_pieces_bb(ROOK, STM); pieces != 0;)
-            generate_sliding_moves<ROOK, false, STM>(board, moves, lsbpop(pieces), king);
-        for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM); pieces != 0;)
-            generate_sliding_moves<BISHOP, false, STM>(board, moves, lsbpop(pieces), king);
+        if (board.pinned)
+        {
+            for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<QUEEN, false, STM>(board, moves, from, RayBB[king][from]);
+            }
+            for (uint64_t pieces = board.get_pieces_bb(ROOK, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<ROOK, false, STM>(board, moves, from, RayBB[king][from]);
+            }
+            for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM) & board.pinned; pieces != 0;)
+            {
+                Square from = lsbpop(pieces);
+                generate_sliding_moves<BISHOP, false, STM>(board, moves, from, RayBB[king][from]);
+            }
+        }
+
+        for (uint64_t pieces = board.get_pieces_bb(QUEEN, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<QUEEN, false, STM>(board, moves, lsbpop(pieces), UNIVERSE);
+        for (uint64_t pieces = board.get_pieces_bb(ROOK, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<ROOK, false, STM>(board, moves, lsbpop(pieces), UNIVERSE);
+        for (uint64_t pieces = board.get_pieces_bb(BISHOP, STM) & ~board.pinned; pieces != 0;)
+            generate_sliding_moves<BISHOP, false, STM>(board, moves, lsbpop(pieces), UNIVERSE);
         for (uint64_t pieces = board.get_pieces_bb(KNIGHT, STM) & ~board.pinned; pieces != 0;)
             generate_knight_moves<false, STM>(board, moves, lsbpop(pieces));
 
@@ -732,20 +770,12 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square)
 }
 
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, Square king)
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations)
 {
     const uint64_t occupied = board.get_pieces_bb();
     const uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<piece>(square, occupied);
     const auto flag = capture ? CAPTURE : QUIET;
-
-    if (!(board.pinned & SquareBB[square]))
-    {
-        append_legal_moves<STM, flag>(square, targets, moves);
-    }
-    else
-    {
-        append_legal_moves<STM, flag>(square, targets & RayBB[king][square], moves);
-    }
+    append_legal_moves<STM, flag>(square, targets & valid_destinations, moves);
 }
 
 template <bool capture, Side STM, typename T>
