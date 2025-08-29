@@ -498,12 +498,12 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
 
     if constexpr (pv_node)
     {
-        r -= 1382 / 2;
+        r -= 1382;
     }
 
     if (tt_pv)
     {
-        r -= 1382 / 2;
+        r -= 1382;
     }
 
     if (cut_node)
