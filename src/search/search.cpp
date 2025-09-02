@@ -815,7 +815,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         }
     }
 
-    const Score prob_cut_beta = beta + 200;
+    Score prob_cut_beta = beta + 200;
     if (!pv_node && !InCheck && depth >= 3 && eval > prob_cut_beta)
     {
         StagedMoveGenerator probcut_gen
@@ -855,6 +855,11 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             if (value >= prob_cut_beta)
             {
                 return beta;
+            }
+
+            if (tt_score >= beta)
+            {
+                prob_cut_beta = beta + 100;
             }
         }
     }
