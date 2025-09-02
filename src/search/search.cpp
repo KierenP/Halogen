@@ -859,7 +859,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 
             if (tt_score >= beta)
             {
-                prob_cut_beta = beta + 100;
+                prob_cut_beta = beta + 50;
             }
         }
     }
