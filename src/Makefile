@@ -199,7 +199,7 @@ tune: LDFLAGS += -flto
 tune: EXE = $(BINARY_DIR)/Halogen-tune
 tune: verbatim_binary binary
 
-shuffle: VERBATIM_FLAGS=$(CFLAGS)
+shuffle: VERBATIM_FLAGS=$(CFLAGS) -DNETWORK_SHUFFLE
 shuffle: CXXFLAGS += $(CFLAGS) -DNETWORK_SHUFFLE -fopenmp
 shuffle: LDFLAGS += -flto -fopenmp
 shuffle: EXE = $(BINARY_DIR)/Halogen-shuffle
