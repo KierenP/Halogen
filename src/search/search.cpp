@@ -820,7 +820,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
-        int prob_cut_depth = depth - probcut_depth_const;
+        int prob_cut_depth = depth - probcut_depth_const - depth / 5;
 
         Move move;
         while (probcut_gen.next(move))
