@@ -20,6 +20,7 @@
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "datagen/datagen.h"
+#include "datagen/viribin_adj.h"
 #include "misc/benchmark.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
@@ -634,7 +635,12 @@ void Uci::process_input(std::string_view command)
             Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
                 Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
-            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } },
+        Consume { "viribin_adj", WithContext { file_io_ctx{}, Sequence {
+            Repeat { OneOf {
+                Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value;} } } } },
+            Invoke { [this](auto& ctx) { handle_viribin_adj(ctx); } } } } } },
     EndCommand{}
     };
     // clang-format on
@@ -777,6 +783,11 @@ void Uci::handle_shuffle_network()
     handle_bench(10);
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
+}
+
+void Uci::handle_viribin_adj(const file_io_ctx& ctx)
+{
+    viribin_adj(ctx.input_path, ctx.output_path);
 }
 
 }
