@@ -41,3 +41,15 @@ constexpr size_t KING_BUCKET_COUNT = []()
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
 TUNEABLE_CONSTANT float SCALE_FACTOR = 174.8f;
+
+struct NetworkWeights
+{
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
+    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
+    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
+    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
+};

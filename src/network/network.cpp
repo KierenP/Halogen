@@ -15,37 +15,10 @@
 #include "network/arch.hpp"
 #include "network/inference.hpp"
 #include "network/simd/intrinsics.hpp"
-#include "third-party/incbin/incbin.h"
+#include "network/weights.hpp"
 
 namespace NN
 {
-
-#undef INCBIN_ALIGNMENT
-#define INCBIN_ALIGNMENT 64
-INCBIN(Net, EVALFILE);
-
-struct network
-{
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
-    alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
-    alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
-    alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
-    alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
-    alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
-} const& net = reinterpret_cast<const network&>(*gNetData);
-
-[[maybe_unused]] auto verify_network_size = []
-{
-    if (sizeof(network) != gNetSize)
-    {
-        std::cout << "Error: embedded network is not the expected size. Expected " << sizeof(network)
-                  << " bytes actual " << gNetSize << " bytes." << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-    return true;
-}();
 
 int get_king_bucket(Square king_sq, Side view)
 {
@@ -65,7 +38,8 @@ int index(Square king_sq, Square piece_sq, Piece piece, Side view)
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Side view)
+void Add1Sub1(const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const Input& add1,
+    const Input& sub1, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
@@ -73,14 +47,17 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, con
     add1sub1(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[sub1_index]);
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
+void Add1Sub1(
+    const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
 {
-    Add1Sub1(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
-    Add1Sub1(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
+    Add1Sub1(
+        net, prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece }, WHITE);
+    Add1Sub1(
+        net, prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
 }
 
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Side view)
+void Add1Sub2(const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const Input& add1,
+    const Input& sub1, const Input& sub2, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
@@ -90,17 +67,17 @@ void Add1Sub2(
         net.ft_weight[sub2_index]);
 }
 
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1, const InputPair& sub2)
+void Add1Sub2(const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const InputPair& add1,
+    const InputPair& sub1, const InputPair& sub2)
 {
-    Add1Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
+    Add1Sub2(net, prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { sub1.w_king, sub1.piece_sq, sub1.piece },
         { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add1Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
+    Add1Sub2(net, prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece },
         { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
 }
 
-void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
-    const Input& sub2, Side view)
+void Add2Sub2(const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const Input& add1,
+    const Input& add2, const Input& sub1, const Input& sub2, Side view)
 {
     size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
     size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
@@ -111,47 +88,47 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, con
         net.ft_weight[sub1_index], net.ft_weight[sub2_index]);
 }
 
-void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
-    const InputPair& sub1, const InputPair& sub2)
+void Add2Sub2(const NetworkWeights& net, const Accumulator& prev, Accumulator& next, const InputPair& add1,
+    const InputPair& add2, const InputPair& sub1, const InputPair& sub2)
 {
-    Add2Sub2(prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
+    Add2Sub2(net, prev, next, { add1.w_king, add1.piece_sq, add1.piece }, { add2.w_king, add2.piece_sq, add2.piece },
         { sub1.w_king, sub1.piece_sq, sub1.piece }, { sub2.w_king, sub2.piece_sq, sub2.piece }, WHITE);
-    Add2Sub2(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
+    Add2Sub2(net, prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { add2.b_king, add2.piece_sq, add2.piece },
         { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
 }
 
-void Accumulator::add_input(const InputPair& input)
+void Accumulator::add_input(const NetworkWeights& net, const InputPair& input)
 {
-    add_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    add_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    add_input(net, { input.w_king, input.piece_sq, input.piece }, WHITE);
+    add_input(net, { input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::add_input(const Input& input, Side view)
+void Accumulator::add_input(const NetworkWeights& net, const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
     add1(side[view], net.ft_weight[side_index]);
 }
 
-void Accumulator::sub_input(const InputPair& input)
+void Accumulator::sub_input(const NetworkWeights& net, const InputPair& input)
 {
-    sub_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
-    sub_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+    sub_input(net, { input.w_king, input.piece_sq, input.piece }, WHITE);
+    sub_input(net, { input.b_king, input.piece_sq, input.piece }, BLACK);
 }
 
-void Accumulator::sub_input(const Input& input, Side view)
+void Accumulator::sub_input(const NetworkWeights& net, const Input& input, Side view)
 {
     size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
     sub1(side[view], net.ft_weight[side_index]);
 }
 
-void Accumulator::recalculate(const BoardState& board_)
+void Accumulator::recalculate(const NetworkWeights& net, const BoardState& board_)
 {
-    recalculate(board_, WHITE);
-    recalculate(board_, BLACK);
+    recalculate(net, board_, WHITE);
+    recalculate(net, board_, BLACK);
     acc_is_valid = true;
 }
 
-void Accumulator::recalculate(const BoardState& board_, Side view)
+void Accumulator::recalculate(const NetworkWeights& net, const BoardState& board_, Side view)
 {
     side[view] = net.ft_bias;
     auto king = board_.get_king_sq(view);
@@ -164,12 +141,13 @@ void Accumulator::recalculate(const BoardState& board_, Side view)
         while (bb)
         {
             Square sq = lsbpop(bb);
-            add_input({ king, sq, piece }, view);
+            add_input(net, { king, sq, piece }, view);
         }
     }
 }
 
-void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq)
+void AccumulatorTable::recalculate(
+    const NetworkWeights& net, Accumulator& acc, const BoardState& board, Side side, Square king_sq)
 {
     // we need to keep a separate entry for when the king is on each side of the board
     auto& entry
@@ -200,13 +178,13 @@ void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Si
         while (to_add)
         {
             auto sq = lsbpop(to_add);
-            entry.acc.add_input({ king_sq, sq, piece }, side);
+            entry.acc.add_input(net, { king_sq, sq, piece }, side);
         }
 
         while (to_sub)
         {
             auto sq = lsbpop(to_sub);
-            entry.acc.sub_input({ king_sq, sq, piece }, side);
+            entry.acc.sub_input(net, { king_sq, sq, piece }, side);
         }
 
         old_bb = new_bb;
@@ -215,9 +193,9 @@ void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Si
     acc.side[side] = entry.acc.side[side];
 }
 
-void Network::reset_new_search(const BoardState& board, Accumulator& acc)
+void Network::reset_new_search(const NetworkWeights& net, const BoardState& board, Accumulator& acc)
 {
-    acc.recalculate(board);
+    acc.recalculate(net, board);
 
     for (auto& entry : table.king_bucket)
     {
@@ -228,7 +206,7 @@ void Network::reset_new_search(const BoardState& board, Accumulator& acc)
     }
 }
 
-bool Network::verify(const BoardState& board, const Accumulator& acc)
+bool Network::verify(const NetworkWeights& net, const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
     expected.side = { net.ft_bias, net.ft_bias };
@@ -243,7 +221,7 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
         while (bb)
         {
             Square sq = lsbpop(bb);
-            expected.add_input({ w_king, b_king, sq, piece });
+            expected.add_input(net, { w_king, b_king, sq, piece });
         }
     }
 
@@ -424,7 +402,7 @@ void Network::store_lazy_updates(
     }
 }
 
-void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc)
+void Network::apply_lazy_updates(const NetworkWeights& net, const Accumulator& prev_acc, Accumulator& next_acc)
 {
     if (next_acc.acc_is_valid)
     {
@@ -435,22 +413,25 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
 
     if (next_acc.white_requires_recalculation)
     {
-        table.recalculate(next_acc, next_acc.board, WHITE, next_acc.board.get_king_sq(WHITE));
+        table.recalculate(net, next_acc, next_acc.board, WHITE, next_acc.board.get_king_sq(WHITE));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
-            Add1Sub1(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add1Sub1(net, prev_acc, next_acc,
+                { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, BLACK);
         }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
         {
-            Add1Sub2(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add1Sub2(net, prev_acc, next_acc,
+                { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
                 { next_acc.subs[1].b_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK);
         }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
         {
-            Add2Sub2(prev_acc, next_acc, { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add2Sub2(net, prev_acc, next_acc,
+                { next_acc.adds[0].b_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.adds[1].b_king, next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
                 { next_acc.subs[0].b_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
                 { next_acc.subs[1].b_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK);
@@ -458,22 +439,25 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     }
     else if (next_acc.black_requires_recalculation)
     {
-        table.recalculate(next_acc, next_acc.board, BLACK, next_acc.board.get_king_sq(BLACK));
+        table.recalculate(net, next_acc, next_acc.board, BLACK, next_acc.board.get_king_sq(BLACK));
 
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
-            Add1Sub1(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add1Sub1(net, prev_acc, next_acc,
+                { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, WHITE);
         }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
         {
-            Add1Sub2(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add1Sub2(net, prev_acc, next_acc,
+                { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
                 { next_acc.subs[1].w_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE);
         }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
         {
-            Add2Sub2(prev_acc, next_acc, { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
+            Add2Sub2(net, prev_acc, next_acc,
+                { next_acc.adds[0].w_king, next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
                 { next_acc.adds[1].w_king, next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
                 { next_acc.subs[0].w_king, next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
                 { next_acc.subs[1].w_king, next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE);
@@ -483,15 +467,15 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     {
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
         {
-            Add1Sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0]);
+            Add1Sub1(net, prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0]);
         }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
         {
-            Add1Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1]);
+            Add1Sub2(net, prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1]);
         }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
         {
-            Add2Sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1]);
+            Add2Sub2(net, prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1]);
         }
         else if (next_acc.n_adds == 0 && next_acc.n_subs == 0)
         {
@@ -508,7 +492,7 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
-Score Network::eval(const BoardState& board, const Accumulator& acc)
+Score Network::eval(const NetworkWeights& net, const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(std::popcount(board.get_pieces_bb()));
@@ -536,9 +520,11 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
 
 Score Network::slow_eval(const BoardState& board)
 {
+    const NetworkWeights& net = network_weights_accessor.get_numa_local_data();
+
     Accumulator acc;
-    acc.recalculate(board);
-    return eval(board, acc);
+    acc.recalculate(net, board);
+    return eval(net, board, acc);
 }
 
 }

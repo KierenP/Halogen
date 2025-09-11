@@ -15,6 +15,7 @@
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "network/network.h"
+#include "network/weights.hpp"
 #include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
@@ -158,6 +159,9 @@ public:
     NN::Network net;
 
     GameState position = GameState::starting_position();
+
+    // numa local read-only data
+    const NetworkWeights& weights = network_weights_accessor.get_numa_local_data();
 };
 
 struct SearchResults
