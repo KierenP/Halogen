@@ -4,6 +4,8 @@
 
 #include "third-party/incbin/incbin.h"
 
+#include <iostream>
+
 #undef INCBIN_ALIGNMENT
 #define INCBIN_ALIGNMENT 64
 INCBIN(Net, EVALFILE);
