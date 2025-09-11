@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <vector>
 
-#ifndef TOURNAMENT_MODE
+#ifdef TOURNAMENT_MODE
 #include <iostream>
 #include <numa.h>
 
