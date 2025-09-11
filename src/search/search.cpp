@@ -655,7 +655,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         }
         else
         {
-            tt_entry->static_eval = raw_eval = evaluate(position.board(), ss, local.net);
+            tt_entry->static_eval = raw_eval = evaluate(local.weights, position.board(), ss, local.net);
         }
 
         adjusted_eval = scale_eval_50_move(raw_eval);
@@ -673,7 +673,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     }
     else
     {
-        raw_eval = evaluate(position.board(), ss, local.net);
+        raw_eval = evaluate(local.weights, position.board(), ss, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;

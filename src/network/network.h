@@ -41,14 +41,14 @@ struct Accumulator
         return side == rhs.side;
     }
 
-    void add_input(const InputPair& input);
-    void add_input(const Input& input, Side side);
+    void add_input(const NetworkWeights& net, const InputPair& input);
+    void add_input(const NetworkWeights& net, const Input& input, Side side);
 
-    void sub_input(const InputPair& input);
-    void sub_input(const Input& input, Side side);
+    void sub_input(const NetworkWeights& net, const InputPair& input);
+    void sub_input(const NetworkWeights& net, const Input& input, Side side);
 
-    void recalculate(const BoardState& board);
-    void recalculate(const BoardState& board, Side side);
+    void recalculate(const NetworkWeights& net, const BoardState& board);
+    void recalculate(const NetworkWeights& net, const BoardState& board, Side side);
 
     // data for lazy updates
     bool acc_is_valid = false;
@@ -76,7 +76,7 @@ struct AccumulatorTable
 {
     std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
 
-    void recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
+    void recalculate(const NetworkWeights& net, Accumulator& acc, const BoardState& board, Side side, Square king_sq);
 };
 
 // TODO: this class can mostly disappear and be replaced with stand alone functions
@@ -84,13 +84,13 @@ class Network
 {
 public:
     // called at the root of search
-    void reset_new_search(const BoardState& board, Accumulator& acc);
+    void reset_new_search(const NetworkWeights& net, const BoardState& board, Accumulator& acc);
 
     // return true if the incrementally updated accumulator is correct
-    static bool verify(const BoardState& board, const Accumulator& acc);
+    static bool verify(const NetworkWeights& net, const BoardState& board, const Accumulator& acc);
 
     // calculates starting from the first hidden layer and skips input -> hidden
-    static Score eval(const BoardState& board, const Accumulator& acc);
+    static Score eval(const NetworkWeights& weights, const BoardState& board, const Accumulator& acc);
 
     // does a full from scratch recalculation
     static Score slow_eval(const BoardState& board);
@@ -98,7 +98,7 @@ public:
     void store_lazy_updates(
         const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
 
-    void apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc);
+    void apply_lazy_updates(const NetworkWeights& net, const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
     AccumulatorTable table;

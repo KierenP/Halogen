@@ -9,7 +9,7 @@
 #include "search/data.h"
 #include "search/score.h"
 
-Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
+Score evaluate(const NetworkWeights& weights, const BoardState& board, SearchStackState* ss, NN::Network& net)
 {
     // apply lazy updates to accumulator stack
     //
@@ -22,12 +22,12 @@ Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
 
     while (current + 1 <= ss)
     {
-        net.apply_lazy_updates(current->acc, (current + 1)->acc);
+        net.apply_lazy_updates(weights, current->acc, (current + 1)->acc);
         current++;
     }
 
-    assert(NN::Network::verify(board, ss->acc));
-    Score eval = NN::Network::eval(board, ss->acc);
+    assert(NN::Network::verify(weights, board, ss->acc));
+    Score eval = NN::Network::eval(weights, board, ss->acc);
 
     // Apply material scaling factor
     const auto npMaterial = eval_scale[PAWN] * std::popcount(board.get_pieces_bb(PAWN))

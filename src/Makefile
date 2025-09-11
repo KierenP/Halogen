@@ -17,6 +17,7 @@ SRCS := \
     movegen/move.cpp \
     movegen/movegen.cpp \
     network/network.cpp \
+    network/weights.cpp \
     numa/numa.cpp \
     search/cuckoo.cpp \
     search/data.cpp \

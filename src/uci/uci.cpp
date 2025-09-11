@@ -26,6 +26,7 @@
 #include "movegen/movegen.h"
 #include "network/arch.hpp"
 #include "network/network.h"
+#include "network/weights.hpp"
 #include "search/data.h"
 #include "search/history.h"
 #include "search/limit/limits.h"
