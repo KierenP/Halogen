@@ -1,14 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <cstddef>
-#include <cstring>
-#include <iostream>
-#include <numa.h>
-#include <numaif.h>
-#include <pthread.h>
-#include <sched.h>
-#include <unistd.h>
+#include <type_traits>
 #include <vector>
 
 void bind_thread(size_t index);
