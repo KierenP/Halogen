@@ -40,4 +40,4 @@ constexpr size_t KING_BUCKET_COUNT = []()
 
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
-TUNEABLE_CONSTANT float SCALE_FACTOR = 174.8f;
+TUNEABLE_CONSTANT float SCALE_FACTOR = 174.4f;
