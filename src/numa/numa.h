@@ -19,5 +19,5 @@ public:
 
 private:
     const T* source_data_;
-    std::vector<const T*> per_node_replicas_;
+    std::vector<T*> per_node_replicas_;
 };
