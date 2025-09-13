@@ -32,6 +32,7 @@ public:
     bool is_repetition(int distance_from_root) const;
     bool is_two_fold_repetition() const;
     bool upcoming_rep(int distanceFromRoot) const;
+    bool has_repeated() const;
 
     const BoardState& board() const;
     const BoardState& prev_board() const;

@@ -247,7 +247,7 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(position_.board());
+    auto probe = Syzygy::probe_dtz_root(position_);
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {

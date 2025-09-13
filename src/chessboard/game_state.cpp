@@ -224,3 +224,20 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
 
     return false;
 }
+
+bool GameState::has_repeated() const
+{
+    // true if the game has repeated since the last zeroing move
+    const int start = (int)previousStates.size() - 1;
+    const int end = std::max(0, start - previousStates[start].fifty_move_count) + 4;
+
+    for (int ply = start; ply >= end; ply--)
+    {
+        if (previousStates[ply].repetition.has_value())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

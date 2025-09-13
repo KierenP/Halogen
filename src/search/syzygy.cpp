@@ -8,6 +8,7 @@
 
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "chessboard/game_state.h"
 #include "movegen/move.h"
 #include "third-party/Pyrrhic/tbprobe.h"
 
@@ -99,8 +100,10 @@ std::optional<Score> Syzygy::probe_wdl_search(const SearchLocalState& local, int
     __builtin_unreachable();
 }
 
-std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
+std::optional<RootProbeResult> Syzygy::probe_dtz_root(const GameState& position)
 {
+    const auto& board = position.board();
+
     // Can't probe Syzygy if there is too many pieces on the board, or if there is casteling rights.
     if (std::popcount(board.get_pieces_bb()) > TB_LARGEST || board.castle_squares != EMPTY)
     {
@@ -109,10 +112,6 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
 
     TbRootMoves root_moves {};
     static std::mutex tb_lock;
-
-    /*
-    TODO: Use the board cycle detection to correctly set the hasRepeated flag.
-    */
 
     tb_lock.lock();
     // clang-format off
@@ -128,7 +127,7 @@ std::optional<RootProbeResult> Syzygy::probe_dtz_root(const BoardState& board)
         board.fifty_move_count,
         board.en_passant <= SQ_H8 ? board.en_passant : 0,
         board.stm == WHITE,
-        false,
+        position.has_repeated(),
         &root_moves);
     // clang-format on
     tb_lock.unlock();
