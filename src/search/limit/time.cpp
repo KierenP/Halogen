@@ -27,7 +27,7 @@ SearchTimeManager::SearchTimeManager(chess_clock_t::duration soft_limit, chess_c
 {
 }
 
-bool SearchTimeManager::should_continue_search(float factor) const
+bool SearchTimeManager::should_continue_search(const Timer& timer, float factor) const
 {
     // if AllocatedSearchTimeMS == MaxTimeMS then we have recieved a 'go movetime X' command and we should not abort
     // search early
@@ -40,7 +40,7 @@ bool SearchTimeManager::should_continue_search(float factor) const
     return (elapsed_ms < soft_limit_ * factor * soft_tm && elapsed_ms < hard_limit_);
 }
 
-bool SearchTimeManager::should_abort_search() const
+bool SearchTimeManager::should_abort_search(const Timer& timer) const
 {
     auto elapsed_ms = timer.elapsed();
     return (elapsed_ms >= soft_limit_ || elapsed_ms >= hard_limit_);
