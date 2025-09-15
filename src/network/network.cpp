@@ -253,6 +253,8 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
 void Network::store_lazy_updates(
     const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move)
 {
+    assert(move != Move::Uninitialized);
+
     acc.acc_is_valid = false;
     acc.white_requires_recalculation = false;
     acc.black_requires_recalculation = false;
@@ -261,11 +263,6 @@ void Network::store_lazy_updates(
     acc.subs = {};
     acc.n_subs = 0;
     acc.board = {};
-
-    if (move == Move::Uninitialized)
-    {
-        return;
-    }
 
     auto stm = prev_move_board.stm;
     auto from_sq = move.from();

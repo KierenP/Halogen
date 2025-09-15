@@ -8,7 +8,8 @@ struct SearchStackState;
 namespace NN
 {
 class Network;
+class Accumulator;
 }
 
 bool insufficient_material(const BoardState& board);
-Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net);
+Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net);

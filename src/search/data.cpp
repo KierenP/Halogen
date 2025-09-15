@@ -31,6 +31,16 @@ SearchStackState* SearchStack::root()
     return &search_stack_array_[-min_access];
 }
 
+const NN::Accumulator* AccumulatorStack::root() const
+{
+    return &acc_stack_[0];
+}
+
+NN::Accumulator* AccumulatorStack::root()
+{
+    return &acc_stack_[0];
+}
+
 SearchLocalState::SearchLocalState(int thread_id_)
     : thread_id(thread_id_)
 {
@@ -58,6 +68,7 @@ void SearchLocalState::reset_new_search()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
     search_stack = {};
+    acc_stack = {};
     tb_hits = 0;
     nodes = 0;
     sel_septh = 0;
@@ -70,7 +81,7 @@ void SearchLocalState::reset_new_search()
     limit_check_counter = 0;
     root_moves = {};
 
-    net.reset_new_search(position.board(), search_stack.root()->acc);
+    net.reset_new_search(position.board(), *acc_stack.root());
     BasicMoveList moves;
     legal_moves(position.board(), moves);
     std::ranges::copy(moves, std::back_inserter(root_moves));

@@ -9,25 +9,25 @@
 #include "search/data.h"
 #include "search/score.h"
 
-Score evaluate(const BoardState& board, SearchStackState* ss, NN::Network& net)
+Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
 {
     // apply lazy updates to accumulator stack
     //
     // we assume the root position always has a valid accumulator, and use pointer arithmatic to get there
-    auto* current = ss;
-    while (!current->acc.acc_is_valid)
+    auto* current = acc;
+    while (!current->acc_is_valid)
     {
         current--;
     }
 
-    while (current + 1 <= ss)
+    while (current + 1 <= acc)
     {
-        net.apply_lazy_updates(current->acc, (current + 1)->acc);
+        net.apply_lazy_updates(*current, *(current + 1));
         current++;
     }
 
-    assert(NN::Network::verify(board, ss->acc));
-    Score eval = NN::Network::eval(board, ss->acc);
+    assert(NN::Network::verify(board, *acc));
+    Score eval = NN::Network::eval(board, *acc);
 
     // Apply material scaling factor
     const auto npMaterial = eval_scale[PAWN] * std::popcount(board.get_pieces_bb(PAWN))

@@ -62,8 +62,6 @@ struct SearchStackState
     PieceMoveHistory* cont_hist_subtable = nullptr;
     PieceMoveCorrHistory* cont_corr_hist_subtable = nullptr;
 
-    NN::Accumulator acc;
-
     Score adjusted_eval = 0;
 };
 
@@ -88,6 +86,16 @@ private:
     {
         return { (distances_from_root + min_access)... };
     }
+};
+
+class AccumulatorStack
+{
+public:
+    const NN::Accumulator* root() const;
+    NN::Accumulator* root();
+
+private:
+    std::array<NN::Accumulator, MAX_RECURSION> acc_stack_ {};
 };
 
 struct RootMove
@@ -156,6 +164,7 @@ public:
     int limit_check_counter = 0;
 
     NN::Network net;
+    AccumulatorStack acc_stack;
 
     GameState position = GameState::starting_position();
 };
