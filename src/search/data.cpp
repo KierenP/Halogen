@@ -40,16 +40,13 @@ SearchLocalState::SearchLocalState(int thread_id_)
     static std::mutex io_lock;
     std::lock_guard lock(io_lock);
 
-    int numa_node = -1;
-    if (get_mempolicy(&numa_node, NULL, 0, (void*)&weights, MPOL_F_NODE | MPOL_F_ADDR) == 0)
-    {
-        std::cout << "Thread " << thread_id << " created. Network weights at address " << &weights
-                  << " is on NUMA node: " << numa_node << std::endl;
-    }
-    else
-    {
-        perror("get_mempolicy failed");
-    }
+    int numa_node_weights = -1;
+    int numa_node_local_data = -1;
+    get_mempolicy(&numa_node_weights, NULL, 0, (void*)&weights, MPOL_F_NODE | MPOL_F_ADDR);
+    get_mempolicy(&numa_node_local_data, NULL, 0, (void*)this, MPOL_F_NODE | MPOL_F_ADDR);
+    std::cout << "Thread " << thread_id << " created. Thread local data at address " << this << " on numa node "
+              << numa_node_local_data << ". Network weights at address " << &weights
+              << " on on NUMA node: " << numa_node_weights << std::endl;
 }
 
 bool SearchLocalState::should_skip_root_move(Move move)
