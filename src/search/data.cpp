@@ -4,6 +4,7 @@
 #include <chrono>
 #include <compare>
 #include <cstdint>
+#include <iostream>
 #include <mutex>
 #include <numeric>
 #include <string>
@@ -15,6 +16,8 @@
 #include "search/score.h"
 #include "search/transposition/table.h"
 #include "uci/uci.h"
+
+#include <numaif.h>
 
 SearchStackState::SearchStackState(int distance_from_root_)
     : distance_from_root(distance_from_root_)
@@ -34,6 +37,19 @@ SearchStackState* SearchStack::root()
 SearchLocalState::SearchLocalState(int thread_id_)
     : thread_id(thread_id_)
 {
+    static std::mutex io_lock;
+    std::lock_guard lock(io_lock);
+
+    int numa_node = -1;
+    if (get_mempolicy(&numa_node, NULL, 0, (void*)&weights, MPOL_F_NODE | MPOL_F_ADDR) == 0)
+    {
+        std::cout << "Thread " << thread_id << " created. Network weights at address " << &weights
+                  << " is on NUMA node: " << numa_node << std::endl;
+    }
+    else
+    {
+        perror("get_mempolicy failed");
+    }
 }
 
 bool SearchLocalState::should_skip_root_move(Move move)

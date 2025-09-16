@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <vector>
 
-#ifdef TOURNAMENT_MODE
+#ifndef TOURNAMENT_MODE
 #include <iostream>
 #include <numa.h>
 
@@ -101,6 +101,11 @@ NumaLocalAllocationManager<T>::NumaLocalAllocationManager(const T* source_data)
 
         // initialize using placement new (copy constructor)
         per_node_replicas_[node] = new (replica) T(*source_data_);
+
+        if (per_node_replicas_[node] != replica)
+        {
+            std::cout << "ERROR" << std::endl;
+        }
     }
 }
 
