@@ -95,7 +95,7 @@ public:
     NN::Accumulator* root();
 
 private:
-    std::array<NN::Accumulator, MAX_RECURSION> acc_stack_ {};
+    std::array<NN::Accumulator, MAX_RECURSION + 1> acc_stack_ {};
 };
 
 struct RootMove
