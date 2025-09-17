@@ -213,13 +213,11 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
     return nodeCount;
 }
 
-void Uci::handle_bench(int depth)
+void Uci::handle_bench(const SearchLimits& limits)
 {
     Timer timer;
 
     uint64_t nodeCount = 0;
-    SearchLimits limits;
-    limits.depth = depth;
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
@@ -437,59 +435,8 @@ void Uci::handle_position_startpos()
     position = GameState::starting_position();
 }
 
-void Uci::handle_go(go_ctx& ctx)
+void Uci::handle_go(const SearchLimits& limits)
 {
-    SearchLimits limits;
-    limits.mate = ctx.mate;
-    limits.depth = ctx.depth;
-    limits.nodes = ctx.nodes;
-    limits.time = {};
-
-    using namespace std::chrono_literals;
-
-    // The amount of time we leave on the clock for safety
-    constexpr static auto BufferTime = 100ms;
-
-    const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
-    const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
-
-    if (ctx.movetime)
-    {
-        auto hard_limit = *ctx.movetime - BufferTime;
-        limits.time = SearchTimeManager(hard_limit, hard_limit);
-    }
-    else if (myTime)
-    {
-        auto hard_limit = *myTime - BufferTime;
-
-        if (ctx.movestogo)
-        {
-            // repeating time control
-
-            // We divide the available time by the number of movestogo (which can be zero) and then adjust
-            // by 1.5x. This ensures we use more of the available time earlier.
-            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * repeating_tc / 64;
-            limits.time = SearchTimeManager(soft_limit, hard_limit);
-        }
-        else if (myInc)
-        {
-            // increment time control
-
-            // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
-            // use a higher proportion of the available time so that we get down to just using the increment
-
-            auto soft_limit
-                = (*myTime - BufferTime) * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
-            limits.time = SearchTimeManager(soft_limit, hard_limit);
-        }
-        else
-        {
-            // Sudden death time control. We use 1/20th of the remaining time each turn
-            auto soft_limit = (*myTime - BufferTime) * sudden_death_tc / 1024;
-            limits.time = SearchTimeManager(soft_limit, hard_limit);
-        }
-    }
-
     // TODO: we could do this before the go command to save time
     search_thread_pool.set_position(position);
 
@@ -587,6 +534,20 @@ void Uci::process_input(std::string_view command)
     using namespace std::chrono_literals;
 
     // clang-format off
+    auto search_limits_handler_factory = [](){ 
+        return Repeat { OneOf {
+            Consume { "infinite", Invoke { [](auto&){} } },
+            Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
+            Consume { "btime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
+            Consume { "winc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
+            Consume { "binc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
+            Consume { "movestogo", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
+            Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
+            Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
+            Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
+            Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } };
+    };
+
     auto uci_processor = Sequence {
     OneOf {
         Consume { "uci", Invoke { [this]{ handle_uci(); } } },
@@ -603,18 +564,8 @@ void Uci::process_input(std::string_view command)
                     EndCommand{} } } } } },
         Consume { "go", Sequence {
             WithContext { go_ctx{}, Sequence {
-                Repeat { OneOf {
-                    Consume { "infinite", Invoke { [](auto&){} } },
-                    Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
-                    Consume { "btime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
-                    Consume { "winc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.winc = value * 1ms; } } } },
-                    Consume { "binc", NextToken { ToInt { [](auto value, auto& ctx){ ctx.binc = value * 1ms; } } } },
-                    Consume { "movestogo", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movestogo = value; } } } },
-                    Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
-                    Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
-                    Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-                    Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
-                Invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
+                search_limits_handler_factory(),
+                Invoke { [this](auto& ctx) { handle_go(parse_search_limits(ctx)); } } } } } },
         Consume { "setoption", options_handler_model.build_handler() },
 
         // extensions
@@ -625,8 +576,10 @@ void Uci::process_input(std::string_view command)
             Consume { "perft_legality", Invoke { [] { PerftSuite("test/perftsuite.txt", 2, true); } } },
             Consume { "perft960_legality", Invoke { [] { PerftSuite("test/perft960.txt", 3, true); } } } } },
         Consume { "bench", OneOf  {
-            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(14); } } },
-            NextToken { ToInt { [this](auto value){ handle_bench(value); } } } } },
+            Sequence { EndCommand{}, Invoke { [this]{ handle_bench(SearchLimits{.depth = 14}); } } },
+            WithContext { go_ctx{}, Sequence {
+                search_limits_handler_factory(),
+                Invoke { [this](auto& ctx) { handle_bench(parse_search_limits(ctx)); } } } } } },
         Consume { "print", Invoke { [this] { handle_print(); } } },
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
         Consume { "eval", Invoke { [this] { handle_eval(); } } },
@@ -779,6 +732,62 @@ void Uci::handle_shuffle_network()
     handle_bench(10);
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
+}
+
+SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
+{
+    SearchLimits limits;
+    limits.mate = ctx.mate;
+    limits.depth = ctx.depth;
+    limits.nodes = ctx.nodes;
+    limits.time = {};
+
+    using namespace std::chrono_literals;
+
+    // The amount of time we leave on the clock for safety
+    constexpr static auto BufferTime = 100ms;
+
+    const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
+    const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
+
+    if (ctx.movetime)
+    {
+        auto hard_limit = *ctx.movetime - BufferTime;
+        limits.time = SearchTimeManager(hard_limit, hard_limit);
+    }
+    else if (myTime)
+    {
+        auto hard_limit = *myTime - BufferTime;
+
+        if (ctx.movestogo)
+        {
+            // repeating time control
+
+            // We divide the available time by the number of movestogo (which can be zero) and then adjust
+            // by 1.5x. This ensures we use more of the available time earlier.
+            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * repeating_tc / 64;
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
+        }
+        else if (myInc)
+        {
+            // increment time control
+
+            // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
+            // use a higher proportion of the available time so that we get down to just using the increment
+
+            auto soft_limit
+                = (*myTime - BufferTime) * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
+        }
+        else
+        {
+            // Sudden death time control. We use 1/20th of the remaining time each turn
+            auto soft_limit = (*myTime - BufferTime) * sudden_death_tc / 1024;
+            limits.time = SearchTimeManager(soft_limit, hard_limit);
+        }
+    }
+
+    return limits;
 }
 
 }

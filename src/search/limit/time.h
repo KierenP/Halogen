@@ -20,12 +20,10 @@ class SearchTimeManager
 public:
     SearchTimeManager(chess_clock_t::duration soft_limit, chess_clock_t::duration hard_limit);
 
-    bool should_continue_search(float factor) const;
-    bool should_abort_search() const;
+    bool should_continue_search(const Timer& timer, float factor) const;
+    bool should_abort_search(const Timer& timer) const;
 
 private:
-    Timer timer;
-
     // The amount of time we have allocated to this turn. If the position is indecisive the search might extend this
     chess_clock_t::duration soft_limit_;
 

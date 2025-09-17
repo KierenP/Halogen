@@ -9,6 +9,7 @@
 
 #include "chessboard/game_state.h"
 #include "search/data.h"
+#include "search/limit/limits.h"
 
 class Move;
 class SearchThreadPool;
@@ -70,7 +71,7 @@ public:
     bool handle_position_fen(std::string_view fen);
     void handle_moves(std::string_view move);
     void handle_position_startpos();
-    void handle_go(go_ctx& ctx);
+    void handle_go(const SearchLimits& limits);
     void handle_setoption_clear_hash();
     void handle_setoption_hash(int value);
     void handle_setoption_threads(int value);
@@ -80,7 +81,7 @@ public:
     void handle_setoption_output_level(OutputLevel level);
     void handle_stop();
     void handle_quit();
-    void handle_bench(int depth);
+    void handle_bench(const SearchLimits& limits);
     void handle_spsa();
     void handle_print();
     void handle_eval();
@@ -90,6 +91,7 @@ public:
 
 private:
     void join_search_thread();
+    SearchLimits parse_search_limits(const go_ctx& ctx);
 
     const std::string_view version_;
 

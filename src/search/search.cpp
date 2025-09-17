@@ -100,7 +100,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             const auto node_factor
                 = node_tm_base + node_tm_scale * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
 
-            if (shared.limits.time && !shared.limits.time->should_continue_search(node_factor))
+            if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, node_factor))
             {
                 local.thread_wants_to_stop = true;
                 shared.report_thread_wants_to_stop();
@@ -188,7 +188,7 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
         return true;
     }
 
-    if (shared.limits.time && shared.limits.time->should_abort_search())
+    if (shared.limits.time && shared.limits.time->should_abort_search(shared.search_timer))
     {
         local.aborting_search = true;
         return true;
