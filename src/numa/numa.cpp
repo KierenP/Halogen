@@ -120,13 +120,15 @@ NumaLocalAllocationManager<T>::~NumaLocalAllocationManager()
 template <typename T>
 const T& NumaLocalAllocationManager<T>::get_numa_local_data() const
 {
-    int node = get_current_numa_node();
+    /*int node = get_current_numa_node();
     if (node >= 0 && node < (int)per_node_replicas_.size())
     {
         return *per_node_replicas_[node];
     }
     std::cerr << "Failed to get_numa_local_data on node " << node << "\n";
-    std::exit(EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);*/
+
+    return *per_node_replicas_[0];
 }
 
 #else
