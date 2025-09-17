@@ -624,7 +624,7 @@ void Uci::handle_probe()
 {
     std::lock_guard io { output_mutex };
     std::cout << position.board() << std::endl;
-    auto probe = Syzygy::probe_dtz_root(position.board());
+    auto probe = Syzygy::probe_dtz_root(position);
 
     if (!probe)
     {
