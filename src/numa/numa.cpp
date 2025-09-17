@@ -86,7 +86,7 @@ template <typename T>
 NumaLocalAllocationManager<T>::NumaLocalAllocationManager(const T* source_data)
     : source_data_(source_data)
 {
-    int max_node = numa_max_node();
+    int max_node = 0;
     per_node_replicas_.resize(max_node + 1, nullptr);
 
     for (int node = 0; node <= max_node; ++node)
