@@ -584,7 +584,7 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
 
-    if (reductions > 0)
+    if (new_depth > 0 && reductions > 0)
     {
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
