@@ -45,16 +45,16 @@ enum class SearchType : int8_t
 
 void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared);
 
-Score aspiration_window(
-    GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score);
+Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, Score mid_score);
 
 template <SearchType search_type>
-Score search(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
-    Score alpha, Score beta, bool cut_node);
+Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, int depth, Score alpha, Score beta, bool cut_node);
 
 template <SearchType search_type>
-Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    Score alpha, Score beta);
+Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, Score alpha, Score beta);
 
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
@@ -64,6 +64,7 @@ void launch_worker_search(GameState& position, SearchLocalState& local, SearchSh
 void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     auto* ss = local.search_stack.root();
+    auto* acc = local.acc_stack.root();
     Score mid_score = 0;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
@@ -79,7 +80,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
             local.curr_multi_pv = multi_pv;
-            auto score = aspiration_window(position, ss, local, shared, mid_score);
+            auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
 
             if (local.aborting_search)
             {
@@ -114,8 +115,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     }
 }
 
-Score aspiration_window(
-    GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, Score mid_score)
+Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, Score mid_score)
 {
     Score delta = aspiration_window_size;
     Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
@@ -126,7 +127,7 @@ Score aspiration_window(
     {
         local.sel_septh = 0;
         auto adjusted_depth = std::max(1, local.curr_depth - fail_high_count);
-        auto score = search<SearchType::ROOT>(position, ss, local, shared, adjusted_depth, alpha, beta, false);
+        auto score = search<SearchType::ROOT>(position, ss, acc, local, shared, adjusted_depth, alpha, beta, false);
 
         if (local.aborting_search)
         {
@@ -383,9 +384,9 @@ bool IsEndGame(const BoardState& board)
         == (board.get_pieces_bb(KING, board.stm) | board.get_pieces_bb(PAWN, board.stm)));
 }
 
-std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, const int distance_from_root, const int depth, const Score static_score,
-    const Score beta)
+std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
+    SearchLocalState& local, SearchSharedState& shared, const int distance_from_root, const int depth,
+    const Score static_score, const Score beta)
 {
     // avoid null move pruning in very late game positions due to zanauag issues.
     // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
@@ -401,10 +402,8 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->cont_hist_subtable = nullptr;
     ss->cont_corr_hist_subtable = nullptr;
     position.apply_null_move();
-    // TODO: separate out the accumulator stack from search stack. Then we can make this a no-op
-    local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, Move::Uninitialized);
     auto null_move_score
-        = -search<SearchType::ZW>(position, ss + 1, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
+        = -search<SearchType::ZW>(position, ss + 1, acc, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
     position.revert_null_move();
 
     if (null_move_score >= beta)
@@ -424,7 +423,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         ss->nmp_verification_depth = distance_from_root + 3 * (depth - reduction - 1) / 4;
         ss->nmp_verification_root = true;
         auto verification
-            = search<SearchType::ZW>(position, ss, local, shared, depth - reduction - 1, beta - 1, beta, false);
+            = search<SearchType::ZW>(position, ss, acc, local, shared, depth - reduction - 1, beta - 1, beta, false);
         ss->nmp_verification_root = false;
         ss->nmp_verification_depth = 0;
 
@@ -438,16 +437,16 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 }
 
 template <bool pv_node>
-std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, SearchLocalState& local,
-    SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move, const Score beta, int& extensions,
-    bool cut_node)
+std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
+    SearchLocalState& local, SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move,
+    const Score beta, int& extensions, bool cut_node)
 {
     Score sbeta = tt_score - se_sbeta_depth * depth / 64;
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
 
-    auto se_score = search<SearchType::ZW>(position, ss, local, shared, sdepth, sbeta - 1, sbeta, cut_node);
+    auto se_score = search<SearchType::ZW>(position, ss, acc, local, shared, sdepth, sbeta - 1, sbeta, cut_node);
 
     ss->singular_exclusion = Move::Uninitialized;
 
@@ -578,9 +577,9 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 }
 
 template <bool pv_node>
-Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    const int depth, const int extensions, const int reductions, const Score alpha, const Score beta,
-    const int seen_moves, bool cut_node)
+Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, const int depth, const int extensions, const int reductions, const Score alpha,
+    const Score beta, const int seen_moves, bool cut_node)
 {
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
@@ -588,7 +587,7 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
     if (reductions > 0)
     {
         search_score = -search<SearchType::ZW>(
-            position, ss + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
+            position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
 
         if (search_score <= alpha)
         {
@@ -599,14 +598,15 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
     // If the reduced depth search was skipped or failed high, we do a full depth zero width search
     if (!pv_node || seen_moves > 1)
     {
-        search_score
-            = -search<SearchType::ZW>(position, ss + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
+        search_score = -search<SearchType::ZW>(
+            position, ss + 1, acc + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
     }
 
     // If the ZW search was skipped or failed high, we do a full depth full width search
     if (pv_node && (seen_moves == 1 || search_score > alpha))
     {
-        search_score = -search<SearchType::PV>(position, ss + 1, local, shared, new_depth, -beta, -alpha, false);
+        search_score
+            = -search<SearchType::PV>(position, ss + 1, acc + 1, local, shared, new_depth, -beta, -alpha, false);
     }
 
     return search_score;
@@ -614,9 +614,9 @@ Score search_move(GameState& position, SearchStackState* ss, SearchLocalState& l
 
 // { raw, adjusted }
 template <bool is_qsearch>
-std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, SearchSharedState& shared,
-    SearchLocalState& local, Transposition::Entry* const tt_entry, const Score tt_eval, const Score tt_score,
-    const SearchResultType tt_cutoff, int depth, int distance_from_root, bool in_check)
+std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackState* ss, NN::Accumulator* acc,
+    SearchSharedState& shared, SearchLocalState& local, Transposition::Entry* const tt_entry, const Score tt_eval,
+    const Score tt_score, const SearchResultType tt_cutoff, int depth, int distance_from_root, bool in_check)
 {
     if (in_check)
     {
@@ -655,7 +655,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         }
         else
         {
-            tt_entry->static_eval = raw_eval = evaluate(position.board(), ss, local.net);
+            tt_entry->static_eval = raw_eval = evaluate(position.board(), acc, local.net);
         }
 
         adjusted_eval = scale_eval_50_move(raw_eval);
@@ -673,7 +673,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
     }
     else
     {
-        raw_eval = evaluate(position.board(), ss, local.net);
+        raw_eval = evaluate(position.board(), acc, local.net);
         adjusted_eval = scale_eval_50_move(raw_eval);
         adjusted_eval = eval_corr_history(adjusted_eval);
         ss->adjusted_eval = adjusted_eval;
@@ -716,8 +716,8 @@ void test_upcoming_cycle_detection(GameState& position, int distance_from_root)
 }
 
 template <SearchType search_type>
-Score search(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared, int depth,
-    Score alpha, Score beta, bool cut_node)
+Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, int depth, Score alpha, Score beta, bool cut_node)
 {
     assert((search_type != SearchType::ROOT) || (ss->distance_from_root == 0));
     assert((search_type != SearchType::ZW) || (beta == alpha + 1));
@@ -732,7 +732,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     if (depth <= 0)
     {
         constexpr SearchType qsearch_type = pv_node ? SearchType::PV : SearchType::ZW;
-        return qsearch<qsearch_type>(position, ss, local, shared, alpha, beta);
+        return qsearch<qsearch_type>(position, ss, acc, local, shared, alpha, beta);
     }
 
     // Step 2: Check for abort or draw and update stats in the local state and search stack
@@ -785,7 +785,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
     }
 
     const auto [raw_eval, eval] = get_search_eval<false>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
+        position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
@@ -809,7 +809,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         && distance_from_root >= ss->nmp_verification_depth && eval > beta
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
-        if (auto value = null_move_pruning(position, ss, local, shared, distance_from_root, depth, eval, beta))
+        if (auto value = null_move_pruning(position, ss, acc, local, shared, distance_from_root, depth, eval, beta))
         {
             return *value;
         }
@@ -838,16 +838,17 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
                 = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
             position.apply_move(move);
             shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
-            local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
+            local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
             // verify the move looks good before doing a probcut search (idea from Ethereal)
-            auto value = -qsearch<SearchType::ZW>(position, ss + 1, local, shared, -prob_cut_beta, -prob_cut_beta + 1);
+            auto value = -qsearch<SearchType::ZW>(
+                position, ss + 1, acc + 1, local, shared, -prob_cut_beta, -prob_cut_beta + 1);
 
             // if qsearch looked good, do probcut search
             if (value >= prob_cut_beta && prob_cut_depth > 0)
             {
-                value = -search<SearchType::ZW>(
-                    position, ss + 1, local, shared, prob_cut_depth, -prob_cut_beta, -prob_cut_beta + 1, !cut_node);
+                value = -search<SearchType::ZW>(position, ss + 1, acc + 1, local, shared, prob_cut_depth,
+                    -prob_cut_beta, -prob_cut_beta + 1, !cut_node);
             }
 
             position.revert_move();
@@ -956,7 +957,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
             && tt_score != SCORE_UNDEFINED)
         {
             if (auto value = singular_extensions<pv_node>(
-                    position, ss, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node))
+                    position, ss, acc, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node))
             {
                 return *value;
             }
@@ -971,7 +972,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         position.apply_move(move);
         shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
-        local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
+        local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
         // Step 15: Check extensions
         if (position.board().checkers)
@@ -982,7 +983,7 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
         // Step 16: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
-            position, ss, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
+            position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
 
         position.revert_move();
 
@@ -1058,8 +1059,8 @@ Score search(GameState& position, SearchStackState* ss, SearchLocalState& local,
 }
 
 template <SearchType search_type>
-Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local, SearchSharedState& shared,
-    Score alpha, Score beta)
+Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
+    SearchSharedState& shared, Score alpha, Score beta)
 {
     static_assert(search_type != SearchType::ROOT);
     assert((search_type == SearchType::PV) || (beta == alpha + 1));
@@ -1097,7 +1098,7 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
 
     const bool in_check = position.board().checkers;
     const auto [raw_eval, eval] = get_search_eval<true>(
-        position, ss, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, 0, distance_from_root, in_check);
+        position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, 0, distance_from_root, in_check);
     auto score = in_check ? std::numeric_limits<Score>::min() : eval;
 
     // Step 4: Stand-pat. We assume if all captures are bad, there's at least one quiet move that maintains the static
@@ -1145,8 +1146,8 @@ Score qsearch(GameState& position, SearchStackState* ss, SearchLocalState& local
             = &local.cont_corr_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
-        local.net.store_lazy_updates(position.prev_board(), position.board(), (ss + 1)->acc, move);
-        auto search_score = -qsearch<search_type>(position, ss + 1, local, shared, -beta, -alpha);
+        local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
+        auto search_score = -qsearch<search_type>(position, ss + 1, acc + 1, local, shared, -beta, -alpha);
         position.revert_move();
 
         if (local.aborting_search)
