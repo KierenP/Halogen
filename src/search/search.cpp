@@ -579,7 +579,7 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 template <bool pv_node>
 Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
     SearchSharedState& shared, const int depth, const int extensions, const int reductions, const Score alpha,
-    const Score beta, const int seen_moves, bool cut_node)
+    const Score beta, const int seen_moves, bool cut_node, const Score best_score)
 {
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
@@ -589,14 +589,19 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
 
-        if (search_score <= alpha)
+        if (search_score > alpha)
         {
-            return search_score;
+            // based on LMR result, we adjust the search depth accordingly
+            const bool extend = search_score > best_score + 40;
+            // const bool reduce = search_score < best_score + 10;
+
+            search_score = -search<SearchType::ZW>(
+                position, ss + 1, acc + 1, local, shared, new_depth + extend, -(alpha + 1), -alpha, !cut_node);
         }
     }
 
-    // If the reduced depth search was skipped or failed high, we do a full depth zero width search
-    if (!pv_node || seen_moves > 1)
+    // If the reduced depth search was skipped, we do a full depth zero width search
+    else if (!pv_node || seen_moves > 1)
     {
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
@@ -983,7 +988,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Step 16: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
-            position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node);
+            position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
 
         position.revert_move();
 
