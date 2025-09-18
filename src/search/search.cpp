@@ -592,11 +592,11 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
         if (search_score > alpha)
         {
             // based on LMR result, we adjust the search depth accordingly
-            const bool extend = search_score > best_score + 40;
-            // const bool reduce = search_score < best_score + 10;
+            // const bool extend = search_score > best_score + 40;
+            const bool reduce = search_score < best_score + 10;
 
             search_score = -search<SearchType::ZW>(
-                position, ss + 1, acc + 1, local, shared, new_depth + extend, -(alpha + 1), -alpha, !cut_node);
+                position, ss + 1, acc + 1, local, shared, new_depth - reduce, -(alpha + 1), -alpha, !cut_node);
         }
     }
 
