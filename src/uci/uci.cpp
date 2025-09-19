@@ -288,6 +288,7 @@ auto Uci::options_handler()
         tuneable_int(lmr_loud, 400, 1600),
         tuneable_int(lmr_h, 2000, 3000),
         tuneable_int(lmr_offset, 0, 1000),
+        tuneable_int(lmr_shallower, 0, 30),
 
         tuneable_int(fifty_mr_scale_a, 100, 350),
         tuneable_int(fifty_mr_scale_b, 100, 350),

@@ -57,6 +57,7 @@ TUNEABLE_CONSTANT int lmr_improving = 1103;
 TUNEABLE_CONSTANT int lmr_loud = 747;
 TUNEABLE_CONSTANT int lmr_h = 2324;
 TUNEABLE_CONSTANT int lmr_offset = 509;
+TUNEABLE_CONSTANT int lmr_shallower = 10;
 
 TUNEABLE_CONSTANT int fifty_mr_scale_a = 302;
 TUNEABLE_CONSTANT int fifty_mr_scale_b = 217;
