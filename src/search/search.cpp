@@ -667,7 +667,9 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
         ss->adjusted_eval = adjusted_eval;
 
         // Use the tt_score to improve the static eval if possible. Avoid returning unproved mate scores in q-search
-        if (tt_score != SCORE_UNDEFINED && (!is_qsearch || !tt_score.is_decisive())
+        // Don't apply tt eval correction if we are in a singular search
+        if (ss->singular_exclusion == Move::Uninitialized && tt_score != SCORE_UNDEFINED
+            && (!is_qsearch || !tt_score.is_decisive())
             && (tt_cutoff == SearchResultType::EXACT
                 || (tt_cutoff == SearchResultType::LOWER_BOUND && tt_score >= adjusted_eval)
                 || (tt_cutoff == SearchResultType::UPPER_BOUND && tt_score <= adjusted_eval)))
