@@ -640,6 +640,12 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto eval_corr_history = [&](Score eval)
     {
+        // no eval correction if we are in a singular search
+        if (ss->singular_exclusion != Move::Uninitialized)
+        {
+            return eval;
+        }
+
         eval += local.pawn_corr_hist.get_correction_score(position);
         eval += local.non_pawn_corr[WHITE].get_correction_score(position, WHITE);
         eval += local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
