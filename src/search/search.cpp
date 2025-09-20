@@ -866,6 +866,13 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
+    // Idea from Stockfish: in-check probcut
+    const auto in_check_probcut_beta = beta + 400;
+    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - 4 && tt_score >= in_check_probcut_beta)
+    {
+        return in_check_probcut_beta;
+    }
+
     // Step 8: Mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
     beta = std::min(Score::mate_in(distance_from_root + 1), beta);
