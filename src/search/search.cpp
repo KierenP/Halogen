@@ -819,7 +819,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    const Score prob_cut_beta = beta + probcut_beta;
+    const Score prob_cut_beta = beta + probcut_beta - 50 * has_active_threat;
     if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta)
     {
         StagedMoveGenerator probcut_gen
