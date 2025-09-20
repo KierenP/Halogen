@@ -822,7 +822,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     }
 
     const Score prob_cut_beta = beta + probcut_beta;
-    if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta)
+    if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta
+        && ss->singular_exclusion == Move::Uninitialized)
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
@@ -831,11 +832,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         Move move;
         while (probcut_gen.next(move))
         {
-            if (move == ss->singular_exclusion)
-            {
-                continue;
-            }
-
             ss->move = move;
             ss->moved_piece = position.board().get_square_piece(move.from());
             ss->cont_hist_subtable
