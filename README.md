@@ -14,7 +14,7 @@
 
 </div>
 
-Halogen is a powerful, world-class program capable of analysing and playing chess. It has a peak rating of 19th on the international Computer Chess Rating List, and is the #1 strongest chess engine in Oceania.
+Halogen is a powerful, world-class program capable of analysing and playing chess. It has a peak rating of 16th on the international Computer Chess Rating List, and is the #1 strongest chess engine in Oceania.
 
 ## How to download
 
@@ -42,11 +42,11 @@ Halogen is officially supported on Windows and Ubuntu when using compilers gcc-1
 
 | Version | [CCRL 40/15][ccrl-4015] | [CCRL Blitz][ccrl-blitz] | [CCRL 40/2 FRC][ccrl-402-frc] | [CEGT 40/20][cegt-4020] | [CEGT 40/4][cegt-404] | [MCERL] |
 |:-------:|:-----------------------:|:------------------------:|:-----------------------------:|:---------------------:|:-----------------------:|:-------:|
-|  14 |          -           |           3682           |          3838              |          -           |         -           |    -    |
-|  13 |          3516           |           3626           |          -              |          3473           |         -           |    -    |
-|  12 |          3455           |           3530           |          3642              |          -           |         3409           |    3438    |
-|  11 |          3378           |           3431           |             -              |         -             |          -           |    3422    |
-|  10 |          3194           |           3216           |             -              |         -          |            -         |  3203   |
+|  15     |          3575           |           3695           |          3843                 |          3552           |         -             |    -    |
+|  14     |          3553           |           3686           |          3838                 |          3531           |         -             |    -    |
+|  13     |          3515           |           3632           |          -                    |          3471           |         -             |    -    |
+|  12     |          3454           |           3534           |          3643                 |          3376           |         3409          |    3438 |
+|  11     |          3377           |           3434           |             -                 |         3282            |          -            |    3422 |
 
 ## Details
 
