@@ -771,8 +771,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         = probe_tt(shared, position, distance_from_root);
 
     // Step 4: Check if we can use the TT entry to return early
-    if (ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth && tt_cutoff != SearchResultType::EMPTY
-        && tt_score != SCORE_UNDEFINED)
+    if (!root_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
+        && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
