@@ -360,6 +360,9 @@ auto Uci::options_handler()
         tuneable_int(probcut_min_depth, 1, 5),
         tuneable_int(probcut_depth_const, 3, 7),
 
+        tuneable_int(generalized_tt_failhigh_margin, 200, 600),
+        tuneable_int(generalized_tt_failhigh_depth, 2, 6),
+
         tuneable_int(PawnHistory::max_value, 1000, 32000),
         tuneable_int(PawnHistory::scale, 20, 50),
         tuneable_int(ThreatHistory::max_value, 1000, 32000),

@@ -866,11 +866,15 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Idea from Stockfish: in-check probcut
-    const auto in_check_probcut_beta = beta + 400;
-    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - 4 && tt_score >= in_check_probcut_beta)
+    // Idea from Stockfish: Generalized TT cutoffs
+    //
+    // If the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is sufficiently above beta, then
+    // we cutoff anyways.
+    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
+    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
+        && tt_score >= generalized_tt_failhigh_beta)
     {
-        return in_check_probcut_beta;
+        return generalized_tt_failhigh_beta;
     }
 
     // Step 8: Mate distance pruning
