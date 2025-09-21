@@ -121,3 +121,6 @@ TUNEABLE_CONSTANT int qsearch_see_hist = 179;
 TUNEABLE_CONSTANT int probcut_beta = 213;
 TUNEABLE_CONSTANT int probcut_min_depth = 3;
 TUNEABLE_CONSTANT int probcut_depth_const = 5;
+
+TUNEABLE_CONSTANT int generalized_tt_failhigh_margin = 400;
+TUNEABLE_CONSTANT int generalized_tt_failhigh_depth = 4;

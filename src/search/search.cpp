@@ -866,6 +866,17 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
+    // Idea from Stockfish: Generalized TT cutoffs
+    //
+    // If the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is sufficiently above beta, then
+    // we cutoff anyways.
+    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
+    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
+        && tt_score >= generalized_tt_failhigh_beta)
+    {
+        return generalized_tt_failhigh_beta;
+    }
+
     // Step 8: Mate distance pruning
     alpha = std::max(Score::mated_in(distance_from_root), alpha);
     beta = std::min(Score::mate_in(distance_from_root + 1), beta);
