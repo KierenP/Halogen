@@ -1109,7 +1109,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
         = probe_tt(shared, position, distance_from_root);
 
     // Step 3: Check if we can use the TT entry to return early
-    if (!pv_node && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
+    if (tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
         if (auto value = tt_cutoff_node(position, tt_score, tt_cutoff, alpha, beta))
         {
