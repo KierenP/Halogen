@@ -12,7 +12,7 @@ jobs:
   Matetrack:
     name: Matetrack
     timeout-minutes: 10
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Halogen repo 
         uses: actions/checkout@v4.1.1
@@ -21,21 +21,54 @@ jobs:
 
       - name: Build Halogen
         working-directory: Halogen/src
-        run: make -j
+        run: make -j native
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4
         with:
           repository: KierenP/matetrack
           path: matetrack
-          ref: be0f7843b2b174609598a9a5dd65104b7354b622
 
       - name: matetrack install deps
         working-directory: matetrack
         run: pip install -r requirements.txt
 
+      - name: cache syzygy
+        id: cache-syzygy
+        uses: actions/cache@v4
+        with:
+           path: |
+              matetrack/3-4-5-wdl/
+              matetrack/3-4-5-dtz/
+           key: key-syzygy
+
+      - name: download syzygy 3-4-5 if needed
+        working-directory: matetrack
+        if: steps.cache-syzygy.outputs.cache-hit != 'true'
+        run: |
+          wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-wdl/
+          wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-dtz/
+
       - name: Run matetrack
         working-directory: matetrack
         run: |
-          python matecheck.py --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
+
+      # TODO: figure out what this syzygy50MoveRule actually is about
+      #- name: Run matetrack with --syzygy50MoveRule false
+      #  working-directory: matetrack
+      #  run: |
+      #    grep 5men cursed.epd > cursed5.epd
+      #    python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile cursed5.epd --nodes 100000 --syzygy50MoveRule false | tee matecheckcursed.out
+      #    ! grep "issues were detected" matecheckcursed.out > /dev/null
+
+      #- name: Verify mate and TB win count for matecheckcursed.out
+      #  working-directory: matetrack
+      #  run: |
+      #    mates=$(grep "Found mates:" matecheckcursed.out | awk '{print $3}')
+      #    tbwins=$(grep "Found TB wins:" matecheckcursed.out | awk '{print $4}')
+      #    if [ $(($mates + $tbwins)) -ne 32 ]; then
+      #      echo "Sum of mates and TB wins is not 32 in matecheckcursed.out" >&2
+      #      exit 1
+      #    fi
