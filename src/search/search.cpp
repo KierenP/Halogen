@@ -770,6 +770,17 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
         = probe_tt(shared, position, distance_from_root);
 
+    // Step 9: Generalized TT cutoffs
+    //
+    // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
+    // sufficiently above beta, then we cutoff anyways.
+    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
+    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
+        && tt_score >= generalized_tt_failhigh_beta)
+    {
+        return generalized_tt_failhigh_beta;
+    }
+
     // Step 4: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
@@ -868,17 +879,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 return beta;
             }
         }
-    }
-
-    // Step 9: Generalized TT cutoffs
-    //
-    // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
-    // sufficiently above beta, then we cutoff anyways.
-    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
-    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
-        && tt_score >= generalized_tt_failhigh_beta)
-    {
-        return generalized_tt_failhigh_beta;
     }
 
     // Step 10: Mate distance pruning
