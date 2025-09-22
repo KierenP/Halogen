@@ -834,7 +834,7 @@ void BoardState::update_pinned()
 
 void BoardState::update_check_squares()
 {
-    const auto king_sq = get_king_sq(stm);
+    const auto king_sq = get_king_sq(!stm);
     const auto pieces = get_pieces_bb();
 
     check_squares[PAWN] = PawnAttacks[stm][king_sq];
