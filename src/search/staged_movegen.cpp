@@ -223,7 +223,14 @@ void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
         // Quiet
         else
         {
-            quietMoves.emplace_back(moves[i], local.get_quiet_order_history(ss, moves[i]));
+            const auto moved_piece = position.board().get_square_piece(moves[i].from());
+            const auto moved_piece_type = enum_to<PieceType>(moved_piece);
+            const auto gives_check = position.board().check_squares[moved_piece_type] & SquareBB[moves[i].to()];
+
+            auto score = 0;
+            score += local.get_quiet_order_history(ss, moves[i]);
+            score += 16384 * gives_check;
+            quietMoves.emplace_back(moves[i], score);
         }
     }
 }

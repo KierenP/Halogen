@@ -131,6 +131,7 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     update_lesser_threats();
     update_checkers();
     update_pinned();
+    update_check_squares();
     return true;
 }
 
@@ -645,6 +646,7 @@ void BoardState::apply_move(Move move)
     update_lesser_threats();
     update_checkers();
     update_pinned();
+    update_check_squares();
 }
 
 void BoardState::apply_null_move()
@@ -669,6 +671,7 @@ void BoardState::apply_null_move()
     update_lesser_threats();
     update_checkers();
     update_pinned();
+    update_check_squares();
 }
 
 MoveFlag BoardState::infer_move_flag(Square from, Square to) const
@@ -827,4 +830,17 @@ void BoardState::update_pinned()
     check_for_pins(AntiDiagonalBB[enum_to<AntiDiagonal>(king)] & bishops_and_queens);
     check_for_pins(RankBB[enum_to<Rank>(king)] & rooks_and_queens);
     check_for_pins(FileBB[enum_to<File>(king)] & rooks_and_queens);
+}
+
+void BoardState::update_check_squares()
+{
+    const auto king_sq = get_king_sq(stm);
+    const auto pieces = get_pieces_bb();
+
+    check_squares[PAWN] = PawnAttacks[stm][king_sq];
+    check_squares[KNIGHT] = attack_bb<KNIGHT>(king_sq);
+    check_squares[BISHOP] = attack_bb<BISHOP>(king_sq, pieces);
+    check_squares[ROOK] = attack_bb<ROOK>(king_sq, pieces);
+    check_squares[QUEEN] = check_squares[BISHOP] | check_squares[ROOK];
+    check_squares[KING] = 0; // the king can't give check to the other king
 }

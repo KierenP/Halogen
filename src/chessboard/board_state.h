@@ -71,6 +71,7 @@ private:
     void update_lesser_threats();
     void update_checkers();
     void update_pinned();
+    void update_check_squares();
 
 public:
     uint64_t key = 0;
@@ -80,9 +81,10 @@ public:
     // mask of squares threatened by a lesser piece e.g lesser_threats[BISHOP] contains all squares attacked by enemy
     // pawns and knights
     std::array<uint64_t, N_PIECE_TYPES> lesser_threats {};
-
     uint64_t checkers {};
     uint64_t pinned {};
+    // Target squares for pieces to move to give check. Does not include discovered checks.
+    std::array<uint64_t, N_PIECE_TYPES> check_squares {};
 
 private:
     std::array<uint64_t, N_PIECES> board = {};
