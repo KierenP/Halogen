@@ -229,7 +229,7 @@ void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
 
             auto score = 0;
             score += local.get_quiet_order_history(ss, moves[i]);
-            score += 8192 * gives_check;
+            score += 4096 * gives_check;
             quietMoves.emplace_back(moves[i], score);
         }
     }
