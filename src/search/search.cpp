@@ -399,8 +399,8 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
-    ss->cont_hist_subtable = nullptr;
-    ss->cont_corr_hist_subtable = nullptr;
+    ss->cont_hist_subtable = &local.cont_hist.table[position.board().stm][PAWN][SQ_A1];
+    ss->cont_corr_hist_subtable = &local.cont_corr_hist.table[position.board().stm][PAWN][SQ_A1];
     position.apply_null_move();
     auto null_move_score
         = -search<SearchType::ZW>(position, ss + 1, acc, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
