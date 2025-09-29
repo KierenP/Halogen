@@ -14,6 +14,7 @@
 #include "search/history.h"
 #include "search/score.h"
 #include "search/static_exchange_evaluation.h"
+#include "spsa/tuneable.h"
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
@@ -241,7 +242,12 @@ void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
 
         else
         {
-            loudMoves.emplace_back(moves[i], local.get_loud_history(ss, moves[i]));
+            const auto cap_piece = moves[i].flag() == EN_PASSANT ? PAWN
+                : moves[i].is_promotion() && !moves[i].is_capture()
+                ? QUEEN
+                : enum_to<PieceType>(position.board().get_square_piece(moves[i].to()));
+            auto score = see_values[cap_piece] * 10 + local.get_loud_history(ss, moves[i]);
+            loudMoves.emplace_back(moves[i], score);
         }
     }
 }
