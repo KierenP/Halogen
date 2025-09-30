@@ -246,7 +246,7 @@ void StagedMoveGenerator::score_loud_moves(BasicMoveList& moves)
                 : moves[i].is_promotion() && !moves[i].is_capture()
                 ? QUEEN
                 : enum_to<PieceType>(position.board().get_square_piece(moves[i].to()));
-            auto score = see_values[cap_piece] * 10 + local.get_loud_history(ss, moves[i]);
+            auto score = see_values[cap_piece] * 5 + local.get_loud_history(ss, moves[i]);
             loudMoves.emplace_back(moves[i], score);
         }
     }
