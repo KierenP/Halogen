@@ -438,7 +438,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 
 template <bool pv_node>
 std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
-    SearchLocalState& local, SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move,
+    SearchLocalState& local, SearchSharedState& shared, int& depth, const Score tt_score, const Move tt_move,
     const Score beta, int& extensions, bool cut_node)
 {
     Score sbeta = tt_score - se_sbeta_depth * depth / 64;
@@ -454,6 +454,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     if (se_score < sbeta - se_double && !pv_node)
     {
         extensions += 2;
+        depth += depth < 10;
     }
     else if (se_score < sbeta)
     {
