@@ -438,7 +438,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 
 template <bool pv_node>
 std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
-    SearchLocalState& local, SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move,
+    SearchLocalState& local, SearchSharedState& shared, int& depth, const Score tt_score, const Move tt_move,
     const Score beta, int& extensions, bool cut_node)
 {
     Score sbeta = tt_score - se_sbeta_depth * depth / 64;
@@ -454,6 +454,10 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     if (se_score < sbeta - se_double && !pv_node)
     {
         extensions += 2;
+        if (depth >= 10)
+        {
+            depth++;
+        }
     }
     else if (se_score < sbeta)
     {
@@ -578,16 +582,15 @@ bool update_search_stats(SearchStackState* ss, StagedMoveGenerator& gen, const i
 
 template <bool pv_node>
 Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
-    SearchSharedState& shared, const int depth, const int extensions, const int reductions, const Score alpha,
-    const Score beta, const int seen_moves, bool cut_node, const Score best_score)
+    SearchSharedState& shared, const int depth, const int reductions, const Score alpha, const Score beta,
+    const int seen_moves, bool cut_node, const Score best_score)
 {
-    const int new_depth = depth + extensions - 1;
     Score search_score = 0;
 
     if (reductions > 0)
     {
         search_score = -search<SearchType::ZW>(
-            position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
+            position, ss + 1, acc + 1, local, shared, depth - reductions, -(alpha + 1), -alpha, true);
 
         if (search_score > alpha)
         {
@@ -595,22 +598,21 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
             const bool reduce = search_score < best_score + lmr_shallower;
 
             search_score = -search<SearchType::ZW>(
-                position, ss + 1, acc + 1, local, shared, new_depth - reduce, -(alpha + 1), -alpha, !cut_node);
+                position, ss + 1, acc + 1, local, shared, depth - reduce, -(alpha + 1), -alpha, !cut_node);
         }
     }
 
     // If the reduced depth search was skipped, we do a full depth zero width search
     else if (!pv_node || seen_moves > 1)
     {
-        search_score = -search<SearchType::ZW>(
-            position, ss + 1, acc + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
+        search_score
+            = -search<SearchType::ZW>(position, ss + 1, acc + 1, local, shared, depth, -(alpha + 1), -alpha, !cut_node);
     }
 
     // If the ZW search was skipped or failed high, we do a full depth full width search
     if (pv_node && (seen_moves == 1 || search_score > alpha))
     {
-        search_score
-            = -search<SearchType::PV>(position, ss + 1, acc + 1, local, shared, new_depth, -beta, -alpha, false);
+        search_score = -search<SearchType::PV>(position, ss + 1, acc + 1, local, shared, depth, -beta, -alpha, false);
     }
 
     return search_score;
@@ -963,6 +965,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             continue;
         }
 
+        int new_depth = depth - 1;
         int extensions = 0;
 
         // Step 16: Singular extensions.
@@ -1001,10 +1004,13 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             extensions += 1;
         }
 
+        new_depth += extensions;
+
         // Step 18: Late move reductions
-        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+        int r = late_move_reduction<pv_node>(
+            new_depth - extensions + 1, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
-            position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
+            position, ss, acc, local, shared, new_depth, r, alpha, beta, seen_moves, cut_node, score);
 
         position.revert_move();
 
