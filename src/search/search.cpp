@@ -141,11 +141,11 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
         if (score <= alpha)
         {
-            score = alpha;
-            shared.report_search_result(ss, local, score, SearchResultType::UPPER_BOUND);
+            shared.report_search_result(ss, local, alpha, SearchResultType::UPPER_BOUND);
+
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
-            alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
+            alpha = std::max<Score>(Score::Limits::MATED, score - delta);
             fail_high_count = 0;
         }
 
