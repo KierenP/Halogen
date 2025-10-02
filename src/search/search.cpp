@@ -996,10 +996,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
         // Step 17: Check extensions
-        if (position.board().checkers)
-        {
-            extensions += 1;
-        }
 
         // Step 18: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
