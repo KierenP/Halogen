@@ -733,7 +733,7 @@ void UciOutput::print_error(const std::string& error_str)
 void Uci::handle_shuffle_network()
 {
 #ifdef NETWORK_SHUFFLE
-    handle_bench(10);
+    handle_bench(SearchLimits { .depth = 10 });
     shuffle_network_data.GroupNeuronsByCoactivation();
 #endif
 }
