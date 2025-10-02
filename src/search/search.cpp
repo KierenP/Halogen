@@ -812,7 +812,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && eval > beta
+        && distance_from_root >= ss->nmp_verification_depth && eval >= beta
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
         if (auto value = null_move_pruning(position, ss, acc, local, shared, distance_from_root, depth, eval, beta))
@@ -826,7 +826,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
     const Score prob_cut_beta = beta + probcut_beta;
-    if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta)
+    if (!pv_node && !InCheck && depth >= probcut_min_depth && eval >= prob_cut_beta)
     {
         StagedMoveGenerator probcut_gen
             = StagedMoveGenerator::probcut(position, ss, local, tt_move, prob_cut_beta - eval);
