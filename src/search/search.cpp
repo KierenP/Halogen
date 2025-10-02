@@ -875,8 +875,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
     // sufficiently above beta, then we cutoff anyways.
     const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
-    if (tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
-        && tt_score >= generalized_tt_failhigh_beta)
+    if (ss->singular_exclusion == Move::Uninitialized && tt_cutoff == SearchResultType::LOWER_BOUND
+        && tt_depth >= depth - generalized_tt_failhigh_depth && tt_score >= generalized_tt_failhigh_beta)
     {
         return generalized_tt_failhigh_beta;
     }
