@@ -454,7 +454,12 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     if (se_score < sbeta - se_double && !pv_node)
     {
         extensions += 2;
-        depth += depth < 10;
+
+        if (depth < 10)
+        {
+            extensions = 2;
+            depth += 1;
+        }
     }
     else if (se_score < sbeta)
     {
