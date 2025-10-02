@@ -151,9 +151,8 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
         if (score >= beta)
         {
-            score = beta;
             shared.report_search_result(ss, local, score, SearchResultType::LOWER_BOUND);
-            beta = std::min<Score>(Score::Limits::MATE, beta + delta);
+            beta = std::min<Score>(Score::Limits::MATE, score + delta);
             fail_high_count++;
         }
 
