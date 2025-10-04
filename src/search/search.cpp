@@ -796,9 +796,9 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
-    if ((ss - 1)->reduction >= 3 && ss->adjusted_eval + (ss - 1)->adjusted_eval < 0)
+    if ((ss - 1)->reduction >= 2 && depth >= 2 && ss->adjusted_eval + (ss - 1)->adjusted_eval > 200)
     {
-        depth++;
+        depth--;
     }
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
