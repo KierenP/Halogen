@@ -586,8 +586,10 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
 
     if (reductions > 0)
     {
+        ss->reduction = reductions;
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
+        ss->reduction = 0;
 
         if (search_score > alpha)
         {
@@ -793,6 +795,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+
+    if ((ss - 1)->reduction >= 3 && ss->adjusted_eval + (ss - 1)->adjusted_eval < 0)
+    {
+        depth++;
+    }
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
     //
