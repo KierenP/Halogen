@@ -807,9 +807,10 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     }
 
     // Use static evaluation difference to improve quiet move ordering
-    if ((ss - 1)->move != Move::Uninitialized && !position.prev_board().checkers && !(ss - 1)->move.is_capture())
+    if ((ss - 1)->move != Move::Uninitialized && !position.prev_board().checkers && !(ss - 1)->move.is_capture()
+        && !InCheck)
     {
-        int bonus = std::clamp(-10 * (ss->adjusted_eval + (ss - 1)->adjusted_eval).value() + 250, -1000, 1000);
+        int bonus = std::clamp(-10 * (ss->adjusted_eval + (ss - 1)->adjusted_eval).value() + 500, -1000, 1000);
         local.pawn_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
         local.threat_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
         if ((ss - 2)->cont_hist_subtable)
