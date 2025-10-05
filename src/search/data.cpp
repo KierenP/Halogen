@@ -91,24 +91,24 @@ int SearchLocalState::get_quiet_search_history(const SearchStackState* ss, Move 
 {
     int total = 0;
 
-    if (auto* hist = pawn_hist.get(position, ss, move))
+    if (auto* hist = pawn_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
-    if (auto* hist = threat_hist.get(position, ss, move))
+    if (auto* hist = threat_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
     if ((ss - 1)->cont_hist_subtable)
     {
-        total += *(ss - 1)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 1)->cont_hist_subtable->get(position.board(), ss, move);
     }
 
     if ((ss - 2)->cont_hist_subtable)
     {
-        total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 2)->cont_hist_subtable->get(position.board(), ss, move);
     }
 
     return total;
@@ -118,29 +118,29 @@ int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move m
 {
     int total = 0;
 
-    if (auto* hist = pawn_hist.get(position, ss, move))
+    if (auto* hist = pawn_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
-    if (auto* hist = threat_hist.get(position, ss, move))
+    if (auto* hist = threat_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
     if ((ss - 1)->cont_hist_subtable)
     {
-        total += *(ss - 1)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 1)->cont_hist_subtable->get(position.board(), ss, move);
     }
 
     if ((ss - 2)->cont_hist_subtable)
     {
-        total += *(ss - 2)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 2)->cont_hist_subtable->get(position.board(), ss, move);
     }
 
     if ((ss - 4)->cont_hist_subtable)
     {
-        total += *(ss - 4)->cont_hist_subtable->get(position, ss, move);
+        total += *(ss - 4)->cont_hist_subtable->get(position.board(), ss, move);
     }
 
     return total;
@@ -149,7 +149,7 @@ int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move m
 int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
 {
     int total = 0;
-    if (auto* hist = capt_hist.get(position, ss, move))
+    if (auto* hist = capt_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
@@ -158,19 +158,19 @@ int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
 
 void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, int change)
 {
-    pawn_hist.add(position, ss, move, change);
-    threat_hist.add(position, ss, move, change);
+    pawn_hist.add(position.board(), ss, move, change);
+    threat_hist.add(position.board(), ss, move, change);
     if ((ss - 1)->cont_hist_subtable)
-        (ss - 1)->cont_hist_subtable->add(position, ss, move, change);
+        (ss - 1)->cont_hist_subtable->add(position.board(), ss, move, change);
     if ((ss - 2)->cont_hist_subtable)
-        (ss - 2)->cont_hist_subtable->add(position, ss, move, change);
+        (ss - 2)->cont_hist_subtable->add(position.board(), ss, move, change);
     if ((ss - 4)->cont_hist_subtable)
-        (ss - 4)->cont_hist_subtable->add(position, ss, move, change);
+        (ss - 4)->cont_hist_subtable->add(position.board(), ss, move, change);
 }
 
 void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, int change)
 {
-    capt_hist.add(position, ss, move, change);
+    capt_hist.add(position.board(), ss, move, change);
 }
 
 SearchSharedState::SearchSharedState(UCI::UciOutput& uci)

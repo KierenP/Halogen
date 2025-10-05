@@ -642,13 +642,13 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto eval_corr_history = [&](Score eval)
     {
-        eval += local.pawn_corr_hist.get_correction_score(position);
-        eval += local.non_pawn_corr[WHITE].get_correction_score(position, WHITE);
-        eval += local.non_pawn_corr[BLACK].get_correction_score(position, BLACK);
+        eval += local.pawn_corr_hist.get_correction_score(position.board());
+        eval += local.non_pawn_corr[WHITE].get_correction_score(position.board(), WHITE);
+        eval += local.non_pawn_corr[BLACK].get_correction_score(position.board(), BLACK);
 
         if ((ss - 2)->cont_corr_hist_subtable)
         {
-            eval += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position, ss);
+            eval += (ss - 2)->cont_corr_hist_subtable->get_correction_score(position.board(), ss);
         }
         return eval;
     };
@@ -1069,12 +1069,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
         const auto adj = score.value() - ss->adjusted_eval.value();
-        local.pawn_corr_hist.add(position, depth, adj);
-        local.non_pawn_corr[WHITE].add(position, WHITE, depth, adj);
-        local.non_pawn_corr[BLACK].add(position, BLACK, depth, adj);
+        local.pawn_corr_hist.add(position.board(), depth, adj);
+        local.non_pawn_corr[WHITE].add(position.board(), WHITE, depth, adj);
+        local.non_pawn_corr[BLACK].add(position.board(), BLACK, depth, adj);
         if ((ss - 2)->cont_corr_hist_subtable)
         {
-            (ss - 2)->cont_corr_hist_subtable->add(position, ss, depth, adj);
+            (ss - 2)->cont_corr_hist_subtable->add(position.board(), ss, depth, adj);
         }
     }
 
