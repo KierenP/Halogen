@@ -59,6 +59,9 @@ TUNEABLE_CONSTANT int lmr_h = 2284;
 TUNEABLE_CONSTANT int lmr_offset = 484;
 TUNEABLE_CONSTANT int lmr_shallower = 10;
 
+TUNEABLE_CONSTANT int lmr_hindsight_ext_depth = 3;
+TUNEABLE_CONSTANT int lmr_hindsight_ext_margin = 0;
+
 TUNEABLE_CONSTANT int fifty_mr_scale_a = 291;
 TUNEABLE_CONSTANT int fifty_mr_scale_b = 209;
 

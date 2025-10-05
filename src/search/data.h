@@ -63,6 +63,7 @@ struct SearchStackState
     PieceMoveCorrHistory* cont_corr_hist_subtable = nullptr;
 
     Score adjusted_eval = 0;
+    int reduction = 0;
 };
 
 class SearchStack
