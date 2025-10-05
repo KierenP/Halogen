@@ -796,7 +796,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
-    if ((ss - 1)->reduction >= 3 && ss->adjusted_eval + (ss - 1)->adjusted_eval < 0)
+    // Hindsight adjustments
+    //
+    // First added to Stockfish, we use the current nodes eval to adjust the LMR reduction applied with the benefit of
+    // hindsight if the static eval turned out to be better or worse than expected.
+    if ((ss - 1)->reduction >= lmr_hindsight_ext_depth
+        && ss->adjusted_eval + (ss - 1)->adjusted_eval < lmr_hindsight_ext_margin)
     {
         depth++;
     }

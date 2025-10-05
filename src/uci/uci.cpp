@@ -290,6 +290,9 @@ auto Uci::options_handler()
         tuneable_int(lmr_offset, 0, 1000),
         tuneable_int(lmr_shallower, 0, 30),
 
+        tuneable_int(lmr_hindsight_ext_depth, 0, 6),
+        tuneable_int(lmr_hindsight_ext_margin, -200, 200),
+
         tuneable_int(fifty_mr_scale_a, 100, 350),
         tuneable_int(fifty_mr_scale_b, 100, 350),
 
