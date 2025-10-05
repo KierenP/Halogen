@@ -936,14 +936,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     if ((ss - 1)->move != Move::Uninitialized && !position.prev_board().checkers && !(ss - 1)->move.is_capture())
     {
         int bonus = std::clamp(-10 * (ss->adjusted_eval + (ss - 1)->adjusted_eval).value() + 250, -1000, 1000);
-        local.pawn_hist.add(position.board(), ss - 1, (ss - 1)->move, bonus);
-        local.threat_hist.add(position.board(), ss - 1, (ss - 1)->move, bonus);
+        local.pawn_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        local.threat_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
         if ((ss - 2)->cont_hist_subtable)
-            (ss - 2)->cont_hist_subtable->add(position.board(), ss - 1, (ss - 1)->move, bonus);
+            (ss - 2)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
         if ((ss - 3)->cont_hist_subtable)
-            (ss - 3)->cont_hist_subtable->add(position.board(), ss - 1, (ss - 1)->move, bonus);
+            (ss - 3)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
         if ((ss - 5)->cont_hist_subtable)
-            (ss - 5)->cont_hist_subtable->add(position.board(), ss - 1, (ss - 1)->move, bonus);
+            (ss - 5)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
     }
 
     // Step 9: Rebel style IID
