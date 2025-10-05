@@ -796,6 +796,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
+    static size_t count = 0;
+    static size_t lmr_hs_ext_hits = 0;
+    static size_t lmr_hs_red_hits = 0;
+
+    count++;
+
     // Hindsight adjustments
     //
     // First added to Stockfish, we use the current nodes eval to adjust the LMR reduction applied with the benefit of
@@ -804,6 +810,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         && ss->adjusted_eval + (ss - 1)->adjusted_eval < lmr_hindsight_ext_margin)
     {
         depth++;
+        lmr_hs_ext_hits++;
+    }
+    else if ((ss - 1)->reduction >= 2 && depth > 1 && ss->adjusted_eval + (ss - 1)->adjusted_eval > 400)
+    {
+        depth--;
+        lmr_hs_red_hits++;
     }
 
     // Step 6: Static null move pruning (a.k.a reverse futility pruning)
