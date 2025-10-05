@@ -12,7 +12,7 @@
 #include "search/score.h"
 #include "spsa/tuneable.h"
 
-class GameState;
+class BoardState;
 struct SearchStackState;
 
 template <typename Derived>
@@ -24,9 +24,9 @@ struct HistoryTable
         entry += Derived::scale * change - entry * abs(change) * Derived::scale / Derived::max_value;
     }
 
-    constexpr void add(const GameState& position, const SearchStackState* ss, Move move, int change)
+    constexpr void add(const BoardState& board, const SearchStackState* ss, Move move, int change)
     {
-        auto* entry = static_cast<Derived&>(*this).get(position, ss, move);
+        auto* entry = static_cast<Derived&>(*this).get(board, ss, move);
         if (!entry)
         {
             return;
@@ -47,7 +47,7 @@ struct PawnHistory : HistoryTable<PawnHistory>
     static TUNEABLE_CONSTANT int scale = 36;
     static constexpr size_t pawn_states = 512;
     int16_t table[N_SIDES][pawn_states][N_PIECE_TYPES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+    int16_t* get(const BoardState& board, const SearchStackState* ss, Move move);
 };
 
 struct ThreatHistory : HistoryTable<ThreatHistory>
@@ -55,7 +55,7 @@ struct ThreatHistory : HistoryTable<ThreatHistory>
     static TUNEABLE_CONSTANT int max_value = 9668;
     static TUNEABLE_CONSTANT int scale = 41;
     int16_t table[N_SIDES][2][2][N_SQUARES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+    int16_t* get(const BoardState& board, const SearchStackState* ss, Move move);
 };
 
 struct CaptureHistory : HistoryTable<CaptureHistory>
@@ -63,7 +63,7 @@ struct CaptureHistory : HistoryTable<CaptureHistory>
     static TUNEABLE_CONSTANT int max_value = 15993;
     static TUNEABLE_CONSTANT int scale = 48;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES][N_PIECE_TYPES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+    int16_t* get(const BoardState& board, const SearchStackState* ss, Move move);
 };
 
 struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
@@ -71,7 +71,7 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
     static TUNEABLE_CONSTANT int max_value = 10360;
     static TUNEABLE_CONSTANT int scale = 37;
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
-    int16_t* get(const GameState& position, const SearchStackState* ss, Move move);
+    int16_t* get(const BoardState& board, const SearchStackState* ss, Move move);
 };
 
 // Continuation history lets us look up history in the form
@@ -99,11 +99,11 @@ struct PawnCorrHistory
 
     int16_t table[N_SIDES][pawn_hash_table_size] = {};
 
-    int16_t* get(const GameState& position);
-    const int16_t* get(const GameState& position) const;
+    int16_t* get(const BoardState& board);
+    const int16_t* get(const BoardState& board) const;
 
-    void add(const GameState& position, int depth, int eval_diff);
-    Score get_correction_score(const GameState& position) const;
+    void add(const BoardState& board, int depth, int eval_diff);
+    Score get_correction_score(const BoardState& board) const;
 
     constexpr void reset()
     {
@@ -126,9 +126,9 @@ struct NonPawnCorrHistory
 
     int16_t table[N_SIDES][hash_table_size] = {};
 
-    int16_t* get(const GameState& position, Side side);
-    void add(const GameState& position, Side side, int depth, int eval_diff);
-    Score get_correction_score(const GameState& position, Side side);
+    int16_t* get(const BoardState& board, Side side);
+    void add(const BoardState& board, Side side, int depth, int eval_diff);
+    Score get_correction_score(const BoardState& board, Side side);
 
     constexpr void reset()
     {
@@ -149,9 +149,9 @@ struct PieceMoveCorrHistory
 
     int16_t table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
 
-    int16_t* get(const GameState& position, const SearchStackState* ss);
-    void add(const GameState& position, const SearchStackState* ss, int depth, int eval_diff);
-    Score get_correction_score(const GameState& position, const SearchStackState* ss);
+    int16_t* get(const BoardState& board, const SearchStackState* ss);
+    void add(const BoardState& board, const SearchStackState* ss, int depth, int eval_diff);
+    Score get_correction_score(const BoardState& board, const SearchStackState* ss);
 
     constexpr void reset()
     {
