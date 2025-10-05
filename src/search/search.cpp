@@ -812,7 +812,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
         lmr_hs_ext_hits++;
     }
-    else if ((ss - 1)->reduction >= 2 && depth > 1 && ss->adjusted_eval + (ss - 1)->adjusted_eval > 400)
+    else if ((ss - 1)->reduction >= 2 && depth > 1 && ss->adjusted_eval + (ss - 1)->adjusted_eval > 300)
     {
         depth--;
         lmr_hs_red_hits++;
