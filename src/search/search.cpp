@@ -946,7 +946,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
-            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha && !score.is_loss())
+            && ss->adjusted_eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha
+            && !score.is_loss())
         {
             gen.skip_quiets();
             if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
