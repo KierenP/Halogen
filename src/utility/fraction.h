@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
-#include <type_traits>
+#include <ostream>
 
 template <int Precision>
 class Fraction
@@ -16,18 +16,18 @@ public:
     {
     }
 
-    constexpr Fraction(int v)
+    constexpr explicit Fraction(int v)
         : value_(static_cast<int64_t>(v) * Precision)
     {
     }
 
-    constexpr int to_int() const
+    [[nodiscard]] constexpr int to_int() const
     {
         return value_ / Precision;
     }
 
     // Get raw value
-    constexpr int64_t raw() const
+    [[nodiscard]] constexpr int64_t raw() const
     {
         return value_;
     }
@@ -110,3 +110,10 @@ public:
         return f;
     }
 };
+
+// Stream output operator
+template <int Precision>
+inline std::ostream& operator<<(std::ostream& os, const Fraction<Precision>& f)
+{
+    return os << (double)f.raw() / Precision << " (" << f.raw() << "/" << Precision << ")";
+}

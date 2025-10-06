@@ -20,7 +20,7 @@ TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7820;
 
 inline auto Initialise_LMR_reduction()
 {
-    std::array<std::array<int, 64>, 64> ret = {};
+    std::array<std::array<Fraction<LMR_SCALE>, 64>, 64> ret = {};
 
     for (size_t i = 0; i < ret.size(); i++)
     {
@@ -28,7 +28,7 @@ inline auto Initialise_LMR_reduction()
         {
             auto lmr = LMR_constant + LMR_depth_coeff * log(i + 1) + LMR_move_coeff * log(j + 1)
                 + LMR_depth_move_coeff * log(i + 1) * log(j + 1);
-            ret[i][j] = static_cast<int>(std::round(lmr * LMR_SCALE));
+            ret[i][j] = Fraction<LMR_SCALE>::from_raw(std::round(lmr * LMR_SCALE));
         }
     }
 
@@ -36,7 +36,7 @@ inline auto Initialise_LMR_reduction()
 };
 
 // [depth][move number]
-TUNEABLE_CONSTANT std::array<std::array<int, 64>, 64> LMR_reduction = Initialise_LMR_reduction();
+TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 
 TUNEABLE_CONSTANT int aspiration_window_size = 9;
 

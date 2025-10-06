@@ -493,7 +493,7 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
         return 0;
     }
 
-    auto r = Fraction<LMR_SCALE>::from_raw(LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)]);
+    auto r = LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)];
 
     if constexpr (pv_node)
     {
