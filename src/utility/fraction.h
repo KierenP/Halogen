@@ -11,104 +11,99 @@ class Fraction
 
 public:
     // Constructors
-    Fraction()
+    constexpr Fraction()
         : value_(0)
     {
     }
 
-    Fraction(int v)
+    constexpr Fraction(int v)
         : value_(static_cast<int64_t>(v) * Precision)
     {
     }
 
-    // Copy/move
-    Fraction(const Fraction&) = default;
-    Fraction(Fraction&&) = default;
-    Fraction& operator=(const Fraction&) = default;
-    Fraction& operator=(Fraction&&) = default;
-
-    int to_int() const
+    constexpr int to_int() const
     {
         return value_ / Precision;
     }
 
     // Get raw value
-    int64_t raw() const
+    constexpr int64_t raw() const
     {
         return value_;
     }
 
     // Arithmetic operators
-    Fraction operator+(const Fraction& rhs) const
+    constexpr Fraction operator+(const Fraction& rhs) const
     {
         return Fraction::from_raw(value_ + rhs.value_);
     }
-    Fraction operator-(const Fraction& rhs) const
+    constexpr Fraction operator-(const Fraction& rhs) const
     {
         return Fraction::from_raw(value_ - rhs.value_);
     }
-    Fraction operator*(int rhs) const
+    constexpr Fraction operator*(int rhs) const
     {
         return Fraction::from_raw(value_ * rhs);
     }
-    Fraction operator/(int rhs) const
+    constexpr Fraction operator/(int rhs) const
     {
         return Fraction::from_raw(value_ / rhs);
     }
 
-    Fraction& operator+=(const Fraction& rhs)
+    constexpr Fraction& operator+=(const Fraction& rhs)
     {
         value_ += rhs.value_;
         return *this;
     }
-    Fraction& operator-=(const Fraction& rhs)
+    constexpr Fraction& operator-=(const Fraction& rhs)
     {
         value_ -= rhs.value_;
         return *this;
     }
-    Fraction& operator*=(int rhs)
+    constexpr Fraction& operator*=(int rhs)
     {
         value_ = value_ * rhs;
         return *this;
     }
-    Fraction& operator/=(int rhs)
+    constexpr Fraction& operator/=(int rhs)
     {
         value_ = value_ / rhs;
         return *this;
     }
-    Fraction operator-() const
+
+    constexpr Fraction operator-() const
     {
         return Fraction::from_raw(-value_);
     }
 
     // Comparison operators
-    bool operator==(const Fraction& rhs) const
+    constexpr bool operator==(const Fraction& rhs) const
     {
         return value_ == rhs.value_;
     }
-    bool operator!=(const Fraction& rhs) const
+    constexpr bool operator!=(const Fraction& rhs) const
     {
         return value_ != rhs.value_;
     }
-    bool operator<(const Fraction& rhs) const
+    constexpr bool operator<(const Fraction& rhs) const
     {
         return value_ < rhs.value_;
     }
-    bool operator<=(const Fraction& rhs) const
+    constexpr bool operator<=(const Fraction& rhs) const
     {
         return value_ <= rhs.value_;
     }
-    bool operator>(const Fraction& rhs) const
+    constexpr bool operator>(const Fraction& rhs) const
     {
         return value_ > rhs.value_;
     }
-    bool operator>=(const Fraction& rhs) const
+    constexpr bool operator>=(const Fraction& rhs) const
     {
         return value_ >= rhs.value_;
     }
 
     // Static factory for raw value
-    static Fraction from_raw(int64_t raw)
+    constexpr static Fraction from_raw(int64_t raw)
     {
         Fraction f;
         f.value_ = raw;
