@@ -794,7 +794,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
-    const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+    const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval || ss->adjusted_eval > beta;
 
     // Hindsight adjustments
     //
