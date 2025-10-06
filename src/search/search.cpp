@@ -441,7 +441,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     SearchLocalState& local, SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move,
     const Score beta, int& extensions, bool cut_node)
 {
-    Score sbeta = tt_score - se_sbeta_depth * depth / 64;
+    Score sbeta = tt_score - (se_sbeta_depth * depth).to_int();
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
@@ -493,7 +493,7 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
         return 0;
     }
 
-    int r = LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)];
+    auto r = Fraction<LMR_SCALE>::from_raw(LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)]);
 
     if constexpr (pv_node)
     {
@@ -515,10 +515,10 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
         r -= lmr_loud;
     }
 
-    r -= history * lmr_h / 16384;
+    r -= Fraction<LMR_SCALE>::from_raw(history * lmr_h / 16384);
 
-    r = (r + lmr_offset) / LMR_SCALE;
-    return std::max(0, r);
+    r = (r + lmr_offset);
+    return std::max(0, r.to_int());
 }
 
 void UpdatePV(Move move, SearchStackState* ss)
@@ -531,11 +531,11 @@ void UpdatePV(Move move, SearchStackState* ss)
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     const auto bonus = (history_bonus_const + history_bonus_depth * depthRemaining
-                           + history_bonus_quad * depthRemaining * depthRemaining)
-        / 64;
+        + history_bonus_quad * depthRemaining * depthRemaining)
+                           .to_int();
     const auto penalty = -(history_penalty_const + history_penalty_depth * depthRemaining
-                             + history_penalty_quad * depthRemaining * depthRemaining)
-        / 64;
+        + history_penalty_quad * depthRemaining * depthRemaining)
+                              .to_int();
 
     if (move.is_capture() || move.is_promotion())
     {
@@ -812,7 +812,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // If the static score is far above beta we fail high.
     const bool has_active_threat = position.board().active_lesser_threats();
     const auto rfp_margin
-        = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)) / 64;
+        = (rfp_const + rfp_depth * (depth - improving) + rfp_quad * (depth - improving) * (depth - improving)).to_int();
     if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && depth < rfp_max_d
         && eval - rfp_margin - rfp_threat * has_active_threat >= beta)
     {
@@ -936,7 +936,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
         const auto lmp_margin
-            = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)) / 64;
+            = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)).to_int();
         if (depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
         {
             gen.skip_quiets();
@@ -946,7 +946,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
-            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth) / 64 < alpha && !score.is_loss())
+            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth).to_int() < alpha && !score.is_loss())
         {
             gen.skip_quiets();
             if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)

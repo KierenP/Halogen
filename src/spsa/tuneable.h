@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utility/fraction.h"
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -46,17 +47,17 @@ TUNEABLE_CONSTANT int nmp_sd = 5;
 
 TUNEABLE_CONSTANT int iid_depth = 1;
 
-TUNEABLE_CONSTANT int se_sbeta_depth = 51;
+TUNEABLE_CONSTANT auto se_sbeta_depth = Fraction<64>::from_raw(51);
 TUNEABLE_CONSTANT int se_double = 3;
 TUNEABLE_CONSTANT int se_min_depth = 5;
 TUNEABLE_CONSTANT int se_tt_depth = 4;
 
-TUNEABLE_CONSTANT int lmr_pv = 1396;
-TUNEABLE_CONSTANT int lmr_cut = 1691;
-TUNEABLE_CONSTANT int lmr_improving = 1015;
-TUNEABLE_CONSTANT int lmr_loud = 703;
+TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1396);
+TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1691);
+TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(1015);
+TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(703);
 TUNEABLE_CONSTANT int lmr_h = 2284;
-TUNEABLE_CONSTANT int lmr_offset = 484;
+TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(484);
 TUNEABLE_CONSTANT int lmr_shallower = 10;
 
 TUNEABLE_CONSTANT int lmr_hindsight_ext_depth = 3;
@@ -66,20 +67,20 @@ TUNEABLE_CONSTANT int fifty_mr_scale_a = 291;
 TUNEABLE_CONSTANT int fifty_mr_scale_b = 209;
 
 TUNEABLE_CONSTANT int rfp_max_d = 8;
-TUNEABLE_CONSTANT int rfp_const = -135;
-TUNEABLE_CONSTANT int rfp_depth = 2076;
-TUNEABLE_CONSTANT int rfp_quad = 32;
+TUNEABLE_CONSTANT auto rfp_const = Fraction<64>::from_raw(-135);
+TUNEABLE_CONSTANT auto rfp_depth = Fraction<64>::from_raw(2076);
+TUNEABLE_CONSTANT auto rfp_quad = Fraction<64>::from_raw(32);
 TUNEABLE_CONSTANT int rfp_threat = 56;
 
 TUNEABLE_CONSTANT int lmp_max_d = 7;
-TUNEABLE_CONSTANT int lmp_const = 408;
-TUNEABLE_CONSTANT int lmp_depth = 435;
-TUNEABLE_CONSTANT int lmp_quad = 15;
+TUNEABLE_CONSTANT auto lmp_const = Fraction<64>::from_raw(408);
+TUNEABLE_CONSTANT auto lmp_depth = Fraction<64>::from_raw(435);
+TUNEABLE_CONSTANT auto lmp_quad = Fraction<64>::from_raw(15);
 
 TUNEABLE_CONSTANT int fp_max_d = 11;
-TUNEABLE_CONSTANT int fp_const = 2329;
-TUNEABLE_CONSTANT int fp_depth = 929;
-TUNEABLE_CONSTANT int fp_quad = 610;
+TUNEABLE_CONSTANT auto fp_const = Fraction<64>::from_raw(2329);
+TUNEABLE_CONSTANT auto fp_depth = Fraction<64>::from_raw(929);
+TUNEABLE_CONSTANT auto fp_quad = Fraction<64>::from_raw(610);
 
 TUNEABLE_CONSTANT int see_quiet_depth = 112;
 TUNEABLE_CONSTANT int see_quiet_hist = 124;
@@ -103,20 +104,20 @@ TUNEABLE_CONSTANT int blitz_tc_b = 268;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
 TUNEABLE_CONSTANT int repeating_tc = 96;
 
-TUNEABLE_CONSTANT int history_bonus_const = 877;
-TUNEABLE_CONSTANT int history_bonus_depth = -11;
-TUNEABLE_CONSTANT int history_bonus_quad = 101;
+TUNEABLE_CONSTANT auto history_bonus_const = Fraction<64>::from_raw(877);
+TUNEABLE_CONSTANT auto history_bonus_depth = Fraction<64>::from_raw(-11);
+TUNEABLE_CONSTANT auto history_bonus_quad = Fraction<64>::from_raw(101);
 
-TUNEABLE_CONSTANT int history_penalty_const = 1546;
-TUNEABLE_CONSTANT int history_penalty_depth = -33;
-TUNEABLE_CONSTANT int history_penalty_quad = 33;
+TUNEABLE_CONSTANT auto history_penalty_const = Fraction<64>::from_raw(1546);
+TUNEABLE_CONSTANT auto history_penalty_depth = Fraction<64>::from_raw(-33);
+TUNEABLE_CONSTANT auto history_penalty_quad = Fraction<64>::from_raw(33);
 
 TUNEABLE_CONSTANT int good_loud_see = 71;
 TUNEABLE_CONSTANT int good_loud_see_hist = 55;
 
 TUNEABLE_CONSTANT int tt_replace_self_depth = 5;
-TUNEABLE_CONSTANT int tt_replace_depth = 54;
-TUNEABLE_CONSTANT int tt_replace_age = 237;
+TUNEABLE_CONSTANT auto tt_replace_depth = Fraction<64>::from_raw(54);
+TUNEABLE_CONSTANT auto tt_replace_age = Fraction<64>::from_raw(237);
 
 TUNEABLE_CONSTANT int qsearch_lmp = 2;
 TUNEABLE_CONSTANT int qsearch_see_hist = 171;
