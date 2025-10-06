@@ -246,6 +246,12 @@ auto Uci::options_handler()
         #name, name, min_, max_, [](auto value) { name = value; }                                                      \
     }
 
+#define tuneable_fraction(name, min_, max_)                                                                            \
+    SpinOption                                                                                                         \
+    {                                                                                                                  \
+        #name, static_cast<int>(name.raw()), min_, max_, [](auto value) { name = decltype(name)::from_raw(value); }    \
+    }
+
 #define tuneable_float(name, min_, max_)                                                                               \
     FloatOption                                                                                                        \
     {                                                                                                                  \
@@ -277,17 +283,17 @@ auto Uci::options_handler()
 
         tuneable_int(iid_depth, 1, 10),
 
-        tuneable_int(se_sbeta_depth, 20, 80),
+        tuneable_fraction(se_sbeta_depth, 20, 80),
         tuneable_int(se_double, 0, 30),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
-        tuneable_int(lmr_pv, 700, 2800),
-        tuneable_int(lmr_cut, 700, 2800),
-        tuneable_int(lmr_improving, 500, 2000),
-        tuneable_int(lmr_loud, 400, 1600),
+        tuneable_fraction(lmr_pv, 700, 2800),
+        tuneable_fraction(lmr_cut, 700, 2800),
+        tuneable_fraction(lmr_improving, 500, 2000),
+        tuneable_fraction(lmr_loud, 400, 1600),
         tuneable_int(lmr_h, 2000, 3000),
-        tuneable_int(lmr_offset, 0, 1000),
+        tuneable_fraction(lmr_offset, 0, 1000),
         tuneable_int(lmr_shallower, 0, 30),
 
         tuneable_int(lmr_hindsight_ext_depth, 0, 6),
@@ -297,20 +303,20 @@ auto Uci::options_handler()
         tuneable_int(fifty_mr_scale_b, 100, 350),
 
         tuneable_int(rfp_max_d, 5, 15),
-        tuneable_int(rfp_const, -1000, 1000),
-        tuneable_int(rfp_depth, 1500, 6000),
-        tuneable_int(rfp_quad, 0, 500),
+        tuneable_fraction(rfp_const, -1000, 1000),
+        tuneable_fraction(rfp_depth, 1500, 6000),
+        tuneable_fraction(rfp_quad, 0, 500),
         tuneable_int(rfp_threat, 0, 100),
 
         tuneable_int(lmp_max_d, 3, 9),
-        tuneable_int(lmp_const, 64, 640),
-        tuneable_int(lmp_depth, 64, 640),
-        tuneable_int(lmp_quad, 0, 500),
+        tuneable_fraction(lmp_const, 64, 640),
+        tuneable_fraction(lmp_depth, 64, 640),
+        tuneable_fraction(lmp_quad, 0, 500),
 
         tuneable_int(fp_max_d, 5, 15),
-        tuneable_int(fp_const, 1200, 2800),
-        tuneable_int(fp_depth, 450, 1800),
-        tuneable_int(fp_quad, 450, 1800),
+        tuneable_fraction(fp_const, 1200, 2800),
+        tuneable_fraction(fp_depth, 450, 1800),
+        tuneable_fraction(fp_quad, 450, 1800),
 
         tuneable_int(see_quiet_depth, 50, 150),
         tuneable_int(see_quiet_hist, 50, 250),
@@ -342,16 +348,16 @@ auto Uci::options_handler()
         tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
-        tuneable_int(history_bonus_const, 450, 1800),
-        tuneable_int(history_bonus_depth, -500, 500),
-        tuneable_int(history_bonus_quad, 40, 160),
-        tuneable_int(history_penalty_const, 500, 2000),
-        tuneable_int(history_penalty_depth, -500, 500),
-        tuneable_int(history_penalty_quad, 20, 80),
+        tuneable_fraction(history_bonus_const, 450, 1800),
+        tuneable_fraction(history_bonus_depth, -500, 500),
+        tuneable_fraction(history_bonus_quad, 40, 160),
+        tuneable_fraction(history_penalty_const, 500, 2000),
+        tuneable_fraction(history_penalty_depth, -500, 500),
+        tuneable_fraction(history_penalty_quad, 20, 80),
 
         tuneable_int(tt_replace_self_depth, 0, 6),
-        tuneable_int(tt_replace_depth, 32, 128),
-        tuneable_int(tt_replace_age, 128, 512),
+        tuneable_fraction(tt_replace_depth, 32, 128),
+        tuneable_fraction(tt_replace_age, 128, 512),
 
         tuneable_int(good_loud_see, 0, 200),
         tuneable_int(good_loud_see_hist, 0, 100),
