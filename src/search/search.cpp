@@ -798,8 +798,9 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // Hindsight adjustments
     //
-    // First added to Stockfish, we use the current nodes eval to adjust the LMR reduction applied with the benefit of
-    // hindsight if the static eval turned out to be better or worse than expected.
+    // First added to Torch, independently discovered by Stockfish, we use the current nodes eval to adjust the LMR
+    // reduction applied with the benefit of hindsight if the static eval turned out to be better or worse than
+    // expected.
     if ((ss - 1)->reduction >= lmr_hindsight_ext_depth
         && ss->adjusted_eval + (ss - 1)->adjusted_eval < lmr_hindsight_ext_margin)
     {
