@@ -110,7 +110,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
             else
             {
-                stable_best_move = std::max(stable_best_move + 1, 8);
+                stable_best_move = std::min(stable_best_move + 1, 8);
             }
             const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
 
