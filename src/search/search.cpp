@@ -66,6 +66,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     auto* ss = local.search_stack.root();
     auto* acc = local.acc_stack.root();
     Score mid_score = 0;
+    Move prev_id_best_move = Move::Uninitialized;
+    int stable_best_move = 0;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
@@ -101,7 +103,21 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             const auto node_factor
                 = node_tm_base + node_tm_scale * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
 
-            if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, node_factor))
+            // best move stability time management
+            if (ss->pv[0] != prev_id_best_move)
+            {
+                stable_best_move = 0;
+            }
+            else
+            {
+                stable_best_move = std::max(stable_best_move + 1, 8);
+            }
+
+            const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
+
+            const auto time_scale = node_factor * stability_factor;
+
+            if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, time_scale))
             {
                 local.thread_wants_to_stop = true;
                 shared.report_thread_wants_to_stop();
@@ -112,6 +128,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         {
             return;
         }
+
+        prev_id_best_move = ss->pv[0];
     }
 }
 
