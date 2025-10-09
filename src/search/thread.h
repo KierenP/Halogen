@@ -22,6 +22,7 @@ public:
     [[nodiscard]] std::future<void> reset_new_search();
     [[nodiscard]] std::future<void> reset_new_game();
     [[nodiscard]] std::future<void> start_searching(const BasicMoveList& root_move_whitelist);
+    [[nodiscard]] std::future<void> update_previous_search_score(Score previous_search_score);
 
     const SearchLocalState& get_local_state();
 
@@ -57,6 +58,7 @@ public:
     void set_multi_pv(int multi_pv);
     void set_chess960(bool chess960);
     void set_threads(size_t threads);
+    void set_previous_search_score(Score previous_search_score);
 
     SearchResults launch_search(const SearchLimits& limits);
     void stop_search();

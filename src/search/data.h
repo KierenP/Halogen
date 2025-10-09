@@ -141,6 +141,9 @@ public:
     AtomicRelaxed<int64_t> tb_hits = 0;
     AtomicRelaxed<int64_t> nodes = 0;
 
+    // Final score from the previous searched position
+    Score prev_search_score = 0;
+
     // track the current depth + multi-pv of the search
     int curr_depth = 0;
     int curr_multi_pv = 0;

@@ -59,6 +59,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     iterative_deepening(position, local, shared);
+    local.prev_search_score = shar
 }
 
 void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared)
@@ -68,6 +69,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     Score mid_score = 0;
     Move prev_id_best_move = Move::Uninitialized;
     int stable_best_move = 0;
+    Score prev_id_score = 0;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
@@ -114,7 +116,15 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
             const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
 
-            const auto time_scale = node_factor * stability_factor;
+            // score stability time management
+            const auto score_stability_factor = std::clamp(1.f //
+                    - 0.01f * float((prev_id_score - score).value()) * (score > prev_id_score)
+                    - 0.01f * float((local.prev_search_score - score).value()) * (score > local.prev_search_score)
+                    + 0.02f * float((prev_id_score - score).value()) * (score < prev_id_score)
+                    + 0.02f * float((local.prev_search_score - score).value()) * (score < local.prev_search_score),
+                0.5f, 1.5f);
+
+            const auto time_scale = node_factor * stability_factor * score_stability_factor;
 
             if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, time_scale))
             {
@@ -129,6 +139,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         }
 
         prev_id_best_move = ss->pv[0];
+        prev_id_score = mid_score;
     }
 }
 

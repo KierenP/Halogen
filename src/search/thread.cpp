@@ -82,6 +82,11 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
         });
 }
 
+std::future<void> SearchThread::update_previous_search_score(Score previous_search_score)
+{
+    return enqueue_task([this, previous_search_score]() { local_state->prev_search_score = previous_search_score; });
+}
+
 const SearchLocalState& SearchThread::get_local_state()
 {
     return *local_state;
@@ -196,6 +201,20 @@ void SearchThreadPool::set_threads(size_t threads)
     }
 }
 
+void SearchThreadPool::set_previous_search_score(Score previous_search_score)
+{
+    std::vector<std::future<void>> futures;
+    futures.reserve(search_threads.size());
+    for (auto* thread : search_threads)
+    {
+        futures.push_back(thread->update_previous_search_score(previous_search_score));
+    }
+    for (auto& future : futures)
+    {
+        future.get();
+    }
+}
+
 const SearchSharedState& SearchThreadPool::get_shared_state()
 {
     return shared_state;
@@ -287,5 +306,6 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
     shared_state.uci_handler.print_search_info(shared_state, search_result, position_.board(), true);
     shared_state.uci_handler.print_bestmove(shared_state.chess_960, search_result.pv[0]);
     shared_state.set_multi_pv(old_multi_pv);
+    set_previous_search_score(search_result.score);
     return search_result;
 }
