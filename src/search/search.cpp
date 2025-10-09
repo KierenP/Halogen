@@ -117,10 +117,10 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
             // score stability time management
             const auto score_stability_factor = std::clamp(1.f //
-                    - 0.01f * float((prev_id_score - score).value()) * (score > prev_id_score)
-                    - 0.01f * float((local.prev_search_score - score).value()) * (score > local.prev_search_score)
-                    + 0.02f * float((prev_id_score - score).value()) * (score < prev_id_score)
-                    + 0.02f * float((local.prev_search_score - score).value()) * (score < local.prev_search_score),
+                    - 0.02f * float((prev_id_score - score).value()) * (score > prev_id_score)
+                    - 0.02f * float((local.prev_search_score - score).value()) * (score > local.prev_search_score)
+                    + 0.04f * float((prev_id_score - score).value()) * (score < prev_id_score)
+                    + 0.04f * float((local.prev_search_score - score).value()) * (score < local.prev_search_score),
                 0.5f, 1.5f);
 
             const auto time_scale = node_factor * stability_factor * score_stability_factor;
