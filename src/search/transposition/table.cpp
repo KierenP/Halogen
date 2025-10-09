@@ -74,8 +74,8 @@ void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int De
         Meta meta = bucket[i].meta;
         int8_t age_diff = (int8_t)current_generation - (int8_t)meta.generation;
         scores[i] = (tt_replace_depth * bucket[i].depth
-                        - tt_replace_age * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX))
-            / 64;
+            - tt_replace_age * (age_diff >= 0 ? age_diff : age_diff + GENERATION_MAX))
+                        .to_int();
     }
 
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
