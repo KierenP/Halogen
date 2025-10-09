@@ -59,7 +59,6 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     iterative_deepening(position, local, shared);
-    local.prev_search_score = shar
 }
 
 void iterative_deepening(GameState& position, SearchLocalState& local, SearchSharedState& shared)
