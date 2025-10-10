@@ -462,6 +462,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     int sdepth = depth / 2;
 
     ss->singular_exclusion = tt_move;
+    const bool tt_tactical = tt_move.is_capture() || tt_move.is_promotion();
 
     auto se_score = search<SearchType::ZW>(position, ss, acc, local, shared, sdepth, sbeta - 1, sbeta, cut_node);
 
@@ -472,7 +473,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     {
         extensions += 3;
     }
-    else if (se_score < sbeta - se_double && !pv_node)
+    else if (se_score < sbeta - se_double && (!pv_node || !tt_tactical))
     {
         extensions += 2;
     }
