@@ -859,7 +859,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     //
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
-    const Score prob_cut_beta = beta + probcut_beta;
+    const Score prob_cut_beta = beta + probcut_beta - 50 * improving;
     if (!pv_node && !InCheck && depth >= probcut_min_depth && eval > prob_cut_beta)
     {
         StagedMoveGenerator probcut_gen
