@@ -815,7 +815,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     const auto [raw_eval, eval] = get_search_eval<false>(
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
-    const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
+    bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
     // Hindsight adjustments
     //
@@ -939,6 +939,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
+
+    improving |= ss->adjusted_eval >= beta;
 
     // Step 12: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.next(move))
