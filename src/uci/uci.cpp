@@ -285,6 +285,7 @@ auto Uci::options_handler()
 
         tuneable_fraction(se_sbeta_depth, 20, 80),
         tuneable_int(se_double, 0, 30),
+        tuneable_int(se_triple, 15, 60),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
