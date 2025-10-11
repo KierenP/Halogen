@@ -14,6 +14,7 @@ class SearchThread
 {
 public:
     SearchThread(int thread_id, SearchSharedState& shared_state);
+    ~SearchThread();
 
     void thread_loop();
     void terminate();
@@ -33,9 +34,12 @@ private:
 
     std::future<void> enqueue_task(std::function<void()> func);
 
+    void alloc_local_state();
+    void free_local_state();
+
     const int thread_id_;
     SearchSharedState& shared_state;
-    std::unique_ptr<SearchLocalState> local_state;
+    SearchLocalState* local_state;
 };
 
 class SearchThreadPool

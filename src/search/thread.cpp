@@ -8,13 +8,23 @@
 #include "uci/uci.h"
 #include <future>
 #include <iostream>
+#include <memory>
 #include <thread>
+
+#ifdef __linux__
+#include <sys/mman.h>
+#endif
 
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
     : thread_id_(thread_id)
     , shared_state(shared_state_)
-    , local_state(std::make_unique<SearchLocalState>(thread_id))
 {
+    alloc_local_state();
+}
+
+SearchThread::~SearchThread()
+{
+    free_local_state();
 }
 
 void SearchThread::thread_loop()
@@ -69,7 +79,12 @@ std::future<void> SearchThread::reset_new_search()
 
 std::future<void> SearchThread::reset_new_game()
 {
-    return enqueue_task([this]() { local_state = std::make_unique<SearchLocalState>(thread_id_); });
+    return enqueue_task(
+        [this]()
+        {
+            free_local_state();
+            alloc_local_state();
+        });
 }
 
 std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_whitelist)
@@ -85,6 +100,28 @@ std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_w
 const SearchLocalState& SearchThread::get_local_state()
 {
     return *local_state;
+}
+
+void SearchThread::alloc_local_state()
+{
+#ifdef __linux__
+    constexpr static size_t huge_page_size = 2 * 1024 * 1024;
+    local_state = static_cast<SearchLocalState*>(std::aligned_alloc(huge_page_size, sizeof(SearchLocalState)));
+    madvise(local_state, sizeof(SearchLocalState), MADV_HUGEPAGE);
+    std::construct_at(local_state, thread_id_);
+#else
+    local_state = new SearchLocalState(thread_id_);
+#endif
+}
+
+void SearchThread::free_local_state()
+{
+#ifdef __linux__
+    std::destroy_at(local_state);
+    std::free(local_state);
+#else
+    delete local_state;
+#endif
 }
 
 SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size_t multi_pv, size_t hash_size_mb)
