@@ -111,7 +111,7 @@ struct RootMove
     int64_t nodes = 0;
     Score score = SCORE_UNDEFINED;
     int search_depth = 0;
-    StaticVector<Move, MAX_DEPTH> pv;
+    StaticVector<Move, MAX_RECURSION> pv;
     SearchResultType type = SearchResultType::EMPTY;
 };
 
