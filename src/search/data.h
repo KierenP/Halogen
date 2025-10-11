@@ -110,6 +110,9 @@ struct RootMove
     Move move = Move::Uninitialized;
     int64_t nodes = 0;
     Score score = SCORE_UNDEFINED;
+    int search_depth = 0;
+    StaticVector<Move, MAX_DEPTH> pv;
+    SearchResultType type = SearchResultType::EMPTY;
 };
 
 // Data local to a particular thread
@@ -200,6 +203,7 @@ public:
     // ------------------------------------
 
     SearchResults get_best_search_result() const;
+    void set_best_search_result(const SearchResults& result);
 
     void report_search_result(
         const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type);

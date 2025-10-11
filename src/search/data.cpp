@@ -230,47 +230,16 @@ SearchResults SearchSharedState::get_best_search_result() const
     return best_search_result_.value_or(SearchResults {});
 }
 
+void SearchSharedState::set_best_search_result(const SearchResults& result)
+{
+    std::scoped_lock lock(lock_);
+    best_search_result_ = result;
+}
+
 void SearchSharedState::report_search_result(
     const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type)
 {
     std::scoped_lock lock(lock_);
-
-    // Store the result in the table (potentially overwriting a previous lower/upper bound)
-    auto& result_data = search_results_[local.thread_id][local.curr_multi_pv - 1][local.curr_depth];
-    result_data = { local.curr_depth, local.sel_septh, local.curr_multi_pv, nodes(), score, ss->pv, type };
-
-    // Update the best search result. We want to pick the highest depth result, and using the higher score for
-    // tie-breaks. It adds elo to also include LOWER_BOUND search results as potential best result candidates.
-    if (result_data.type == SearchResultType::EXACT || result_data.type == SearchResultType::LOWER_BOUND)
-    {
-        // no best result, so use this one
-        if (!best_search_result_)
-        {
-            best_search_result_ = result_data;
-        }
-
-        // higher depth results are always preferred
-        else if (result_data.depth > best_search_result_->depth)
-        {
-            best_search_result_ = result_data;
-        }
-
-        // it's possible for this to be false in multi-threaded searches
-        else if (result_data.depth == best_search_result_->depth)
-        {
-            if (result_data.score > best_search_result_->score)
-            {
-                best_search_result_ = result_data;
-            }
-
-            // if the best search result is a lower bound, and this is an exact result, we want to use this one
-            else if (best_search_result_->type == SearchResultType::LOWER_BOUND
-                && result_data.type == SearchResultType::EXACT)
-            {
-                best_search_result_ = result_data;
-            }
-        }
-    }
 
     // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
     // of search to avoid printing too much output
@@ -279,7 +248,9 @@ void SearchSharedState::report_search_result(
         using namespace std::chrono_literals;
         if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
         {
-            uci_handler.print_search_info(*this, result_data, local.position.board());
+            uci_handler.print_search_info(*this,
+                { local.curr_depth, local.sel_septh, local.curr_multi_pv, nodes(), score, ss->pv, type },
+                local.position.board());
         }
     }
 }
