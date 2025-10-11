@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <thread>
 #include <tuple>
@@ -84,6 +85,14 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         {
             local.curr_multi_pv = multi_pv;
             auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
+
+            // Even if we are aborting the search, we can still safely use the partial search result. If any moves beat
+            // the previous best move we use that, if none did then root_moves will still contain the score for the
+            // previous depth best move
+            std::ranges::stable_sort(local.root_moves, std::greater {}, &RootMove::score);
+
+            shared.set_best_search_result({ local.root_moves[0].search_depth, local.sel_septh, 1, shared.nodes(),
+                local.root_moves[0].score, local.root_moves[0].pv, local.root_moves[0].type });
 
             if (local.aborting_search)
             {
@@ -1053,7 +1062,23 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             const auto idx = std::ranges::distance(
                 local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
             local.root_moves[idx].nodes += local.nodes - prev_nodes;
-            local.root_moves[idx].score = search_score;
+            local.root_moves[idx].search_depth = local.curr_depth;
+            local.root_moves[idx].pv = ss->pv;
+
+            // The previous depth best move always has its score updated, other moves only if they beat the previous
+            // best. All other moves get a -INF score.
+            if (score > alpha || seen_moves == 1)
+            {
+                local.root_moves[idx].score = search_score;
+            }
+            else
+            {
+                local.root_moves[idx].score = std::numeric_limits<Score>::min();
+            }
+
+            local.root_moves[idx].type = score <= original_alpha ? SearchResultType::UPPER_BOUND
+                : score >= beta                                  ? SearchResultType::LOWER_BOUND
+                                                                 : SearchResultType::EXACT;
         }
 
         // Step 18: Update history move tables and check for fail-high
