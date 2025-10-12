@@ -1061,26 +1061,25 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         if (root_node)
         {
-            const auto idx = std::ranges::distance(
-                local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
-            local.root_moves[idx].nodes += local.nodes - prev_nodes;
-            local.root_moves[idx].search_depth = local.curr_depth;
-            local.root_moves[idx].pv = ss->pv;
+            auto& root_move = *std::ranges::find(local.root_moves, move, &RootMove::move);
+            root_move.nodes += local.nodes - prev_nodes;
+            root_move.search_depth = local.curr_depth;
+            root_move.pv = ss->pv;
 
             // The previous depth best move always has its score updated, other moves only if they beat the previous
             // best. All other moves get a -INF score.
-            if (score > alpha || seen_moves == 1)
+            if (search_score > alpha || seen_moves == 1)
             {
-                local.root_moves[idx].score = search_score;
+                root_move.score = search_score;
             }
             else
             {
-                local.root_moves[idx].score = std::numeric_limits<Score>::min();
+                root_move.score = std::numeric_limits<Score>::min();
             }
 
-            local.root_moves[idx].type = score <= original_alpha ? SearchResultType::UPPER_BOUND
-                : score >= beta                                  ? SearchResultType::LOWER_BOUND
-                                                                 : SearchResultType::EXACT;
+            root_move.type = search_score <= original_alpha ? SearchResultType::UPPER_BOUND
+                : search_score >= beta                      ? SearchResultType::LOWER_BOUND
+                                                            : SearchResultType::EXACT;
         }
 
         // Step 19: Update history move tables and check for fail-high
