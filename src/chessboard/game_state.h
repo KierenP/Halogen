@@ -4,7 +4,9 @@
 #include <string_view>
 #include <vector>
 
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "utility/static_vector.h"
 
 class Move;
 
@@ -41,7 +43,8 @@ private:
     GameState() = default;
     BoardState& MutableBoard();
 
-    std::vector<BoardState> previousStates;
+    // We store history back to the last zeroing move, and enough space for the max search depth
+    StaticVector<BoardState, 100 + MAX_RECURSION + 1> previousStates;
 
     bool init_from_fen(std::array<std::string_view, 6> fen);
     void update_current_position_repetition();
