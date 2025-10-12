@@ -60,7 +60,7 @@ public:
     void set_threads(size_t threads);
     void set_previous_search_score(Score previous_search_score);
 
-    SearchResults launch_search(const SearchLimits& limits);
+    SearchInfoData launch_search(const SearchLimits& limits);
     void stop_search();
 
     const SearchSharedState& get_shared_state();
