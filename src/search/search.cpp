@@ -68,6 +68,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     Score mid_score = 0;
     Move prev_id_best_move = Move::Uninitialized;
     int stable_best_move = 0;
+    Score prev_id_score = 0;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
@@ -114,7 +115,11 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
             const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
 
-            const auto time_scale = node_factor * stability_factor;
+            // score stability time management
+            const auto score_stability_factor
+                = 0.6 + (1.5) / (1 + exp(-0.05f * (float)(local.prev_search_score.value() - score.value() - 20)));
+
+            const auto time_scale = node_factor * stability_factor * score_stability_factor;
 
             if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, time_scale))
             {
@@ -129,6 +134,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         }
 
         prev_id_best_move = ss->pv[0];
+        prev_id_score = mid_score;
     }
 }
 
