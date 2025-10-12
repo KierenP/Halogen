@@ -1089,8 +1089,10 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             root_move.nodes += local.nodes - prev_nodes;
             root_move.search_depth = local.curr_depth;
             root_move.sel_depth = local.sel_depth;
-            UpdatePV(move, ss);
-            root_move.pv = ss->pv;
+
+            root_move.pv.clear();
+            root_move.pv.emplace_back(move);
+            root_move.pv.insert(root_move.pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 
             // The previous depth best move always has its score updated, other moves only if they beat the previous
             // best. All other moves get a -INF score.
