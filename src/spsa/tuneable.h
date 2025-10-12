@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstddef>
 
+#define TUNE
+
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
@@ -100,6 +102,14 @@ TUNEABLE_CONSTANT std::array see_values = { 134, 438, 480, 792, 1885, 5000 };
 TUNEABLE_CONSTANT float soft_tm = 0.2879;
 TUNEABLE_CONSTANT float node_tm_base = 0.3657;
 TUNEABLE_CONSTANT float node_tm_scale = 2.835;
+TUNEABLE_CONSTANT float move_stability_base = 0.5;
+TUNEABLE_CONSTANT float move_stability_scale_a = 1.2;
+TUNEABLE_CONSTANT float move_stability_scale_b = 0.3;
+TUNEABLE_CONSTANT float score_stability_base = 0.6;
+TUNEABLE_CONSTANT float score_stability_range = 1.5;
+TUNEABLE_CONSTANT float score_stability_scale = 0.05;
+TUNEABLE_CONSTANT float score_stability_offset = 20;
+
 TUNEABLE_CONSTANT int blitz_tc_a = 50;
 TUNEABLE_CONSTANT int blitz_tc_b = 268;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
