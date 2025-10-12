@@ -86,11 +86,6 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             local.curr_multi_pv = multi_pv;
             auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
 
-            // Even if we are aborting the search, we can still safely use the partial search result. If any moves beat
-            // the previous best move we use that, if none did then root_moves will still contain the score for the
-            // previous depth best move
-            std::ranges::stable_sort(local.root_moves, std::greater {}, &RootMove::score);
-
             shared.set_best_search_result({ local.root_moves[0].search_depth, local.sel_septh, 1, shared.nodes(),
                 local.root_moves[0].score, local.root_moves[0].pv, local.root_moves[0].type });
 
@@ -160,6 +155,11 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         local.sel_septh = 0;
         auto adjusted_depth = std::max(1, local.curr_depth - fail_high_count);
         auto score = search<SearchType::ROOT>(position, ss, acc, local, shared, adjusted_depth, alpha, beta, false);
+
+        // Even if we are aborting the search, we can still safely use the partial search result. If any moves beat
+        // the previous best move we use that, if none did then root_moves will still contain the score for the
+        // previous depth best move
+        std::ranges::stable_sort(local.root_moves, std::greater {}, &RootMove::score);
 
         if (local.aborting_search)
         {
