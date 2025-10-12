@@ -662,8 +662,7 @@ void Uci::handle_datagen(const datagen_ctx& ctx)
     datagen(ctx.output_path, ctx.duration);
 }
 
-void UciOutput::print_search_info(
-    const SearchSharedState& shared, const SearchResults& data, const BoardState& board, bool final)
+void UciOutput::print_search_info(const SearchInfoData& data, bool final, bool format_960)
 {
     if (output_level == OutputLevel::None || (output_level == OutputLevel::Minimal && !final))
     {
@@ -672,7 +671,7 @@ void UciOutput::print_search_info(
 
     std::lock_guard io { output_mutex };
 
-    std::cout << "info depth " << data.depth << " seldepth " << data.sel_septh;
+    std::cout << "info depth " << data.depth << " seldepth " << data.sel_depth;
 
     if (data.score >= Score::mate_in(MAX_RECURSION))
     {
@@ -692,19 +691,18 @@ void UciOutput::print_search_info(
     if (data.type == SearchResultType::LOWER_BOUND)
         std::cout << " lowerbound";
 
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(shared.search_timer.elapsed()).count();
-    auto node_count = shared.nodes();
+    auto elapsed_time = data.time.count();
+    auto node_count = data.nodes;
     auto nps = node_count / std::max<int64_t>(elapsed_time, 1) * 1000;
-    auto hashfull = shared.transposition_table.get_hashfull(board.half_turn_count);
 
-    std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << hashfull
-              << " tbhits " << shared.tb_hits() << " multipv " << data.multi_pv;
+    std::cout << " time " << elapsed_time << " nodes " << node_count << " nps " << nps << " hashfull " << data.hashfull
+              << " tbhits " << data.tb_hits << " multipv " << data.multi_pv;
 
     std::cout << " pv "; // the current best line found
 
     for (const auto& move : data.pv)
     {
-        if (shared.chess_960)
+        if (format_960)
         {
             std::cout << format_chess960 { move } << ' ';
         }

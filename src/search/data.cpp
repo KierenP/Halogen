@@ -71,7 +71,7 @@ void SearchLocalState::reset_new_search()
     acc_stack = {};
     tb_hits = 0;
     nodes = 0;
-    sel_septh = 0;
+    sel_depth = 0;
     curr_depth = 0;
     curr_multi_pv = 0;
     thread_wants_to_stop = false;
@@ -181,16 +181,6 @@ SearchSharedState::SearchSharedState(UCI::UciOutput& uci)
 void SearchSharedState::reset_new_search()
 {
     search_timer.reset();
-
-    for (auto& thread_results : search_results_)
-    {
-        for (auto& multi_pv_results : thread_results)
-        {
-            multi_pv_results = {};
-        }
-    }
-
-    best_search_result_ = {};
 }
 
 void SearchSharedState::reset_new_game()
@@ -202,57 +192,16 @@ void SearchSharedState::reset_new_game()
 void SearchSharedState::set_multi_pv(int multi_pv)
 {
     multi_pv_setting = multi_pv;
-
-    for (auto& thread_results : search_results_)
-    {
-        thread_results.resize(multi_pv);
-    }
 }
 
 void SearchSharedState::set_threads(int threads)
 {
     threads_setting = threads;
-    search_results_.resize(threads, decltype(search_results_)::value_type(multi_pv_setting));
 }
 
 void SearchSharedState::set_hash(int hash_size_mb)
 {
     transposition_table.set_size(hash_size_mb, get_threads_setting());
-}
-
-SearchResults SearchSharedState::get_best_search_result() const
-{
-    std::scoped_lock lock(lock_);
-    if (!best_search_result_)
-    {
-        uci_handler.print_error("Could not find best move");
-    }
-    return best_search_result_.value_or(SearchResults {});
-}
-
-void SearchSharedState::set_best_search_result(const SearchResults& result)
-{
-    std::scoped_lock lock(lock_);
-    best_search_result_ = result;
-}
-
-void SearchSharedState::report_search_result(
-    const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type)
-{
-    std::scoped_lock lock(lock_);
-
-    // Only the main thread prints info output. We limit lowerbound/upperbound info results to after the first 5 seconds
-    // of search to avoid printing too much output
-    if (local.thread_id == 0)
-    {
-        using namespace std::chrono_literals;
-        if (type == SearchResultType::EXACT || search_timer.elapsed() > 5000ms)
-        {
-            uci_handler.print_search_info(*this,
-                { local.curr_depth, local.sel_septh, local.curr_multi_pv, nodes(), score, ss->pv, type },
-                local.position.board());
-        }
-    }
 }
 
 int64_t SearchSharedState::tb_hits() const
@@ -295,4 +244,29 @@ void SearchSharedState::report_thread_wants_to_stop()
     {
         stop_searching = true;
     }
+}
+
+SearchInfoData SearchSharedState::build_search_info(int depth, int sel_depth, Score score, int multi_pv,
+    const StaticVector<Move, MAX_RECURSION>& pv, SearchResultType type) const
+{
+    SearchInfoData info;
+    info.depth = depth;
+    info.sel_depth = sel_depth;
+    info.score = score;
+    info.time = std::chrono::duration_cast<std::chrono::milliseconds>(search_timer.elapsed());
+    info.nodes = nodes();
+    info.hashfull = transposition_table.get_hashfull(search_local_states_[0]->position.board().half_turn_count);
+    info.tb_hits = tb_hits();
+    info.multi_pv = multi_pv;
+    info.pv = pv;
+    info.type = type;
+    return info;
+}
+
+SearchInfoData SearchSharedState::get_best_root_move()
+{
+    // TODO: thread voting
+    const auto& root_move = search_local_states_[0]->root_moves[0];
+    return build_search_info(
+        root_move.search_depth, root_move.sel_depth, root_move.score, 1, root_move.pv, root_move.type);
 }

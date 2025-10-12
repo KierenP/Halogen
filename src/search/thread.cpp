@@ -1,4 +1,5 @@
 #include "thread.h"
+#include "bitboard/enum.h"
 #include "chessboard/game_state.h"
 #include "movegen/list.h"
 #include "movegen/movegen.h"
@@ -6,6 +7,7 @@
 #include "search/data.h"
 #include "search/syzygy.h"
 #include "uci/uci.h"
+#include <chrono>
 #include <future>
 #include <iostream>
 #include <thread>
@@ -243,7 +245,7 @@ void SearchThreadPool::stop_search()
     shared_state.stop_searching = true;
 }
 
-SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
+SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
 {
 #ifdef TUNE
     LMR_reduction = Initialise_LMR_reduction();
@@ -302,8 +304,8 @@ SearchResults SearchThreadPool::launch_search(const SearchLimits& limits)
         future.get();
     }
 
-    const auto& search_result = shared_state.get_best_search_result();
-    shared_state.uci_handler.print_search_info(shared_state, search_result, position_.board(), true);
+    const auto search_result = shared_state.get_best_root_move();
+    shared_state.uci_handler.print_search_info(search_result, true, shared_state.chess_960);
     shared_state.uci_handler.print_bestmove(shared_state.chess_960, search_result.pv[0]);
     shared_state.set_multi_pv(old_multi_pv);
     set_previous_search_score(search_result.score);
