@@ -348,13 +348,6 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             {
                 min_score = tb_score;
                 alpha = std::max(alpha, tb_score);
-
-                if constexpr (root_node)
-                {
-                    // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
-                    // In this case, any move from the root move whitelist is acceptable
-                    ss->pv.push_back(local.root_move_whitelist.front());
-                }
             }
             else
             {
@@ -810,7 +803,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     }
 
     // Step 5: Probe syzygy EGTB
-    if (ss->singular_exclusion == Move::Uninitialized)
+    if (!root_node && ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
                 position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))
