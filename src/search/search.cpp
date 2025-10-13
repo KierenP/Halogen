@@ -93,6 +93,16 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
 
             const auto& root_move = local.root_moves[0];
+            shared.uci_handler.print_search_info(
+                shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, multi_pv,
+                    root_move.pv, SearchResultType::EXACT),
+                false);
+            for (const auto& m : ss->pv)
+            {
+                static std::mutex io;
+                std::lock_guard io_lock { io };
+                std::cout << m << ' ';
+            }
             assert(root_move.move == ss->pv[0]);
             if (local.thread_id == 0)
             {
@@ -109,7 +119,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
             local.root_move_blacklist.push_back(ss->pv[0]);
 
-            // node based time management
+            // node based time management TODO: cleanup
             const auto idx = std::ranges::distance(
                 local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
             assert(idx == 0);
@@ -183,7 +193,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         {
             const auto& root_move = local.root_moves[0];
             // assert(root_move.uci_score == alpha); // TODO: sometimes fails here
-            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            if (local.thread_id == 0 && shared.nodes() > 0)
             {
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
@@ -201,7 +211,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         {
             const auto& root_move = local.root_moves[0];
             // assert(root_move.uci_score == beta);  // TODO: sometimes fails here
-            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            if (local.thread_id == 0 && shared.nodes() > 0)
             {
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
@@ -386,7 +396,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
                 {
                     // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
                     // In this case, any move from the root move whitelist is acceptable
-                    ss->pv.push_back(local.root_move_whitelist.front());
+                    ss->pv.push_back(local.root_move_whitelist.front()); // TODO: cleanup
                 }
             }
             else
@@ -843,7 +853,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     }
 
     // Step 5: Probe syzygy EGTB
-    if (ss->singular_exclusion == Move::Uninitialized)
+    if (!root_node && ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
                 position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))

@@ -251,6 +251,8 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
     LMR_reduction = Initialise_LMR_reduction();
 #endif
 
+    // TODO: cleanup
+
     reset_new_search();
     shared_state.limits = limits;
 
