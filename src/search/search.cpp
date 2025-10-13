@@ -285,8 +285,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchSharedState& shared,
-    SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
-    const int depth)
+    SearchLocalState& local, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(local, distance_from_root);
     if (probe.has_value())
@@ -806,7 +805,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     if (!root_node && ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, shared, local, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
