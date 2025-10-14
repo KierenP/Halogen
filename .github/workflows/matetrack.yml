@@ -52,6 +52,7 @@ jobs:
       - name: Run matetrack
         working-directory: matetrack
         run: |
+          set -o pipefail
           python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-native --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
 
@@ -59,6 +60,7 @@ jobs:
       #- name: Run matetrack with --syzygy50MoveRule false
       #  working-directory: matetrack
       #  run: |
+      #    set -o pipefail
       #    grep 5men cursed.epd > cursed5.epd
       #    python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-native --epdFile cursed5.epd --nodes 100000 --syzygy50MoveRule false | tee matecheckcursed.out
       #    ! grep "issues were detected" matecheckcursed.out > /dev/null
