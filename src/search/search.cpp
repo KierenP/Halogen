@@ -964,7 +964,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // pruning
         const auto lmp_margin
             = (lmp_const + lmp_depth * depth * (1 + improving) + lmp_quad * depth * depth * (1 + improving)).to_int();
-        if (depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
+        if (!root_node && depth < lmp_max_d && seen_moves >= lmp_margin && !score.is_loss())
         {
             gen.skip_quiets();
         }
@@ -992,12 +992,13 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         auto see_pruning_margin = is_loud_move ? -see_loud_depth * depth * depth - history / see_loud_hist
                                                : -see_quiet_depth * depth - history / see_quiet_hist;
 
-        if (!score.is_loss() && depth <= see_max_depth && !see_ge(position.board(), move, see_pruning_margin))
+        if (!root_node && !score.is_loss() && depth <= see_max_depth
+            && !see_ge(position.board(), move, see_pruning_margin))
         {
             continue;
         }
 
-        if (!score.is_loss() && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
+        if (!root_node && !score.is_loss() && !is_loud_move && history < -hist_prune_depth * depth - hist_prune)
         {
             gen.skip_quiets();
             continue;
