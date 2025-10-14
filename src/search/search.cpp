@@ -283,7 +283,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     return std::nullopt;
 }
 
-template <bool root_node, bool pv_node>
+template <bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchSharedState& shared,
     SearchLocalState& local, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
@@ -293,32 +293,28 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
         local.tb_hits.fetch_add(1, std::memory_order_relaxed);
         const auto tb_score = *probe;
 
-        if constexpr (!root_node)
+        const auto bound = [tb_score]()
         {
-            const auto bound = [tb_score]()
+            if (tb_score.is_win())
             {
-                if (tb_score.is_win())
-                {
-                    return SearchResultType::LOWER_BOUND;
-                }
-                else if (tb_score.is_loss())
-                {
-                    return SearchResultType::UPPER_BOUND;
-                }
-                else
-                {
-                    return SearchResultType::EXACT;
-                }
-            }();
-
-            if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
-                || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
-            {
-                shared.transposition_table.add_entry(Move::Uninitialized,
-                    Zobrist::get_fifty_move_adj_key(position.board()), tb_score, depth,
-                    position.board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
-                return tb_score;
+                return SearchResultType::LOWER_BOUND;
             }
+            else if (tb_score.is_loss())
+            {
+                return SearchResultType::UPPER_BOUND;
+            }
+            else
+            {
+                return SearchResultType::EXACT;
+            }
+        }();
+
+        if (bound == SearchResultType::EXACT || (bound == SearchResultType::LOWER_BOUND && tb_score >= beta)
+            || (bound == SearchResultType::UPPER_BOUND && tb_score <= alpha))
+        {
+            shared.transposition_table.add_entry(Move::Uninitialized, Zobrist::get_fifty_move_adj_key(position.board()),
+                tb_score, depth, position.board().half_turn_count, distance_from_root, bound, SCORE_UNDEFINED);
+            return tb_score;
         }
 
         // Why update score?
@@ -804,7 +800,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // Step 5: Probe syzygy EGTB
     if (!root_node && ss->singular_exclusion == Move::Uninitialized)
     {
-        if (auto value = probe_egtb<root_node, pv_node>(
+        if (auto value = probe_egtb<pv_node>(
                 position, distance_from_root, shared, local, alpha, beta, min_score, max_score, depth))
         {
             return *value;
