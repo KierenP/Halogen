@@ -347,19 +347,20 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (tb_score.is_win())
             {
                 min_score = tb_score;
-                alpha = std::max(alpha, tb_score);
 
-                if constexpr (root_node)
+                if (!root_node)
                 {
-                    // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
-                    // In this case, any move from the root move whitelist is acceptable
-                    ss->pv.push_back(local.root_move_whitelist.front());
+                    alpha = std::max(alpha, tb_score);
                 }
             }
             else
             {
                 max_score = tb_score;
-                beta = std::min(beta, tb_score);
+
+                if (!root_node)
+                {
+                    beta = std::min(beta, tb_score);
+                }
             }
         }
     }
