@@ -52,12 +52,8 @@ jobs:
       - name: Run matetrack
         working-directory: matetrack
         run: |
+          set -o pipefail
           python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-native --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
-          status=${PIPESTATUS[0]} 
-          if [ $status -ne 0 ]; then
-            echo "matecheck.py failed with exit code $status"
-            exit $status
-          fi
           ! grep "issues were detected" matecheckout.out > /dev/null
 
       # TODO: figure out what this syzygy50MoveRule actually is about
