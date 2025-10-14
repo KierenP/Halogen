@@ -192,6 +192,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         if (score <= alpha)
         {
             const auto& root_move = local.root_moves[0];
+            std::cout << "alpha: " << alpha << " score: " << score << " uci_score: " << root_move.uci_score << "\n";
             assert(root_move.uci_score == alpha);
             if (local.thread_id == 0 && shared.nodes() > 0)
             {
@@ -210,6 +211,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         if (score >= beta)
         {
             const auto& root_move = local.root_moves[0];
+            std::cout << "beta: " << alpha << " score: " << score << " uci_score: " << root_move.uci_score << "\n";
             assert(root_move.uci_score == beta);
             if (local.thread_id == 0 && shared.nodes() > 0)
             {
