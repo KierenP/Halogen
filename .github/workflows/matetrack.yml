@@ -52,7 +52,7 @@ jobs:
       - name: Run matetrack
         working-directory: matetrack
         run: |
-          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-native --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
 
       # TODO: figure out what this syzygy50MoveRule actually is about
@@ -60,7 +60,7 @@ jobs:
       #  working-directory: matetrack
       #  run: |
       #    grep 5men cursed.epd > cursed5.epd
-      #    python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-pgo --epdFile cursed5.epd --nodes 100000 --syzygy50MoveRule false | tee matecheckcursed.out
+      #    python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine $GITHUB_WORKSPACE/Halogen/bin/Halogen-native --epdFile cursed5.epd --nodes 100000 --syzygy50MoveRule false | tee matecheckcursed.out
       #    ! grep "issues were detected" matecheckcursed.out > /dev/null
 
       #- name: Verify mate and TB win count for matecheckcursed.out
