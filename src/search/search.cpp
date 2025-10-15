@@ -89,11 +89,15 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
             auto& root_move = local.root_moves[0];
 
-            if (local.aborting_search && root_move.score.is_loss())
+            if (local.aborting_search)
             {
-                // if the search was aborted, it's possible the root move will show false loss score which could have
-                // been refuted or delayed by another root move. In this case, we take the previous depth root move
-                root_move = prev_id_root_move;
+                if (root_move.score.is_loss())
+                {
+                    // if the search was aborted, it's possible the root move will show false loss score which could
+                    // have been refuted or delayed by another root move. In this case, we take the previous depth root
+                    // move
+                    root_move = prev_id_root_move;
+                }
                 return;
             }
 
