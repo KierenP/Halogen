@@ -93,14 +93,18 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
 
             const auto& root_move = local.root_moves[0];
-            assert(root_move.move == ss->pv[0]);
             if (local.thread_id == 0)
             {
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, multi_pv,
                         root_move.pv, SearchResultType::EXACT),
                     false);
+
+                shared.uci_handler.print_search_info(
+                    shared.build_search_info(depth, local.sel_depth, score, multi_pv, ss->pv, SearchResultType::EXACT),
+                    false);
             }
+            assert(root_move.move == ss->pv[0]);
 
             if (multi_pv == 1)
             {
@@ -182,14 +186,17 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         if (score <= alpha)
         {
             const auto& root_move = local.root_moves[0];
-            assert(root_move.uci_score == alpha);
-            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            if (local.thread_id == 0)
             {
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
                         root_move.pv, SearchResultType::UPPER_BOUND),
                     false);
+                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, score,
+                                                         1, ss->pv, SearchResultType::UPPER_BOUND),
+                    false);
             }
+            assert(root_move.uci_score == alpha);
 
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
@@ -200,14 +207,17 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
         if (score >= beta)
         {
             const auto& root_move = local.root_moves[0];
-            assert(root_move.uci_score == beta);
-            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            if (local.thread_id == 0)
             {
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
                         root_move.pv, SearchResultType::LOWER_BOUND),
                     false);
+                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, score,
+                                                         1, ss->pv, SearchResultType::LOWER_BOUND),
+                    false);
             }
+            assert(root_move.uci_score == beta);
 
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
             fail_high_count++;
