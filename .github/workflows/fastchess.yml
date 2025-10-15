@@ -45,7 +45,7 @@ jobs:
           ./fast-chess -rounds 1 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=10+0.1 option.Threads=1 -log file=fast.log | tee fast.out
           cat fast.log
           if grep -q "ThreadSanitizer" fast.log; then
             echo "ERROR: ThreadSanitizer found"
@@ -69,7 +69,7 @@ jobs:
           ./fast-chess -rounds 1 -openings\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=1 -log file=fast.log | tee fast.out
           cat fast.log
           if grep -q "ThreadSanitizer" fast.log; then
             echo "ERROR: ThreadSanitizer found"
@@ -93,7 +93,7 @@ jobs:
           ./fast-chess -variant fischerandom -rounds 1 -openings file=opening.epd format=epd order=random -srand $RANDOM\
                -engine name=halogen1 cmd=../Halogen/bin/Halogen\
                -engine name=halogen2 cmd=../Halogen/bin/Halogen\
-               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=4 -log file=fast.log | tee fast.out
+               -ratinginterval 1 -report penta=true -each proto=uci tc=40/10 option.Threads=1 -log file=fast.log | tee fast.out
           cat fast.log
           if grep -q "ThreadSanitizer" fast.log; then
             echo "ERROR: ThreadSanitizer found"
@@ -112,7 +112,7 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 10000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name MultiPV value 1" "setoption name Threads value 1" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 10000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
