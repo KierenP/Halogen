@@ -196,7 +196,6 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
                 shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, alpha,
                                                          1, ss->pv, SearchResultType::UPPER_BOUND),
                     false);
-                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.uci_score == alpha);
 
@@ -218,7 +217,6 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
                 shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, beta,
                                                          1, ss->pv, SearchResultType::LOWER_BOUND),
                     false);
-                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.uci_score == beta);
 
