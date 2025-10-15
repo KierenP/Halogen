@@ -103,7 +103,6 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(depth, local.sel_depth, score, multi_pv, ss->pv, SearchResultType::EXACT),
                     false);
-                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.move == ss->pv[0]);
 
