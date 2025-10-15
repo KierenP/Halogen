@@ -71,6 +71,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     Move prev_id_best_move = Move::Uninitialized;
     int stable_best_move = 0;
     Score prev_id_score = 0;
+    RootMove prev_id_root_move;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
@@ -86,13 +87,16 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         {
             local.curr_multi_pv = multi_pv;
             auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
+            auto& root_move = local.root_moves[0];
 
-            if (local.aborting_search)
+            if (local.aborting_search && root_move.score.is_loss())
             {
+                // if the search was aborted, it's possible the root move will show false loss score which could have
+                // been refuted or delayed by another root move. In this case, we take the previous depth root move
+                root_move = prev_id_root_move;
                 return;
             }
 
-            const auto& root_move = local.root_moves[0];
             assert(root_move.move == ss->pv[0]);
             if (local.thread_id == 0)
             {
@@ -147,6 +151,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
         prev_id_best_move = ss->pv[0];
         prev_id_score = mid_score;
+        prev_id_root_move = local.root_moves[0];
     }
 }
 
