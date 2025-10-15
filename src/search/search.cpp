@@ -103,6 +103,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
                 shared.uci_handler.print_search_info(
                     shared.build_search_info(depth, local.sel_depth, score, multi_pv, ss->pv, SearchResultType::EXACT),
                     false);
+                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.move == ss->pv[0]);
 
@@ -192,9 +193,10 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
                         root_move.pv, SearchResultType::UPPER_BOUND),
                     false);
-                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, score,
+                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, alpha,
                                                          1, ss->pv, SearchResultType::UPPER_BOUND),
                     false);
+                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.uci_score == alpha);
 
@@ -213,9 +215,10 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
                     shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score, 1,
                         root_move.pv, SearchResultType::LOWER_BOUND),
                     false);
-                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, score,
+                shared.uci_handler.print_search_info(shared.build_search_info(local.curr_depth, local.sel_depth, beta,
                                                          1, ss->pv, SearchResultType::LOWER_BOUND),
                     false);
+                std::cout << "root move score: " << root_move.score << " search score: " << score << std::endl;
             }
             assert(root_move.uci_score == beta);
 
