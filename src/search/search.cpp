@@ -1102,6 +1102,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         if (root_node)
         {
+            std::cout << "searching move " << seen_moves << " " << move << " with score " << search_score << std::endl;
+
             auto& root_move = *std::ranges::find(local.root_moves, move, &RootMove::move);
             root_move.nodes += local.nodes - prev_nodes;
             root_move.search_depth = local.curr_depth;
