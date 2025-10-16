@@ -842,7 +842,17 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
     }
 
-    // Step 8: Static null move pruning (a.k.a reverse futility pruning)
+    // Step 8: Rebel style IID
+    //
+    // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
+    // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
+    // new nodes in the tree at high depths
+    if (!tt_entry && depth > iid_depth)
+    {
+        depth--;
+    }
+
+    // Step 9: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     const bool has_active_threat = position.board().active_lesser_threats();
@@ -854,7 +864,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return (beta.value() + eval.value()) / 2;
     }
 
-    // Step 9: Null move pruning
+    // Step 10: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
@@ -869,7 +879,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 10: Probcut
+    // Step 11: Probcut
     //
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
@@ -918,7 +928,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 11: Generalized TT cutoffs
+    // Step 12: Generalized TT cutoffs
     //
     // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
     // sufficiently above beta, then we cutoff anyways.
@@ -934,16 +944,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
-
-    // Step 12: Rebel style IID
-    //
-    // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
-    // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
-    // new nodes in the tree at high depths
-    if (!tt_entry && depth > iid_depth)
-    {
-        depth--;
-    }
 
     StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
