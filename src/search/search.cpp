@@ -846,8 +846,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // If we are in a singular move search, we don't want to do any early pruning
 
     // Step 4: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move_table, tt_eval]
         = probe_tt(shared, position, distance_from_root);
+
+    // In a multithreaded search, it's possible for these not to match, and that would impact the root move sorting
+    // behaviour in rare cases
+    const auto tt_move = root_node ? local.root_moves[0].move : tt_move_table;
 
     // Step 5: Generalized TT cutoffs
     //
