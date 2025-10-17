@@ -5,8 +5,6 @@
 #include <cmath>
 #include <cstddef>
 
-#define TUNE
-
 #ifdef TUNE
 #define TUNEABLE_CONSTANT inline
 #else
