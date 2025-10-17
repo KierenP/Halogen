@@ -807,7 +807,18 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
         = probe_tt(shared, position, distance_from_root);
 
-    // Step 5: Check if we can use the TT entry to return early
+    // Step 5: Generalized TT cutoffs
+    //
+    // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
+    // sufficiently above beta, then we cutoff anyways.
+    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
+    if (!root_node && tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
+        && tt_score >= generalized_tt_failhigh_beta)
+    {
+        return generalized_tt_failhigh_beta;
+    }
+
+    // Step 6: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
@@ -817,7 +828,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 6: Probe syzygy EGTB
+    // Step 7: Probe syzygy EGTB
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
@@ -831,7 +842,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
-    // Step 7: Hindsight adjustments
+    // Step 8: Hindsight adjustments
     //
     // First added to Torch, independently discovered by Stockfish, we use the current nodes eval to adjust the LMR
     // reduction applied with the benefit of hindsight if the static eval turned out to be better or worse than
@@ -842,7 +853,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
     }
 
-    // Step 8: Rebel style IID
+    // Step 9: Rebel style IID
     //
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
@@ -852,7 +863,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth--;
     }
 
-    // Step 9: Static null move pruning (a.k.a reverse futility pruning)
+    // Step 10: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     const bool has_active_threat = position.board().active_lesser_threats();
@@ -864,7 +875,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return (beta.value() + eval.value()) / 2;
     }
 
-    // Step 10: Null move pruning
+    // Step 11: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
@@ -879,7 +890,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 11: Probcut
+    // Step 12: Probcut
     //
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
@@ -926,17 +937,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 return beta;
             }
         }
-    }
-
-    // Step 12: Generalized TT cutoffs
-    //
-    // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
-    // sufficiently above beta, then we cutoff anyways.
-    const auto generalized_tt_failhigh_beta = beta + generalized_tt_failhigh_margin;
-    if (!root_node && tt_cutoff == SearchResultType::LOWER_BOUND && tt_depth >= depth - generalized_tt_failhigh_depth
-        && tt_score >= generalized_tt_failhigh_beta)
-    {
-        return generalized_tt_failhigh_beta;
     }
 
     // Set up search variables
