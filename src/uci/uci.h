@@ -42,10 +42,6 @@ public:
     void process_input_stream(std::istream& is);
     void process_input(std::string_view command);
 
-    void print_search_info(const SearchSharedState& shared, const SearchResults& data, bool final = false);
-    void print_bestmove(bool chess960, Move move);
-    void print_error(const std::string& error_str);
-
     struct go_ctx
     {
         std::optional<std::chrono::milliseconds> wtime;
@@ -111,8 +107,7 @@ class UciOutput
 public:
     OutputLevel output_level = OutputLevel::Default;
 
-    void print_search_info(
-        const SearchSharedState& shared, const SearchResults& data, const BoardState& board, bool final = false);
+    void print_search_info(const SearchInfoData& data, bool final = false, bool format_960 = false);
     void print_bestmove(bool chess960, Move move);
     void print_error(const std::string& error_str);
 };

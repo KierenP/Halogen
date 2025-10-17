@@ -4,9 +4,11 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <thread>
 #include <tuple>
@@ -69,6 +71,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
     Move prev_id_best_move = Move::Uninitialized;
     int stable_best_move = 0;
     Score prev_id_score = 0;
+    RootMove prev_id_root_move;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
     {
@@ -79,49 +82,72 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
         local.root_move_blacklist.clear();
         local.curr_depth = depth;
+        float search_time_usage_scale = 1.0f;
 
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
             local.curr_multi_pv = multi_pv;
             auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
 
+            // sort the multi-pv lines we've completed for this depth
+            std::ranges::stable_sort(
+                local.root_moves.begin(), local.root_moves.begin() + multi_pv, std::greater {}, &RootMove::score);
+
             if (local.aborting_search)
             {
+                if (multi_pv == 1 && local.root_moves[0].score.is_loss())
+                {
+                    // if the search was aborted, it's possible the root move will show false loss score which could
+                    // have been refuted or delayed by another root move. In this case, we take the previous depth root
+                    // move
+                    local.root_moves[0] = prev_id_root_move;
+                }
                 return;
             }
+
+            // print out full set of multi-pv lines
+            if (local.thread_id == 0)
+            {
+                for (int i = 0; i < local.curr_multi_pv; i++)
+                {
+                    const auto& multi_pv_line = local.root_moves[i];
+                    shared.uci_handler.print_search_info(
+                        shared.build_search_info(multi_pv_line.search_depth, multi_pv_line.sel_depth,
+                            multi_pv_line.uci_score, i + 1, multi_pv_line.pv, multi_pv_line.type),
+                        false);
+                }
+            }
+
+            local.root_move_blacklist.push_back(ss->pv[0]);
 
             if (multi_pv == 1)
             {
                 mid_score = score;
+
+                // node based time management
+                const auto node_factor
+                    = node_tm_base + node_tm_scale * (1 - float(local.root_moves[0].effort) / float(local.nodes));
+
+                // best move stability time management
+                if (ss->pv[0] != prev_id_best_move)
+                {
+                    stable_best_move = 0;
+                }
+                else
+                {
+                    stable_best_move = std::min(stable_best_move + 1, 8);
+                }
+                const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
+
+                // score stability time management
+                const auto score_stability_factor
+                    = 0.6 + (1.5) / (1 + exp(-0.05f * (float)(local.prev_search_score.value() - score.value() - 20)));
+
+                search_time_usage_scale = node_factor * stability_factor * score_stability_factor;
             }
 
-            local.root_move_blacklist.push_back(ss->pv[0]);
-            shared.report_search_result(ss, local, score, SearchResultType::EXACT);
-
-            // node based time management
-            const auto idx = std::ranges::distance(
-                local.root_moves.begin(), std::ranges::find(local.root_moves, ss->pv[0], &RootMove::move));
-            const auto node_factor
-                = node_tm_base + node_tm_scale * (1 - float(local.root_moves[idx].nodes) / float(local.nodes));
-
-            // best move stability time management
-            if (ss->pv[0] != prev_id_best_move)
-            {
-                stable_best_move = 0;
-            }
-            else
-            {
-                stable_best_move = std::min(stable_best_move + 1, 8);
-            }
-            const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
-
-            // score stability time management
-            const auto score_stability_factor
-                = 0.6 + (1.5) / (1 + exp(-0.05f * (float)(local.prev_search_score.value() - score.value() - 20)));
-
-            const auto time_scale = node_factor * stability_factor * score_stability_factor;
-
-            if (shared.limits.time && !shared.limits.time->should_continue_search(shared.search_timer, time_scale))
+            if (shared.limits.time
+                && !shared.limits.time->should_continue_search(shared.search_timer, search_time_usage_scale))
             {
                 local.thread_wants_to_stop = true;
                 shared.report_thread_wants_to_stop();
@@ -135,6 +161,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
         prev_id_best_move = ss->pv[0];
         prev_id_score = mid_score;
+        prev_id_root_move = local.root_moves[0];
     }
 }
 
@@ -148,9 +175,16 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
     while (true)
     {
-        local.sel_septh = 0;
+        local.sel_depth = 0;
         auto adjusted_depth = std::max(1, local.curr_depth - fail_high_count);
         auto score = search<SearchType::ROOT>(position, ss, acc, local, shared, adjusted_depth, alpha, beta, false);
+
+        // Even if we are aborting the search, we can still safely use the partial search result. If any moves beat
+        // the previous best move we use that, if none did then root_moves will still contain the score for the
+        // previous depth best move
+        std::ranges::stable_sort(local.root_moves.begin() + local.curr_multi_pv - 1, local.root_moves.end(),
+            std::greater {}, &RootMove::score);
+        const auto& root_move = local.root_moves[local.curr_multi_pv - 1];
 
         if (local.aborting_search)
         {
@@ -159,13 +193,31 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
         if (alpha < score && score < beta)
         {
+            assert(root_move.score == score);
+            assert(root_move.uci_score == score);
+            assert(root_move.search_depth == local.curr_depth);
+            assert(root_move.type == SearchResultType::EXACT);
+            assert(root_move.pv == ss->pv);
+            assert(root_move.pv[0] == root_move.move);
+
             return score;
         }
 
         if (score <= alpha)
         {
-            score = alpha;
-            shared.report_search_result(ss, local, score, SearchResultType::UPPER_BOUND);
+            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            {
+                shared.uci_handler.print_search_info(
+                    shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score,
+                        local.curr_multi_pv, root_move.pv, root_move.type),
+                    false);
+            }
+
+            assert(root_move.uci_score == alpha);
+            assert(root_move.search_depth == local.curr_depth);
+            assert(root_move.type == SearchResultType::UPPER_BOUND);
+            assert(root_move.pv[0] == root_move.move);
+
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
             alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
@@ -174,8 +226,21 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
         if (score >= beta)
         {
-            score = beta;
-            shared.report_search_result(ss, local, score, SearchResultType::LOWER_BOUND);
+            if (local.thread_id == 0 && shared.nodes() > 10'000'000)
+            {
+                shared.uci_handler.print_search_info(
+                    shared.build_search_info(root_move.search_depth, root_move.sel_depth, root_move.uci_score,
+                        local.curr_multi_pv, root_move.pv, root_move.type),
+                    false);
+            }
+
+            assert(root_move.score == score);
+            assert(root_move.uci_score == beta);
+            assert(root_move.search_depth == local.curr_depth);
+            assert(root_move.type == SearchResultType::LOWER_BOUND);
+            assert(root_move.pv == ss->pv);
+            assert(root_move.pv[0] == root_move.move);
+
             beta = std::min<Score>(Score::Limits::MATE, beta + delta);
             fail_high_count++;
         }
@@ -239,7 +304,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
         return SCORE_UNDEFINED;
     }
 
-    local.sel_septh = std::max(local.sel_septh, distance_from_root);
+    local.sel_depth = std::max(local.sel_depth, distance_from_root);
     local.nodes.fetch_add(1, std::memory_order_relaxed);
 
     if (distance_from_root >= MAX_RECURSION)
@@ -285,8 +350,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchSharedState& shared,
-    SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
-    const int depth)
+    SearchLocalState& local, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(local, distance_from_root);
     if (probe.has_value())
@@ -347,19 +411,24 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (tb_score.is_win())
             {
                 min_score = tb_score;
-                alpha = std::max(alpha, tb_score);
-
-                if constexpr (root_node)
+                if (!root_node)
                 {
-                    // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
-                    // In this case, any move from the root move whitelist is acceptable
-                    ss->pv.push_back(local.root_move_whitelist.front());
+                    alpha = std::max(alpha, tb_score);
+                }
+            }
+            else if (tb_score.is_loss())
+            {
+                max_score = tb_score;
+                if (!root_node)
+                {
+                    beta = std::min(beta, tb_score);
                 }
             }
             else
             {
-                max_score = tb_score;
-                beta = std::min(beta, tb_score);
+                assert(root_node);
+                // we don't do any score correction for root pv drawn positions, because there's no point. Root move
+                // filtering will ensure we play something optimal.
             }
         }
     }
@@ -762,6 +831,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = position.board().checkers;
+    auto original_alpha = alpha;
+    auto original_beta = beta;
 
     // Step 1: Drop into q-search
     if (depth <= 0)
@@ -804,8 +875,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // If we are in a singular move search, we don't want to do any early pruning
 
     // Step 4: Probe transposition table
-    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
+    const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move_table, tt_eval]
         = probe_tt(shared, position, distance_from_root);
+
+    // In a multithreaded search, it's possible for these not to match, and that would impact the root move sorting
+    // behaviour in rare cases
+    const auto tt_move = root_node ? local.root_moves[0].move : tt_move_table;
 
     // Step 5: Generalized TT cutoffs
     //
@@ -832,7 +907,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, shared, local, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
@@ -941,7 +1016,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // Set up search variables
     Move bestMove = Move::Uninitialized;
-    auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
 
@@ -1052,10 +1126,32 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         if (root_node)
         {
-            const auto idx = std::ranges::distance(
-                local.root_moves.begin(), std::ranges::find(local.root_moves, move, &RootMove::move));
-            local.root_moves[idx].nodes += local.nodes - prev_nodes;
-            local.root_moves[idx].score = search_score;
+            auto& root_move = *std::ranges::find(local.root_moves, move, &RootMove::move);
+            root_move.effort += local.nodes - prev_nodes;
+            search_score = std::clamp(search_score, min_score, max_score);
+
+            // The previous depth best move always has its score updated, other moves only if they beat the previous
+            // best. All other moves get a -INF score.
+            if (search_score > alpha || seen_moves == 1)
+            {
+                root_move.score = search_score;
+                root_move.uci_score = std::clamp(search_score, original_alpha, original_beta);
+
+                root_move.search_depth = local.curr_depth;
+                root_move.sel_depth = local.sel_depth;
+
+                root_move.pv.clear();
+                root_move.pv.emplace_back(move);
+                root_move.pv.insert(root_move.pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
+
+                root_move.type = search_score <= original_alpha ? SearchResultType::UPPER_BOUND
+                    : search_score >= original_beta             ? SearchResultType::LOWER_BOUND
+                                                                : SearchResultType::EXACT;
+            }
+            else
+            {
+                root_move.score = std::numeric_limits<Score>::min();
+            }
         }
 
         // Step 19: Update history move tables and check for fail-high
