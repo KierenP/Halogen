@@ -108,7 +108,7 @@ struct RootMove
     }
 
     Move move = Move::Uninitialized;
-    int64_t nodes = 0;
+    int64_t effort = 0;
     Score score = SCORE_UNDEFINED;
     Score uci_score = SCORE_UNDEFINED;
     int search_depth = 0;

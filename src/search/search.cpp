@@ -126,7 +126,7 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
                 // node based time management
                 const auto node_factor
-                    = node_tm_base + node_tm_scale * (1 - float(local.root_moves[0].nodes) / float(local.nodes));
+                    = node_tm_base + node_tm_scale * (1 - float(local.root_moves[0].effort) / float(local.nodes));
 
                 // best move stability time management
                 if (ss->pv[0] != prev_id_best_move)
@@ -350,8 +350,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
 
 template <bool root_node, bool pv_node>
 std::optional<Score> probe_egtb(const GameState& position, const int distance_from_root, SearchSharedState& shared,
-    SearchLocalState& local, SearchStackState* ss, Score& alpha, Score& beta, Score& min_score, Score& max_score,
-    const int depth)
+    SearchLocalState& local, Score& alpha, Score& beta, Score& min_score, Score& max_score, const int depth)
 {
     auto probe = Syzygy::probe_wdl_search(local, distance_from_root);
     if (probe.has_value())
@@ -412,19 +411,24 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
             if (tb_score.is_win())
             {
                 min_score = tb_score;
-                alpha = std::max(alpha, tb_score);
-
-                if constexpr (root_node)
+                if (!root_node)
                 {
-                    // Because we raised alpha to a tb win, if we don't find a checkmate the root PV will end up empty.
-                    // In this case, any move from the root move whitelist is acceptable
-                    ss->pv.push_back(local.root_move_whitelist.front());
+                    alpha = std::max(alpha, tb_score);
+                }
+            }
+            else if (tb_score.is_loss())
+            {
+                max_score = tb_score;
+                if (!root_node)
+                {
+                    beta = std::min(beta, tb_score);
                 }
             }
             else
             {
-                max_score = tb_score;
-                beta = std::min(beta, tb_score);
+                assert(root_node);
+                // we don't do any score correction for root pv drawn positions, because there's no point. Root move
+                // filtering will ensure we play something optimal.
             }
         }
     }
@@ -827,6 +831,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     [[maybe_unused]] const bool allNode = !(pv_node || cut_node);
     const auto distance_from_root = ss->distance_from_root;
     const bool InCheck = position.board().checkers;
+    auto original_alpha = alpha;
+    auto original_beta = beta;
 
     // Step 1: Drop into q-search
     if (depth <= 0)
@@ -901,7 +907,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
-                position, distance_from_root, shared, local, ss, alpha, beta, min_score, max_score, depth))
+                position, distance_from_root, shared, local, alpha, beta, min_score, max_score, depth))
         {
             return *value;
         }
@@ -1010,7 +1016,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // Set up search variables
     Move bestMove = Move::Uninitialized;
-    auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
 
@@ -1122,14 +1127,15 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         if (root_node)
         {
             auto& root_move = *std::ranges::find(local.root_moves, move, &RootMove::move);
-            root_move.nodes += local.nodes - prev_nodes;
+            root_move.effort += local.nodes - prev_nodes;
+            search_score = std::clamp(search_score, min_score, max_score);
 
             // The previous depth best move always has its score updated, other moves only if they beat the previous
             // best. All other moves get a -INF score.
             if (search_score > alpha || seen_moves == 1)
             {
                 root_move.score = search_score;
-                root_move.uci_score = std::clamp(search_score, original_alpha, beta);
+                root_move.uci_score = std::clamp(search_score, original_alpha, original_beta);
 
                 root_move.search_depth = local.curr_depth;
                 root_move.sel_depth = local.sel_depth;
@@ -1139,7 +1145,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 root_move.pv.insert(root_move.pv.end(), (ss + 1)->pv.begin(), (ss + 1)->pv.end());
 
                 root_move.type = search_score <= original_alpha ? SearchResultType::UPPER_BOUND
-                    : search_score >= beta                      ? SearchResultType::LOWER_BOUND
+                    : search_score >= original_beta             ? SearchResultType::LOWER_BOUND
                                                                 : SearchResultType::EXACT;
             }
             else
