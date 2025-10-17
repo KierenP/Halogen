@@ -386,8 +386,6 @@ auto Uci::options_handler()
         tuneable_int(ThreatHistory::scale, 20, 50),
         tuneable_int(CaptureHistory::max_value, 1000, 32000),
         tuneable_int(CaptureHistory::scale, 20, 60),
-        tuneable_int(PawnHistory::max_value, 1000, 32000),
-        tuneable_int(PawnHistory::scale, 20, 50),
         tuneable_int(PieceMoveHistory::max_value, 1000, 32000),
         tuneable_int(PieceMoveHistory::scale, 20, 50),
 
