@@ -770,7 +770,16 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return qsearch<qsearch_type>(position, ss, acc, local, shared, alpha, beta);
     }
 
-    // Step 2: Check for abort or draw and update stats in the local state and search stack
+    // Step 2: Mate distance pruning
+    if (!root_node)
+    {
+        alpha = std::max(Score::mated_in(distance_from_root), alpha);
+        beta = std::min(Score::mate_in(distance_from_root + 1), beta);
+        if (alpha >= beta)
+            return alpha;
+    }
+
+    // Step 3: Check for abort or draw and update stats in the local state and search stack
     if (auto value = init_search_node(position, distance_from_root, ss, local, shared))
     {
         return *value;
@@ -783,7 +792,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 #ifdef TEST_UPCOMING_CYCLE_DETECTION
     test_upcoming_cycle_detection(position, distance_from_root);
 #endif
-
     if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
     {
         alpha = 0;
@@ -795,11 +803,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // If we are in a singular move search, we don't want to do any early pruning
 
-    // Step 3: Probe transposition table
+    // Step 4: Probe transposition table
     const auto [tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval]
         = probe_tt(shared, position, distance_from_root);
 
-    // Step 4: Check if we can use the TT entry to return early
+    // Step 5: Check if we can use the TT entry to return early
     if (!pv_node && ss->singular_exclusion == Move::Uninitialized && tt_depth >= depth
         && tt_cutoff != SearchResultType::EMPTY && tt_score != SCORE_UNDEFINED)
     {
@@ -809,7 +817,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 5: Probe syzygy EGTB
+    // Step 6: Probe syzygy EGTB
     if (ss->singular_exclusion == Move::Uninitialized)
     {
         if (auto value = probe_egtb<root_node, pv_node>(
@@ -823,7 +831,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position, ss, acc, shared, local, tt_entry, tt_eval, tt_score, tt_cutoff, depth, distance_from_root, InCheck);
     const bool improving = ss->adjusted_eval > (ss - 2)->adjusted_eval;
 
-    // Hindsight adjustments
+    // Step 7: Hindsight adjustments
     //
     // First added to Torch, independently discovered by Stockfish, we use the current nodes eval to adjust the LMR
     // reduction applied with the benefit of hindsight if the static eval turned out to be better or worse than
@@ -834,7 +842,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
     }
 
-    // Step 6: Static null move pruning (a.k.a reverse futility pruning)
+    // Step 8: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     const bool has_active_threat = position.board().active_lesser_threats();
@@ -846,7 +854,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return (beta.value() + eval.value()) / 2;
     }
 
-    // Step 7: Null move pruning
+    // Step 9: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
@@ -861,7 +869,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 8: Probcut
+    // Step 10: Probcut
     //
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
@@ -910,7 +918,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 9: Generalized TT cutoffs
+    // Step 11: Generalized TT cutoffs
     //
     // Idea from Stockfish, if the TT entry has a insufficient depth but a LOWER_BOUND cutoff, but the score is
     // sufficiently above beta, then we cutoff anyways.
@@ -921,19 +929,13 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return generalized_tt_failhigh_beta;
     }
 
-    // Step 10: Mate distance pruning
-    alpha = std::max(Score::mated_in(distance_from_root), alpha);
-    beta = std::min(Score::mate_in(distance_from_root + 1), beta);
-    if (alpha >= beta)
-        return alpha;
-
     // Set up search variables
     Move bestMove = Move::Uninitialized;
     auto original_alpha = alpha;
     int seen_moves = 0;
     bool noLegalMoves = true;
 
-    // Step 11: Rebel style IID
+    // Step 12: Rebel style IID
     //
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
@@ -946,7 +948,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
-    // Step 12: Iterate over each potential move until we reach the end or find a beta cutoff
+    // Step 13: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.next(move))
     {
         if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
@@ -958,7 +960,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         const int64_t prev_nodes = local.nodes;
         seen_moves++;
 
-        // Step 13: Late move pruning
+        // Step 14: Late move pruning
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
@@ -969,7 +971,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             gen.skip_quiets();
         }
 
-        // Step 14: Futility pruning
+        // Step 15: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
@@ -982,7 +984,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        // Step 15: SEE pruning
+        // Step 16: SEE pruning
         //
         // If a move appears to lose material we prune it. The margin is adjusted based on depth and history. This means
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
@@ -1006,7 +1008,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         int extensions = 0;
 
-        // Step 16: Singular extensions.
+        // Step 17: Singular extensions.
         //
         // If one move is significantly better than all alternatives, we extend the search for that
         // critical move. When looking for potentially singular moves, we look for TT moves at sufficient depth with
@@ -1036,7 +1038,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
-        // Step 17: Late move reductions
+        // Step 18: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
             position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
@@ -1056,14 +1058,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             local.root_moves[idx].score = search_score;
         }
 
-        // Step 18: Update history move tables and check for fail-high
+        // Step 19: Update history move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 19: Handle terminal node conditions
+    // Step 20: Handle terminal node conditions
     if (noLegalMoves)
     {
         if (ss->singular_exclusion != Move::Uninitialized)
@@ -1092,7 +1094,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
 
-    // Step 20: Adjust eval correction history
+    // Step 21: Adjust eval correction history
     if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
@@ -1107,7 +1109,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 21: Update transposition table
+    // Step 22: Update transposition table
     shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
