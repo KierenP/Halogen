@@ -265,49 +265,89 @@ SearchInfoData SearchSharedState::build_search_info(int depth, int sel_depth, Sc
 
 SearchInfoData SearchSharedState::get_best_root_move()
 {
-    // Popular vote amongst all threads for the selected move.
-
-    // Count how many threads chose each root move (first ply of the PV).
-    std::unordered_map<Move, int> counts;
+    // Gather first-root moves from all threads
+    std::vector<const RootMove*> cands;
+    cands.reserve(search_local_states_.size());
     for (const auto& local : search_local_states_)
     {
-        ++counts[local->root_moves[0].move];
+        cands.push_back(&local->root_moves[0]);
     }
 
-    // Find the most popular move (highest count). If multiple tie, pick the first with that count.
-    int best_count = 0;
-    Move most_popular_move {};
-    for (const auto& [m, cnt] : counts)
+    // 1) If any thread reports a winning score, accept the shortest win (highest score).
+    const RootMove* best_win = nullptr;
+    for (const RootMove* r : cands)
     {
-        if (cnt > best_count)
-        {
-            best_count = cnt;
-            most_popular_move = m;
-        }
-    }
-
-    // Return a thread which picked that move. Prefer the thread with highest search depth,
-    // breaking ties with higher score.
-    const RootMove* best_root_move = nullptr;
-    for (const auto& local : search_local_states_)
-    {
-        const auto& cand = local->root_moves[0];
-        if (cand.move != most_popular_move)
-        {
+        if (!r->score.is_win())
             continue;
-        }
 
-        if (!best_root_move)
+        if (!best_win || r->score.value() > best_win->score.value())
         {
-            best_root_move = &cand;
+            best_win = r;
         }
-        else
+    }
+    if (best_win)
+    {
+        return build_search_info(
+            best_win->search_depth, best_win->sel_depth, best_win->score, 1, best_win->pv, best_win->type);
+    }
+
+    // 2) If any thread reports a losing score, take the shortest loss (most negative score).
+    const RootMove* best_loss = nullptr;
+    for (const RootMove* r : cands)
+    {
+        if (!r->score.is_loss())
+            continue;
+
+        if (!best_loss || r->score.value() < best_loss->score.value())
         {
-            if (cand.search_depth > best_root_move->search_depth
-                || (cand.search_depth == best_root_move->search_depth && cand.score > best_root_move->score))
-            {
-                best_root_move = &cand;
-            }
+            best_loss = r;
+        }
+    }
+    if (best_loss)
+    {
+        return build_search_info(
+            best_loss->search_depth, best_loss->sel_depth, best_loss->score, 1, best_loss->pv, best_loss->type);
+    }
+
+    // 3) No decisive results: weighted popular vote (weights: depth + scaled score).
+    // make score contributions all non-negative by subtracting the lowest thread score
+    int min_score = std::numeric_limits<int>::max();
+    for (const RootMove* r : cands)
+    {
+        min_score = std::min(min_score, r->score.value());
+    }
+
+    std::unordered_map<Move, float> weight_sum;
+    weight_sum.reserve(cands.size());
+    for (const RootMove* r : cands)
+    {
+        float depth = static_cast<float>(r->search_depth);
+        float score_diff = static_cast<float>(r->score.value() - min_score);
+        weight_sum[r->move] += (depth + 1.0) * (score_diff + 20.0) + 180.0;
+    }
+
+    Move chosen_move {};
+    float best_weight = -std::numeric_limits<float>::infinity();
+    for (const auto& [m, w] : weight_sum)
+    {
+        if (w > best_weight)
+        {
+            best_weight = w;
+            chosen_move = m;
+        }
+    }
+
+    // pick the thread that played that move with best depth/score as tie-breaker
+    const RootMove* best_root_move = nullptr;
+    for (const RootMove* r : cands)
+    {
+        if (r->move != chosen_move)
+            continue;
+
+        if (!best_root_move || r->search_depth > best_root_move->search_depth
+            || (r->search_depth == best_root_move->search_depth && r->score > best_root_move->score))
+        {
+            best_root_move = r;
         }
     }
 
