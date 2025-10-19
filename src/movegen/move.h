@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <functional>
 #include <iosfwd>
 #include <type_traits>
 
@@ -55,6 +56,7 @@ public:
     static const Move Uninitialized;
 
     friend std::ostream& operator<<(std::ostream& os, Move m);
+    friend struct std::hash<Move>;
 
 private:
     // 6 bits for 'from square', 6 bits for 'to square' and 4 bits for the 'move flag'
@@ -77,3 +79,15 @@ struct format_chess960
 
     friend std::ostream& operator<<(std::ostream& os, format_chess960 f);
 };
+
+namespace std
+{
+template <>
+struct hash<Move>
+{
+    std::size_t operator()(const Move& m) const
+    {
+        return std::hash<uint16_t>()(m.data);
+    }
+};
+}

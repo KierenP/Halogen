@@ -265,20 +265,52 @@ SearchInfoData SearchSharedState::build_search_info(int depth, int sel_depth, Sc
 
 SearchInfoData SearchSharedState::get_best_root_move()
 {
-    // Greedy thread voting: take the thread with the highest depth result, and take the higher score for tie breaks
+    // Popular vote amongst all threads for the selected move.
 
-    const auto& first_root_move = search_local_states_[0]->root_moves[0];
-    const auto* best = &first_root_move;
-
+    // Count how many threads chose each root move (first ply of the PV).
+    std::unordered_map<Move, int> counts;
     for (const auto& local : search_local_states_)
     {
-        const auto& cand = local->root_moves[0];
-        if (cand.search_depth > best->search_depth
-            || (cand.search_depth == best->search_depth && cand.score > best->score))
+        ++counts[local->root_moves[0].move];
+    }
+
+    // Find the most popular move (highest count). If multiple tie, pick the first with that count.
+    int best_count = 0;
+    Move most_popular_move {};
+    for (const auto& [m, cnt] : counts)
+    {
+        if (cnt > best_count)
         {
-            best = &cand;
+            best_count = cnt;
+            most_popular_move = m;
         }
     }
 
-    return build_search_info(best->search_depth, best->sel_depth, best->score, 1, best->pv, best->type);
+    // Return a thread which picked that move. Prefer the thread with highest search depth,
+    // breaking ties with higher score.
+    const RootMove* best_root_move = nullptr;
+    for (const auto& local : search_local_states_)
+    {
+        const auto& cand = local->root_moves[0];
+        if (cand.move != most_popular_move)
+        {
+            continue;
+        }
+
+        if (!best_root_move)
+        {
+            best_root_move = &cand;
+        }
+        else
+        {
+            if (cand.search_depth > best_root_move->search_depth
+                || (cand.search_depth == best_root_move->search_depth && cand.score > best_root_move->score))
+            {
+                best_root_move = &cand;
+            }
+        }
+    }
+
+    return build_search_info(best_root_move->search_depth, best_root_move->sel_depth, best_root_move->score, 1,
+        best_root_move->pv, best_root_move->type);
 }
