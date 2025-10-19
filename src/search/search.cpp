@@ -135,13 +135,17 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
                 }
                 else
                 {
-                    stable_best_move = std::min(stable_best_move + 1, 8);
+                    stable_best_move++;
                 }
-                const auto stability_factor = 1.5 - float(stable_best_move) / 8.f;
+                const auto stability_factor
+                    = move_stability_scale_a * exp(-move_stability_scale_b * stable_best_move) + move_stability_base;
 
                 // score stability time management
-                const auto score_stability_factor
-                    = 0.6 + (1.5) / (1 + exp(-0.05f * (float)(local.prev_search_score.value() - score.value() - 20)));
+                const auto score_stability_factor = score_stability_base
+                    + score_stability_range
+                        / (1
+                            + exp(-score_stability_scale
+                                * (float)(local.prev_search_score.value() - score.value() - score_stability_offset)));
 
                 search_time_usage_scale = node_factor * stability_factor * score_stability_factor;
             }
