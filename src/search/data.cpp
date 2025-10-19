@@ -265,8 +265,20 @@ SearchInfoData SearchSharedState::build_search_info(int depth, int sel_depth, Sc
 
 SearchInfoData SearchSharedState::get_best_root_move()
 {
-    // TODO: thread voting
-    const auto& root_move = search_local_states_[0]->root_moves[0];
-    return build_search_info(
-        root_move.search_depth, root_move.sel_depth, root_move.score, 1, root_move.pv, root_move.type);
+    // Greedy thread voting: take the thread with the highest depth result, and take the higher score for tie breaks
+
+    const auto& first_root_move = search_local_states_[0]->root_moves[0];
+    const auto* best = &first_root_move;
+
+    for (const auto& local : search_local_states_)
+    {
+        const auto& cand = local->root_moves[0];
+        if (cand.search_depth > best->search_depth
+            || (cand.search_depth == best->search_depth && cand.score > best->score))
+        {
+            best = &cand;
+        }
+    }
+
+    return build_search_info(best->search_depth, best->sel_depth, best->score, 1, best->pv, best->type);
 }
