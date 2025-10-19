@@ -256,6 +256,16 @@ public:
         size_--;
     }
 
+    bool operator<=>(const StaticVector& other) const
+    {
+        return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
+    }
+
+    bool operator==(const StaticVector& other) const
+    {
+        return size_ == other.size_ && std::equal(begin(), end(), other.begin());
+    }
+
     // extensions
     void unsafe_resize(std::size_t new_size)
     {

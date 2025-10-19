@@ -108,8 +108,13 @@ struct RootMove
     }
 
     Move move = Move::Uninitialized;
-    int64_t nodes = 0;
+    int64_t effort = 0;
     Score score = SCORE_UNDEFINED;
+    Score uci_score = SCORE_UNDEFINED;
+    int search_depth = 0;
+    int sel_depth = 0;
+    StaticVector<Move, MAX_RECURSION> pv;
+    SearchResultType type = SearchResultType::EMPTY;
 };
 
 // Data local to a particular thread
@@ -137,7 +142,7 @@ public:
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     ContinuationCorrHistory cont_corr_hist;
-    int sel_septh = 0;
+    int sel_depth = 0;
     AtomicRelaxed<int64_t> tb_hits = 0;
     AtomicRelaxed<int64_t> nodes = 0;
 
@@ -173,13 +178,17 @@ public:
     GameState position = GameState::starting_position();
 };
 
-struct SearchResults
+// all required data to print a 'info' line
+struct SearchInfoData
 {
     int depth = 0;
-    int sel_septh = 0;
-    int multi_pv = 0;
-    int64_t nodes = 0;
+    int sel_depth = 0;
     Score score = SCORE_UNDEFINED;
+    std::chrono::milliseconds time = {};
+    int64_t nodes = 0;
+    int hashfull = 0;
+    int64_t tb_hits = 0;
+    int multi_pv = 1;
     StaticVector<Move, MAX_RECURSION> pv = {};
     SearchResultType type = SearchResultType::EMPTY;
 };
@@ -198,14 +207,7 @@ public:
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
     void set_hash(int hash_size_mb);
-
-    // Below functions are thread-safe and blocking
-    // ------------------------------------
-
-    SearchResults get_best_search_result() const;
-
-    void report_search_result(
-        const SearchStackState* ss, const SearchLocalState& local, Score score, SearchResultType type);
+    SearchInfoData get_best_root_move();
 
     // Below functions are thread-safe and non-blocking
     // ------------------------------------
@@ -214,6 +216,8 @@ public:
     int64_t nodes() const;
     int get_threads_setting() const;
     int get_multi_pv_setting() const;
+    SearchInfoData build_search_info(int depth, int sel_depth, Score score, int multi_pv,
+        const StaticVector<Move, MAX_RECURSION>& pv, SearchResultType type) const;
 
     void report_thread_wants_to_stop();
 
@@ -231,9 +235,4 @@ private:
     mutable std::recursive_mutex lock_;
     int multi_pv_setting {};
     int threads_setting {};
-
-    // [thread_id][multi_pv][depth]
-    std::vector<std::vector<std::array<SearchResults, MAX_ITERATIVE_DEEPENING>>> search_results_;
-
-    std::optional<SearchResults> best_search_result_;
 };

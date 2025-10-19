@@ -108,11 +108,83 @@ jobs:
             exit 1
           fi
 
-      - name: Other UCI commands
+      - name: cache syzygy
+        id: cache-syzygy
+        uses: actions/cache@v4
+        with:
+           path: |
+              matetrack/3-4-5-wdl/
+              matetrack/3-4-5-dtz/
+           key: key-syzygy
+
+      - name: download syzygy 3-4-5 if needed
+        working-directory: matetrack
+        if: steps.cache-syzygy.outputs.cache-hit != 'true'
+        run: |
+          wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-wdl/
+          wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-dtz/
+
+      - name: TB win
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name MultiPV value 8" "setoption name Threads value 4" "position fen 1r4k1/8/5PP1/K7/6NR/7B/1r6/7R w - - 0 1" "go movetime 10000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          if grep -q "ThreadSanitizer" out.log; then
+            echo "ERROR: ThreadSanitizer found"
+            exit 1
+          fi
+          if grep -q "Assertion" out.log; then
+            echo "ERROR: Assertion found"
+            exit 1
+          fi
+
+      - name: TB loss
+        working-directory: Halogen
+        run: |
+          export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
+          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          if grep -q "ThreadSanitizer" out.log; then
+            echo "ERROR: ThreadSanitizer found"
+            exit 1
+          fi
+          if grep -q "Assertion" out.log; then
+            echo "ERROR: Assertion found"
+            exit 1
+          fi
+
+      - name: TB draw
+        working-directory: Halogen
+        run: |
+          export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
+          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3kq3/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          if grep -q "ThreadSanitizer" out.log; then
+            echo "ERROR: ThreadSanitizer found"
+            exit 1
+          fi
+          if grep -q "Assertion" out.log; then
+            echo "ERROR: Assertion found"
+            exit 1
+          fi
+
+      - name: TB cursed win
+        working-directory: Halogen
+        run: |
+          export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
+          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen K7/N7/k7/8/3p4/8/N7/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          if grep -q "ThreadSanitizer" out.log; then
+            echo "ERROR: ThreadSanitizer found"
+            exit 1
+          fi
+          if grep -q "Assertion" out.log; then
+            echo "ERROR: Assertion found"
+            exit 1
+          fi
+
+      - name: TB blessed loss
+        working-directory: Halogen
+        run: |
+          export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
+          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen K7/2k5/8/1N6/3p4/3N4/8/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
