@@ -258,7 +258,8 @@ auto Uci::options_handler()
         #name, name, min_, max_, [](auto value) { name = value; }                                                      \
     }
 
-    return Options { ButtonOption { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
+    return Options {
+        ButtonOption { "Clear Hash", [this] { handle_setoption_clear_hash(); } },
         CheckOption { "UCI_Chess960", false, [this](bool value) { handle_setoption_chess960(value); } },
         SpinOption { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
         SpinOption { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
@@ -268,86 +269,138 @@ auto Uci::options_handler()
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
 
 #ifdef TUNE
-        tuneable_float(LMR_constant, -2.5, -0.5), tuneable_float(LMR_depth_coeff, 0.4, 2.4),
-        tuneable_float(LMR_move_coeff, 1.5, 3.5), tuneable_float(LMR_depth_move_coeff, -1.07, -0.57),
+        tuneable_float(LMR_constant, -2.5, -0.5),
+        tuneable_float(LMR_depth_coeff, 0.4, 2.4),
+        tuneable_float(LMR_move_coeff, 1.5, 3.5),
+        tuneable_float(LMR_depth_move_coeff, -1.07, -0.57),
 
         tuneable_int(aspiration_window_size, 5, 15),
 
-        tuneable_int(nmp_const, 4, 8), tuneable_int(nmp_d, 5, 9), tuneable_int(nmp_s, 200, 300),
+        tuneable_int(nmp_const, 4, 8),
+        tuneable_int(nmp_d, 5, 9),
+        tuneable_int(nmp_s, 200, 300),
         tuneable_int(nmp_sd, 1, 10),
 
         tuneable_int(iid_depth, 1, 10),
 
-        tuneable_fraction(se_sbeta_depth, 20, 80), tuneable_int(se_double, 0, 30), tuneable_int(se_triple, 15, 60),
-        tuneable_int(se_min_depth, 3, 12), tuneable_int(se_tt_depth, 0, 10),
+        tuneable_fraction(se_sbeta_depth, 20, 80),
+        tuneable_int(se_double, 0, 30),
+        tuneable_int(se_triple, 15, 60),
+        tuneable_int(se_min_depth, 3, 12),
+        tuneable_int(se_tt_depth, 0, 10),
 
-        tuneable_fraction(lmr_pv, 700, 2800), tuneable_fraction(lmr_cut, 700, 2800),
-        tuneable_fraction(lmr_improving, 500, 2000), tuneable_fraction(lmr_loud, 400, 1600),
-        tuneable_int(lmr_h, 2000, 3000), tuneable_fraction(lmr_offset, 0, 1000), tuneable_int(lmr_shallower, 0, 30),
+        tuneable_fraction(lmr_pv, 700, 2800),
+        tuneable_fraction(lmr_cut, 700, 2800),
+        tuneable_fraction(lmr_improving, 500, 2000),
+        tuneable_fraction(lmr_loud, 400, 1600),
+        tuneable_int(lmr_h, 2000, 3000),
+        tuneable_fraction(lmr_offset, 0, 1000),
+        tuneable_int(lmr_shallower, 0, 30),
 
-        tuneable_int(lmr_hindsight_ext_depth, 0, 6), tuneable_int(lmr_hindsight_ext_margin, -200, 200),
+        tuneable_int(lmr_hindsight_ext_depth, 0, 6),
+        tuneable_int(lmr_hindsight_ext_margin, -200, 200),
 
-        tuneable_int(fifty_mr_scale_a, 100, 350), tuneable_int(fifty_mr_scale_b, 100, 350),
+        tuneable_int(fifty_mr_scale_a, 100, 350),
+        tuneable_int(fifty_mr_scale_b, 100, 350),
 
-        tuneable_int(rfp_max_d, 5, 15), tuneable_fraction(rfp_const, -1000, 1000),
-        tuneable_fraction(rfp_depth, 1500, 6000), tuneable_fraction(rfp_quad, 0, 500), tuneable_int(rfp_threat, 0, 100),
+        tuneable_int(rfp_max_d, 5, 15),
+        tuneable_fraction(rfp_const, -1000, 1000),
+        tuneable_fraction(rfp_depth, 1500, 6000),
+        tuneable_fraction(rfp_quad, 0, 500),
+        tuneable_int(rfp_threat, 0, 100),
 
-        tuneable_int(lmp_max_d, 3, 9), tuneable_fraction(lmp_const, 64, 640), tuneable_fraction(lmp_depth, 64, 640),
+        tuneable_int(lmp_max_d, 3, 9),
+        tuneable_fraction(lmp_const, 64, 640),
+        tuneable_fraction(lmp_depth, 64, 640),
         tuneable_fraction(lmp_quad, 0, 500),
 
-        tuneable_int(fp_max_d, 5, 15), tuneable_fraction(fp_const, 1200, 2800), tuneable_fraction(fp_depth, 450, 1800),
+        tuneable_int(fp_max_d, 5, 15),
+        tuneable_fraction(fp_const, 1200, 2800),
+        tuneable_fraction(fp_depth, 450, 1800),
         tuneable_fraction(fp_quad, 450, 1800),
 
-        tuneable_int(see_quiet_depth, 50, 150), tuneable_int(see_quiet_hist, 50, 250),
-        tuneable_int(see_loud_depth, 15, 70), tuneable_int(see_loud_hist, 50, 250), tuneable_int(see_max_depth, 3, 12),
+        tuneable_int(see_quiet_depth, 50, 150),
+        tuneable_int(see_quiet_hist, 50, 250),
+        tuneable_int(see_loud_depth, 15, 70),
+        tuneable_int(see_loud_hist, 50, 250),
+        tuneable_int(see_max_depth, 3, 12),
 
-        tuneable_int(hist_prune_depth, 1500, 6000), tuneable_int(hist_prune, -2000, 2000),
+        tuneable_int(hist_prune_depth, 1500, 6000),
+        tuneable_int(hist_prune, -2000, 2000),
 
-        tuneable_int(eval_scale[PAWN], -200, 200), tuneable_int(eval_scale[KNIGHT], 200, 800),
-        tuneable_int(eval_scale[BISHOP], 200, 800), tuneable_int(eval_scale[ROOK], 400, 1200),
-        tuneable_int(eval_scale[QUEEN], 600, 2400), tuneable_int(eval_scale_const, 15000, 40000),
+        tuneable_int(eval_scale[PAWN], -200, 200),
+        tuneable_int(eval_scale[KNIGHT], 200, 800),
+        tuneable_int(eval_scale[BISHOP], 200, 800),
+        tuneable_int(eval_scale[ROOK], 400, 1200),
+        tuneable_int(eval_scale[QUEEN], 600, 2400),
+        tuneable_int(eval_scale_const, 15000, 40000),
 
-        tuneable_int(see_values[PAWN], 50, 200), tuneable_int(see_values[KNIGHT], 250, 1000),
-        tuneable_int(see_values[BISHOP], 250, 1000), tuneable_int(see_values[ROOK], 300, 1400),
+        tuneable_int(see_values[PAWN], 50, 200),
+        tuneable_int(see_values[KNIGHT], 250, 1000),
+        tuneable_int(see_values[BISHOP], 250, 1000),
+        tuneable_int(see_values[ROOK], 300, 1400),
         tuneable_int(see_values[QUEEN], 600, 2400),
 
-        tuneable_float(soft_tm, 0.1, 0.9), tuneable_float(node_tm_base, 0.2, 0.8),
-        tuneable_float(node_tm_scale, 1.0, 3.0), tuneable_float(move_stability_base, 0.2, 0.8),
-        tuneable_float(move_stability_scale_a, 0.5, 2.0), tuneable_float(move_stability_scale_b, 0.1, 0.6),
-        tuneable_float(score_stability_base, 0.3, 0.9), tuneable_float(score_stability_range, 1.0, 2.0),
-        tuneable_float(score_stability_scale, 0.01, 0.1), tuneable_float(score_stability_offset, 0, 50),
-        tuneable_int(blitz_tc_a, 20, 80), tuneable_int(blitz_tc_b, 150, 600), tuneable_int(sudden_death_tc, 25, 100),
+        tuneable_float(soft_tm, 0.1, 0.9),
+        tuneable_float(node_tm_base, 0.2, 0.8),
+        tuneable_float(node_tm_scale, 1.0, 3.0),
+        tuneable_float(move_stability_base, 0.2, 0.8),
+        tuneable_float(move_stability_scale_a, 0.5, 2.0),
+        tuneable_float(move_stability_scale_b, 0.1, 0.6),
+        tuneable_float(score_stability_base, 0.3, 0.9),
+        tuneable_float(score_stability_range, 1.0, 2.0),
+        tuneable_float(score_stability_scale, 0.01, 0.1),
+        tuneable_float(score_stability_offset, 0, 50),
+        tuneable_int(blitz_tc_a, 20, 80),
+        tuneable_int(blitz_tc_b, 150, 600),
+        tuneable_int(sudden_death_tc, 25, 100),
         tuneable_int(repeating_tc, 50, 200),
 
-        tuneable_fraction(history_bonus_const, 450, 1800), tuneable_fraction(history_bonus_depth, -500, 500),
-        tuneable_fraction(history_bonus_quad, 40, 160), tuneable_fraction(history_penalty_const, 500, 2000),
-        tuneable_fraction(history_penalty_depth, -500, 500), tuneable_fraction(history_penalty_quad, 20, 80),
+        tuneable_fraction(history_bonus_const, 450, 1800),
+        tuneable_fraction(history_bonus_depth, -500, 500),
+        tuneable_fraction(history_bonus_quad, 40, 160),
+        tuneable_fraction(history_penalty_const, 500, 2000),
+        tuneable_fraction(history_penalty_depth, -500, 500),
+        tuneable_fraction(history_penalty_quad, 20, 80),
 
-        tuneable_int(tt_replace_self_depth, 0, 6), tuneable_fraction(tt_replace_depth, 32, 128),
+        tuneable_int(tt_replace_self_depth, 0, 6),
+        tuneable_fraction(tt_replace_depth, 32, 128),
         tuneable_fraction(tt_replace_age, 128, 512),
 
-        tuneable_int(good_loud_see, 0, 200), tuneable_int(good_loud_see_hist, 0, 100),
+        tuneable_int(good_loud_see, 0, 200),
+        tuneable_int(good_loud_see_hist, 0, 100),
 
-        tuneable_int(qsearch_lmp, 1, 4), tuneable_int(qsearch_see_hist, 100, 200),
+        tuneable_int(qsearch_lmp, 1, 4),
+        tuneable_int(qsearch_see_hist, 100, 200),
 
-        tuneable_int(probcut_beta, 150, 250), tuneable_int(probcut_min_depth, 1, 5),
+        tuneable_int(probcut_beta, 150, 250),
+        tuneable_int(probcut_min_depth, 1, 5),
         tuneable_int(probcut_depth_const, 3, 7),
 
-        tuneable_int(generalized_tt_failhigh_margin, 200, 600), tuneable_int(generalized_tt_failhigh_depth, 2, 6),
+        tuneable_int(generalized_tt_failhigh_margin, 200, 600),
+        tuneable_int(generalized_tt_failhigh_depth, 2, 6),
 
-        tuneable_int(PawnHistory::max_value, 1000, 32000), tuneable_int(PawnHistory::scale, 20, 50),
-        tuneable_int(ThreatHistory::max_value, 1000, 32000), tuneable_int(ThreatHistory::scale, 20, 50),
-        tuneable_int(CaptureHistory::max_value, 1000, 32000), tuneable_int(CaptureHistory::scale, 20, 60),
-        tuneable_int(PieceMoveHistory::max_value, 1000, 32000), tuneable_int(PieceMoveHistory::scale, 20, 50),
+        tuneable_int(PawnHistory::max_value, 1000, 32000),
+        tuneable_int(PawnHistory::scale, 20, 50),
+        tuneable_int(ThreatHistory::max_value, 1000, 32000),
+        tuneable_int(ThreatHistory::scale, 20, 50),
+        tuneable_int(CaptureHistory::max_value, 1000, 32000),
+        tuneable_int(CaptureHistory::scale, 20, 60),
+        tuneable_int(PieceMoveHistory::max_value, 1000, 32000),
+        tuneable_int(PieceMoveHistory::scale, 20, 50),
 
-        tuneable_int(PawnCorrHistory::correction_max, 32, 128), tuneable_int(PawnCorrHistory::scale, 64, 256),
-        tuneable_int(NonPawnCorrHistory::correction_max, 32, 128), tuneable_int(NonPawnCorrHistory::scale, 64, 256),
-        tuneable_int(PieceMoveCorrHistory::correction_max, 32, 128), tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
+        tuneable_int(PawnCorrHistory::correction_max, 32, 128),
+        tuneable_int(PawnCorrHistory::scale, 64, 256),
+        tuneable_int(NonPawnCorrHistory::correction_max, 32, 128),
+        tuneable_int(NonPawnCorrHistory::scale, 64, 256),
+        tuneable_int(PieceMoveCorrHistory::correction_max, 32, 128),
+        tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
 
         tuneable_float(SCALE_FACTOR, 80, 320),
 
-        tuneable_float(smp_voting_depth, 1.0, 0.0, 10.0) tuneable_float(smp_voting_score, 20.0, 0.0, 200.0)
-            tuneable_float(smp_voting_const, 180.0, 0.0, 2000.0)
+        tuneable_float(smp_voting_depth, 0.0, 10.0),
+        tuneable_float(smp_voting_score, 0.0, 200.0),
+        tuneable_float(smp_voting_const, 0.0, 2000.0),
 #else
 #endif
     };
