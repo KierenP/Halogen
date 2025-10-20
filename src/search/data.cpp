@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <mutex>
 #include <numeric>
+#include <ranges>
 #include <string>
 
 #include "bitboard/define.h"
@@ -268,88 +269,56 @@ SearchInfoData SearchSharedState::get_best_root_move()
     // Gather first-root moves from all threads
     std::vector<const RootMove*> cands;
     cands.reserve(search_local_states_.size());
-    for (const auto& local : search_local_states_)
-    {
-        cands.push_back(&local->root_moves[0]);
-    }
+    std::ranges::transform(
+        search_local_states_, std::back_inserter(cands), [](const auto& local) { return &local->root_moves[0]; });
 
     // 1) If any thread reports a winning score, accept the shortest win (highest score).
-    const RootMove* best_win = nullptr;
-    for (const RootMove* r : cands)
     {
-        if (!r->score.is_win())
-            continue;
-
-        if (!best_win || r->score.value() > best_win->score.value())
+        auto wins_view = cands | std::views::filter([](const auto* r) { return r->score.is_win(); });
+        if (auto it = std::ranges::max_element(wins_view, {}, &RootMove::score); it != std::ranges::end(wins_view))
         {
-            best_win = r;
+            const RootMove* best_win = *it;
+            return build_search_info(
+                best_win->search_depth, best_win->sel_depth, best_win->score, 1, best_win->pv, best_win->type);
         }
     }
-    if (best_win)
-    {
-        return build_search_info(
-            best_win->search_depth, best_win->sel_depth, best_win->score, 1, best_win->pv, best_win->type);
-    }
 
-    // 2) If any thread reports a losing score, take the shortest loss (most negative score).
-    const RootMove* best_loss = nullptr;
-    for (const RootMove* r : cands)
+    // 2) If any thread reports a losing score, take the shortest loss (lowest scire).
     {
-        if (!r->score.is_loss())
-            continue;
-
-        if (!best_loss || r->score.value() < best_loss->score.value())
+        auto losses_view = cands | std::views::filter([](const auto* r) { return r->score.is_loss(); });
+        if (auto it = std::ranges::min_element(losses_view, {}, &RootMove::score); it != std::ranges::end(losses_view))
         {
-            best_loss = r;
+            const RootMove* best_loss = *it;
+            return build_search_info(
+                best_loss->search_depth, best_loss->sel_depth, best_loss->score, 1, best_loss->pv, best_loss->type);
         }
-    }
-    if (best_loss)
-    {
-        return build_search_info(
-            best_loss->search_depth, best_loss->sel_depth, best_loss->score, 1, best_loss->pv, best_loss->type);
     }
 
     // 3) No decisive results: weighted popular vote (weights: depth + scaled score).
     // make score contributions all non-negative by subtracting the lowest thread score
-    int min_score = std::numeric_limits<int>::max();
-    for (const RootMove* r : cands)
-    {
-        min_score = std::min(min_score, r->score.value());
-    }
+    const int min_score = (*std::ranges::min_element(cands, {}, &RootMove::score))->score.value();
 
     std::unordered_map<Move, float> weight_sum;
-    weight_sum.reserve(cands.size());
     for (const RootMove* r : cands)
     {
-        float depth = static_cast<float>(r->search_depth);
-        float score_diff = static_cast<float>(r->score.value() - min_score);
-        weight_sum[r->move] += (depth + 1.0) * (score_diff + 20.0) + 180.0;
+        const auto depth = static_cast<float>(r->search_depth);
+        const auto score_diff = static_cast<float>(r->score.value() - min_score);
+        weight_sum[r->move] += (depth + smp_voting_depth) * (score_diff + smp_voting_score) + smp_voting_const;
     }
 
-    Move chosen_move {};
-    float best_weight = -std::numeric_limits<float>::infinity();
-    for (const auto& [m, w] : weight_sum)
-    {
-        if (w > best_weight)
-        {
-            best_weight = w;
-            chosen_move = m;
-        }
-    }
+    // choose move with highest total weight
+    const auto chosen_move
+        = (*std::ranges::max_element(weight_sum, {}, [](const auto& move_votes) { return move_votes.second; })).first;
 
     // pick the thread that played that move with best depth/score as tie-breaker
-    const RootMove* best_root_move = nullptr;
-    for (const RootMove* r : cands)
-    {
-        if (r->move != chosen_move)
-            continue;
-
-        if (!best_root_move || r->search_depth > best_root_move->search_depth
-            || (r->search_depth == best_root_move->search_depth && r->score > best_root_move->score))
+    auto same_move_view = cands | std::views::filter([&](const RootMove* r) { return r->move == chosen_move; });
+    const auto* best_root_move = *std::ranges::max_element(same_move_view,
+        [](const RootMove* a, const RootMove* b)
         {
-            best_root_move = r;
-        }
-    }
+            if (a->search_depth != b->search_depth)
+                return a->search_depth < b->search_depth;
+            return a->score < b->score;
+        });
 
     return build_search_info(best_root_move->search_depth, best_root_move->sel_depth, best_root_move->score, 1,
         best_root_move->pv, best_root_move->type);
