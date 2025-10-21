@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <type_traits>
 
@@ -22,13 +23,28 @@ T* allocate_huge_page(std::size_t size)
 {
 #ifdef __linux__
     T* data = static_cast<T*>(std::aligned_alloc(2 * 1024 * 1024, size));
+    if (!data)
+    {
+        std::cout << "Failed to allocate huge page" << std::endl;
+        std::terminate();
+    }
     madvise(data, size, MADV_HUGEPAGE);
     return data;
 #elif defined(_WIN32)
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
+    if (!data)
+    {
+        std::cout << "Failed to allocate huge page" << std::endl;
+        std::terminate();
+    }
     return data;
 #else
     T* data = static_cast<T*>(std::aligned_alloc(alignof(T), size));
+    if (!data)
+    {
+        std::cout << "Failed to allocate" << std::endl;
+        std::terminate();
+    }
     return data;
 #endif
 }
