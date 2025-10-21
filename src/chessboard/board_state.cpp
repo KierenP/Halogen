@@ -182,7 +182,7 @@ void BoardState::clear_sq(Square square)
 {
     assert(square < N_SQUARES);
 
-    for (int i = 0; i < N_PIECES; i++)
+    for (int i = 0; i < N_PIECE_TYPES; i++)
     {
         board[i] &= ~SquareBB[square];
     }
