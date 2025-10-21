@@ -34,7 +34,21 @@ T* allocate_huge_page(std::size_t size)
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
-        std::cout << "Failed to allocate huge page" << std::endl;
+        // Get the error message ID, if any.
+        DWORD errorMessageID = ::GetLastError();
+        if (errorMessageID == 0)
+        {
+            std::cout << "Failed to allocate huge page" << std::endl;
+            std::terminate();
+        }
+
+        LPSTR messageBuffer = nullptr;
+        size_t size = FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+            errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+        std::string message(messageBuffer, size);
+
+        std::cout << "Failed to allocate huge page: " << messageBuffer << std::endl;
         std::terminate();
     }
     return data;
