@@ -85,7 +85,7 @@ public:
     uint64_t pinned {};
 
 private:
-    std::array<uint64_t, N_PIECES> board = {};
+    std::array<uint64_t, N_PIECE_TYPES> board = {};
     std::array<uint64_t, 2> side_bb = {};
     std::array<Piece, N_SQUARES> mailbox;
 };

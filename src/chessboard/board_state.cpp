@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
@@ -152,7 +153,7 @@ void BoardState::add_piece_sq(Square square, Piece piece)
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
 
-    board[piece] |= SquareBB[square];
+    board[enum_to<PieceType>(piece)] |= SquareBB[square];
     side_bb[enum_to<Side>(piece)] |= SquareBB[square];
     mailbox[square] = piece;
 }
@@ -162,26 +163,26 @@ void BoardState::remove_piece_sq(Square square, Piece piece)
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
 
-    board[piece] ^= SquareBB[square];
+    board[enum_to<PieceType>(piece)] ^= SquareBB[square];
     side_bb[enum_to<Side>(piece)] ^= SquareBB[square];
     mailbox[square] = N_PIECES;
 }
 
 uint64_t BoardState::get_pieces_bb(Piece piece) const
 {
-    return board[piece];
+    return board[enum_to<PieceType>(piece)] & side_bb[enum_to<Side>(piece)];
 }
 
 uint64_t BoardState::get_pieces_bb(PieceType type) const
 {
-    return get_pieces_bb(type, WHITE) | get_pieces_bb(type, BLACK);
+    return board[type];
 }
 
 void BoardState::clear_sq(Square square)
 {
     assert(square < N_SQUARES);
 
-    for (int i = 0; i < N_PIECES; i++)
+    for (int i = 0; i < N_PIECE_TYPES; i++)
     {
         board[i] &= ~SquareBB[square];
     }
@@ -193,7 +194,7 @@ void BoardState::clear_sq(Square square)
 
 uint64_t BoardState::get_pieces_bb(PieceType pieceType, Side colour) const
 {
-    return get_pieces_bb(get_piece(pieceType, colour));
+    return board[pieceType] & side_bb[colour];
 }
 
 Square BoardState::get_king_sq(Side colour) const
