@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "search/score.h"
+#include "utility/huge_pages.h"
 
 class Move;
 enum class SearchResultType : uint8_t;
@@ -17,7 +18,6 @@ class Table
 {
 public:
     Table() = default;
-    ~Table();
 
     Table(const Table&) = delete;
     Table& operator=(const Table&) = delete;
@@ -40,11 +40,9 @@ public:
     Entry* get_entry(uint64_t key, int distanceFromRoot, int half_turn_count);
 
 private:
-    void realloc(int thread_count);
-    void dealloc();
     Bucket& get_bucket(uint64_t key) const;
 
-    Bucket* table = nullptr;
+    unique_ptr_huge_page<Bucket[]> table;
     size_t size_ = 0;
 };
 
