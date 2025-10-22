@@ -23,7 +23,7 @@ void SearchThread::thread_loop()
 {
     while (!stop)
     {
-        std::packaged_task<void()> task;
+        std::function<void()> task;
 
         {
             std::unique_lock lock(mutex);
@@ -37,18 +37,14 @@ void SearchThread::thread_loop()
     }
 }
 
-std::future<void> SearchThread::enqueue_task(std::function<void()> func)
+void SearchThread::enqueue_task(std::function<void()> func)
 {
-    std::packaged_task task(std::move(func));
-    auto future = task.get_future();
-
     {
         std::lock_guard lock(mutex);
-        tasks.push(std::move(task));
+        tasks.push(std::move(func));
     }
 
     cv.notify_one();
-    return future;
 }
 
 void SearchThread::terminate()
@@ -59,34 +55,55 @@ void SearchThread::terminate()
     cv.notify_one();
 }
 
-std::future<void> SearchThread::set_position(const GameState& position)
+void SearchThread::set_position(std::latch& latch, const GameState& position)
 {
-    return enqueue_task([this, position]() { local_state->position = position; });
-}
-
-std::future<void> SearchThread::reset_new_search()
-{
-    return enqueue_task([this]() { local_state->reset_new_search(); });
-}
-
-std::future<void> SearchThread::reset_new_game()
-{
-    return enqueue_task([this]() { local_state = std::make_unique<SearchLocalState>(thread_id_); });
-}
-
-std::future<void> SearchThread::start_searching(const BasicMoveList& root_move_whitelist)
-{
-    return enqueue_task(
-        [this, root_move_whitelist]()
+    enqueue_task(
+        [this, position, &latch]()
         {
-            local_state->root_move_whitelist = root_move_whitelist;
-            launch_worker_search(local_state->position, *local_state, shared_state);
+            local_state->position = position;
+            latch.count_down();
         });
 }
 
-std::future<void> SearchThread::update_previous_search_score(Score previous_search_score)
+void SearchThread::reset_new_search(std::latch& latch)
 {
-    return enqueue_task([this, previous_search_score]() { local_state->prev_search_score = previous_search_score; });
+    enqueue_task(
+        [this, &latch]()
+        {
+            local_state->reset_new_search();
+            latch.count_down();
+        });
+}
+
+void SearchThread::reset_new_game(std::latch& latch)
+{
+    enqueue_task(
+        [this, &latch]()
+        {
+            local_state = std::make_unique<SearchLocalState>(thread_id_);
+            latch.count_down();
+        });
+}
+
+void SearchThread::start_searching(std::latch& latch, const BasicMoveList& root_move_whitelist)
+{
+    enqueue_task(
+        [this, root_move_whitelist, &latch]()
+        {
+            local_state->root_move_whitelist = root_move_whitelist;
+            launch_worker_search(local_state->position, *local_state, shared_state);
+            latch.count_down();
+        });
+}
+
+void SearchThread::update_previous_search_score(std::latch& latch, Score previous_search_score)
+{
+    enqueue_task(
+        [this, previous_search_score, &latch]()
+        {
+            local_state->prev_search_score = previous_search_score;
+            latch.count_down();
+        });
 }
 
 const SearchLocalState& SearchThread::get_local_state()
@@ -118,47 +135,35 @@ SearchThreadPool::~SearchThreadPool()
 void SearchThreadPool::set_position(const GameState& position)
 {
     position_ = position;
-    std::vector<std::future<void>> futures;
-    futures.reserve(search_threads.size());
+    std::latch latch(search_threads.size());
     for (auto* thread : search_threads)
     {
-        futures.push_back(thread->set_position(position));
+        thread->set_position(latch, position);
     }
-    for (auto& future : futures)
-    {
-        future.get();
-    }
+    latch.wait();
 }
 
 void SearchThreadPool::reset_new_search()
 {
     shared_state.reset_new_search();
-    std::vector<std::future<void>> futures;
-    futures.reserve(search_threads.size());
+    std::latch latch(search_threads.size());
     for (auto* thread : search_threads)
     {
-        futures.push_back(thread->reset_new_search());
+        thread->reset_new_search(latch);
     }
-    for (auto& future : futures)
-    {
-        future.get();
-    }
+    latch.wait();
 }
 
 void SearchThreadPool::reset_new_game()
 {
     shared_state.reset_new_game();
     position_ = GameState::starting_position();
-    std::vector<std::future<void>> futures;
-    futures.reserve(search_threads.size());
+    std::latch latch(search_threads.size());
     for (auto* thread : search_threads)
     {
-        futures.push_back(thread->reset_new_game());
+        thread->reset_new_game(latch);
     }
-    for (auto& future : futures)
-    {
-        future.get();
-    }
+    latch.wait();
 }
 
 void SearchThreadPool::set_hash(int hash_size_mb)
@@ -205,16 +210,12 @@ void SearchThreadPool::set_threads(size_t threads)
 
 void SearchThreadPool::set_previous_search_score(Score previous_search_score)
 {
-    std::vector<std::future<void>> futures;
-    futures.reserve(search_threads.size());
+    std::latch latch(search_threads.size());
     for (auto* thread : search_threads)
     {
-        futures.push_back(thread->update_previous_search_score(previous_search_score));
+        thread->update_previous_search_score(latch, previous_search_score);
     }
-    for (auto& future : futures)
-    {
-        future.get();
-    }
+    latch.wait();
 }
 
 const SearchSharedState& SearchThreadPool::get_shared_state()
@@ -291,18 +292,12 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
     shared_state.set_multi_pv(multi_pv);
     shared_state.stop_searching = false;
 
-    std::vector<std::future<void>> futures;
-    futures.reserve(search_threads.size());
-
+    std::latch latch(search_threads.size());
     for (auto* thread : search_threads)
     {
-        futures.push_back(thread->start_searching(root_move_whitelist));
+        thread->start_searching(latch, root_move_whitelist);
     }
-
-    for (auto& future : futures)
-    {
-        future.get();
-    }
+    latch.wait();
 
     const auto search_result = shared_state.get_best_root_move();
     shared_state.uci_handler.print_search_info(search_result, true, shared_state.chess_960);
