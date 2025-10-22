@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cstddef>
+#include <errhandlingapi.h>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <type_traits>
+#include <winbase.h>
 
 #ifdef __linux__
 #include <sys/mman.h>
@@ -24,11 +27,6 @@ T* allocate_huge_page(std::size_t size)
 #ifdef __linux__
     // Use 2MB transparant huge pages
     T* data = static_cast<T*>(std::aligned_alloc(2 * 1024 * 1024, size));
-    if (!data)
-    {
-        std::cerr << "Failed to allocate huge page" << std::endl;
-        std::terminate();
-    }
     madvise(data, size, MADV_HUGEPAGE);
     return data;
 #elif defined(_WIN32)
@@ -41,18 +39,35 @@ T* allocate_huge_page(std::size_t size)
     TOKEN_PRIVILEGES tp;
     LUID luid;
 
+    // In case of a failed huge page allocation, we print a error message only the first time
+    static std::once_flag print_error_once_flag;
+    auto print_error = [](std::string_view context, DWORD error)
+    {
+        LPSTR messageBuffer = nullptr;
+        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+        std::cerr << "info string unable to use huge pages, falling back to regular allocation. " << context
+                  << " failed: " << messageBuffer;
+        LocalFree(messageBuffer);
+    };
+
+    auto fallback_to_regular_alloc = [&](std::string_view context, DWORD error)
+    {
+        std::call_once(print_error_once_flag, print_error, context, error);
+        CloseHandle(hToken);
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+    };
+
     // Get the current process token
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
     {
-        std::cerr << "OpenProcessToken failed" << std::endl;
-        std::terminate();
+        return fallback_to_regular_alloc("OpenProcessToken", GetLastError());
     }
 
     // Get the LUID for the SeLockMemoryPrivilege
     if (!LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid))
     {
-        std::cerr << "LookupPrivilegeValue failed" << std::endl;
-        std::terminate();
+        return fallback_to_regular_alloc("LookupPrivilegeValue", GetLastError());
     }
 
     // Enable the SeLockMemoryPrivilege
@@ -62,40 +77,19 @@ T* allocate_huge_page(std::size_t size)
 
     if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL))
     {
-        std::cerr << "AdjustTokenPrivileges failed" << std::endl;
-        std::terminate();
+        return fallback_to_regular_alloc("AdjustTokenPrivileges", GetLastError());
     }
 
     // Now allocate the huge page
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
-        // Get the error message ID, if any.
-        DWORD errorMessageID = ::GetLastError();
-        if (errorMessageID == 0)
-        {
-            std::cerr << "Failed to allocate huge page" << std::endl;
-            std::terminate();
-        }
-
-        LPSTR messageBuffer = nullptr;
-        size_t str_size = FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-            errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-        std::string message(messageBuffer, str_size);
-
-        std::cerr << "Failed to allocate huge page: " << messageBuffer << std::endl;
-        std::terminate();
+        return fallback_to_regular_alloc("VirtualAlloc", GetLastError());
     }
+    CloseHandle(hToken);
     return data;
 #else
-    T* data = static_cast<T*>(std::aligned_alloc(alignof(T), size));
-    if (!data)
-    {
-        std::cerr << "Failed to allocate" << std::endl;
-        std::terminate();
-    }
-    return data;
+    return new T[size / sizeof(T)];
 #endif
 }
 
@@ -107,7 +101,7 @@ void deallocate_huge_page(T* ptr)
 #elif defined(_WIN32)
     VirtualFree(ptr, 0, MEM_RELEASE);
 #else
-    std::free(ptr);
+    delete[] ptr;
 #endif
 }
 
