@@ -6,6 +6,7 @@
 
 #include <condition_variable>
 #include <future>
+#include <latch>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -18,21 +19,21 @@ public:
     void thread_loop();
     void terminate();
 
-    [[nodiscard]] std::future<void> set_position(const GameState& position);
-    [[nodiscard]] std::future<void> reset_new_search();
-    [[nodiscard]] std::future<void> reset_new_game();
-    [[nodiscard]] std::future<void> start_searching(const BasicMoveList& root_move_whitelist);
-    [[nodiscard]] std::future<void> update_previous_search_score(Score previous_search_score);
+    void set_position(std::latch& latch, const GameState& position);
+    void reset_new_search(std::latch& latch);
+    void reset_new_game(std::latch& latch);
+    void start_searching(std::latch& latch, const BasicMoveList& root_move_whitelist);
+    void update_previous_search_score(std::latch& latch, Score previous_search_score);
 
     const SearchLocalState& get_local_state();
 
 private:
     std::mutex mutex;
     std::condition_variable cv;
-    std::queue<std::packaged_task<void()>> tasks;
+    std::queue<std::function<void()>> tasks;
     bool stop = false;
 
-    std::future<void> enqueue_task(std::function<void()> func);
+    void enqueue_task(std::function<void()> func);
 
     const int thread_id_;
     SearchSharedState& shared_state;
