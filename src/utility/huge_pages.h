@@ -1,13 +1,11 @@
 #pragma once
 
 #include <cstddef>
-#include <errhandlingapi.h>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <type_traits>
-#include <winbase.h>
 
 #ifdef __linux__
 #include <sys/mman.h>
