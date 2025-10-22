@@ -22,15 +22,51 @@ template <typename T>
 T* allocate_huge_page(std::size_t size)
 {
 #ifdef __linux__
+    // Use 2MB transparant huge pages
     T* data = static_cast<T*>(std::aligned_alloc(2 * 1024 * 1024, size));
     if (!data)
     {
-        std::cout << "Failed to allocate huge page" << std::endl;
+        std::cerr << "Failed to allocate huge page" << std::endl;
         std::terminate();
     }
     madvise(data, size, MADV_HUGEPAGE);
     return data;
 #elif defined(_WIN32)
+    // 1. Obtain the SeLockMemoryPrivilege privilege by calling the AdjustTokenPrivileges function. For more
+    //    information, see Assigning Privileges to an Account and Changing Privileges in a Token.
+    // 2. Retrieve the minimum large-page size by calling the GetLargePageMinimum function.
+    // 3. Include the MEM_LARGE_PAGES value when calling the VirtualAlloc function. The size and alignment must be a
+    //    multiple of the large-page minimum.
+    HANDLE hToken;
+    TOKEN_PRIVILEGES tp;
+    LUID luid;
+
+    // Get the current process token
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+    {
+        std::cerr << "OpenProcessToken failed" << std::endl;
+        std::terminate();
+    }
+
+    // Get the LUID for the SeLockMemoryPrivilege
+    if (!LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid))
+    {
+        std::cerr << "LookupPrivilegeValue failed" << std::endl;
+        std::terminate();
+    }
+
+    // Enable the SeLockMemoryPrivilege
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Luid = luid;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL))
+    {
+        std::cerr << "AdjustTokenPrivileges failed" << std::endl;
+        std::terminate();
+    }
+
+    // Now allocate the huge page
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
@@ -38,7 +74,7 @@ T* allocate_huge_page(std::size_t size)
         DWORD errorMessageID = ::GetLastError();
         if (errorMessageID == 0)
         {
-            std::cout << "Failed to allocate huge page" << std::endl;
+            std::cerr << "Failed to allocate huge page" << std::endl;
             std::terminate();
         }
 
@@ -48,7 +84,7 @@ T* allocate_huge_page(std::size_t size)
             errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
         std::string message(messageBuffer, size);
 
-        std::cout << "Failed to allocate huge page: " << messageBuffer << std::endl;
+        std::cerr << "Failed to allocate huge page: " << messageBuffer << std::endl;
         std::terminate();
     }
     return data;
@@ -56,7 +92,7 @@ T* allocate_huge_page(std::size_t size)
     T* data = static_cast<T*>(std::aligned_alloc(alignof(T), size));
     if (!data)
     {
-        std::cout << "Failed to allocate" << std::endl;
+        std::cerr << "Failed to allocate" << std::endl;
         std::terminate();
     }
     return data;
