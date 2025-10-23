@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
@@ -205,13 +206,13 @@ Square BoardState::get_king_sq(Side colour) const
 bool BoardState::is_empty(Square square) const
 {
     assert(square != N_SQUARES);
-    return ((get_pieces_bb() & SquareBB[square]) == 0);
+    return (mailbox[square] == N_PIECES);
 }
 
 bool BoardState::is_occupied(Square square) const
 {
     assert(square != N_SQUARES);
-    return (!is_empty(square));
+    return !is_empty(square);
 }
 
 Piece BoardState::get_square_piece(Square square) const
