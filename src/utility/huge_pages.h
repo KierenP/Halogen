@@ -23,7 +23,7 @@ template <typename T>
 T* allocate_huge_page(std::size_t size)
 {
 #ifdef __linux__
-    // Use 2MB transparant huge pages
+    // Use 2MB transparent huge pages
     T* data = static_cast<T*>(std::aligned_alloc(2 * 1024 * 1024, size));
     madvise(data, size, MADV_HUGEPAGE);
     return data;
