@@ -141,13 +141,20 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
                     = move_stability_scale_a * exp(-move_stability_scale_b * stable_best_move) + move_stability_base;
 
                 // score stability time management
-                const auto score_stability_factor = score_stability_base
+                const auto score_stability_factor_1 = score_stability_base
                     + score_stability_range
                         / (1
                             + exp(-score_stability_scale
                                 * (float)(local.prev_search_score.value() - score.value() - score_stability_offset)));
 
-                search_time_usage_scale = node_factor * stability_factor * score_stability_factor;
+                const auto score_stability_factor_2 = score_stability_base
+                    + score_stability_range
+                        / (1
+                            + exp(-score_stability_scale
+                                * (float)(prev_id_score.value() - score.value() - score_stability_offset)));
+
+                search_time_usage_scale
+                    = node_factor * stability_factor * score_stability_factor_1 * score_stability_factor_2;
             }
 
             if (shared.limits.time
