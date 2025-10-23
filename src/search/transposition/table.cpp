@@ -10,21 +10,13 @@
 #include <thread>
 #include <vector>
 
-#ifdef __linux__
-#include <sys/mman.h>
-#endif
-
 #include "bitboard/define.h"
 #include "movegen/move.h"
 #include "search/transposition/entry.h"
+#include "utility/huge_pages.h"
 
 namespace Transposition
 {
-
-Table::~Table()
-{
-    dealloc();
-}
 
 void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
     int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
@@ -144,40 +136,8 @@ void Table::clear(int thread_count)
 void Table::set_size(uint64_t MB, int thread_count)
 {
     size_ = MB * 1024 * 1024 / sizeof(Bucket);
-    realloc(thread_count);
-}
-
-void Table::realloc(int thread_count)
-{
-    dealloc();
-
-#ifdef __linux__
-    constexpr static size_t huge_page_size = 2 * 1024 * 1024;
-    const size_t bytes = size_ * sizeof(Bucket);
-    table = static_cast<Bucket*>(std::aligned_alloc(huge_page_size, bytes));
-    madvise(table, bytes, MADV_HUGEPAGE);
-    std::uninitialized_default_construct_n(table, size_);
-#else
-    table = new Bucket[size_];
-#endif
-
+    table = make_unique_for_overwrite_huge_page<Bucket[]>(size_);
     clear(thread_count);
-}
-
-void Table::dealloc()
-{
-#ifdef __linux__
-    if (table)
-    {
-        std::destroy_n(table, size_);
-        std::free(table);
-    }
-#else
-    if (table)
-    {
-        delete[] table;
-    }
-#endif
 }
 
 void Table::prefetch(uint64_t key) const
