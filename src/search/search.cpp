@@ -937,10 +937,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
     // new nodes in the tree at high depths
-    if (!tt_entry && depth > iid_depth)
-    {
-        depth--;
-    }
 
     // Step 10: Static null move pruning (a.k.a reverse futility pruning)
     //
