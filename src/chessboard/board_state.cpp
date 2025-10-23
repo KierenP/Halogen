@@ -212,7 +212,7 @@ bool BoardState::is_empty(Square square) const
 bool BoardState::is_occupied(Square square) const
 {
     assert(square != N_SQUARES);
-    return (mailbox[square] != N_PIECES);
+    return !is_empty(square);
 }
 
 Piece BoardState::get_square_piece(Square square) const
