@@ -867,7 +867,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 #ifdef TEST_UPCOMING_CYCLE_DETECTION
     test_upcoming_cycle_detection(position, distance_from_root);
 #endif
-    if (!root_node && alpha < 0 && position.upcoming_rep(distance_from_root))
+    if (!root_node && ss->singular_exclusion == Move::Uninitialized && alpha < 0
+        && position.upcoming_rep(distance_from_root))
     {
         alpha = 0;
         if (alpha >= beta)
