@@ -37,35 +37,17 @@ T* allocate_huge_page(std::size_t size)
     TOKEN_PRIVILEGES tp;
     LUID luid;
 
-    // In case of a failed huge page allocation, we print a error message only the first time
-    static std::once_flag print_error_once_flag;
-    auto print_error = [](std::string_view context, DWORD error)
-    {
-        LPSTR messageBuffer = nullptr;
-        FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-        std::cerr << "info string unable to use huge pages, falling back to regular allocation. " << context
-                  << " failed: " << messageBuffer;
-        LocalFree(messageBuffer);
-    };
-
-    auto fallback_to_regular_alloc = [&](std::string_view context, DWORD error)
-    {
-        std::call_once(print_error_once_flag, print_error, context, error);
-        CloseHandle(hToken);
-        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
-    };
-
     // Get the current process token
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
     {
-        return fallback_to_regular_alloc("OpenProcessToken", GetLastError());
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
 
     // Get the LUID for the SeLockMemoryPrivilege
     if (!LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid))
     {
-        return fallback_to_regular_alloc("LookupPrivilegeValue", GetLastError());
+        CloseHandle(hToken);
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
 
     // Enable the SeLockMemoryPrivilege
@@ -75,14 +57,16 @@ T* allocate_huge_page(std::size_t size)
 
     if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL))
     {
-        return fallback_to_regular_alloc("AdjustTokenPrivileges", GetLastError());
+        CloseHandle(hToken);
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
 
     // Now allocate the huge page
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
-        return fallback_to_regular_alloc("VirtualAlloc", GetLastError());
+        CloseHandle(hToken);
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
     CloseHandle(hToken);
     return data;
