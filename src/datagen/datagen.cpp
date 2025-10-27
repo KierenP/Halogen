@@ -177,6 +177,15 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
     std::vector<std::tuple<int16_t, Move>> score_moves;
     float result = -1;
 
+    constexpr static int win_adjudication_score = 750;
+    constexpr static int win_adjudication_plys = 6;
+    constexpr static int draw_adjudication_score = 10;
+    constexpr static int draw_adjudication_plys = 12;
+
+    int white_win_adj_count = 0;
+    int black_win_adj_count = 0;
+    int draw_adj_count = 0;
+
     while (true)
     {
         // check for a terminal position
@@ -239,6 +248,56 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
         const auto best_move = search_result.pv[0];
         const auto score = search_result.score.value();
         score_moves.emplace_back(score, best_move);
+        auto white_relative_score = (position.board().stm == WHITE ? score : -score);
+
+        // perform win adjudication
+        if (white_relative_score > win_adjudication_score)
+        {
+            white_win_adj_count++;
+        }
+        else
+        {
+            white_win_adj_count = 0;
+        }
+
+        if (white_relative_score < -win_adjudication_score)
+        {
+            black_win_adj_count++;
+        }
+        else
+        {
+            black_win_adj_count = 0;
+        }
+
+        // perform draw adjudication
+        if (std::abs(white_relative_score) < draw_adjudication_score)
+        {
+            draw_adj_count++;
+        }
+        else
+        {
+            draw_adj_count = 0;
+        }
+
+        if (white_win_adj_count >= win_adjudication_plys)
+        {
+            result = 1.f;
+            white_wins++;
+            break;
+        }
+        else if (black_win_adj_count >= win_adjudication_plys)
+        {
+            result = 0.f;
+            black_wins++;
+            break;
+        }
+        else if (draw_adj_count >= draw_adjudication_plys)
+        {
+            result = 0.5f;
+            draws++;
+            break;
+        }
+
         position.apply_move(best_move);
     }
 
