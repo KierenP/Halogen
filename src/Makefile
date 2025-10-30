@@ -1,13 +1,21 @@
-LLVM_PROFDATA := llvm-profdata
+#----------------------------------------------------------------------------------------------------------------------
+# Project Configuration
+#----------------------------------------------------------------------------------------------------------------------
 
+PROJECT := Halogen
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
+# Network configuration
 ifndef EVALFILE
     NET_HASH := 637096c1
     EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
     NO_EVALFILE_SET = true
 endif
+
+#----------------------------------------------------------------------------------------------------------------------
+# Source Files
+#----------------------------------------------------------------------------------------------------------------------
 
 SRCS := \
     main.cpp \
@@ -36,222 +44,203 @@ SRCS := \
     datagen/datagen.cpp \
     datagen/encode.cpp
 
-# String substitution for every C/C++ file.
-# As an example, hello.cpp turns into ./build/hello.cpp.o
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 #----------------------------------------------------------------------------------------------------------------------
-# Define compiler flags and instruction sets
-
-WFLAGS = -Wall -Wextra -Wshadow -Wno-missing-field-initializers
-AFLAGS = $(WFLAGS) -I. -g -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
-CFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto -march=native
-RFLAGS = -O3 $(AFLAGS) -DNDEBUG -flto
-# only enable Werror on debug builds, so we don't cause issues for people compiling Halogen on a different compiler
-SFLAGS = -O1 $(AFLAGS) -Werror -fno-omit-frame-pointer
-DFLAGS = -O0 $(AFLAGS) -Werror
-
-LDFLAGS += -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-
-LDFLAGS += $(EXTRA_LDFLAGS)
-CXXFLAGS += $(EXTRA_CXXFLAGS)
-
-# Different instruction sets targeting different architectures.
-
-# AMD processors before Zen 3 implement PEXT in microcode, so we support bmi as a optional orthogonal configuration for AVX2
-# For AVX512 and above, we use PEXT as a default instruction set
-PEXTFLAGS = -DUSE_PEXT -mbmi -mbmi2
-
-# Nehalem (2008)
-SSE4FLAGS = -DUSE_SSE4 -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2
-# Sandy Bridge (2011)
-AVXFLAGS = -DUSE_AVX $(SSE4FLAGS) -mavx -mfma
-# Haswell (2013)
-AVX2FLAGS = -DUSE_AVX2 $(AVXFLAGS) -mavx2 -DUSE_POPCNT -mpopcnt
-# Skylake (2017)
-AVX512FLAGS = -DUSE_AVX512 $(PEXTFLAGS) $(AVX2FLAGS) -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
-# Skylake (2019)
-AVX512VNNIFLAGS = -DUSE_AVX512_VNNI $(PEXTFLAGS) $(AVX512FLAGS) -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
-
+# Platform and Compiler Detection
 #----------------------------------------------------------------------------------------------------------------------
-# OS and compiler specific flags
 
-# Detect OS
-ifeq ($(OS),Windows_NT) # is Windows_NT on XP, 2000, 7, Vista, 10...
-    detected_OS := Windows
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS := Windows
 else
-    detected_OS := $(shell uname)
+    DETECTED_OS := $(shell uname)
 endif
 
-$(info detected OS is [${detected_OS}])
-
-# Many users on windows use a environment to build so we must link statically
-ifeq ($(detected_OS),Windows)
-    LDFLAGS += -static
-endif
+$(info Detected OS: $(DETECTED_OS))
 
 ifeq ($(findstring clang++, $(CXX)),)
-    PGOGEN = -fprofile-generate
-    PGOUSE = -fprofile-use -fprofile-partial-training
-    CXXFLAGS += -Wno-interference-size
-    $(info detected compiler is [g++])
+    COMPILER := gcc
+    $(info Detected compiler: g++)
 else
-    PGOGEN = -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
-    PGOMERGE = $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
-    PGOUSE = -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
-    $(info detected compiler is [clang++])
+    COMPILER := clang
+    $(info Detected compiler: clang++)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
-# Optimized native builds, including PGO optimization. Detects supported instruction sets on the target
+# Base Compiler Flags
+#----------------------------------------------------------------------------------------------------------------------
 
-SUPPORTED = $(shell echo | $(CC) -march=native -E -dM -)
+WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers
+BASE_FLAGS := $(WARN_FLAGS) -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
+
+# Optimization levels
+OPT_NONE := -O0
+OPT_SANITIZE := -O1
+OPT_RELEASE := -O3
+
+# Common flag sets
+DEBUG_FLAGS := $(OPT_NONE) $(BASE_FLAGS) -g -Werror
+SANITIZE_FLAGS := $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer
+RELEASE_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto
+NATIVE_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto -march=native
+
+#----------------------------------------------------------------------------------------------------------------------
+# Linker Flags
+#----------------------------------------------------------------------------------------------------------------------
+
+BASE_LDFLAGS := -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+BASE_LDFLAGS += $(EXTRA_LDFLAGS)
+
+ifeq ($(DETECTED_OS),Windows)
+    STATIC_LDFLAGS := -static
+endif
+
+#----------------------------------------------------------------------------------------------------------------------
+# Instruction Set Flags
+#----------------------------------------------------------------------------------------------------------------------
+
+PEXT_FLAGS := -DUSE_PEXT -mbmi -mbmi2
+POPCNT_FLAGS := -DUSE_POPCNT -mpopcnt
+
+# Nehalem (2008)
+SSE4_FLAGS := -DUSE_SSE4 -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2
+
+# Sandy Bridge (2011)
+AVX_FLAGS := -DUSE_AVX $(SSE4_FLAGS) -mavx -mfma
+
+# Haswell (2013)
+AVX2_FLAGS := -DUSE_AVX2 $(AVX_FLAGS) $(POPCNT_FLAGS) -mavx2
+
+# Skylake (2017)
+AVX512_FLAGS := -DUSE_AVX512 $(PEXT_FLAGS) $(AVX2_FLAGS) -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
+
+# Skylake (2019)
+AVX512VNNI_FLAGS := -DUSE_AVX512_VNNI $(AVX512_FLAGS) -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
+
+#----------------------------------------------------------------------------------------------------------------------
+# PGO Configuration
+#----------------------------------------------------------------------------------------------------------------------
+
+LLVM_PROFDATA := llvm-profdata
+
+ifeq ($(COMPILER),gcc)
+    PGO_GEN := -fprofile-generate
+    PGO_USE := -fprofile-use -fprofile-partial-training
+    CXXFLAGS += -Wno-interference-size
+else
+    PGO_GEN := -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
+    PGO_MERGE := $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
+    PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
+endif
+
+#----------------------------------------------------------------------------------------------------------------------
+# Native CPU Feature Detection
+#----------------------------------------------------------------------------------------------------------------------
+
+SUPPORTED := $(shell echo | $(CC) -march=native -E -dM -)
+
+NATIVE_ARCH_FLAGS :=
 
 ifneq ($(findstring __POPCNT__, $(SUPPORTED)),)
-    CFLAGS += -DUSE_POPCNT
+    NATIVE_ARCH_FLAGS += -DUSE_POPCNT
 endif
 
 ifneq ($(findstring __BMI2__, $(SUPPORTED)),)
     ifeq ($(findstring __znver1, $(SUPPORTED)),)
         ifeq ($(findstring __znver2, $(SUPPORTED)),)
-            CFLAGS += -DUSE_PEXT
+            NATIVE_ARCH_FLAGS += -DUSE_PEXT
         endif
     endif
 endif
 
 ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
     ifeq ($(findstring __znver4, $(SUPPORTED)),)
-        CFLAGS += -DUSE_AVX512_VNNI
+        NATIVE_ARCH_FLAGS += -DUSE_AVX512_VNNI
     endif
 endif
 
 ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
-    CFLAGS += -DUSE_AVX512
+    NATIVE_ARCH_FLAGS += -DUSE_AVX512
 endif
 ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
-    CFLAGS += -DUSE_AVX2
+    NATIVE_ARCH_FLAGS += -DUSE_AVX2
 endif
 ifneq ($(findstring __AVX__, $(SUPPORTED)),)
-    CFLAGS += -DUSE_AVX
+    NATIVE_ARCH_FLAGS += -DUSE_AVX
 endif
 ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
-    CFLAGS += -DUSE_SSE4
+    NATIVE_ARCH_FLAGS += -DUSE_SSE4
 endif
+
+#----------------------------------------------------------------------------------------------------------------------
+# Build Target Template
+#----------------------------------------------------------------------------------------------------------------------
+
+# Usage: $(call BUILD_TARGET,name,cxxflags,ldflags,verbatim_flags)
+define BUILD_TARGET
+.PHONY: $(1)
+$(1): EXE = $(BINARY_DIR)/$(PROJECT)-$(1)
+$(1): CXXFLAGS += $(2) $(EXTRA_CXXFLAGS)
+$(1): LDFLAGS += $(BASE_LDFLAGS) $(3)
+$(1): VERBATIM_FLAGS = $(4)
+$(1): verbatim_binary binary
+endef
+
+#----------------------------------------------------------------------------------------------------------------------
+# Native and PGO Builds
+#----------------------------------------------------------------------------------------------------------------------
 
 .PHONY: pgo pgo-instrumented pgo-compile native
 
-pgo: VERBATIM_FLAGS=$(CFLAGS)
 pgo: verbatim_binary
 	$(MAKE) pgo-instrumented
 	$(MAKE) pgo-compile
 
-pgo-instrumented: VERBATIM_FLAGS=$(CFLAGS)
-pgo-instrumented: CXXFLAGS += $(CFLAGS) $(PGOGEN) -fno-lto
-pgo-instrumented: LDFLAGS += $(PGOGEN) -fno-lto
-pgo-instrumented: EXE = $(BUILD_DIR)/Halogen-pgo-instrumented
+pgo-instrumented: EXE = $(BUILD_DIR)/$(PROJECT)-pgo-instrumented
+pgo-instrumented: VERBATIM_FLAGS = $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)
+pgo-instrumented: CXXFLAGS += $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) $(PGO_GEN) -fno-lto $(EXTRA_CXXFLAGS)
+pgo-instrumented: LDFLAGS += $(BASE_LDFLAGS) $(PGO_GEN) -fno-lto
 pgo-instrumented: binary
 	./$(EXE) bench
-	$(PGOMERGE)
+	 $(PGO_MERGE)
 
-pgo-compile: VERBATIM_FLAGS=$(CFLAGS)
-pgo-compile: CXXFLAGS += $(CFLAGS) $(PGOUSE)
-pgo-compile: LDFLAGS += -flto $(PGOUSE)
-pgo-compile: EXE = $(BINARY_DIR)/Halogen-pgo
-pgo-compile: binary
+pgo-compile: EXE = $(BINARY_DIR)/$(PROJECT)-pgo
+pgo-compile: VERBATIM_FLAGS = $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)
+pgo-compile: CXXFLAGS += $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) $(PGO_USE) $(EXTRA_CXXFLAGS)
+pgo-compile: LDFLAGS += $(BASE_LDFLAGS) -flto $(PGO_USE)
+pgo-compile: verbatim_binary binary
 
-native: VERBATIM_FLAGS=$(CFLAGS)
-native: CXXFLAGS += $(CFLAGS)
-native: LDFLAGS += -flto
-native: EXE = $(BINARY_DIR)/Halogen-native
-native: verbatim_binary binary
+$(eval $(call BUILD_TARGET,native,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS),-flto,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)))
 
 #----------------------------------------------------------------------------------------------------------------------
-# Debug and sanitizer builds
+# Debug and Sanitizer Builds
+#----------------------------------------------------------------------------------------------------------------------
 
-.PHONY: debug sanitize-address sanitize-undefined sanitize-thread tune shuffle
-
-debug: VERBATIM_FLAGS=$(AFLAGS)
-debug: CXXFLAGS += $(DFLAGS)
-debug: EXE = $(BINARY_DIR)/Halogen-debug
-debug: verbatim_binary binary
-
-sanitize-address: VERBATIM_FLAGS=$(AFLAGS)
-sanitize-address: CXXFLAGS += $(SFLAGS) -fsanitize=address
-sanitize-address: LDFLAGS += -fsanitize=address
-sanitize-address: EXE = $(BINARY_DIR)/Halogen-sanitize-address
-sanitize-address: verbatim_binary binary
-
-sanitize-undefined: VERBATIM_FLAGS=$(AFLAGS)
-sanitize-undefined: CXXFLAGS += $(SFLAGS) -fsanitize=undefined
-sanitize-undefined: LDFLAGS += -fsanitize=undefined
-sanitize-undefined: EXE = $(BINARY_DIR)/Halogen-sanitize-undefined
-sanitize-undefined: verbatim_binary binary
-
-sanitize-thread: VERBATIM_FLAGS=$(AFLAGS)
-sanitize-thread: CXXFLAGS += $(SFLAGS) -fsanitize=thread
-sanitize-thread: LDFLAGS += -fsanitize=thread
-sanitize-thread: EXE = $(BINARY_DIR)/Halogen-sanitize-thread
-sanitize-thread: verbatim_binary binary
-
-tune: VERBATIM_FLAGS=$(CFLAGS)
-tune: CXXFLAGS += $(CFLAGS) -DTUNE
-tune: LDFLAGS += -flto
-tune: EXE = $(BINARY_DIR)/Halogen-tune
-tune: verbatim_binary binary
-
-shuffle: VERBATIM_FLAGS=$(CFLAGS) -DNETWORK_SHUFFLE
-shuffle: CXXFLAGS += $(CFLAGS) -DNETWORK_SHUFFLE -fopenmp
-shuffle: LDFLAGS += -flto -fopenmp
-shuffle: EXE = $(BINARY_DIR)/Halogen-shuffle
-shuffle: verbatim_binary binary
+$(eval $(call BUILD_TARGET,debug,$(DEBUG_FLAGS),,$(BASE_FLAGS) -g))
+$(eval $(call BUILD_TARGET,sanitize-address,$(SANITIZE_FLAGS) -fsanitize=address,-fsanitize=address,$(BASE_FLAGS) -g))
+$(eval $(call BUILD_TARGET,sanitize-undefined,$(SANITIZE_FLAGS) -fsanitize=undefined,-fsanitize=undefined,$(BASE_FLAGS) -g))
+$(eval $(call BUILD_TARGET,sanitize-thread,$(SANITIZE_FLAGS) -fsanitize=thread,-fsanitize=thread,$(BASE_FLAGS) -g))
 
 #----------------------------------------------------------------------------------------------------------------------
-# Release builds that are statically linked and target specific instruction sets
+# Special Builds
+#----------------------------------------------------------------------------------------------------------------------
 
-.PHONY: legacy sse4 avx avx2 avx2-pext avx512 avx512vnni release
+$(eval $(call BUILD_TARGET,tune,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) -DTUNE,-flto,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)))
+$(eval $(call BUILD_TARGET,shuffle,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) -DNETWORK_SHUFFLE -fopenmp,-flto -fopenmp,$(NATIVE_FLAGS) -DNETWORK_SHUFFLE))
 
-legacy: VERBATIM_FLAGS=$(AFLAGS)
-legacy: CXXFLAGS += $(RFLAGS)
-legacy: LDFLAGS += -flto -static 
-legacy: EXE = $(BINARY_DIR)/Halogen-legacy
-legacy: verbatim_binary binary
+#----------------------------------------------------------------------------------------------------------------------
+# Release Builds for Specific Architectures
+#----------------------------------------------------------------------------------------------------------------------
 
-sse4: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4
-sse4: CXXFLAGS += $(RFLAGS) $(SSE4FLAGS)
-sse4: LDFLAGS += -flto -static 
-sse4: EXE = $(BINARY_DIR)/Halogen-sse4
-sse4: verbatim_binary binary
+$(eval $(call BUILD_TARGET,legacy,$(RELEASE_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE)))
+$(eval $(call BUILD_TARGET,sse4,$(RELEASE_FLAGS) $(SSE4_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4))
+$(eval $(call BUILD_TARGET,avx,$(RELEASE_FLAGS) $(AVX_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX))
+$(eval $(call BUILD_TARGET,avx2,$(RELEASE_FLAGS) $(AVX2_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2))
+$(eval $(call BUILD_TARGET,avx2-pext,$(RELEASE_FLAGS) $(AVX2_FLAGS) $(PEXT_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT))
+$(eval $(call BUILD_TARGET,avx512,$(RELEASE_FLAGS) $(AVX512_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512))
+$(eval $(call BUILD_TARGET,avx512vnni,$(RELEASE_FLAGS) $(AVX512VNNI_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI))
 
-avx: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX
-avx: CXXFLAGS += $(RFLAGS) $(AVXFLAGS)
-avx: LDFLAGS += -flto -static 
-avx: EXE = $(BINARY_DIR)/Halogen-avx
-avx: verbatim_binary binary
-
-avx2: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2
-avx2: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS)
-avx2: LDFLAGS += -flto -static 
-avx2: EXE = $(BINARY_DIR)/Halogen-avx2
-avx2: verbatim_binary binary
-
-avx2-pext: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT
-avx2-pext: CXXFLAGS += $(RFLAGS) $(AVX2FLAGS) $(PEXTFLAGS)
-avx2-pext: LDFLAGS += -flto -static 
-avx2-pext: EXE = $(BINARY_DIR)/Halogen-avx2-pext
-avx2-pext: verbatim_binary binary
-
-avx512: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512
-avx512: CXXFLAGS += $(RFLAGS) $(AVX512FLAGS) $(PEXTFLAGS)
-avx512: LDFLAGS += -flto -static 
-avx512: EXE = $(BINARY_DIR)/Halogen-avx512
-avx512: verbatim_binary binary
-
-avx512vnni: VERBATIM_FLAGS=$(AFLAGS) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI
-avx512vnni: CXXFLAGS += $(RFLAGS) $(AVX512VNNIFLAGS) $(PEXTFLAGS)
-avx512vnni: LDFLAGS += -flto -static 
-avx512vnni: EXE = $(BINARY_DIR)/Halogen-avx512vnni
-avx512vnni: verbatim_binary binary
-
+.PHONY: release
 release:
 	$(MAKE) legacy
 	$(MAKE) sse4
@@ -262,6 +251,8 @@ release:
 	$(MAKE) avx512vnni
 
 #----------------------------------------------------------------------------------------------------------------------
+# Network File Management
+#----------------------------------------------------------------------------------------------------------------------
 
 $(EVALFILE):
 ifdef NO_EVALFILE_SET
@@ -270,13 +261,20 @@ ifdef NO_EVALFILE_SET
 	curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
 endif
 
+#----------------------------------------------------------------------------------------------------------------------
+# Verbatim Binary (Network Embedding)
+#----------------------------------------------------------------------------------------------------------------------
+
+.PHONY: verbatim_binary
 verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
 	@ mkdir -p $(BUILD_DIR)
-	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(LDFLAGS)
+	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
 
 $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
 	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
 
+#----------------------------------------------------------------------------------------------------------------------
+# Build Rules
 #----------------------------------------------------------------------------------------------------------------------
 
 .PHONY: binary
@@ -288,11 +286,14 @@ $(BUILD_DIR)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-.PHONY: clean_build
+#----------------------------------------------------------------------------------------------------------------------
+# Utility Targets
+#----------------------------------------------------------------------------------------------------------------------
+
+.PHONY: clean clean_build
 clean_build:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: clean
 clean: clean_build
 	rm -rf $(BINARY_DIR)
 
