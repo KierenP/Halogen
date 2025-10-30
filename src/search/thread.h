@@ -37,7 +37,7 @@ private:
 
     const int thread_id_;
     SearchSharedState& shared_state;
-    std::unique_ptr<SearchLocalState> local_state;
+    unique_ptr_huge_page<SearchLocalState> local_state;
 };
 
 class SearchThreadPool
