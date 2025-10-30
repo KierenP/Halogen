@@ -44,7 +44,7 @@ T* allocate_huge_page(std::size_t size)
     }
 
     // Get the LUID for the SeLockMemoryPrivilege
-    if (!LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid))
+    if (!LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
     {
         CloseHandle(hToken);
         return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
@@ -55,11 +55,12 @@ T* allocate_huge_page(std::size_t size)
     tp.Privileges[0].Luid = luid;
     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL))
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), nullptr, nullptr))
     {
         CloseHandle(hToken);
         return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
+
     // Even if AdjustTokenPrivileges returns success, must check GetLastError for ERROR_NOT_ALL_ASSIGNED
     if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
     {
@@ -70,7 +71,8 @@ T* allocate_huge_page(std::size_t size)
     // Now allocate the huge page
     SIZE_T largePageMinimum = GetLargePageMinimum();
     SIZE_T roundedSize = ((size + largePageMinimum - 1) / largePageMinimum) * largePageMinimum;
-    T* data = static_cast<T*>(VirtualAlloc(nullptr, roundedSize, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
+    T* data = static_cast<T*>(
+        VirtualAlloc(nullptr, roundedSize, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
         CloseHandle(hToken);
