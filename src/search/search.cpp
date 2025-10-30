@@ -67,10 +67,8 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 {
     auto* ss = local.search_stack.root();
     auto* acc = local.acc_stack.root();
-    Score mid_score = 0;
     Move prev_id_best_move = Move::Uninitialized;
     int stable_best_move = 0;
-    Score prev_id_score = 0;
     RootMove prev_id_root_move;
 
     for (int depth = 1; depth < MAX_ITERATIVE_DEEPENING; depth++)
@@ -86,8 +84,9 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
         for (int multi_pv = 1; multi_pv <= shared.get_multi_pv_setting(); multi_pv++)
         {
+            const auto aspiration_window_mid = (depth == 1 && multi_pv == 1) ? Score(0) : local.root_moves[0].score;
             local.curr_multi_pv = multi_pv;
-            auto score = aspiration_window(position, ss, acc, local, shared, mid_score);
+            auto score = aspiration_window(position, ss, acc, local, shared, aspiration_window_mid);
 
             // sort the multi-pv lines we've completed for this depth
             std::ranges::stable_sort(
@@ -122,8 +121,6 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 
             if (multi_pv == 1)
             {
-                mid_score = score;
-
                 // node based time management
                 const auto node_factor
                     = node_tm_base + node_tm_scale * (1 - float(local.root_moves[0].effort) / float(local.nodes));
@@ -158,14 +155,14 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
             }
         }
 
-        if (shared.limits.mate && Score::Limits::MATE - abs(mid_score.value()) <= shared.limits.mate.value() * 2)
+        prev_id_best_move = ss->pv[0];
+        prev_id_root_move = local.root_moves[0];
+
+        if (shared.limits.mate
+            && Score::Limits::MATE - abs(local.root_moves[0].score.value()) <= shared.limits.mate.value() * 2)
         {
             return;
         }
-
-        prev_id_best_move = ss->pv[0];
-        prev_id_score = mid_score;
-        prev_id_root_move = local.root_moves[0];
     }
 }
 
