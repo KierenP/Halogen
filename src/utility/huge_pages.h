@@ -60,6 +60,12 @@ T* allocate_huge_page(std::size_t size)
         CloseHandle(hToken);
         return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
     }
+    // Even if AdjustTokenPrivileges returns success, must check GetLastError for ERROR_NOT_ALL_ASSIGNED
+    if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+    {
+        CloseHandle(hToken);
+        return static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+    }
 
     // Now allocate the huge page
     T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
