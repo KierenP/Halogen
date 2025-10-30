@@ -68,7 +68,9 @@ T* allocate_huge_page(std::size_t size)
     }
 
     // Now allocate the huge page
-    T* data = static_cast<T*>(VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
+    SIZE_T largePageMinimum = GetLargePageMinimum();
+    SIZE_T roundedSize = ((size + largePageMinimum - 1) / largePageMinimum) * largePageMinimum;
+    T* data = static_cast<T*>(VirtualAlloc(nullptr, roundedSize, MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE));
     if (!data)
     {
         CloseHandle(hToken);
