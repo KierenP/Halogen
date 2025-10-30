@@ -881,7 +881,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // In a multithreaded search, it's possible for these not to match, and that would impact the root move sorting
     // behaviour in rare cases
-    const auto tt_move = root_node ? local.root_moves[0].move : tt_move_table;
+    const auto tt_move = root_node ? local.root_moves[local.curr_multi_pv - 1].move : tt_move_table;
 
     // Step 5: Generalized TT cutoffs
     //
