@@ -45,7 +45,8 @@ TUNEABLE_CONSTANT int nmp_d = 7;
 TUNEABLE_CONSTANT int nmp_s = 253;
 TUNEABLE_CONSTANT int nmp_sd = 6;
 
-TUNEABLE_CONSTANT int iid_depth = 1;
+TUNEABLE_CONSTANT int iid_no_tt_depth = 1;
+TUNEABLE_CONSTANT int iid_no_move_depth = 6;
 
 TUNEABLE_CONSTANT auto se_sbeta_depth = Fraction<64>::from_raw(49);
 TUNEABLE_CONSTANT int se_double = 0;
