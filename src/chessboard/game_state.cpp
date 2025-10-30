@@ -174,7 +174,7 @@ void GameState::update_current_position_repetition()
     }
 }
 
-bool GameState::upcoming_rep(int distanceFromRoot) const
+bool GameState::upcoming_rep(int distanceFromRoot, Move excluded_move) const
 {
     const int i = (int)previousStates.size() - 1;
     const int max_ply = std::min(i, previousStates[i].fifty_move_count);
@@ -205,7 +205,7 @@ bool GameState::upcoming_rep(int distanceFromRoot) const
         if (Cuckoo::table[hash] == diff || (hash = Cuckoo::H2(diff), Cuckoo::table[hash] == diff))
         {
             const auto move = Cuckoo::move_table[hash];
-            if ((occ & BetweenBB[move.from()][move.to()]) == EMPTY)
+            if (move != excluded_move && path_clear(move.from(), move.to(), occ))
             {
                 // two fold rep after root
                 if (ply < distanceFromRoot)
