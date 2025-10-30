@@ -15,7 +15,7 @@
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
     : thread_id_(thread_id)
     , shared_state(shared_state_)
-    , local_state(std::make_unique<SearchLocalState>(thread_id))
+    , local_state(make_unique_huge_page<SearchLocalState>(thread_id))
 {
 }
 

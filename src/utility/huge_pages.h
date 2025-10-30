@@ -24,7 +24,9 @@ T* allocate_huge_page(std::size_t size)
 {
 #ifdef __linux__
     // Use 2MB transparent huge pages
-    T* data = static_cast<T*>(std::aligned_alloc(2 * 1024 * 1024, size));
+    constexpr static auto huge_page_size = 2 * 1024 * 1024;
+    size = ((size + huge_page_size - 1) / huge_page_size) * huge_page_size;
+    T* data = static_cast<T*>(std::aligned_alloc(huge_page_size, size));
     madvise(data, size, MADV_HUGEPAGE);
     return data;
 #elif defined(_WIN32)
