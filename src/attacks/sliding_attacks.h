@@ -199,7 +199,7 @@ struct BMI2Strategy
     }
 };
 
-// Idea from CFish, we can use pdep to store compressed attack bitboards which saves 75% space
+// Idea by Zach Wegner, we can use pdep to store compressed attack bitboards which saves 75% space
 template <typename Traits>
 struct BMI2CompressedStrategy
 {
