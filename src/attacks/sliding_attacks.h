@@ -256,8 +256,8 @@ struct BMI2CompressedStrategy
 using RookAttackStrategy = BMI2CompressedStrategy<BMI2RookTraits>; // 201KB
 using BishopAttackStrategy = BMI2Strategy<BMI2BishopTraits>; // 42KB
 #else
-using RookAttackStratgy = FancyMagicStrategy<FancyMagicRookTraits>; // 801KB
-using BishopAttackStategy = FancyMagicStrategy<FancyMagicBishopTraits>; // 42KB
+using RookAttackStrategy = FancyMagicStrategy<FancyMagicRookTraits>; // 801KB
+using BishopAttackStrategy = FancyMagicStrategy<FancyMagicBishopTraits>; // 42KB
 #endif
 
 const RookAttackStrategy RookSlidingAttacks;
