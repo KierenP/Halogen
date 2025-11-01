@@ -145,6 +145,12 @@ public:
         f.value_ = raw;
         return f;
     }
+
+    template <int64_t NewPrecision>
+    [[nodiscard]] constexpr Fraction<NewPrecision> rescale() const
+    {
+        return Fraction<NewPrecision>::from_raw(raw() * NewPrecision / precision());
+    }
 };
 
 // Arithmetic operators between Fractions of different precisions
@@ -345,6 +351,12 @@ constexpr Fraction<Precision> abs(const Fraction<Precision>& f)
     return f.raw() >= 0 ? f : -f;
 }
 
+template <int64_t NewPrecision, int64_t OldPrecision>
+constexpr Fraction<NewPrecision> rescale(const Fraction<OldPrecision>& f)
+{
+    return f.template rescale<NewPrecision>();
+}
+
 // Compile-time tests
 namespace fraction_tests
 {
@@ -446,4 +458,7 @@ static_assert(test_compound_mul() == 1536);
 static_assert((8 / Fraction<4>::from_raw(3)).raw() == 170);
 static_assert((8 / Fraction<4>::from_raw(3)).precision() == 16);
 static_assert((8 / Fraction<4>::from_raw(3)).to_int() == 10);
+
+static_assert(rescale<512>(Fraction<256>::from_raw(123)).raw() == 246); // 123/256 = 246/512
+static_assert(rescale<256>(Fraction<512>::from_raw(123)).raw() == 61); // 123/512 = 61/256
 }
