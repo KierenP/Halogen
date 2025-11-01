@@ -1,16 +1,20 @@
 #pragma once
 
-#include "attacks/bmi2.h"
-#include "attacks/bmi2_compressed.h"
+#include "attacks/black_magic.h"
 #include "attacks/fancy_magic.h"
+#include "attacks/fancy_pdep.h"
+#include "attacks/fancy_pext.h"
 
 #ifdef USE_PEXT
-using RookAttackStrategy = BMI2CompressedStrategy<BMI2RookTraits>; // 201KB
-using BishopAttackStrategy = BMI2Strategy<BMI2BishopTraits>; // 42KB
+using RookAttackStrategy = RookFancyPDEPStrategy;
+using BishopAttackStrategy = BishopFancyPEXTStrategy;
 #else
-using RookAttackStrategy = FancyMagicStrategy<FancyMagicRookTraits>; // 801KB
-using BishopAttackStrategy = FancyMagicStrategy<FancyMagicBishopTraits>; // 42KB
+using RookAttackStrategy = RookFancyMagicStrategy;
+using BishopAttackStrategy = BishopFancyMagicStrategy;
 #endif
 
-const RookAttackStrategy RookSlidingAttacks;
-const BishopAttackStrategy BishopSlidingAttacks;
+// const RookAttackStrategy RookSlidingAttacks;
+// const BishopAttackStrategy BishopSlidingAttacks;
+
+const RookBlackMagicStrategy RookSlidingAttacks;
+const BishopBlackMagicStrategy BishopSlidingAttacks;

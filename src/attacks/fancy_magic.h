@@ -2,6 +2,9 @@
 
 #include "attacks/utility.h"
 
+// Magics by Grant Osborne, Volker Annuss, Niklas Fiekas, Peter Österlund, Gerd Isenberg, Richard Pijl
+// See https://www.chessprogramming.org/Best_Magics_so_far
+
 struct FancyMagicBishopTraits
 {
     constexpr static std::array<uint64_t, N_SQUARES> magics = {
@@ -25,7 +28,29 @@ struct FancyMagicBishopTraits
         // clang-format on
     };
 
-    constexpr static size_t table_size = 0x1480;
+    constexpr static std::array<size_t, N_SQUARES> used_bits = {
+        // clang-format off
+        5, 4, 5, 5, 5, 5, 4, 5,
+        4, 4, 5, 5, 5, 5, 4, 4,
+        4, 4, 7, 7, 7, 7, 4, 4,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        5, 5, 7, 9, 9, 7, 5, 5,
+        4, 4, 7, 7, 7, 7, 4, 4,
+        4, 4, 5, 5, 5, 5, 4, 4,
+        5, 4, 5, 5, 5, 5, 4, 5,
+        // clang-format on
+    };
+
+    constexpr static size_t table_size = []
+    {
+        size_t size = 0;
+        for (Square sq = SQ_A1; sq < N_SQUARES; ++sq)
+        {
+            size += (1ULL << used_bits[sq]);
+        }
+        return size;
+    }();
+
     constexpr static std::array<Shift, 4> directions = { Shift::NW, Shift::NE, Shift::SW, Shift::SE };
 };
 
@@ -46,13 +71,35 @@ struct FancyMagicRookTraits
         0x2240088020C28000ULL, 0x001001201040C004ULL, 0x0A02008010420020ULL, 0x0010003009010060ULL,
         0x0004008008008014ULL, 0x0080020004008080ULL, 0x0282020001008080ULL, 0x50000181204A0004ULL,
         0x48FFFE99FECFAA00ULL, 0x48FFFE99FECFAA00ULL, 0x497FFFADFF9C2E00ULL, 0x613FFFDDFFCE9200ULL,
-        0xFFFFFFE9FFE7CE00ULL, 0xFFFFFFF5FFF3E600ULL, 0x0010301802830400ULL, 0x510FFFF5F63C96A0ULL,
+        0xFFFFFFE9FFE7CE00ULL, 0xFFFFFFF5FFF3E600ULL, 0x0003FF95E5E6A4C0ULL, 0x510FFFF5F63C96A0ULL,
         0xEBFFFFB9FF9FC526ULL, 0x61FFFEDDFEEDAEAEULL, 0x53BFFFEDFFDEB1A2ULL, 0x127FFFB9FFDFB5F6ULL,
         0x411FFFDDFFDBF4D6ULL, 0x0801000804000603ULL, 0x0003FFEF27EEBE74ULL, 0x7645FFFECBFEA79EULL,
         // clang-format on
     };
 
-    constexpr static size_t table_size = 0x19000;
+    constexpr static std::array<size_t, N_SQUARES> used_bits = {
+        // clang-format off
+        12, 11, 11, 11, 11, 11, 11, 12,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        11, 10, 10, 10, 10, 10, 10, 11,
+        10,  9,  9,  9,  9,  9,  9, 10,
+        11, 10, 10, 10, 10, 11, 10, 11,
+        // clang-format on
+    };
+
+    constexpr static size_t table_size = []
+    {
+        size_t size = 0;
+        for (Square sq = SQ_A1; sq < N_SQUARES; ++sq)
+        {
+            size += (1ULL << used_bits[sq]);
+        }
+        return size;
+    }();
+
     constexpr static std::array<Shift, 4> directions = { Shift::N, Shift::S, Shift::W, Shift::E };
 };
 
@@ -63,6 +110,7 @@ struct FancyMagicStrategy
     {
         size_t index;
         uint64_t mask;
+        uint64_t magic;
         int shift;
     };
 
@@ -81,21 +129,23 @@ struct FancyMagicStrategy
                 | ((FileBB[FILE_A] | FileBB[FILE_H]) & ~FileBB[enum_to<File>(sq)]);
 
             metadata[sq].mask = make_slider_attacks_bb<Traits::directions>(sq, 0) & ~edges;
-            metadata[sq].shift = 64 - std::popcount(metadata[sq].mask);
+            metadata[sq].shift = 64 - Traits::used_bits[sq];
+            metadata[sq].magic = Traits::magics[sq];
 
             uint64_t occupied = 0;
             do
             {
                 attack_mask(sq, occupied) = make_slider_attacks_bb<Traits::directions>(sq, occupied);
                 occupied = (occupied - metadata[sq].mask) & metadata[sq].mask; // Carry rippler
-                attack_index++;
             } while (occupied);
+
+            attack_index += (1ULL << Traits::used_bits[sq]);
         }
     }
 
     constexpr uint64_t& attack_mask(Square sq, uint64_t occupied)
     {
-        const size_t offset = ((occupied & metadata[sq].mask) * Traits::magics[sq]) >> metadata[sq].shift;
+        const size_t offset = ((occupied & metadata[sq].mask) * metadata[sq].magic) >> metadata[sq].shift;
         return attacks[metadata[sq].index + offset];
     }
 
@@ -104,3 +154,9 @@ struct FancyMagicStrategy
         return const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this)->attack_mask(sq, occupied);
     }
 };
+
+// 39KB
+using BishopFancyMagicStrategy = FancyMagicStrategy<FancyMagicBishopTraits>;
+
+// 690KB
+using RookFancyMagicStrategy = FancyMagicStrategy<FancyMagicRookTraits>;

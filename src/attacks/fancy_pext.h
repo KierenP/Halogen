@@ -1,21 +1,22 @@
 #pragma once
 
 #include "attacks/utility.h"
+#include <immintrin.h>
 
-struct BMI2RookTraits
+struct FancyPEXTRookTraits
 {
     constexpr static size_t table_size = 0x19000;
     constexpr static std::array<Shift, 4> directions = { Shift::N, Shift::S, Shift::W, Shift::E };
 };
 
-struct BMI2BishopTraits
+struct FancyPEXTBishopTraits
 {
     constexpr static size_t table_size = 0x1480;
     constexpr static std::array<Shift, 4> directions = { Shift::NW, Shift::NE, Shift::SW, Shift::SE };
 };
 
 template <typename Traits>
-struct BMI2Strategy
+struct FancyPEXTStrategy
 {
     struct Metadata
     {
@@ -26,7 +27,7 @@ struct BMI2Strategy
     std::array<uint64_t, Traits::table_size> attacks = {};
     std::array<Metadata, N_SQUARES> metadata = {};
 
-    BMI2Strategy()
+    FancyPEXTStrategy()
     {
         size_t attack_index = 0;
         for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
@@ -60,3 +61,9 @@ struct BMI2Strategy
         return const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this)->attack_mask(sq, occupied);
     }
 };
+
+// 42KB
+using BishopFancyPEXTStrategy = FancyPEXTStrategy<FancyPEXTBishopTraits>;
+
+// 801KB
+using RookFancyPEXTStrategy = FancyPEXTStrategy<FancyPEXTRookTraits>;
