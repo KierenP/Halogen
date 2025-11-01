@@ -149,7 +149,14 @@ public:
     template <int64_t NewPrecision>
     [[nodiscard]] constexpr Fraction<NewPrecision> rescale() const
     {
-        return Fraction<NewPrecision>::from_raw(raw() * NewPrecision / precision());
+        if constexpr (NewPrecision < precision())
+        {
+            return Fraction<NewPrecision>::from_raw(raw() / (precision() / NewPrecision));
+        }
+        else
+        {
+            return Fraction<NewPrecision>::from_raw(raw() * (NewPrecision / precision()));
+        }
     }
 };
 
