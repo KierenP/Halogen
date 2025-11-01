@@ -1,14 +1,15 @@
 #pragma once
 
 #include "attacks/utility.h"
+#include <immintrin.h>
 
-struct BMI2CompressedRookTraits
+struct FancyPDEPRookTraits
 {
     constexpr static size_t table_size = 0x19000;
     constexpr static std::array<Shift, 4> directions = { Shift::N, Shift::S, Shift::W, Shift::E };
 };
 
-struct BMI2CompressedBishopTraits
+struct FancyPDEPBishopTraits
 {
     constexpr static size_t table_size = 0x1480;
     constexpr static std::array<Shift, 4> directions = { Shift::NW, Shift::NE, Shift::SW, Shift::SE };
@@ -16,7 +17,7 @@ struct BMI2CompressedBishopTraits
 
 // Idea by Zach Wegner, we can use pdep to store compressed attack bitboards which saves 75% space
 template <typename Traits>
-struct BMI2CompressedStrategy
+struct FancyPDEPStrategy
 {
     struct Metadata
     {
@@ -28,7 +29,7 @@ struct BMI2CompressedStrategy
     std::array<uint16_t, Traits::table_size> attacks = {};
     std::array<Metadata, N_SQUARES> metadata = {};
 
-    BMI2CompressedStrategy()
+    FancyPDEPStrategy()
     {
         size_t attack_index = 0;
         for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
@@ -66,3 +67,9 @@ struct BMI2CompressedStrategy
         return attacks[metadata[sq].index + offset];
     }
 };
+
+// 11KB
+using BishopFancyPDEPStrategy = FancyPDEPStrategy<FancyPDEPBishopTraits>;
+
+// 201KB
+using RookFancyPDEPStrategy = FancyPDEPStrategy<FancyPDEPRookTraits>;
