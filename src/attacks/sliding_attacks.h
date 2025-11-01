@@ -9,8 +9,8 @@
 using RookAttackStrategy = RookFancyPDEPStrategy;
 using BishopAttackStrategy = BishopFancyPEXTStrategy;
 #else
-using RookAttackStrategy = RookFancyMagicStrategy;
-using BishopAttackStrategy = BishopFancyMagicStrategy;
+using RookAttackStrategy = RookBlackMagicStrategy;
+using BishopAttackStrategy = BishopBlackMagicStrategy;
 #endif
 
 const RookAttackStrategy RookSlidingAttacks;
