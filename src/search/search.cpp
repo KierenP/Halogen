@@ -36,6 +36,7 @@
 #include "spsa/tuneable.h"
 #include "uci/uci.h"
 #include "utility/atomic.h"
+#include "utility/fraction.h"
 #include "utility/static_vector.h"
 
 enum class SearchType : int8_t
@@ -169,9 +170,9 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
 Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
     SearchSharedState& shared, Score mid_score)
 {
-    Score delta = aspiration_window_size;
-    Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta);
-    Score beta = std::min<Score>(Score::Limits::MATE, mid_score + delta);
+    auto delta = aspiration_window_size;
+    Score alpha = std::max<Score>(Score::Limits::MATED, mid_score - delta.to_int());
+    Score beta = std::min<Score>(Score::Limits::MATE, mid_score + delta.to_int());
     int fail_high_count = 0;
 
     while (true)
@@ -221,7 +222,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
 
             // Bring down beta on a fail low
             beta = (alpha + beta) / 2;
-            alpha = std::max<Score>(Score::Limits::MATED, alpha - delta);
+            alpha = std::max<Score>(Score::Limits::MATED, alpha - delta.to_int());
             fail_high_count = 0;
         }
 
@@ -242,11 +243,11 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
             assert(root_move.pv == ss->pv);
             assert(root_move.pv[0] == root_move.move);
 
-            beta = std::min<Score>(Score::Limits::MATE, beta + delta);
+            beta = std::min<Score>(Score::Limits::MATE, beta + delta.to_int());
             fail_high_count++;
         }
 
-        delta = delta + delta / 2;
+        delta = delta + rescale<64>(delta * aspiration_window_growth_factor);
     }
 }
 
