@@ -130,8 +130,8 @@ public:
     int get_quiet_order_history(const SearchStackState* ss, Move move);
     int get_loud_history(const SearchStackState* ss, Move move);
 
-    void add_quiet_history(const SearchStackState* ss, Move move, int change);
-    void add_loud_history(const SearchStackState* ss, Move move, int change);
+    void add_quiet_history(const SearchStackState* ss, Move move, Fraction<64> change);
+    void add_loud_history(const SearchStackState* ss, Move move, Fraction<64> change);
 
     int thread_id;
     SearchStack search_stack;

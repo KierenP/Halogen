@@ -18,13 +18,13 @@ struct SearchStackState;
 template <typename Derived>
 struct HistoryTable
 {
-    static constexpr void adjust_history(int16_t& entry, int change)
+    static constexpr void adjust_history(int16_t& entry, Fraction<64> change)
     {
-        change = std::clamp(change, -Derived::max_value / Derived::scale, Derived::max_value / Derived::scale);
-        entry += Derived::scale * change - entry * abs(change) * Derived::scale / Derived::max_value;
+        int adjust = std::clamp((change * Derived::scale).to_int(), -Derived::max_value, Derived::max_value);
+        entry += (adjust - entry * abs(adjust) / Derived::max_value);
     }
 
-    constexpr void add(const BoardState& board, const SearchStackState* ss, Move move, int change)
+    constexpr void add(const BoardState& board, const SearchStackState* ss, Move move, Fraction<64> change)
     {
         auto* entry = static_cast<Derived&>(*this).get(board, ss, move);
         if (!entry)

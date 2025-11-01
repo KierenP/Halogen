@@ -629,11 +629,9 @@ void UpdatePV(Move move, SearchStackState* ss)
 void AddHistory(const StagedMoveGenerator& gen, const Move& move, int depthRemaining)
 {
     const auto bonus = (history_bonus_const + history_bonus_depth * depthRemaining
-        + history_bonus_quad * depthRemaining * depthRemaining)
-                           .to_int();
+        + history_bonus_quad * depthRemaining * depthRemaining);
     const auto penalty = -(history_penalty_const + history_penalty_depth * depthRemaining
-        + history_penalty_quad * depthRemaining * depthRemaining)
-                              .to_int();
+        + history_penalty_quad * depthRemaining * depthRemaining);
 
     if (move.is_capture() || move.is_promotion())
     {
