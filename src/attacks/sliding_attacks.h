@@ -13,8 +13,5 @@ using RookAttackStrategy = RookFancyMagicStrategy;
 using BishopAttackStrategy = BishopFancyMagicStrategy;
 #endif
 
-// const RookAttackStrategy RookSlidingAttacks;
-// const BishopAttackStrategy BishopSlidingAttacks;
-
-const RookBlackMagicStrategy RookSlidingAttacks;
-const BishopBlackMagicStrategy BishopSlidingAttacks;
+const RookAttackStrategy RookSlidingAttacks;
+const BishopAttackStrategy BishopSlidingAttacks;
