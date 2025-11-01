@@ -2,6 +2,7 @@
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "search/score.h"
+#include "utility/fraction.h"
 
 class GameState;
 struct SearchLocalState;
@@ -42,8 +43,10 @@ public:
     bool next(Move& move);
 
     // Signal the generator that a fail high has occured, and history tables need to be updated
-    void update_quiet_history(const Move& move, int positive_adjustment, int negative_adjustment) const;
-    void update_loud_history(const Move& move, int positive_adjustment, int negative_adjustment) const;
+    void update_quiet_history(
+        const Move& move, Fraction<64> positive_adjustment, Fraction<64> negative_adjustment) const;
+    void update_loud_history(
+        const Move& move, Fraction<64> positive_adjustment, Fraction<64> negative_adjustment) const;
 
     // Signal the MoveGenerator that the LMP condition is satisfied and it should skip quiet moves
     void skip_quiets();

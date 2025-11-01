@@ -157,7 +157,7 @@ int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
     return total;
 }
 
-void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, Fraction<64> change)
 {
     pawn_hist.add(position.board(), ss, move, change);
     threat_hist.add(position.board(), ss, move, change);
@@ -169,7 +169,7 @@ void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, 
         (ss - 4)->cont_hist_subtable->add(position.board(), ss, move, change);
 }
 
-void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, int change)
+void SearchLocalState::add_loud_history(const SearchStackState* ss, Move move, Fraction<64> change)
 {
     capt_hist.add(position.board(), ss, move, change);
 }

@@ -171,7 +171,8 @@ bool StagedMoveGenerator::next(Move& move)
     return false;
 }
 
-void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::update_quiet_history(
+    const Move& move, Fraction<64> positive_adjustment, Fraction<64> negative_adjustment) const
 {
     local.add_quiet_history(ss, move, positive_adjustment);
 
@@ -192,7 +193,8 @@ void StagedMoveGenerator::update_quiet_history(const Move& move, int positive_ad
     }
 }
 
-void StagedMoveGenerator::update_loud_history(const Move& move, int positive_adjustment, int negative_adjustment) const
+void StagedMoveGenerator::update_loud_history(
+    const Move& move, Fraction<64> positive_adjustment, Fraction<64> negative_adjustment) const
 {
     local.add_loud_history(ss, move, positive_adjustment);
 
