@@ -277,10 +277,10 @@ auto Uci::options_handler()
         tuneable_fraction(aspiration_window_size, 320, 960),
         tuneable_fraction(aspiration_window_growth_factor, 50, 200),
 
-        tuneable_int(nmp_const, 4, 8),
-        tuneable_int(nmp_d, 5, 9),
-        tuneable_int(nmp_s, 200, 300),
-        tuneable_int(nmp_sd, 1, 10),
+        tuneable_fraction(nmp_const, 256, 1024),
+        tuneable_fraction(nmp_d, 5, 20),
+        tuneable_fraction(nmp_s, 8, 32),
+        tuneable_fraction(nmp_sd, 10000, 40000),
 
         tuneable_int(iid_no_tt_depth, 1, 10),
         tuneable_int(iid_no_move_depth, 1, 10),

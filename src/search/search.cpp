@@ -489,7 +489,8 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction = nmp_const + depth / nmp_d + std::min(nmp_sd, (static_score - beta).value() / nmp_s);
+    const int reduction
+        = (nmp_const + depth * nmp_d + std::min(nmp_sd, (static_score - beta).value() * nmp_s)).to_int();
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
