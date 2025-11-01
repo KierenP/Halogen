@@ -275,7 +275,7 @@ auto Uci::options_handler()
         tuneable_float(LMR_depth_move_coeff, -1.07, -0.57),
 
         tuneable_fraction(aspiration_window_size, 320, 960),
-        tuneable_fraction(aspiration_window_growth_factor, 16, 64),
+        tuneable_fraction(aspiration_window_growth_factor, 50, 200),
 
         tuneable_int(nmp_const, 4, 8),
         tuneable_int(nmp_d, 5, 9),

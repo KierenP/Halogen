@@ -247,7 +247,7 @@ Score aspiration_window(GameState& position, SearchStackState* ss, NN::Accumulat
             fail_high_count++;
         }
 
-        delta = delta + rescale<64>(delta * aspiration_window_growth_factor);
+        delta = rescale<64>(delta * aspiration_window_growth_factor);
     }
 }
 
