@@ -56,8 +56,8 @@ jobs:
 
     # latest available GCC versions on each platform
     - if: matrix.os == 'ubuntu-latest'
-      name: Install GCC 15 (Ubuntu)
-      run: sudo apt install gcc-15 g++-15 -y
+      name: Install GCC 14 (Ubuntu)
+      run: sudo apt install gcc-14 g++-14 -y
 
     - if: matrix.os == 'windows-latest'
       name: Install GCC 15 (Windows)
@@ -66,8 +66,8 @@ jobs:
     - if: matrix.os == 'ubuntu-latest'
       name: Set CC and CXX for Linux
       run: |
-        echo "CC=gcc-15" >> $GITHUB_ENV
-        echo "CXX=g++-15" >> $GITHUB_ENV
+        echo "CC=gcc-14" >> $GITHUB_ENV
+        echo "CXX=g++-14" >> $GITHUB_ENV
 
     - if: matrix.os == 'windows-latest'
       name: Set CC and CXX for Windows
