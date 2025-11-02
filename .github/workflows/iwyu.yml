@@ -44,4 +44,4 @@ jobs:
 
       - name: Check includes
         run: >
-          make debug CXX=include-what-you-use CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --error"
+          make -k debug CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --error"
