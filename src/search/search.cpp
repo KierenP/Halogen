@@ -488,8 +488,9 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
         return std::nullopt;
     }
 
-    const int reduction
-        = (nmp_const + depth * nmp_d + std::min(nmp_sd, (static_score - beta).value() * nmp_s)).to_int();
+    const int reduction = (nmp_const + (depth * nmp_depth).rescale<64>()
+        + std::min(nmp_score_max, ((static_score - beta).value() * nmp_score).rescale<64>()))
+                              .to_int();
 
     ss->move = Move::Uninitialized;
     ss->moved_piece = N_PIECES;
@@ -613,7 +614,7 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
         r -= lmr_loud;
     }
 
-    r -= Fraction<LMR_SCALE>::from_raw(history * lmr_h / 16384);
+    r -= (history * lmr_h).rescale<LMR_SCALE>();
 
     r = (r + lmr_offset);
     return std::max(0, r.to_int());
