@@ -69,11 +69,6 @@ public:
     {
         return Fraction::from_raw(value_ * rhs);
     }
-    constexpr Fraction<Precision * Precision> operator/(int rhs) const
-    {
-        // division is always somewhat lossy, so we increase precision to at least help a bit
-        return Fraction<Precision * Precision>::from_raw(value_ * Precision / rhs);
-    }
 
     // Compound assignment operators
     constexpr Fraction& operator+=(const Fraction& rhs)
@@ -99,11 +94,6 @@ public:
     constexpr Fraction& operator*=(int rhs)
     {
         value_ *= rhs;
-        return *this;
-    }
-    constexpr Fraction& operator/=(int rhs)
-    {
-        value_ /= rhs;
         return *this;
     }
 
@@ -188,17 +178,6 @@ constexpr auto operator*(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fr
     return Fraction<P1 * P2>::from_raw(lhs.raw() * rhs.raw());
 }
 
-// Division between fractions (handles same and different precisions)
-template <int64_t P1, int64_t P2>
-constexpr auto operator/(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fraction<P1 * P2>
-{
-    // (lhs.raw / P1) / (rhs.raw / P2) = (lhs.raw / rhs.raw) * (P2 / P1)
-    // For result in Fraction<P1*P2>: raw = actual_value * P1 * P2
-    // actual_value = (lhs.raw / P1) / (rhs.raw / P2) = (lhs.raw * P2) / (rhs.raw * P1)
-    // raw = ((lhs.raw * P2) / (rhs.raw * P1)) * P1 * P2 = (lhs.raw * P2 * P2) / rhs.raw
-    return Fraction<P1 * P2>::from_raw((lhs.raw() * P2 * P2) / rhs.raw());
-}
-
 // Comparison operators between different precisions
 template <int64_t P1, int64_t P2>
 constexpr bool operator==(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
@@ -259,17 +238,6 @@ template <int64_t Precision>
 constexpr Fraction<Precision> operator*(int lhs, const Fraction<Precision>& rhs)
 {
     return rhs * lhs;
-}
-
-template <int64_t Precision>
-constexpr auto operator/(int lhs, const Fraction<Precision>& rhs) -> Fraction<Precision * Precision>
-{
-    // lhs / (rhs.raw / Precision) = (lhs * Precision) / rhs.raw
-    // For result in Fraction<P^2>: raw = actual_value * P^2
-    // actual_value = (lhs * Precision) / rhs.raw
-    // raw = ((lhs * Precision) / rhs.raw) * P^2 = (lhs * P^3) / rhs.raw
-    return Fraction<Precision * Precision>::from_raw(
-        (static_cast<int64_t>(lhs) * Precision * Precision * Precision) / rhs.raw());
 }
 
 // Comparison operators with int
@@ -398,16 +366,6 @@ static_assert((Fraction<4>::from_raw(7) * Fraction<4>::from_raw(9)).to_int() == 
 static_assert((Fraction<256>(2) * 3).raw() == 1536);
 static_assert((3 * Fraction<256>(2)).raw() == 1536);
 
-// Division with same precision (27/4 / 7/4 ~= 61/16)
-static_assert((Fraction<4>::from_raw(27) / Fraction<4>::from_raw(7)).raw() == 61);
-static_assert((Fraction<4>::from_raw(27) / Fraction<4>::from_raw(7)).precision() == 16);
-static_assert((Fraction<4>::from_raw(27) / Fraction<4>::from_raw(7)).to_int() == 3);
-
-// Division with int
-static_assert((Fraction<256>::from_raw(574) / 17).raw() == 8643);
-static_assert((Fraction<256>::from_raw(574) / 17).precision() == 65536);
-static_assert((Fraction<256>::from_raw(574) / 17).to_int() == 0);
-
 // Comparison operators
 static_assert(Fraction<256>(5) == Fraction<256>(5));
 static_assert(Fraction<256>(5) != Fraction<256>(3));
@@ -460,11 +418,6 @@ constexpr auto test_compound_mul = []()
     return f.raw();
 };
 static_assert(test_compound_mul() == 1536);
-
-// Test that int / Fraction works (8 / (3/4) ~= 170/16)
-static_assert((8 / Fraction<4>::from_raw(3)).raw() == 170);
-static_assert((8 / Fraction<4>::from_raw(3)).precision() == 16);
-static_assert((8 / Fraction<4>::from_raw(3)).to_int() == 10);
 
 static_assert(rescale<512>(Fraction<256>::from_raw(123)).raw() == 246); // 123/256 = 246/512
 static_assert(rescale<256>(Fraction<512>::from_raw(123)).raw() == 61); // 123/512 = 61/256

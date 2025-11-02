@@ -40,13 +40,13 @@ inline auto Initialise_LMR_reduction()
 // [depth][move number]
 TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_size = Fraction<64>::from_raw(576);
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_growth_factor = Fraction<64>::from_raw(96);
+TUNEABLE_CONSTANT auto aspiration_window_size = Fraction<64>::from_raw(576);
+TUNEABLE_CONSTANT auto aspiration_window_growth_factor = Fraction<64>::from_raw(96);
 
 TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(512);
-TUNEABLE_CONSTANT auto nmp_d = Fraction<64>::from_raw(9);
-TUNEABLE_CONSTANT auto nmp_s = Fraction<4096>::from_raw(16);
-TUNEABLE_CONSTANT auto nmp_sd = Fraction<4096>::from_raw(24576);
+TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(576);
+TUNEABLE_CONSTANT auto nmp_score = Fraction<16384>::from_raw(64);
+TUNEABLE_CONSTANT auto nmp_score_max = Fraction<64>::from_raw(384);
 
 TUNEABLE_CONSTANT int iid_no_tt_depth = 1;
 TUNEABLE_CONSTANT int iid_no_move_depth = 6;
@@ -61,7 +61,7 @@ TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1410);
 TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1775);
 TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(893);
 TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(721);
-TUNEABLE_CONSTANT int lmr_h = 2306;
+TUNEABLE_CONSTANT auto lmr_h = Fraction<16777216>::from_raw(2306);
 TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(527);
 TUNEABLE_CONSTANT int lmr_shallower = 9;
 

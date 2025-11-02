@@ -278,9 +278,9 @@ auto Uci::options_handler()
         tuneable_fraction(aspiration_window_growth_factor, 50, 200),
 
         tuneable_fraction(nmp_const, 256, 1024),
-        tuneable_fraction(nmp_d, 5, 20),
-        tuneable_fraction(nmp_s, 8, 32),
-        tuneable_fraction(nmp_sd, 10000, 40000),
+        tuneable_fraction(nmp_depth, 256, 1024),
+        tuneable_fraction(nmp_score, 32, 128),
+        tuneable_fraction(nmp_score_max, 200, 800),
 
         tuneable_int(iid_no_tt_depth, 1, 10),
         tuneable_int(iid_no_move_depth, 1, 10),
@@ -295,7 +295,7 @@ auto Uci::options_handler()
         tuneable_fraction(lmr_cut, 700, 2800),
         tuneable_fraction(lmr_improving, 500, 2000),
         tuneable_fraction(lmr_loud, 400, 1600),
-        tuneable_int(lmr_h, 2000, 3000),
+        tuneable_fraction(lmr_h, 2000, 3000),
         tuneable_fraction(lmr_offset, 0, 1000),
         tuneable_int(lmr_shallower, 0, 30),
 
