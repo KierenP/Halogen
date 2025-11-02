@@ -20,7 +20,7 @@ struct HistoryTable
 {
     static constexpr void adjust_history(int16_t& entry, Fraction<64> change)
     {
-        int adjust = std::clamp((change * Derived::scale).to_int(), -Derived::max_value, Derived::max_value);
+        int adjust = std::clamp((change * Derived::scale).to_int(), -Derived::max_value / 4, Derived::max_value / 4);
         entry += (adjust - entry * abs(adjust) / Derived::max_value);
     }
 
