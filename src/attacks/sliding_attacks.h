@@ -7,7 +7,7 @@
 
 #ifdef USE_PEXT
 using RookAttackStrategy = RookFancyPDEPStrategy;
-using BishopAttackStrategy = BishopFancyPEXTStrategy;
+using BishopAttackStrategy = BishopFancyPDEPStrategy;
 #else
 using RookAttackStrategy = RookBlackMagicStrategy;
 using BishopAttackStrategy = BishopBlackMagicStrategy;
