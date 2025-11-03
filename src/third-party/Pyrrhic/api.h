@@ -73,6 +73,28 @@
 #define PYRRHIC_MOVE_IS_BPROMO(x) (PYRRHIC_MOVE_FLAGS((x)) == PYRRHIC_FLAG_BPROMO)
 #define PYRRHIC_MOVE_IS_NPROMO(x) (PYRRHIC_MOVE_FLAGS((x)) == PYRRHIC_FLAG_NPROMO)
 
+/// Definitions for PyrrhicMoves
+
+typedef uint16_t PyrrhicMove;
+
+#define PYRRHIC_FLAG_NONE 0x0
+#define PYRRHIC_FLAG_QPROMO 0x1
+#define PYRRHIC_FLAG_RPROMO 0x2
+#define PYRRHIC_FLAG_BPROMO 0x3
+#define PYRRHIC_FLAG_NPROMO 0x4
+#define PYRRHIC_FLAG_ENPASS 0x8
+
+#define PYRRHIC_SHIFT_TO 0
+#define PYRRHIC_SHIFT_FROM 6
+#define PYRRHIC_SHIFT_FLAGS 12
+
+#define PYRRHIC_MASK_TO 0x3F
+#define PYRRHIC_MASK_FROM 0x3F
+#define PYRRHIC_MASK_FLAGS 0x0F
+#define PYRRHIC_MASK_PROMO_FLAGS 0x07
+
+#define PYRRHIC_MOVE_FLAGS(x) (((x) >> PYRRHIC_SHIFT_FLAGS) & PYRRHIC_MASK_FLAGS)
+
 /// For tb_probe_root_dtz() and tb_probe_root_wdl()
 
 struct TbRootMove {
@@ -124,3 +146,11 @@ int tb_probe_root_wdl(
     unsigned rule50,   unsigned ep,
     bool     turn,     bool useRule50,
     struct TbRootMoves *results);
+
+/*
+ * The tablebase can be probed for any position where #pieces <= TB_LARGEST.
+ */
+extern int TB_LARGEST;
+extern int TB_NUM_WDL;
+extern int TB_NUM_DTM;
+extern int TB_NUM_DTZ;

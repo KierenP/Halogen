@@ -1,16 +1,15 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <tuple>
-
-#include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "search/score.h"
 #include "spsa/tuneable.h"
+#include "utility/fraction.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
 class BoardState;
 struct SearchStackState;

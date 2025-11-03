@@ -1,22 +1,7 @@
 #include "uci.h"
 
-#include <algorithm>
-#include <array>
-#include <cassert>
-#include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <mutex>
-#include <optional>
-#include <ratio>
-#include <sstream>
-#include <string_view>
-#include <vector>
-
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "datagen/datagen.h"
@@ -24,23 +9,34 @@
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
-#include "network/arch.hpp"
 #include "network/network.h"
 #include "search/data.h"
-#include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
 #include "search/score.h"
-#include "search/search.h"
 #include "search/syzygy.h"
 #include "search/thread.h"
-#include "search/transposition/table.h"
 #include "spsa/tuneable.h"
-#include "tools/sparse_shuffle.hpp"
+#include "tools/sparse_shuffle.hpp" // IWYU pragma: keep
 #include "uci/options.h"
 #include "uci/parse.h"
-#include "utility/atomic.h"
 #include "utility/static_vector.h"
+
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <chrono>
+#include <cstdlib>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <mutex>
+#include <optional>
+#include <ratio>
+#include <sstream>
+#include <string_view>
+#include <vector>
 
 namespace UCI
 {

@@ -1,11 +1,13 @@
-#include <cassert>
-
-#include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
 #include "search/score.h"
 #include "search/static_exchange_evaluation.h"
 #include "spsa/tuneable.h"
+
+#include <array>
+#include <cassert>
+#include <string_view>
 
 const auto test_see
     = []([[maybe_unused]] const GameState& position, [[maybe_unused]] Move move, [[maybe_unused]] Score expected_value)

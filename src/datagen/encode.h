@@ -1,11 +1,14 @@
 #pragma once
 
+#include "search/score.h"
+
 #include <array>
 #include <cstdint>
 #include <type_traits>
 
-#include "chessboard/board_state.h"
-#include "search/score.h"
+class BoardState;
+class Move;
+enum Side : int8_t;
 
 struct MarlinFormat
 {

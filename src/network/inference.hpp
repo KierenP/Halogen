@@ -5,6 +5,7 @@
 #include "network/simd/intrinsics.hpp"
 #include "network/simd/utility.hpp"
 #include "tools/sparse_shuffle.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>

@@ -20,7 +20,7 @@ jobs:
         config:
         # TODO: fix source of non-determinism with clang builds
           - { compiler: g++-13, packages: g++-13, profdata: NA }
-        # - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
+          - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
 
     steps:
       - uses: actions/checkout@v4.1.1

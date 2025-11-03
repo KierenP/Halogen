@@ -1,10 +1,11 @@
 #pragma once
-#include <array>
-#include <cstdint>
-#include <type_traits>
 
 #include "movegen/move.h"
 #include "search/score.h"
+
+#include <array>
+#include <cstdint>
+#include <type_traits>
 
 enum class SearchResultType : uint8_t;
 

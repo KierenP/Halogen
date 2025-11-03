@@ -1,9 +1,10 @@
 #pragma once
-#include <cstdint>
 
 #include "bitboard/define.h"
 #include "movegen/move.h"
 #include "utility/static_vector.h"
+
+#include <cstdint>
 
 // For move ordering we need to bundle the 'score' with the move objects
 struct ExtendedMove

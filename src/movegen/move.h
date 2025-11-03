@@ -1,10 +1,13 @@
 #pragma once
+
+#include "bitboard/enum.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
+#include <memory>
 #include <type_traits>
-
-#include "bitboard/define.h"
 
 enum MoveFlag : int8_t
 {

@@ -1,9 +1,12 @@
 #pragma once
+
 #include <cstdint>
 
-#include "bitboard/define.h"
-
 class BoardState;
+enum File : int8_t;
+enum Piece : int8_t;
+enum Side : int8_t;
+enum Square : int8_t;
 
 namespace Zobrist
 {

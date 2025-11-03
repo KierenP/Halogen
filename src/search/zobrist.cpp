@@ -1,12 +1,14 @@
 #include "search/zobrist.h"
 
+#include "bitboard/define.h"
+#include "bitboard/enum.h"
+#include "chessboard/board_state.h"
+
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <random>
-
-#include "bitboard/define.h"
-#include "chessboard/board_state.h"
 
 namespace Zobrist
 {

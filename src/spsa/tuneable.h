@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utility/fraction.h"
+
 #include <array>
 #include <cmath>
 #include <cstddef>

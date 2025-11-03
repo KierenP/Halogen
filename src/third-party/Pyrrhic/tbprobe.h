@@ -26,31 +26,6 @@
 #ifndef TBPROBE_H
 #define TBPROBE_H
 
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "tbconfig.h"
-
-/// Definitions for PyrrhicMoves
-
-#define PYRRHIC_FLAG_NONE   0x0
-#define PYRRHIC_FLAG_QPROMO 0x1
-#define PYRRHIC_FLAG_RPROMO 0x2
-#define PYRRHIC_FLAG_BPROMO 0x3
-#define PYRRHIC_FLAG_NPROMO 0x4
-#define PYRRHIC_FLAG_ENPASS 0x8
-
-#define PYRRHIC_SHIFT_TO    0
-#define PYRRHIC_SHIFT_FROM  6
-#define PYRRHIC_SHIFT_FLAGS 12
-
-#define PYRRHIC_MASK_TO          0x3F
-#define PYRRHIC_MASK_FROM        0x3F
-#define PYRRHIC_MASK_FLAGS       0x0F
-#define PYRRHIC_MASK_PROMO_FLAGS 0x07
-
-#define PYRRHIC_MOVE_FLAGS(x) (((x) >> PYRRHIC_SHIFT_FLAGS) & PYRRHIC_MASK_FLAGS)
-
 /****************************************************************************/
 /* MAIN API                                                                 */
 /****************************************************************************/
@@ -103,17 +78,6 @@
     (((_res) & ~TB_RESULT_DTZ_MASK) |           \
      (((_dtz) << TB_RESULT_DTZ_SHIFT) & TB_RESULT_DTZ_MASK))
 
-
-typedef uint16_t PyrrhicMove;
-
 #include "api.h"
-
-/*
- * The tablebase can be probed for any position where #pieces <= TB_LARGEST.
- */
-extern int TB_LARGEST;
-extern int TB_NUM_WDL;
-extern int TB_NUM_DTM;
-extern int TB_NUM_DTZ;
 
 #endif

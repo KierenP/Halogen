@@ -1,15 +1,14 @@
 #pragma once
 
+#include "bitboard/define.h"
+#include "bitboard/enum.h"
+#include "movegen/move.h"
+
 #include <array>
 #include <cstdint>
 #include <iosfwd>
 #include <optional>
 #include <string_view>
-
-#include "bitboard/define.h"
-#include "bitboard/enum.h"
-#include "movegen/move.h"
-#include "search/zobrist.h"
 
 /*
 

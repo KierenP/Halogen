@@ -3,7 +3,6 @@
 #include "search/score.h"
 
 class BoardState;
-struct SearchStackState;
 
 namespace NN
 {

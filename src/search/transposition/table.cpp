@@ -1,19 +1,20 @@
 #include "search/transposition/table.h"
+
+#include "bitboard/define.h"
+#include "bitboard/enum.h"
+#include "movegen/move.h"
+#include "search/transposition/entry.h"
 #include "spsa/tuneable.h"
+#include "utility/fraction.h"
+#include "utility/huge_pages.h"
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <cstdlib>
 #include <iterator>
 #include <memory>
 #include <thread>
 #include <vector>
-
-#include "bitboard/define.h"
-#include "movegen/move.h"
-#include "search/transposition/entry.h"
-#include "utility/huge_pages.h"
 
 namespace Transposition
 {

@@ -1,21 +1,21 @@
 #include "search/data.h"
 
-#include <algorithm>
-#include <chrono>
-#include <compare>
-#include <cstdint>
-#include <mutex>
-#include <numeric>
-#include <ranges>
-#include <string>
-
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/score.h"
 #include "search/transposition/table.h"
-#include "uci/uci.h"
+#include "spsa/tuneable.h"
+
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <functional>
+#include <iterator>
+#include <numeric>
+#include <ranges>
+#include <unordered_map>
 
 SearchStackState::SearchStackState(int distance_from_root_)
     : distance_from_root(distance_from_root_)

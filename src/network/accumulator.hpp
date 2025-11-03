@@ -1,6 +1,7 @@
 #pragma once
 
 #include "simd/intrinsics.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>

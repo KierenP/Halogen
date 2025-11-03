@@ -1,8 +1,11 @@
 #pragma once
+
 #include <cstdint>
 
 #include "bitboard/define.h"
-#include "bitboard/enum.h"
+
+enum PieceType : int8_t;
+enum Square : int8_t;
 
 class BoardState;
 class Move;

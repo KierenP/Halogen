@@ -1,18 +1,19 @@
 #pragma once
 
+#include "chessboard/game_state.h"
+#include "search/limit/limits.h"
+
 #include <chrono>
+#include <cstdint>
 #include <iosfwd>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
 
-#include "chessboard/game_state.h"
-#include "search/data.h"
-#include "search/limit/limits.h"
-
 class Move;
 class SearchThreadPool;
+struct SearchInfoData;
 
 namespace UCI
 {

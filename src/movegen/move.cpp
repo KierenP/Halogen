@@ -1,5 +1,4 @@
 #include "movegen/move.h"
-#include "bitboard/define.h"
 
 #include <cassert>
 #include <iostream>

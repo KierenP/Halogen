@@ -1,19 +1,16 @@
 #include "search/staged_movegen.h"
 
-#include <algorithm>
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <limits>
-
 #include "chessboard/game_state.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/data.h"
-#include "search/history.h"
 #include "search/score.h"
 #include "search/static_exchange_evaluation.h"
+#include "spsa/tuneable.h"
+
+#include <algorithm>
+#include <cstddef>
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)

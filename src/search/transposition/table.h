@@ -1,9 +1,11 @@
 #pragma once
-#include <cstddef>
-#include <cstdint>
 
 #include "search/score.h"
 #include "utility/huge_pages.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 
 class Move;
 enum class SearchResultType : uint8_t;

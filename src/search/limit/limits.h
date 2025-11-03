@@ -1,9 +1,9 @@
 #pragma once
 
+#include "search/limit/time.h"
+
 #include <cstdint>
 #include <optional>
-
-#include "search/limit/time.h"
 
 class SearchLimits
 {

@@ -1,9 +1,13 @@
 #include "search/cuckoo.h"
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
+
+#include <cassert>
+#include <utility>
 
 // A fast software-based method for upcoming cycle detection in search trees
 // M. N. J. van Kervinck

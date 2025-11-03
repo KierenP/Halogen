@@ -1,13 +1,4 @@
 #pragma once
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <mutex>
-#include <new>
-#include <optional>
-#include <utility>
-#include <vector>
 
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
@@ -21,12 +12,18 @@
 #include "search/score.h"
 #include "search/transposition/table.h"
 #include "utility/atomic.h"
+#include "utility/fraction.h"
 #include "utility/static_vector.h"
 
-namespace Transposition
-{
-class Table;
-}
+#include <array>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <new>
+#include <utility>
+#include <vector>
+#include <version>
 
 #ifdef __cpp_lib_hardware_interference_size
 using std::hardware_constructive_interference_size;

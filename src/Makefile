@@ -76,7 +76,7 @@ endif
 # Base Compiler Flags
 #----------------------------------------------------------------------------------------------------------------------
 
-WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers
+WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers -Wno-deprecated-declarations
 BASE_FLAGS := $(WARN_FLAGS) -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
 BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
@@ -267,6 +267,14 @@ ifeq ($(MAKECMDGOALS),shuffle)
     EXE := $(BINARY_DIR)/$(PROJECT)-shuffle
 endif
 
+# Special target that only builds the object files, but doesn't link the final binary
+ifeq ($(MAKECMDGOALS),analyze)
+    BUILD_TYPE := analyze
+    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH)
+    LDFLAGS += $(BASE_LDFLAGS)
+    VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
+endif
+
 # Tournament build
 ifeq ($(MAKECMDGOALS),tournament)
     BUILD_TYPE := tournament
@@ -298,8 +306,9 @@ endif
 # Main Build Targets
 #----------------------------------------------------------------------------------------------------------------------
 
-.PHONY: debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle
+.PHONY: debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament analyze
 debug release sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament: verbatim_binary binary
+analyze: verbatim_binary $(OBJS)
 
 .PHONY: pgo pgo-instrumented pgo-compile
 pgo:
