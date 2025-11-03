@@ -227,7 +227,7 @@ endif
 # Sanitizer builds
 ifeq ($(MAKECMDGOALS),sanitize-address)
     BUILD_TYPE := sanitize-address
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=address 
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=address
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=address
     VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-asan
@@ -235,7 +235,7 @@ endif
 
 ifeq ($(MAKECMDGOALS),sanitize-undefined)
     BUILD_TYPE := sanitize-undefined
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=undefined 
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=undefined
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=undefined
     VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-ubsan
@@ -243,7 +243,7 @@ endif
 
 ifeq ($(MAKECMDGOALS),sanitize-thread)
     BUILD_TYPE := sanitize-thread
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=thread 
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=thread
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=thread
     VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-tsan
