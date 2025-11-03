@@ -77,13 +77,13 @@ endif
 #----------------------------------------------------------------------------------------------------------------------
 
 WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers
-BASE_FLAGS := $(WARN_FLAGS) -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
+BASE_FLAGS := $(WARN_FLAGS) -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
 BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
 # Optimization levels
-OPT_NONE := -O0
-OPT_SANITIZE := -O1
-OPT_RELEASE := -O3
+OPT_NONE := -O0 -Werror
+OPT_SANITIZE := -O1 -fno-omit-frame-pointer
+OPT_RELEASE := -O3 -DNDEBUG
 
 #----------------------------------------------------------------------------------------------------------------------
 # Linker Flags
@@ -191,10 +191,12 @@ $(info Building for architecture: $(ARCH))
 LLVM_PROFDATA := llvm-profdata
 
 ifeq ($(COMPILER),gcc)
+    LTO_FLAGS := -flto=auto -flto-partition=one
     PGO_GEN := -fprofile-generate
     PGO_USE := -fprofile-use -fprofile-partial-training
     CXXFLAGS += -Wno-interference-size
 else
+    LTO_FLAGS := -flto
     PGO_GEN := -fprofile-instr-generate=$(BUILD_DIR)/$(ARCH)/default.profraw
     PGO_MERGE := $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/$(ARCH)/merged.profdata $(BUILD_DIR)/$(ARCH)/default.profraw --sparse=true
     PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/$(ARCH)/merged.profdata
@@ -207,17 +209,17 @@ endif
 # Debug build
 ifeq ($(MAKECMDGOALS),debug)
     BUILD_TYPE := debug
-    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) -g -Werror $(ARCH_DEFINES) $(ARCH_MARCH)
+    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH)
     LDFLAGS += $(BASE_LDFLAGS)
-    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-debug
 endif
 
 # Release build
 ifeq ($(MAKECMDGOALS),release)
     BUILD_TYPE := release
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH)
-    LDFLAGS += $(BASE_LDFLAGS) -flto $(STATIC_LDFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(LTO_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH)
+    LDFLAGS += $(BASE_LDFLAGS) $(LTO_FLAGS) $(STATIC_LDFLAGS)
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)
 endif
@@ -225,33 +227,33 @@ endif
 # Sanitizer builds
 ifeq ($(MAKECMDGOALS),sanitize-address)
     BUILD_TYPE := sanitize-address
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=address $(ARCH_DEFINES)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=address 
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=address
-    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-asan
 endif
 
 ifeq ($(MAKECMDGOALS),sanitize-undefined)
     BUILD_TYPE := sanitize-undefined
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=undefined $(ARCH_DEFINES)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=undefined 
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=undefined
-    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-ubsan
 endif
 
 ifeq ($(MAKECMDGOALS),sanitize-thread)
     BUILD_TYPE := sanitize-thread
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=thread $(ARCH_DEFINES)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fsanitize=thread 
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=thread
-    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    VERBATIM_FLAGS := $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-tsan
 endif
 
 # Tune build
 ifeq ($(MAKECMDGOALS),tune)
     BUILD_TYPE := tune
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DTUNE -flto $(ARCH_DEFINES) $(ARCH_MARCH)
-    LDFLAGS += $(BASE_LDFLAGS) -flto
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(LTO_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -DTUNE
+    LDFLAGS += $(BASE_LDFLAGS) $(LTO_FLAGS)
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-tune
 endif
@@ -259,8 +261,8 @@ endif
 # Shuffle build
 ifeq ($(MAKECMDGOALS),shuffle)
     BUILD_TYPE := shuffle
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DNETWORK_SHUFFLE -flto $(ARCH_DEFINES) $(ARCH_MARCH) -fopenmp
-    LDFLAGS += $(BASE_LDFLAGS) -flto -fopenmp
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(LTO_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -fopenmp -DNETWORK_SHUFFLE
+    LDFLAGS += $(BASE_LDFLAGS) $(LTO_FLAGS) -fopenmp
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES) -DNETWORK_SHUFFLE
     EXE := $(BINARY_DIR)/$(PROJECT)-shuffle
 endif
@@ -268,8 +270,8 @@ endif
 # Tournament build
 ifeq ($(MAKECMDGOALS),tournament)
     BUILD_TYPE := tournament
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) -DTOURNAMENT_MODE
-    LDFLAGS += $(BASE_LDFLAGS) -flto -lnuma
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(LTO_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) -DTOURNAMENT_MODE
+    LDFLAGS += $(BASE_LDFLAGS) $(LTO_FLAGS) -lnuma
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-tournament
 endif
@@ -277,7 +279,7 @@ endif
 # PGO instrumented build
 ifeq ($(MAKECMDGOALS),pgo-instrumented)
     BUILD_TYPE := pgo-instrumented
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_GEN) -fno-lto
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_GEN) -fno-lto
     LDFLAGS += $(BASE_LDFLAGS) $(PGO_GEN) -fno-lto
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented
@@ -286,8 +288,8 @@ endif
 # PGO optimized build
 ifeq ($(MAKECMDGOALS),pgo-compile)
     BUILD_TYPE := pgo-compile
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_USE)
-    LDFLAGS += $(BASE_LDFLAGS) -flto $(PGO_USE)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) $(LTO_FLAGS) $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_USE)
+    LDFLAGS += $(BASE_LDFLAGS) $(LTO_FLAGS) $(PGO_USE)
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-pgo
 endif
