@@ -1,16 +1,21 @@
 #include "search/syzygy.h"
 
-#include <algorithm>
-#include <cassert>
-#include <iostream>
-#include <mutex>
-#include <optional>
-
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
-#include "third-party/Pyrrhic/tbprobe.h"
+#include "third-party/Pyrrhic/api.h"
+#include "utility/atomic.h"
+
+#include <algorithm>
+#include <bit>
+#include <cassert>
+#include <functional>
+#include <iostream>
+#include <mutex>
+#include <optional>
+#include <ranges>
 
 Move extract_pyrrhic_move(const BoardState& board, PyrrhicMove move)
 {

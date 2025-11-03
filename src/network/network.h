@@ -1,13 +1,13 @@
 #pragma once
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstring>
 
-#include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "network/arch.hpp"
 #include "search/score.h"
+
+#include <array>
+#include <cstdint>
+#include <cstring>
 
 class Move;
 

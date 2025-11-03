@@ -1,10 +1,10 @@
 #include "numa.h"
-#include <cstdlib>
-#include <vector>
 
 #ifdef TOURNAMENT_MODE
+#include <cstdlib>
 #include <iostream>
 #include <numa.h>
+#include <vector>
 
 std::vector<cpu_set_t> get_cpu_masks_per_numa_node()
 {

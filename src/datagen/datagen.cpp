@@ -1,22 +1,35 @@
 #include "datagen.h"
 
+#include "bitboard/enum.h"
+#include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "encode.h"
 #include "evaluation/evaluate.h"
+#include "movegen/list.h"
+#include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/data.h"
 #include "search/limit/limits.h"
-#include "search/search.h"
+#include "search/score.h"
 #include "search/thread.h"
 #include "uci/uci.h"
+#include "utility/static_vector.h"
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
+#include <compare>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <random>
+#include <ratio>
+#include <string>
 #include <thread>
+#include <tuple>
+#include <vector>
 
 void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLimits& limits, std::ofstream& data_file);
 

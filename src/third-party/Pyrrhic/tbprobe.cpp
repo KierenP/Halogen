@@ -24,7 +24,7 @@
  */
 
 #include <assert.h>
-#include <stdbool.h>
+#include <stdbool.h> // IWYU pragma: keep
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,8 @@
 #include <stdutility/atomic.h>
 #endif
 
+#include "api.h"
+#include "tbconfig.h"
 #include "tbprobe.h"
 
 #define TB_PIECES (7)
@@ -52,7 +54,7 @@
 
 #ifndef _WIN32
 #include <fcntl.h>
-#include <pthread.h>
+#include <pthread.h> // IWYU pragma: keep
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>

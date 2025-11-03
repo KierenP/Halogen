@@ -44,4 +44,4 @@ jobs:
 
       - name: Check includes
         run: >
-          make -k debug CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --error"
+          make -k analyze COMPILER=clang CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='../.github/ci/libcxx20.imp' -Xiwyu --error"

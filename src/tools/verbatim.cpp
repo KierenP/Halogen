@@ -4,11 +4,15 @@
 #include "network/arch.hpp"
 #include "network/simd/define.hpp"
 
+#include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <tuple>
+#include <utility>
 
 namespace NN
 {

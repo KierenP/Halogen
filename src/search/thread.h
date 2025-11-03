@@ -1,15 +1,26 @@
 #pragma once
 
 #include "chessboard/game_state.h"
+#include "movegen/list.h"
 #include "search/data.h"
-#include "search/search.h"
+#include "search/score.h"
+#include "utility/huge_pages.h"
 
 #include <condition_variable>
-#include <future>
+#include <cstddef>
+#include <functional>
 #include <latch>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <vector>
+
+class SearchLimits;
+namespace UCI
+{
+class UciOutput;
+}
 
 class SearchThread
 {

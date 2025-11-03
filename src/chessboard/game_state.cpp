@@ -1,15 +1,18 @@
 #include "chessboard/game_state.h"
 
-#include <cassert>
-#include <cctype>
-#include <cstddef>
-#include <cstdint>
-
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "search/cuckoo.h"
 #include "search/zobrist.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 
 void GameState::apply_move(Move move)
 {
