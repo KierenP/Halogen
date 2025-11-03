@@ -143,8 +143,8 @@ public:
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     ContinuationCorrHistory cont_corr_hist;
     int sel_depth = 0;
-    AtomicRelaxed<int64_t> tb_hits = 0;
-    AtomicRelaxed<int64_t> nodes = 0;
+    SingleWriterAtomicCounter<int64_t> tb_hits = 0;
+    SingleWriterAtomicCounter<int64_t> nodes = 0;
 
     // Final score from the previous searched position
     Score prev_search_score = 0;
