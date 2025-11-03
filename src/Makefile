@@ -13,6 +13,9 @@ ifndef EVALFILE
     NO_EVALFILE_SET = true
 endif
 
+# Architecture configuration (can be overridden: make ARCH=avx2 debug)
+ARCH ?= native
+
 #----------------------------------------------------------------------------------------------------------------------
 # Source Files
 #----------------------------------------------------------------------------------------------------------------------
@@ -44,7 +47,7 @@ SRCS := \
     datagen/datagen.cpp \
     datagen/encode.cpp
 
-OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
+OBJS := $(SRCS:%=$(BUILD_DIR)/$(ARCH)/%.o)
 
 #----------------------------------------------------------------------------------------------------------------------
 # Platform and Compiler Detection
@@ -78,12 +81,6 @@ OPT_NONE := -O0
 OPT_SANITIZE := -O1
 OPT_RELEASE := -O3
 
-# Common flag sets
-DEBUG_FLAGS := $(OPT_NONE) $(BASE_FLAGS) -g -Werror
-SANITIZE_FLAGS := $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer
-RELEASE_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto
-NATIVE_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto -march=native
-
 #----------------------------------------------------------------------------------------------------------------------
 # Linker Flags
 #----------------------------------------------------------------------------------------------------------------------
@@ -96,26 +93,92 @@ ifeq ($(DETECTED_OS),Windows)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
-# Instruction Set Flags
+# Architecture Definitions
 #----------------------------------------------------------------------------------------------------------------------
 
-PEXT_FLAGS := -DUSE_PEXT -mbmi -mbmi2
-POPCNT_FLAGS := -DUSE_POPCNT -mpopcnt
+# Format: ARCH_DEFINES (preprocessor flags) and ARCH_MARCH (compiler codegen flags)
+
+# Native - auto-detect
+ifeq ($(ARCH),native)
+    SUPPORTED := $(shell echo | $(CC) -march=native -E -dM -)
+    ARCH_MARCH := -march=native
+    ARCH_DEFINES :=
+    
+    ifneq ($(findstring __POPCNT__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_POPCNT
+    endif
+    
+    ifneq ($(findstring __BMI2__, $(SUPPORTED)),)
+        ifeq ($(findstring __znver1, $(SUPPORTED)),)
+            ifeq ($(findstring __znver2, $(SUPPORTED)),)
+                ARCH_DEFINES += -DUSE_PEXT
+            endif
+        endif
+    endif
+    
+    ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
+        ifeq ($(findstring __znver4, $(SUPPORTED)),)
+            ARCH_DEFINES += -DUSE_AVX512_VNNI
+        endif
+    endif
+    
+    ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_AVX512
+    endif
+    ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_AVX2
+    endif
+    ifneq ($(findstring __AVX__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_AVX
+    endif
+    ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_SSE4
+    endif
+endif
+
+# Legacy - no special instructions
+ifeq ($(ARCH),legacy)
+    ARCH_DEFINES :=
+    ARCH_MARCH :=
+endif
 
 # Nehalem (2008)
-SSE4_FLAGS := -DUSE_SSE4 -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2
+ifeq ($(ARCH),sse4)
+    ARCH_DEFINES := -DUSE_SSE4
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2
+endif
 
 # Sandy Bridge (2011)
-AVX_FLAGS := -DUSE_AVX $(SSE4_FLAGS) -mavx -mfma
+ifeq ($(ARCH),avx)
+    ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma
+endif
 
 # Haswell (2013)
-AVX2_FLAGS := -DUSE_AVX2 $(AVX_FLAGS) $(POPCNT_FLAGS) -mavx2
+ifeq ($(ARCH),avx2)
+    ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_POPCNT
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt
+endif
+
+# Haswell with BMI2
+ifeq ($(ARCH),avx2-pext)
+    ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_POPCNT -DUSE_PEXT
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt -mbmi -mbmi2
+endif
 
 # Skylake (2017)
-AVX512_FLAGS := -DUSE_AVX512 $(PEXT_FLAGS) $(AVX2_FLAGS) -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
+ifeq ($(ARCH),avx512)
+    ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_POPCNT -DUSE_PEXT -DUSE_AVX512
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt -mbmi -mbmi2 -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw
+endif
 
-# Skylake (2019)
-AVX512VNNI_FLAGS := -DUSE_AVX512_VNNI $(AVX512_FLAGS) -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
+# Cascade Lake (2019)
+ifeq ($(ARCH),avx512vnni)
+    ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_POPCNT -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI
+    ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt -mbmi -mbmi2 -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
+endif
+
+$(info Building for architecture: $(ARCH))
 
 #----------------------------------------------------------------------------------------------------------------------
 # PGO Configuration
@@ -128,127 +191,137 @@ ifeq ($(COMPILER),gcc)
     PGO_USE := -fprofile-use -fprofile-partial-training
     CXXFLAGS += -Wno-interference-size
 else
-    PGO_GEN := -fprofile-instr-generate=$(BUILD_DIR)/default.profraw
-    PGO_MERGE := $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/merged.profdata $(BUILD_DIR)/default.profraw --sparse=true
-    PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/merged.profdata
+    PGO_GEN := -fprofile-instr-generate=$(BUILD_DIR)/$(ARCH)/default.profraw
+    PGO_MERGE := $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/$(ARCH)/merged.profdata $(BUILD_DIR)/$(ARCH)/default.profraw --sparse=true
+    PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/$(ARCH)/merged.profdata
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
-# Native CPU Feature Detection
+# Build Type Definitions
 #----------------------------------------------------------------------------------------------------------------------
 
-SUPPORTED := $(shell echo | $(CC) -march=native -E -dM -)
-
-NATIVE_ARCH_FLAGS :=
-
-ifneq ($(findstring __POPCNT__, $(SUPPORTED)),)
-    NATIVE_ARCH_FLAGS += -DUSE_POPCNT
+# Debug build
+ifeq ($(MAKECMDGOALS),debug)
+    BUILD_TYPE := debug
+    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) -g -Werror $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS)
+    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-debug
 endif
 
-ifneq ($(findstring __BMI2__, $(SUPPORTED)),)
-    ifeq ($(findstring __znver1, $(SUPPORTED)),)
-        ifeq ($(findstring __znver2, $(SUPPORTED)),)
-            NATIVE_ARCH_FLAGS += -DUSE_PEXT
-        endif
-    endif
+# Release build
+ifeq ($(MAKECMDGOALS),release)
+    BUILD_TYPE := release
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -flto $(STATIC_LDFLAGS)
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)
 endif
 
-ifneq ($(findstring __AVX512VNNI__, $(SUPPORTED)),)
-    ifeq ($(findstring __znver4, $(SUPPORTED)),)
-        NATIVE_ARCH_FLAGS += -DUSE_AVX512_VNNI
-    endif
+# Native optimized build
+ifeq ($(MAKECMDGOALS),native)
+    BUILD_TYPE := native
+    override ARCH := native
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -flto
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-native
 endif
 
-ifneq ($(findstring __AVX512F__, $(SUPPORTED)),)
-    NATIVE_ARCH_FLAGS += -DUSE_AVX512
+# Sanitizer builds
+ifeq ($(MAKECMDGOALS),sanitize-address)
+    BUILD_TYPE := sanitize-address
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=address $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -fsanitize=address
+    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-asan
 endif
-ifneq ($(findstring __AVX2__, $(SUPPORTED)),)
-    NATIVE_ARCH_FLAGS += -DUSE_AVX2
+
+ifeq ($(MAKECMDGOALS),sanitize-undefined)
+    BUILD_TYPE := sanitize-undefined
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=undefined $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -fsanitize=undefined
+    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-ubsan
 endif
-ifneq ($(findstring __AVX__, $(SUPPORTED)),)
-    NATIVE_ARCH_FLAGS += -DUSE_AVX
+
+ifeq ($(MAKECMDGOALS),sanitize-thread)
+    BUILD_TYPE := sanitize-thread
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=thread $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -fsanitize=thread
+    VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-tsan
 endif
-ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
-    NATIVE_ARCH_FLAGS += -DUSE_SSE4
+
+# Tune build
+ifeq ($(MAKECMDGOALS),tune)
+    BUILD_TYPE := tune
+    override ARCH := native
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DTUNE -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -flto
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-tune
+endif
+
+# Shuffle build
+ifeq ($(MAKECMDGOALS),shuffle)
+    BUILD_TYPE := shuffle
+    override ARCH := native
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DNETWORK_SHUFFLE -flto $(ARCH_DEFINES) $(ARCH_MARCH) -fopenmp $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -flto -fopenmp
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES) -DNETWORK_SHUFFLE
+    EXE := $(BINARY_DIR)/$(PROJECT)-shuffle
+endif
+
+# PGO instrumented build
+ifeq ($(MAKECMDGOALS),pgo-instrumented)
+    BUILD_TYPE := pgo-instrumented
+    override ARCH := native
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_GEN) -fno-lto $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) $(PGO_GEN) -fno-lto
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented
+endif
+
+# PGO optimized build
+ifeq ($(MAKECMDGOALS),pgo-compile)
+    BUILD_TYPE := pgo-compile
+    override ARCH := native
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_USE) $(EXTRA_CXXFLAGS)
+    LDFLAGS += $(BASE_LDFLAGS) -flto $(PGO_USE)
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-pgo
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
-# Build Target Template
+# Main Build Targets
 #----------------------------------------------------------------------------------------------------------------------
 
-# Usage: $(call BUILD_TARGET,name,cxxflags,ldflags,verbatim_flags)
-define BUILD_TARGET
-.PHONY: $(1)
-$(1): EXE = $(BINARY_DIR)/$(PROJECT)-$(1)
-$(1): CXXFLAGS += $(2) $(EXTRA_CXXFLAGS)
-$(1): LDFLAGS += $(BASE_LDFLAGS) $(3)
-$(1): VERBATIM_FLAGS = $(4)
-$(1): verbatim_binary binary
-endef
+.PHONY: debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle
+debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle: verbatim_binary binary
 
-#----------------------------------------------------------------------------------------------------------------------
-# Native and PGO Builds
-#----------------------------------------------------------------------------------------------------------------------
-
-.PHONY: pgo pgo-instrumented pgo-compile native
-
+.PHONY: pgo pgo-instrumented pgo-compile
 pgo: verbatim_binary
-	$(MAKE) pgo-instrumented
-	$(MAKE) pgo-compile
+    $(MAKE) pgo-instrumented
+    ./$(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented bench
+    $(PGO_MERGE)
+    $(MAKE) pgo-compile
 
-pgo-instrumented: EXE = $(BUILD_DIR)/$(PROJECT)-pgo-instrumented
-pgo-instrumented: VERBATIM_FLAGS = $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)
-pgo-instrumented: CXXFLAGS += $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) $(PGO_GEN) -fno-lto $(EXTRA_CXXFLAGS)
-pgo-instrumented: LDFLAGS += $(BASE_LDFLAGS) $(PGO_GEN) -fno-lto
-pgo-instrumented: binary
-	./$(EXE) bench
-	 $(PGO_MERGE)
-
-pgo-compile: EXE = $(BINARY_DIR)/$(PROJECT)-pgo
-pgo-compile: VERBATIM_FLAGS = $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)
-pgo-compile: CXXFLAGS += $(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) $(PGO_USE) $(EXTRA_CXXFLAGS)
-pgo-compile: LDFLAGS += $(BASE_LDFLAGS) -flto $(PGO_USE)
-pgo-compile: verbatim_binary binary
-
-$(eval $(call BUILD_TARGET,native,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS),-flto,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)))
+pgo-instrumented pgo-compile: verbatim_binary binary
 
 #----------------------------------------------------------------------------------------------------------------------
-# Debug and Sanitizer Builds
+# Multi-Architecture Release Target
 #----------------------------------------------------------------------------------------------------------------------
 
-$(eval $(call BUILD_TARGET,debug,$(DEBUG_FLAGS),,$(BASE_FLAGS) -g))
-$(eval $(call BUILD_TARGET,sanitize-address,$(SANITIZE_FLAGS) -fsanitize=address,-fsanitize=address,$(BASE_FLAGS) -g))
-$(eval $(call BUILD_TARGET,sanitize-undefined,$(SANITIZE_FLAGS) -fsanitize=undefined,-fsanitize=undefined,$(BASE_FLAGS) -g))
-$(eval $(call BUILD_TARGET,sanitize-thread,$(SANITIZE_FLAGS) -fsanitize=thread,-fsanitize=thread,$(BASE_FLAGS) -g))
-
-#----------------------------------------------------------------------------------------------------------------------
-# Special Builds
-#----------------------------------------------------------------------------------------------------------------------
-
-$(eval $(call BUILD_TARGET,tune,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) -DTUNE,-flto,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS)))
-$(eval $(call BUILD_TARGET,shuffle,$(NATIVE_FLAGS) $(NATIVE_ARCH_FLAGS) -DNETWORK_SHUFFLE -fopenmp,-flto -fopenmp,$(NATIVE_FLAGS) -DNETWORK_SHUFFLE))
-
-#----------------------------------------------------------------------------------------------------------------------
-# Release Builds for Specific Architectures
-#----------------------------------------------------------------------------------------------------------------------
-
-$(eval $(call BUILD_TARGET,legacy,$(RELEASE_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE)))
-$(eval $(call BUILD_TARGET,sse4,$(RELEASE_FLAGS) $(SSE4_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4))
-$(eval $(call BUILD_TARGET,avx,$(RELEASE_FLAGS) $(AVX_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX))
-$(eval $(call BUILD_TARGET,avx2,$(RELEASE_FLAGS) $(AVX2_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2))
-$(eval $(call BUILD_TARGET,avx2-pext,$(RELEASE_FLAGS) $(AVX2_FLAGS) $(PEXT_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT))
-$(eval $(call BUILD_TARGET,avx512,$(RELEASE_FLAGS) $(AVX512_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512))
-$(eval $(call BUILD_TARGET,avx512vnni,$(RELEASE_FLAGS) $(AVX512VNNI_FLAGS),-flto $(STATIC_LDFLAGS),$(BASE_FLAGS) $(OPT_RELEASE) -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI))
-
-.PHONY: release
-release:
-	$(MAKE) legacy
-	$(MAKE) sse4
-	$(MAKE) avx
-	$(MAKE) avx2
-	$(MAKE) avx2-pext
-	$(MAKE) avx512
-	$(MAKE) avx512vnni
+.PHONY: release-all
+release-all:
+    $(MAKE) ARCH=legacy release
+    $(MAKE) ARCH=sse4 release
+    $(MAKE) ARCH=avx release
+    $(MAKE) ARCH=avx2 release
+    $(MAKE) ARCH=avx2-pext release
+    $(MAKE) ARCH=avx512 release
+    $(MAKE) ARCH=avx512vnni release
 
 #----------------------------------------------------------------------------------------------------------------------
 # Network File Management
@@ -256,9 +329,9 @@ release:
 
 $(EVALFILE):
 ifdef NO_EVALFILE_SET
-	@ mkdir -p $(dir $@)
-	$(info Downloading default network $(NET_HASH).nn)
-	curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
+    @ mkdir -p $(dir $@)
+    $(info Downloading default network $(NET_HASH).nn)
+    curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -267,11 +340,11 @@ endif
 
 .PHONY: verbatim_binary
 verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
-	@ mkdir -p $(BUILD_DIR)
-	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
+    @ mkdir -p $(BUILD_DIR)
+    $(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
 
 $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
-	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
+    ./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
 
 #----------------------------------------------------------------------------------------------------------------------
 # Build Rules
@@ -279,12 +352,12 @@ $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
 
 .PHONY: binary
 binary: $(OBJS)
-	@ mkdir -p $(BINARY_DIR)
-	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
+    @ mkdir -p $(BINARY_DIR)
+    $(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
-$(BUILD_DIR)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
-	@ mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+$(BUILD_DIR)/$(ARCH)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
+    @ mkdir -p $(dir $@)
+    $(CXX) $(CXXFLAGS) -c $< -o $@
 
 #----------------------------------------------------------------------------------------------------------------------
 # Utility Targets
@@ -292,9 +365,9 @@ $(BUILD_DIR)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
 
 .PHONY: clean clean_build
 clean_build:
-	rm -rf $(BUILD_DIR)
+    rm -rf $(BUILD_DIR)
 
 clean: clean_build
-	rm -rf $(BINARY_DIR)
+    rm -rf $(BINARY_DIR)
 
 FORCE:
