@@ -65,7 +65,7 @@ jobs:
 
     - name: Build
       working-directory: src
-      run: make ${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
+      run: make release ARCH=${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
 
     - name: Rename Binary
       run: |

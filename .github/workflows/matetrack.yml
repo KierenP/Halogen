@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Halogen
         working-directory: Halogen/src
-        run: make -j native
+        run: make -j release
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4

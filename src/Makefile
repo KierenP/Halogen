@@ -6,6 +6,9 @@ PROJECT := Halogen
 BUILD_DIR := ../build
 BINARY_DIR := ../bin
 
+# Default target (to support openbench)
+.DEFAULT_GOAL := pgo
+
 # Network configuration
 ifndef EVALFILE
     NET_HASH := 637096c1
@@ -75,6 +78,7 @@ endif
 
 WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers
 BASE_FLAGS := $(WARN_FLAGS) -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
+BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
 # Optimization levels
 OPT_NONE := -O0
@@ -203,7 +207,7 @@ endif
 # Debug build
 ifeq ($(MAKECMDGOALS),debug)
     BUILD_TYPE := debug
-    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) -g -Werror $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_NONE) $(BASE_FLAGS) -g -Werror $(ARCH_DEFINES) $(ARCH_MARCH)
     LDFLAGS += $(BASE_LDFLAGS)
     VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-debug
@@ -212,26 +216,16 @@ endif
 # Release build
 ifeq ($(MAKECMDGOALS),release)
     BUILD_TYPE := release
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH)
     LDFLAGS += $(BASE_LDFLAGS) -flto $(STATIC_LDFLAGS)
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)
 endif
 
-# Native optimized build
-ifeq ($(MAKECMDGOALS),native)
-    BUILD_TYPE := native
-    override ARCH := native
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
-    LDFLAGS += $(BASE_LDFLAGS) -flto
-    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
-    EXE := $(BINARY_DIR)/$(PROJECT)-native
-endif
-
 # Sanitizer builds
 ifeq ($(MAKECMDGOALS),sanitize-address)
     BUILD_TYPE := sanitize-address
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=address $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=address $(ARCH_DEFINES)
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=address
     VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-asan
@@ -239,7 +233,7 @@ endif
 
 ifeq ($(MAKECMDGOALS),sanitize-undefined)
     BUILD_TYPE := sanitize-undefined
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=undefined $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=undefined $(ARCH_DEFINES)
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=undefined
     VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-ubsan
@@ -247,7 +241,7 @@ endif
 
 ifeq ($(MAKECMDGOALS),sanitize-thread)
     BUILD_TYPE := sanitize-thread
-    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=thread $(ARCH_DEFINES) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_SANITIZE) $(BASE_FLAGS) -g -Werror -fno-omit-frame-pointer -fsanitize=thread $(ARCH_DEFINES)
     LDFLAGS += $(BASE_LDFLAGS) -fsanitize=thread
     VERBATIM_FLAGS := $(BASE_FLAGS) -g $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-$(ARCH)-tsan
@@ -256,8 +250,7 @@ endif
 # Tune build
 ifeq ($(MAKECMDGOALS),tune)
     BUILD_TYPE := tune
-    override ARCH := native
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DTUNE -flto $(ARCH_DEFINES) $(ARCH_MARCH) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DTUNE -flto $(ARCH_DEFINES) $(ARCH_MARCH)
     LDFLAGS += $(BASE_LDFLAGS) -flto
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-tune
@@ -266,18 +259,25 @@ endif
 # Shuffle build
 ifeq ($(MAKECMDGOALS),shuffle)
     BUILD_TYPE := shuffle
-    override ARCH := native
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DNETWORK_SHUFFLE -flto $(ARCH_DEFINES) $(ARCH_MARCH) -fopenmp $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -DNETWORK_SHUFFLE -flto $(ARCH_DEFINES) $(ARCH_MARCH) -fopenmp
     LDFLAGS += $(BASE_LDFLAGS) -flto -fopenmp
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES) -DNETWORK_SHUFFLE
     EXE := $(BINARY_DIR)/$(PROJECT)-shuffle
 endif
 
+# Tournament build
+ifeq ($(MAKECMDGOALS),tournament)
+    BUILD_TYPE := tournament
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG -flto $(ARCH_DEFINES) $(ARCH_MARCH) -DTOURNAMENT_MODE
+    LDFLAGS += $(BASE_LDFLAGS) -flto -lnuma
+    VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
+    EXE := $(BINARY_DIR)/$(PROJECT)-tournament
+endif
+
 # PGO instrumented build
 ifeq ($(MAKECMDGOALS),pgo-instrumented)
     BUILD_TYPE := pgo-instrumented
-    override ARCH := native
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_GEN) -fno-lto $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_GEN) -fno-lto
     LDFLAGS += $(BASE_LDFLAGS) $(PGO_GEN) -fno-lto
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented
@@ -286,8 +286,7 @@ endif
 # PGO optimized build
 ifeq ($(MAKECMDGOALS),pgo-compile)
     BUILD_TYPE := pgo-compile
-    override ARCH := native
-    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_USE) $(EXTRA_CXXFLAGS)
+    CXXFLAGS += $(OPT_RELEASE) $(BASE_FLAGS) -DNDEBUG $(ARCH_DEFINES) $(ARCH_MARCH) $(PGO_USE)
     LDFLAGS += $(BASE_LDFLAGS) -flto $(PGO_USE)
     VERBATIM_FLAGS := $(OPT_RELEASE) $(BASE_FLAGS) $(ARCH_DEFINES)
     EXE := $(BINARY_DIR)/$(PROJECT)-pgo
@@ -298,14 +297,14 @@ endif
 #----------------------------------------------------------------------------------------------------------------------
 
 .PHONY: debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle
-debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle: verbatim_binary binary
+debug release sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament: verbatim_binary binary
 
 .PHONY: pgo pgo-instrumented pgo-compile
-pgo: verbatim_binary
-    $(MAKE) pgo-instrumented
-    ./$(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented bench
-    $(PGO_MERGE)
-    $(MAKE) pgo-compile
+pgo:
+	$(MAKE) pgo-instrumented
+	./$(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented bench
+	$(PGO_MERGE)
+	$(MAKE) pgo-compile
 
 pgo-instrumented pgo-compile: verbatim_binary binary
 
@@ -315,13 +314,13 @@ pgo-instrumented pgo-compile: verbatim_binary binary
 
 .PHONY: release-all
 release-all:
-    $(MAKE) ARCH=legacy release
-    $(MAKE) ARCH=sse4 release
-    $(MAKE) ARCH=avx release
-    $(MAKE) ARCH=avx2 release
-    $(MAKE) ARCH=avx2-pext release
-    $(MAKE) ARCH=avx512 release
-    $(MAKE) ARCH=avx512vnni release
+	$(MAKE) ARCH=legacy release
+	$(MAKE) ARCH=sse4 release
+	$(MAKE) ARCH=avx release
+	$(MAKE) ARCH=avx2 release
+	$(MAKE) ARCH=avx2-pext release
+	$(MAKE) ARCH=avx512 release
+	$(MAKE) ARCH=avx512vnni release
 
 #----------------------------------------------------------------------------------------------------------------------
 # Network File Management
@@ -329,9 +328,9 @@ release-all:
 
 $(EVALFILE):
 ifdef NO_EVALFILE_SET
-    @ mkdir -p $(dir $@)
-    $(info Downloading default network $(NET_HASH).nn)
-    curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
+	@ mkdir -p $(dir $@)
+	$(info Downloading default network $(NET_HASH).nn)
+	curl -sL https://github.com/KierenP/Halogen-Networks/releases/download/$(NET_HASH)/$(NET_HASH).nn > $(EVALFILE)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -340,11 +339,11 @@ endif
 
 .PHONY: verbatim_binary
 verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
-    @ mkdir -p $(BUILD_DIR)
-    $(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
+	@ mkdir -p $(BUILD_DIR)
+	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
 
 $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
-    ./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
+	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
 
 #----------------------------------------------------------------------------------------------------------------------
 # Build Rules
@@ -352,22 +351,15 @@ $(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
 
 .PHONY: binary
 binary: $(OBJS)
-    @ mkdir -p $(BINARY_DIR)
-    $(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
+	@ mkdir -p $(BINARY_DIR)
+	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
 
 $(BUILD_DIR)/$(ARCH)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
-    @ mkdir -p $(dir $@)
-    $(CXX) $(CXXFLAGS) -c $< -o $@
+	@ mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 #----------------------------------------------------------------------------------------------------------------------
 # Utility Targets
 #----------------------------------------------------------------------------------------------------------------------
-
-.PHONY: clean clean_build
-clean_build:
-    rm -rf $(BUILD_DIR)
-
-clean: clean_build
-    rm -rf $(BINARY_DIR)
 
 FORCE:
