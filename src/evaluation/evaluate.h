@@ -8,7 +8,7 @@ struct SearchStackState;
 namespace NN
 {
 class Network;
-class Accumulator;
+struct Accumulator;
 }
 
 bool insufficient_material(const BoardState& board);

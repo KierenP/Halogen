@@ -27,7 +27,7 @@ jobs:
 
       - name: Create build
         working-directory: src
-        run: make pgo EXE=../bin/Halogen -j EXTRA_CXXFLAGS='-DTOURNAMENT_MODE' EXTRA_LDFLAGS='-lnuma'
+        run: make tournament EXE=../bin/Halogen
 
       - name: Check bench matches commit message
         run: |
