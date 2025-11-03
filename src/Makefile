@@ -303,7 +303,7 @@ debug release sanitize-address sanitize-undefined sanitize-thread tune shuffle t
 
 .PHONY: pgo pgo-instrumented pgo-compile
 pgo:
-	$(MAKE) pgo-instrumented
+	$(MAKE) pgo-instrumented EXE=$(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented
 	./$(BUILD_DIR)/$(ARCH)/$(PROJECT)-pgo-instrumented bench
 	$(PGO_MERGE)
 	$(MAKE) pgo-compile
