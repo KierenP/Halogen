@@ -29,6 +29,8 @@ std::atomic<uint64_t> black_wins;
 std::atomic<uint64_t> games_eligible_for_adjudication;
 std::atomic<uint64_t> correct_adjudications;
 
+std::atomic<uint64_t> nodes_per_position_sum;
+
 bool stop = false;
 
 void info_thread(std::chrono::seconds datagen_time)
@@ -66,6 +68,8 @@ void info_thread(std::chrono::seconds datagen_time)
             std::cout << "Adjudication Accuracy: "
                       << 100.f * float(correct_adjudications) / float(games_eligible_for_adjudication) << "%";
             std::cout << std::endl;
+            std::cout << "Nodes per position: " << float(nodes_per_position_sum) / float(fens) << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
 
             last_print = std::chrono::steady_clock::now();
             last_games = games;
@@ -88,7 +92,8 @@ void generation_thread(std::string_view output_path)
     SearchThreadPool pool { output, 1, 1, 1 };
 
     SearchLimits limits;
-    limits.nodes = 40000;
+    limits.hard_nodes = 100000;
+    limits.soft_nodes = 22500;
 
     GameState position = GameState::starting_position();
 
@@ -263,6 +268,7 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
         const auto score = search_result.score.value();
         score_moves.emplace_back(score, best_move);
         auto white_relative_score = (position.board().stm == WHITE ? score : -score);
+        nodes_per_position_sum += pool.get_shared_state().nodes();
 
         // perform win adjudication
         if (white_relative_score > win_adjudication_score)

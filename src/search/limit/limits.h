@@ -11,5 +11,6 @@ public:
     std::optional<SearchTimeManager> time;
     std::optional<int> depth;
     std::optional<int> mate;
-    std::optional<uint64_t> nodes;
+    std::optional<uint64_t> hard_nodes;
+    std::optional<uint64_t> soft_nodes;
 };

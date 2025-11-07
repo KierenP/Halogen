@@ -55,7 +55,8 @@ public:
         std::optional<std::chrono::milliseconds> movetime;
         std::optional<int> mate;
         std::optional<int> depth;
-        std::optional<int> nodes;
+        std::optional<int> hard_nodes;
+        std::optional<int> soft_nodes;
     };
 
     struct datagen_ctx

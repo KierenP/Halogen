@@ -111,6 +111,11 @@ void iterative_deepening(GameState& position, SearchLocalState& local, SearchSha
         {
             return;
         }
+
+        if (shared.limits.soft_nodes && local.nodes >= shared.limits.soft_nodes)
+        {
+            return;
+        }
     }
 }
 
@@ -195,7 +200,7 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
     }
 
     uint64_t nodes = local.nodes;
-    if (shared.limits.nodes && nodes >= shared.limits.nodes)
+    if (shared.limits.hard_nodes && nodes >= shared.limits.hard_nodes)
     {
         local.aborting_search = true;
         return true;
@@ -203,7 +208,7 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
 
     // Reset the limit_check_counter to 1024, or 1/2 the remaining node limit if smaller
     local.limit_check_counter
-        = shared.limits.nodes ? std::clamp<int64_t>((*shared.limits.nodes - nodes) / 2, 0, 1024) : 1024;
+        = shared.limits.hard_nodes ? std::clamp<int64_t>((*shared.limits.hard_nodes - nodes) / 2, 0, 1024) : 1024;
     return false;
 }
 

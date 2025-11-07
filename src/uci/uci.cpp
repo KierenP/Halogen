@@ -440,7 +440,8 @@ void Uci::handle_go(go_ctx& ctx)
     SearchLimits limits;
     limits.mate = ctx.mate;
     limits.depth = ctx.depth;
-    limits.nodes = ctx.nodes;
+    limits.hard_nodes = ctx.hard_nodes;
+    limits.soft_nodes = ctx.soft_nodes;
     limits.time = {};
 
     using namespace std::chrono_literals;
@@ -611,7 +612,9 @@ void Uci::process_input(std::string_view command)
                     Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
                     Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
                     Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-                    Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } },
+                    Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.hard_nodes = value; } } } },
+                    Consume { "hard_nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.hard_nodes = value; } } } },
+                    Consume { "soft_nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.soft_nodes = value; } } } } } },
                 Invoke { [this](auto& ctx) { handle_go(ctx); } } } } } },
         Consume { "setoption", options_handler_model.build_handler() },
 
