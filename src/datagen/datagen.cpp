@@ -62,6 +62,7 @@ void info_thread(std::chrono::seconds datagen_time)
             std::cout << float(white_wins - last_white_wins) / float(games - last_games) << " ";
             std::cout << float(draws - last_draws) / float(games - last_games) << " ";
             std::cout << float(black_wins - last_black_wins) / float(games - last_games);
+            std::cout << std::endl;
             std::cout << "Adjudication Accuracy: "
                       << 100.f * float(correct_adjudications) / float(games_eligible_for_adjudication) << "%";
             std::cout << std::endl;
