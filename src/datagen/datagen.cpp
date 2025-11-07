@@ -26,6 +26,9 @@ std::atomic<uint64_t> white_wins;
 std::atomic<uint64_t> draws;
 std::atomic<uint64_t> black_wins;
 
+std::atomic<uint64_t> games_eligible_for_adjudication;
+std::atomic<uint64_t> correct_adjudications;
+
 bool stop = false;
 
 void info_thread(std::chrono::seconds datagen_time)
@@ -59,6 +62,8 @@ void info_thread(std::chrono::seconds datagen_time)
             std::cout << float(white_wins - last_white_wins) / float(games - last_games) << " ";
             std::cout << float(draws - last_draws) / float(games - last_games) << " ";
             std::cout << float(black_wins - last_black_wins) / float(games - last_games);
+            std::cout << "Adjudication Accuracy: "
+                      << 100.f * float(correct_adjudications) / float(games_eligible_for_adjudication) << "%";
             std::cout << std::endl;
 
             last_print = std::chrono::steady_clock::now();
@@ -177,14 +182,22 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
     std::vector<std::tuple<int16_t, Move>> score_moves;
     float result = -1;
 
+    // Experimentally, it was found that applying adjudication to some portion of games (but not all) gives a better
+    // distribution of data for training. The adjudication parameters below were chosen empirically, they result in
+    // around a 40% reduction in average game length with around 99% adjudication accuracy.
     constexpr static int win_adjudication_score = 750;
     constexpr static int win_adjudication_plys = 6;
     constexpr static int draw_adjudication_score = 10;
     constexpr static int draw_adjudication_plys = 12;
+    constexpr static double adjudication_fraction = 0.65;
 
     int white_win_adj_count = 0;
     int black_win_adj_count = 0;
     int draw_adj_count = 0;
+
+    bool would_be_eligible_for_adjudication = false;
+    float potential_adjudication_decision = -1;
+    bool adjudicate_this_game = std::bernoulli_distribution(adjudication_fraction)(gen);
 
     while (true)
     {
@@ -279,26 +292,59 @@ void self_play_game(GameState& position, SearchThreadPool& pool, const SearchLim
             draw_adj_count = 0;
         }
 
-        if (white_win_adj_count >= win_adjudication_plys)
+        if (adjudicate_this_game)
         {
-            result = 1.f;
-            white_wins++;
-            break;
+            if (white_win_adj_count >= win_adjudication_plys)
+            {
+                result = 1.f;
+                white_wins++;
+                break;
+            }
+            else if (black_win_adj_count >= win_adjudication_plys)
+            {
+                result = 0.f;
+                black_wins++;
+                break;
+            }
+            else if (draw_adj_count >= draw_adjudication_plys)
+            {
+                result = 0.5f;
+                draws++;
+                break;
+            }
         }
-        else if (black_win_adj_count >= win_adjudication_plys)
+        else if (!would_be_eligible_for_adjudication)
         {
-            result = 0.f;
-            black_wins++;
-            break;
-        }
-        else if (draw_adj_count >= draw_adjudication_plys)
-        {
-            result = 0.5f;
-            draws++;
-            break;
+            // even if we aren't adjudicating this game, this is a good opportunity to record stats on how often
+            // adjudication would have occurred, and how often it would have been correct.
+            if (white_win_adj_count >= win_adjudication_plys)
+            {
+                potential_adjudication_decision = 1.f;
+                would_be_eligible_for_adjudication = true;
+            }
+            else if (black_win_adj_count >= win_adjudication_plys)
+            {
+                potential_adjudication_decision = 0.f;
+                would_be_eligible_for_adjudication = true;
+            }
+            else if (draw_adj_count >= draw_adjudication_plys)
+            {
+                potential_adjudication_decision = 0.5f;
+                would_be_eligible_for_adjudication = true;
+            }
         }
 
         position.apply_move(best_move);
+    }
+
+    // track adjudication accuracy for summary stats
+    if (would_be_eligible_for_adjudication)
+    {
+        games_eligible_for_adjudication++;
+        if (potential_adjudication_decision == result)
+        {
+            correct_adjudications++;
+        }
     }
 
     auto marlin_format = convert(initial_state, result);
