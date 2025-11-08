@@ -83,6 +83,7 @@ T* allocate_huge_page(std::size_t size)
     CloseHandle(hToken);
     return data;
 #else
+    size = ((size + alignof(T) - 1) / alignof(T)) * alignof(T);
     return static_cast<T*>(std::aligned_alloc(alignof(T), size));
 #endif
 }
