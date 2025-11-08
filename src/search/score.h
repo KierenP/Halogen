@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitboard/define.h"
+
 #include <cstdint>
 #include <cstdlib>
 #include <ostream>

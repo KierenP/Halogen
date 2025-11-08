@@ -1,4 +1,5 @@
 #pragma once
+
 #include <chrono>
 
 using chess_clock_t = std::chrono::high_resolution_clock;

@@ -1,5 +1,12 @@
 #include "encode.h"
 
+#include "bitboard/define.h"
+#include "bitboard/enum.h"
+#include "chessboard/board_state.h"
+#include "movegen/move.h"
+
+#include <cassert>
+
 MarlinFormat convert(BoardState board, float result)
 {
     const auto white = board.get_pieces_bb(WHITE);

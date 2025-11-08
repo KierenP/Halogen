@@ -1,8 +1,11 @@
 #pragma once
+
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "search/score.h"
 #include "utility/fraction.h"
+
+#include <cstdint>
 
 class GameState;
 struct SearchLocalState;

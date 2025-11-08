@@ -1,15 +1,16 @@
 #pragma once
 
-#include <cstdint>
-#include <optional>
-#include <string_view>
-
+#include "bitboard/define.h"
 #include "movegen/move.h"
 #include "search/data.h"
 #include "search/score.h"
 #include "utility/static_vector.h"
 
-class BoardState;
+#include <cstdint>
+#include <optional>
+#include <string_view>
+
+class GameState;
 
 class RootProbeResult
 {

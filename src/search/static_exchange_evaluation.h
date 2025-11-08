@@ -1,8 +1,5 @@
 #pragma once
 
-#include "spsa/tuneable.h"
-#include <array>
-
 class BoardState;
 class Move;
 class Score;

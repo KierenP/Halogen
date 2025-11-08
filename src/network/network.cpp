@@ -1,21 +1,20 @@
 #include "network.h"
 
-#include <algorithm>
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
-#include <fstream>
-#include <initializer_list>
-#include <memory>
-
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "network/accumulator.hpp"
 #include "network/arch.hpp"
 #include "network/inference.hpp"
-#include "network/simd/intrinsics.hpp"
 #include "third-party/incbin/incbin.h"
+
+#include <algorithm>
+#include <bit>
+#include <cassert>
+#include <cstdint>
+#include <cstdlib>
+#include <initializer_list>
+#include <iostream>
 
 namespace NN
 {

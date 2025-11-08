@@ -1,9 +1,5 @@
 #include "search/static_exchange_evaluation.h"
 
-#include <array>
-#include <cstdint>
-#include <iostream>
-
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
@@ -11,6 +7,9 @@
 #include "movegen/movegen.h"
 #include "search/score.h"
 #include "spsa/tuneable.h"
+
+#include <array>
+#include <cstdint>
 
 // movegen::attacks_to_sq could be used here?
 uint64_t attackers_to_sq(const BoardState& board, Square sq, uint64_t occ)

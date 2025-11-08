@@ -3,9 +3,10 @@
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
-#include "chessboard/game_state.h"
 #include "movegen/move.h"
 #include "search/data.h"
+
+#include <array>
 
 int16_t* PawnHistory::get(const BoardState& board, const SearchStackState*, Move move)
 {
