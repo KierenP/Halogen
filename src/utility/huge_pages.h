@@ -83,7 +83,8 @@ T* allocate_huge_page(std::size_t size)
     CloseHandle(hToken);
     return data;
 #else
-    return new T[size / sizeof(T)];
+    size = ((size + alignof(T) - 1) / alignof(T)) * alignof(T);
+    return static_cast<T*>(std::aligned_alloc(alignof(T), size));
 #endif
 }
 
@@ -95,7 +96,7 @@ void deallocate_huge_page(T* ptr)
 #elif defined(_WIN32)
     VirtualFree(ptr, 0, MEM_RELEASE);
 #else
-    delete[] ptr;
+    std::free(ptr);
 #endif
 }
 
