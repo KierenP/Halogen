@@ -307,7 +307,7 @@ std::optional<Score> init_search_node(const GameState& position, const int dista
     }
 
     local.sel_depth = std::max(local.sel_depth, distance_from_root);
-    local.nodes.fetch_add(1, std::memory_order_relaxed);
+    local.nodes.inc();
 
     if (distance_from_root >= MAX_RECURSION)
     {
@@ -357,7 +357,7 @@ std::optional<Score> probe_egtb(const GameState& position, const int distance_fr
     auto probe = Syzygy::probe_wdl_search(local, distance_from_root);
     if (probe.has_value())
     {
-        local.tb_hits.fetch_add(1, std::memory_order_relaxed);
+        local.tb_hits.inc();
         const auto tb_score = *probe;
 
         if constexpr (!root_node)
