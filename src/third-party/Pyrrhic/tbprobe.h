@@ -27,9 +27,9 @@
 #define TBPROBE_H
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <stdbool.h> // IWYU pragma: keep
 
-#include "tbconfig.h"
+#include "tbconfig.h" // IWYU pragma: keep
 
 /// Definitions for PyrrhicMoves
 

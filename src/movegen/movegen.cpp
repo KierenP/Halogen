@@ -1,16 +1,18 @@
 #include "movegen/movegen.h"
 
-#include <array>
-#include <cassert>
-#include <cstddef>
-
 #include "attacks/sliding_attacks.h"
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
-#include "move.h"
 #include "movegen/list.h" // IWYU pragma: keep
 #include "movegen/move.h"
 #include "utility/static_vector.h"
+
+#include <array>
+#include <bit>
+#include <cassert>
+#include <cstddef>
+#include <immintrin.h>
 
 template <Side STM, typename T>
 void add_loud_moves(const BoardState& board, T& moves); // captures and/or promotions

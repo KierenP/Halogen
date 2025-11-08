@@ -1,16 +1,23 @@
 #include "thread.h"
-#include "bitboard/enum.h"
+
 #include "chessboard/game_state.h"
 #include "movegen/list.h"
+#include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "numa/numa.h"
 #include "search/data.h"
+#include "search/limit/limits.h"
+#include "search/search.h"
 #include "search/syzygy.h"
 #include "uci/uci.h"
-#include <chrono>
+#include "utility/atomic.h"
+#include "utility/static_vector.h"
+
+#include <algorithm>
 #include <future>
-#include <iostream>
+#include <optional>
 #include <thread>
+#include <utility>
 
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
     : thread_id_(thread_id)

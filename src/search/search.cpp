@@ -1,20 +1,7 @@
 #include "search/search.h"
 
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <cassert>
-#include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-#include <limits>
-#include <optional>
-#include <thread>
-#include <tuple>
-#include <vector>
-
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
@@ -38,6 +25,18 @@
 #include "utility/atomic.h"
 #include "utility/fraction.h"
 #include "utility/static_vector.h"
+
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <tuple>
 
 enum class SearchType : int8_t
 {

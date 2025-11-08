@@ -1,13 +1,15 @@
 #include "evaluation/evaluate.h"
 
-#include <algorithm>
-#include <cassert>
-
-#include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "network/network.h"
-#include "search/data.h"
 #include "search/score.h"
+#include "spsa/tuneable.h"
+
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cassert>
 
 Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
 {

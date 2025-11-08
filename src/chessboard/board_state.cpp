@@ -1,15 +1,16 @@
 #include "chessboard/board_state.h"
 
-#include <cassert>
-#include <charconv>
-#include <cstddef>
-#include <iostream>
-
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
+
+#include <bit>
+#include <cassert>
+#include <charconv>
+#include <cstddef>
+#include <iostream>
 
 BoardState::BoardState()
 {

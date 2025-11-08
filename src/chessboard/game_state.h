@@ -1,14 +1,12 @@
 #pragma once
 
-#include <array>
-#include <string_view>
-#include <vector>
-
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
 #include "utility/static_vector.h"
 
-class Move;
+#include <array>
+#include <string_view>
 
 /*
 This class holds all the data required to define a state in a chess game,

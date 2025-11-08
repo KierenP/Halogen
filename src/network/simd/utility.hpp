@@ -1,9 +1,10 @@
 #pragma once
 
+#include "network/simd/intrinsics.hpp"
+
 #include <cstdint>
 #include <immintrin.h>
 #include <iostream>
-#include <network/simd/intrinsics.hpp>
 
 namespace NN::SIMD
 {

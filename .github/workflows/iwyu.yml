@@ -1,0 +1,50 @@
+name: IWYU
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  Analyzers:
+    name: Check includes
+    runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: Halogen/src
+        shell: bash
+    steps:
+      - name: Checkout Halogen
+        uses: actions/checkout@v4.1.1
+        with:
+          path: Halogen
+
+      - name: Checkout include-what-you-use
+        uses: actions/checkout@v4.1.1
+        with:
+          repository: include-what-you-use/include-what-you-use
+          ref: clang_20
+          path: include-what-you-use
+
+      - name: Download required linux packages
+        run: |
+          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main'
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt update
+          sudo apt install -y libclang-20-dev clang-20 libc++-20-dev
+
+      - name: Set up include-what-you-use
+        working-directory: include-what-you-use
+        run: |
+          mkdir build && cd build
+          cmake -G "Unix Makefiles" -DCMAKE_PREFIX_PATH="/usr/lib/llvm-20" ..
+          sudo make install
+
+      - name: Check include-what-you-use
+        run: include-what-you-use --version
+
+      - name: Check includes
+        working-directory: Halogen/src
+        # a bit awkawrd, but IWYU doesn't actually link the binary to generate the verbatim net, so we need to build twice.
+        run: |
+          make debug -j
+          make -k analyze COMPILER=clang CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='../.github/ci/libcxx20.imp' -Xiwyu --error"
