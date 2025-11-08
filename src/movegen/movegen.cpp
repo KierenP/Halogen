@@ -4,11 +4,11 @@
 #include <cassert>
 #include <cstddef>
 
+#include "attacks/sliding_attacks.h"
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "move.h"
 #include "movegen/list.h" // IWYU pragma: keep
-#include "movegen/magic.h"
 #include "movegen/move.h"
 #include "utility/static_vector.h"
 
@@ -1105,13 +1105,13 @@ uint64_t attack_bb<KNIGHT>(Square sq, uint64_t)
 template <>
 uint64_t attack_bb<BISHOP>(Square sq, uint64_t occupied)
 {
-    return Magic::bishopTable.attack_mask(sq, occupied);
+    return BishopSlidingAttacks.attack_mask(sq, occupied);
 }
 
 template <>
 uint64_t attack_bb<ROOK>(Square sq, uint64_t occupied)
 {
-    return Magic::rookTable.attack_mask(sq, occupied);
+    return RookSlidingAttacks.attack_mask(sq, occupied);
 }
 
 template <>
