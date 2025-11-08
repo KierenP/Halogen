@@ -33,15 +33,16 @@ jobs:
           sudo apt install -y libclang-17-dev clang-17 libc++-17-dev
 
       - name: Set up include-what-you-use
+        working-directory: include-what-you-use
         run: |
           mkdir build && cd build
           cmake -G "Unix Makefiles" -DCMAKE_PREFIX_PATH="/usr/lib/llvm-17" ..
           sudo make install
-        working-directory: include-what-you-use
 
       - name: Check include-what-you-use
         run: include-what-you-use --version
 
       - name: Check includes
-        run: >
+        working-directory: Halogen/src
+        run: |
           make -k analyze COMPILER=clang CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='../.github/ci/libcxx20.imp' -Xiwyu --error"
