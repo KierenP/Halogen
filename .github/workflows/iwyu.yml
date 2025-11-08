@@ -44,5 +44,7 @@ jobs:
 
       - name: Check includes
         working-directory: Halogen/src
+        # a bit awkawrd, but IWYU doesn't actually link the binary to generate the verbatim net, so we need to build twice.
         run: |
+          make debug -j
           make -k analyze COMPILER=clang CXX=include-what-you-use EXTRA_CXXFLAGS="-stdlib=libc++ -Xiwyu --comment_style=long -Xiwyu --mapping='../.github/ci/libcxx20.imp' -Xiwyu --error"
