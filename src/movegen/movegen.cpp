@@ -12,6 +12,7 @@
 #include <bit>
 #include <cassert>
 #include <cstddef>
+#include <immintrin.h>
 
 template <Side STM, typename T>
 void add_loud_moves(const BoardState& board, T& moves); // captures and/or promotions

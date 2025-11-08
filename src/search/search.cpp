@@ -28,7 +28,6 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cmath>
