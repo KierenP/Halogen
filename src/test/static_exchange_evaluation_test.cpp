@@ -5,6 +5,7 @@
 #include "search/static_exchange_evaluation.h"
 #include "spsa/tuneable.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <string_view>
