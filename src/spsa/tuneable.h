@@ -141,6 +141,6 @@ TUNEABLE_CONSTANT int probcut_depth_const = 5;
 TUNEABLE_CONSTANT int generalized_tt_failhigh_margin = 415;
 TUNEABLE_CONSTANT int generalized_tt_failhigh_depth = 4;
 
-TUNEABLE_CONSTANT float smp_voting_depth = 1.0f;
-TUNEABLE_CONSTANT float smp_voting_score = 20.0f;
-TUNEABLE_CONSTANT float smp_voting_const = 180.0f;
+TUNEABLE_CONSTANT float smp_voting_depth = 1.433f;
+TUNEABLE_CONSTANT float smp_voting_score = 17.80f;
+TUNEABLE_CONSTANT float smp_voting_const = 242.15f;
