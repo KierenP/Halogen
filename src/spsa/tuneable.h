@@ -14,10 +14,10 @@
 
 constexpr inline int LMR_SCALE = 1024;
 
-TUNEABLE_CONSTANT float LMR_constant = -1.930;
-TUNEABLE_CONSTANT float LMR_depth_coeff = 1.495;
-TUNEABLE_CONSTANT float LMR_move_coeff = 2.809;
-TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7865;
+TUNEABLE_CONSTANT float LMR_constant = -1.983;
+TUNEABLE_CONSTANT float LMR_depth_coeff = 1.504;
+TUNEABLE_CONSTANT float LMR_move_coeff = 2.669;
+TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7817;
 
 inline auto Initialise_LMR_reduction()
 {
@@ -39,29 +39,29 @@ inline auto Initialise_LMR_reduction()
 // [depth][move number]
 TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_size = Fraction<64>::from_raw(576);
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_growth_factor = Fraction<64>::from_raw(96);
+TUNEABLE_CONSTANT auto aspiration_window_size = Fraction<64>::from_raw(556);
+TUNEABLE_CONSTANT auto aspiration_window_growth_factor = Fraction<64>::from_raw(88);
 
-TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(512);
-TUNEABLE_CONSTANT auto nmp_d = Fraction<64>::from_raw(9);
-TUNEABLE_CONSTANT auto nmp_s = Fraction<4096>::from_raw(16);
-TUNEABLE_CONSTANT auto nmp_sd = Fraction<4096>::from_raw(24576);
+TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(370);
+TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(572);
+TUNEABLE_CONSTANT auto nmp_score = Fraction<16384>::from_raw(65);
+TUNEABLE_CONSTANT auto nmp_score_max = Fraction<64>::from_raw(349);
 
 TUNEABLE_CONSTANT int iid_no_tt_depth = 1;
 TUNEABLE_CONSTANT int iid_no_move_depth = 6;
 
-TUNEABLE_CONSTANT auto se_sbeta_depth = Fraction<64>::from_raw(48);
+TUNEABLE_CONSTANT auto se_sbeta_depth = Fraction<64>::from_raw(53);
 TUNEABLE_CONSTANT int se_double = 0;
-TUNEABLE_CONSTANT int se_triple = 31;
+TUNEABLE_CONSTANT int se_triple = 32;
 TUNEABLE_CONSTANT int se_min_depth = 5;
 TUNEABLE_CONSTANT int se_tt_depth = 4;
 
-TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1410);
-TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1775);
-TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(893);
-TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(721);
-TUNEABLE_CONSTANT int lmr_h = 2306;
-TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(527);
+TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1391);
+TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1801);
+TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(781);
+TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(726);
+TUNEABLE_CONSTANT auto lmr_h = Fraction<16777216>::from_raw(2310);
+TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(516);
 TUNEABLE_CONSTANT int lmr_shallower = 9;
 
 TUNEABLE_CONSTANT int lmr_hindsight_ext_depth = 3;
