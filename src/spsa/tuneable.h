@@ -65,26 +65,26 @@ TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(527);
 TUNEABLE_CONSTANT int lmr_shallower = 9;
 
 TUNEABLE_CONSTANT int lmr_hindsight_ext_depth = 3;
-TUNEABLE_CONSTANT int lmr_hindsight_ext_margin = 9;
+TUNEABLE_CONSTANT int lmr_hindsight_ext_margin = 7;
 
-TUNEABLE_CONSTANT int fifty_mr_scale_a = 284;
-TUNEABLE_CONSTANT int fifty_mr_scale_b = 216;
+TUNEABLE_CONSTANT int fifty_mr_scale_a = 279;
+TUNEABLE_CONSTANT int fifty_mr_scale_b = 225;
 
 TUNEABLE_CONSTANT int rfp_max_d = 9;
-TUNEABLE_CONSTANT auto rfp_const = Fraction<64>::from_raw(-57);
-TUNEABLE_CONSTANT auto rfp_depth = Fraction<64>::from_raw(1760);
-TUNEABLE_CONSTANT auto rfp_quad = Fraction<64>::from_raw(28);
-TUNEABLE_CONSTANT int rfp_threat = 62;
+TUNEABLE_CONSTANT auto rfp_const = Fraction<64>::from_raw(-12);
+TUNEABLE_CONSTANT auto rfp_depth = Fraction<64>::from_raw(1784);
+TUNEABLE_CONSTANT auto rfp_quad = Fraction<64>::from_raw(43);
+TUNEABLE_CONSTANT int rfp_threat = 61;
 
 TUNEABLE_CONSTANT int lmp_max_d = 7;
-TUNEABLE_CONSTANT auto lmp_const = Fraction<64>::from_raw(425);
-TUNEABLE_CONSTANT auto lmp_depth = Fraction<64>::from_raw(434);
-TUNEABLE_CONSTANT auto lmp_quad = Fraction<64>::from_raw(1);
+TUNEABLE_CONSTANT auto lmp_const = Fraction<64>::from_raw(426);
+TUNEABLE_CONSTANT auto lmp_depth = Fraction<64>::from_raw(421);
+TUNEABLE_CONSTANT auto lmp_quad = Fraction<64>::from_raw(5);
 
 TUNEABLE_CONSTANT int fp_max_d = 12;
-TUNEABLE_CONSTANT auto fp_const = Fraction<64>::from_raw(2273);
-TUNEABLE_CONSTANT auto fp_depth = Fraction<64>::from_raw(893);
-TUNEABLE_CONSTANT auto fp_quad = Fraction<64>::from_raw(543);
+TUNEABLE_CONSTANT auto fp_const = Fraction<64>::from_raw(2332);
+TUNEABLE_CONSTANT auto fp_depth = Fraction<64>::from_raw(828);
+TUNEABLE_CONSTANT auto fp_quad = Fraction<64>::from_raw(475);
 
 TUNEABLE_CONSTANT int see_quiet_depth = 111;
 TUNEABLE_CONSTANT int see_quiet_hist = 119;
