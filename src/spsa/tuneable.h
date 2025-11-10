@@ -86,59 +86,59 @@ TUNEABLE_CONSTANT auto fp_const = Fraction<64>::from_raw(2273);
 TUNEABLE_CONSTANT auto fp_depth = Fraction<64>::from_raw(893);
 TUNEABLE_CONSTANT auto fp_quad = Fraction<64>::from_raw(543);
 
-TUNEABLE_CONSTANT int see_quiet_depth = 111;
-TUNEABLE_CONSTANT int see_quiet_hist = 119;
+TUNEABLE_CONSTANT int see_quiet_depth = 112;
+TUNEABLE_CONSTANT int see_quiet_hist = 128;
 TUNEABLE_CONSTANT int see_loud_depth = 44;
-TUNEABLE_CONSTANT int see_loud_hist = 121;
+TUNEABLE_CONSTANT int see_loud_hist = 123;
 TUNEABLE_CONSTANT int see_max_depth = 8;
 
-TUNEABLE_CONSTANT int hist_prune_depth = 1595;
-TUNEABLE_CONSTANT int hist_prune = 1011;
+TUNEABLE_CONSTANT int hist_prune_depth = 1554;
+TUNEABLE_CONSTANT int hist_prune = 724;
 
-TUNEABLE_CONSTANT std::array eval_scale = { 26, 545, 530, 576, 1597 };
-TUNEABLE_CONSTANT int eval_scale_const = 15040;
+TUNEABLE_CONSTANT std::array eval_scale = { 46, 571, 534, 557, 1648 };
+TUNEABLE_CONSTANT int eval_scale_const = 15321;
 
-TUNEABLE_CONSTANT std::array see_values = { 135, 419, 460, 901, 1982, 5000 };
+TUNEABLE_CONSTANT std::array see_values = { 137, 456, 491, 990, 1929, 5000 };
 
-TUNEABLE_CONSTANT float soft_tm = 0.3010;
-TUNEABLE_CONSTANT float node_tm_base = 0.3730;
-TUNEABLE_CONSTANT float node_tm_scale = 2.860;
-TUNEABLE_CONSTANT float move_stability_base = 0.5450;
-TUNEABLE_CONSTANT float move_stability_scale_a = 1.042;
-TUNEABLE_CONSTANT float move_stability_scale_b = 0.3203;
-TUNEABLE_CONSTANT float score_stability_base = 0.5879;
-TUNEABLE_CONSTANT float score_stability_range = 1.437;
-TUNEABLE_CONSTANT float score_stability_scale = 0.05313;
-TUNEABLE_CONSTANT float score_stability_offset = 16.97;
+TUNEABLE_CONSTANT float soft_tm = 0.2914;
+TUNEABLE_CONSTANT float node_tm_base = 0.3469;
+TUNEABLE_CONSTANT float node_tm_scale = 2.823;
+TUNEABLE_CONSTANT float move_stability_base = 0.6029;
+TUNEABLE_CONSTANT float move_stability_scale_a = 1.131;
+TUNEABLE_CONSTANT float move_stability_scale_b = 0.3311;
+TUNEABLE_CONSTANT float score_stability_base = 0.6039;
+TUNEABLE_CONSTANT float score_stability_range = 1.400;
+TUNEABLE_CONSTANT float score_stability_scale = 0.05841;
+TUNEABLE_CONSTANT float score_stability_offset = 16.87;
 
-TUNEABLE_CONSTANT int blitz_tc_a = 51;
-TUNEABLE_CONSTANT int blitz_tc_b = 239;
+TUNEABLE_CONSTANT int blitz_tc_a = 48;
+TUNEABLE_CONSTANT int blitz_tc_b = 245;
 TUNEABLE_CONSTANT int sudden_death_tc = 51;
 TUNEABLE_CONSTANT int repeating_tc = 96;
 
-TUNEABLE_CONSTANT auto history_bonus_const = Fraction<64>::from_raw(860);
-TUNEABLE_CONSTANT auto history_bonus_depth = Fraction<64>::from_raw(-33);
-TUNEABLE_CONSTANT auto history_bonus_quad = Fraction<64>::from_raw(107);
+TUNEABLE_CONSTANT auto history_bonus_const = Fraction<64>::from_raw(827);
+TUNEABLE_CONSTANT auto history_bonus_depth = Fraction<64>::from_raw(-39);
+TUNEABLE_CONSTANT auto history_bonus_quad = Fraction<64>::from_raw(109);
 
-TUNEABLE_CONSTANT auto history_penalty_const = Fraction<64>::from_raw(1567);
+TUNEABLE_CONSTANT auto history_penalty_const = Fraction<64>::from_raw(1681);
 TUNEABLE_CONSTANT auto history_penalty_depth = Fraction<64>::from_raw(8);
-TUNEABLE_CONSTANT auto history_penalty_quad = Fraction<64>::from_raw(28);
+TUNEABLE_CONSTANT auto history_penalty_quad = Fraction<64>::from_raw(27);
 
 TUNEABLE_CONSTANT int tt_replace_self_depth = 6;
-TUNEABLE_CONSTANT auto tt_replace_depth = Fraction<64>::from_raw(55);
-TUNEABLE_CONSTANT auto tt_replace_age = Fraction<64>::from_raw(262);
+TUNEABLE_CONSTANT auto tt_replace_depth = Fraction<64>::from_raw(61);
+TUNEABLE_CONSTANT auto tt_replace_age = Fraction<64>::from_raw(253);
 
-TUNEABLE_CONSTANT int good_loud_see = 63;
-TUNEABLE_CONSTANT int good_loud_see_hist = 49;
+TUNEABLE_CONSTANT int good_loud_see = 59;
+TUNEABLE_CONSTANT int good_loud_see_hist = 52;
 
 TUNEABLE_CONSTANT int qsearch_lmp = 2;
-TUNEABLE_CONSTANT int qsearch_see_hist = 160;
+TUNEABLE_CONSTANT int qsearch_see_hist = 162;
 
-TUNEABLE_CONSTANT int probcut_beta = 214;
+TUNEABLE_CONSTANT int probcut_beta = 216;
 TUNEABLE_CONSTANT int probcut_min_depth = 3;
 TUNEABLE_CONSTANT int probcut_depth_const = 5;
 
-TUNEABLE_CONSTANT int generalized_tt_failhigh_margin = 415;
+TUNEABLE_CONSTANT int generalized_tt_failhigh_margin = 442;
 TUNEABLE_CONSTANT int generalized_tt_failhigh_depth = 4;
 
 TUNEABLE_CONSTANT float smp_voting_depth = 1.0f;
