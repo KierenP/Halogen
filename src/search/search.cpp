@@ -613,7 +613,7 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
         r -= lmr_loud;
     }
 
-    r -= Fraction<LMR_SCALE>::from_raw(history * lmr_h / 16384);
+    r -= (history * lmr_h).rescale<LMR_SCALE>();
 
     r = (r + lmr_offset);
     return std::max(0, r.to_int());

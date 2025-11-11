@@ -14,10 +14,10 @@
 
 constexpr inline int LMR_SCALE = 1024;
 
-TUNEABLE_CONSTANT float LMR_constant = -1.930;
-TUNEABLE_CONSTANT float LMR_depth_coeff = 1.495;
-TUNEABLE_CONSTANT float LMR_move_coeff = 2.809;
-TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7865;
+TUNEABLE_CONSTANT float LMR_constant = -1.983;
+TUNEABLE_CONSTANT float LMR_depth_coeff = 1.504;
+TUNEABLE_CONSTANT float LMR_move_coeff = 2.669;
+TUNEABLE_CONSTANT float LMR_depth_move_coeff = -0.7817;
 
 inline auto Initialise_LMR_reduction()
 {
@@ -56,12 +56,12 @@ TUNEABLE_CONSTANT int se_triple = 31;
 TUNEABLE_CONSTANT int se_min_depth = 5;
 TUNEABLE_CONSTANT int se_tt_depth = 4;
 
-TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1410);
-TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1775);
-TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(893);
-TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(721);
-TUNEABLE_CONSTANT int lmr_h = 2306;
-TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(527);
+TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1391);
+TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1801);
+TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(781);
+TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(726);
+TUNEABLE_CONSTANT auto lmr_h = Fraction<16777216>::from_raw(2310);
+TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(516);
 TUNEABLE_CONSTANT int lmr_shallower = 9;
 
 TUNEABLE_CONSTANT int lmr_hindsight_ext_depth = 3;
