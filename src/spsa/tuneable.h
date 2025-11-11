@@ -39,8 +39,8 @@ inline auto Initialise_LMR_reduction()
 // [depth][move number]
 TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_size = Fraction<64>::from_raw(576);
-TUNEABLE_CONSTANT Fraction<64> aspiration_window_growth_factor = Fraction<64>::from_raw(96);
+TUNEABLE_CONSTANT auto aspiration_window_size = Fraction<64>::from_raw(556);
+TUNEABLE_CONSTANT auto aspiration_window_growth_factor = Fraction<64>::from_raw(88);
 
 TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(512);
 TUNEABLE_CONSTANT auto nmp_d = Fraction<64>::from_raw(9);
