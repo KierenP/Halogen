@@ -42,10 +42,10 @@ TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 TUNEABLE_CONSTANT Fraction<64> aspiration_window_size = Fraction<64>::from_raw(576);
 TUNEABLE_CONSTANT Fraction<64> aspiration_window_growth_factor = Fraction<64>::from_raw(96);
 
-TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(512);
-TUNEABLE_CONSTANT auto nmp_d = Fraction<64>::from_raw(9);
-TUNEABLE_CONSTANT auto nmp_s = Fraction<4096>::from_raw(16);
-TUNEABLE_CONSTANT auto nmp_sd = Fraction<4096>::from_raw(24576);
+TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(370);
+TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(572);
+TUNEABLE_CONSTANT auto nmp_score = Fraction<16384>::from_raw(65);
+TUNEABLE_CONSTANT auto nmp_score_max = Fraction<64>::from_raw(349);
 
 TUNEABLE_CONSTANT int iid_no_tt_depth = 1;
 TUNEABLE_CONSTANT int iid_no_move_depth = 6;
