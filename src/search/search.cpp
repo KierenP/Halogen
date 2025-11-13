@@ -610,7 +610,7 @@ int late_move_reduction(
 
     if (failed_nmp)
     {
-        r += 512;
+        r += 1024;
     }
 
     r -= (history * lmr_h).rescale<LMR_SCALE>();
