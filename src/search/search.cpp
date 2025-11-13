@@ -481,13 +481,6 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     SearchLocalState& local, SearchSharedState& shared, const int distance_from_root, const int depth,
     const Score static_score, const Score beta)
 {
-    // avoid null move pruning in very late game positions due to zanauag issues.
-    // Even with verification search e.g 8/6k1/8/8/8/8/1K6/Q7 w - - 0 1
-    if (IsEndGame(position.board()) || std::popcount(position.board().get_pieces_bb()) < 5)
-    {
-        return std::nullopt;
-    }
-
     const int reduction = (nmp_const + (depth * nmp_depth).rescale<64>()
         + std::min(nmp_score_max, ((static_score - beta).value() * nmp_score).rescale<64>()))
                               .to_int();
@@ -585,7 +578,8 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 }
 
 template <bool pv_node>
-int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud)
+int late_move_reduction(
+    int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud, bool failed_nmp)
 {
     if (seen_moves == 1)
     {
@@ -612,6 +606,11 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
     if (loud)
     {
         r -= lmr_loud;
+    }
+
+    if (failed_nmp)
+    {
+        r += 512;
     }
 
     r -= (history * lmr_h).rescale<LMR_SCALE>();
@@ -951,18 +950,25 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return (beta.value() + eval.value()) / 2;
     }
 
+    bool failed_nmp = false;
+
     // Step 11: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
-    if (!pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && eval > beta
-        && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
+    if (!pv_node && !has_active_threat && !InCheck && ss->singular_exclusion == Move::Uninitialized
+        && (ss - 1)->move != Move::Uninitialized && distance_from_root >= ss->nmp_verification_depth && eval > beta
+        && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta) && !IsEndGame(position.board())
+        && std::popcount(position.board().get_pieces_bb()) >= 5)
     {
         if (auto value = null_move_pruning(position, ss, acc, local, shared, distance_from_root, depth, eval, beta))
         {
             return *value;
+        }
+        else
+        {
+            failed_nmp = true;
         }
     }
 
@@ -1114,7 +1120,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
         // Step 18: Late move reductions
-        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move, failed_nmp);
         Score search_score = search_move<pv_node>(
             position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
 
