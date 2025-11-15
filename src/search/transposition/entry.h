@@ -38,14 +38,14 @@ public:
     Meta meta; // 1 byte
 };
 
-struct alignas(32) Bucket : public std::array<Entry, 3>
+struct alignas(64) Bucket : public std::array<Entry, 6>
 {
-    constexpr static auto size = 3;
+    constexpr static auto size = 6;
 };
 
 static_assert(sizeof(Entry) == 10);
-static_assert(sizeof(Bucket) == 32);
-static_assert(alignof(Bucket) == 32);
+static_assert(sizeof(Bucket) == 64);
+static_assert(alignof(Bucket) == 64);
 static_assert(std::is_trivial_v<Bucket>);
 
 }
