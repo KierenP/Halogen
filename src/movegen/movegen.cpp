@@ -12,7 +12,10 @@
 #include <bit>
 #include <cassert>
 #include <cstddef>
+
+#if defined(USE_AVX512) || defined(USE_AVX512_VNNI)
 #include <immintrin.h>
+#endif
 
 template <Side STM, typename T>
 void add_loud_moves(const BoardState& board, T& moves); // captures and/or promotions

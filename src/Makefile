@@ -64,12 +64,13 @@ endif
 
 $(info Detected OS: $(DETECTED_OS))
 
-ifeq ($(findstring clang++, $(CXX)),)
-    COMPILER := gcc
-    $(info Detected compiler: g++)
-else
+CXX_VERSION := $(shell $(CXX) --version 2>/dev/null)
+ifneq ($(findstring clang,$(CXX_VERSION)),)
     COMPILER := clang
     $(info Detected compiler: clang++)
+else
+    COMPILER := gcc
+    $(info Detected compiler: g++)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -89,7 +90,11 @@ OPT_RELEASE := -O3 -DNDEBUG
 # Linker Flags
 #----------------------------------------------------------------------------------------------------------------------
 
-BASE_LDFLAGS := -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+ifeq ($(DETECTED_OS),Darwin)
+    BASE_LDFLAGS := -lpthread -lm
+else
+    BASE_LDFLAGS := -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
+endif
 BASE_LDFLAGS += $(EXTRA_LDFLAGS)
 
 ifeq ($(DETECTED_OS),Windows)
@@ -189,6 +194,12 @@ $(info Building for architecture: $(ARCH))
 #----------------------------------------------------------------------------------------------------------------------
 
 LLVM_PROFDATA := llvm-profdata
+
+ifneq ($(shell command -v llvm-profdata >/dev/null 2>&1 && echo found),found)
+    ifeq ($(DETECTED_OS),Darwin)
+        LLVM_PROFDATA := xcrun llvm-profdata
+    endif
+endif
 
 ifeq ($(COMPILER),gcc)
     LTO_FLAGS := -flto=auto -flto-partition=one
