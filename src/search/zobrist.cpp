@@ -12,17 +12,49 @@
 
 namespace Zobrist
 {
+uint32_t random_state = 180428938;
+
+// generate 32-bit pseudo legal numbers
+uint32_t get_random_U32_number(void)
+{
+    // get current state
+    uint32_t number = random_state;
+
+    // XOR shift algorithm
+    number ^= number << 13;
+    number ^= number >> 17;
+    number ^= number << 5;
+
+    // update random number state
+    random_state = number;
+
+    // return random number
+    return number;
+}
+
+// generate 64-bit pseudo legal numbers
+uint64_t get_random_uint64_number(void)
+{
+    // define 4 random numbers
+    uint64_t n1, n2, n3, n4;
+
+    // init random numbers slicing 16 bits from MS1B side
+    n1 = (uint64_t)(get_random_U32_number()) & 0xFFFF;
+    n2 = (uint64_t)(get_random_U32_number()) & 0xFFFF;
+    n3 = (uint64_t)(get_random_U32_number()) & 0xFFFF;
+    n4 = (uint64_t)(get_random_U32_number()) & 0xFFFF;
+
+    // return random number
+    return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
+}
 
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
     std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
 
-    std::mt19937_64 gen(0);
-    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
-
     for (size_t i = 0; i < table.size(); i++)
     {
-        table[i] = dist(gen);
+        table[i] = get_random_uint64_number();
     }
 
     return table;
@@ -121,44 +153,9 @@ uint64_t non_pawn_key(const BoardState& board, Side side)
     return key;
 }
 
-constexpr size_t fifty_move_buckets = 10;
-
-const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
-{
-    std::array<uint64_t, fifty_move_buckets> table;
-    std::mt19937_64 gen(0);
-    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
-    for (size_t i = 0; i < fifty_move_buckets; i++)
-    {
-        table[i] = dist(gen);
-    }
-    return table;
-}();
-
-size_t calculate_fifty_move_bucket(int fifty_move_count)
-{
-    return (fifty_move_count * 1024) / ((101 * 1024) / fifty_move_buckets);
-}
-
-uint64_t calculate_fifty_move_hash(int fifty_move_count)
-{
-    return fifty_move_bucket_hash[calculate_fifty_move_bucket(fifty_move_count)];
-}
-
-const auto fifty_move_hash = []()
-{
-    std::array<size_t, 101> buckets = {};
-    for (int i = 0; i <= 100; i++)
-    {
-        buckets[i] = calculate_fifty_move_hash(i);
-    }
-    return buckets;
-}();
-
 uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
-    assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
-    return board.key ^ fifty_move_hash[board.fifty_move_count];
+    return board.key;
 }
 
 } // namespace Zobrist
