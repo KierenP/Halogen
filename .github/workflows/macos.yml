@@ -19,15 +19,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install cmake make git
-
-      - name: Add compiler to $PATH env
-        run: echo "/usr/local/bin" >> $GITHUB_ENV
+          brew install make git
 
       - name: Create build
         run: |
           cd src
-          make pgo CXX=clang++ EXE=../bin/Halogen.exe -j
+          make pgo CXX=clang++ EXE=../bin/Halogen -j
 
       - name: Check bench matches commit message
         run: |
