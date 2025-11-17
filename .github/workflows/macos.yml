@@ -1,0 +1,37 @@
+name: macOS (M1 Compatible)
+
+on: 
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  macOS:
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          lfs: true
+
+      - name: Install dependencies
+        run: |
+          brew install cmake make git
+
+      - name: Add compiler to $PATH env
+        run: echo "/usr/local/bin" >> $GITHUB_ENV
+
+      - name: Create build
+        run: |
+          cd src
+          make pgo CXX=clang++ EXE=../bin/Halogen.exe -j
+
+      - name: Check bench matches commit message
+        run: |
+          cd bin
+          commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+          actual_bench=$(./Halogen bench | tail -1 | grep -o "^[0-9]*")
+          if [[ "$actual_bench" != "$commit_bench" ]]; then echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1; else echo "Got correct bench $actual_bench"; fi
