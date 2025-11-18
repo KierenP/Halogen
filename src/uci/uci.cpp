@@ -273,6 +273,11 @@ auto Uci::options_handler()
         tuneable_fraction(aspiration_window_size, 320, 960),
         tuneable_fraction(aspiration_window_growth_factor, 50, 200),
 
+        tuneable_int(razor_max_d, 1, 6),
+        tuneable_int(razor_margin[1], 100, 800),
+        tuneable_int(razor_margin[2], 100, 1000),
+        tuneable_int(razor_margin[3], 100, 1500),
+
         tuneable_fraction(nmp_const, 256, 1024),
         tuneable_fraction(nmp_depth, 256, 1024),
         tuneable_fraction(nmp_score, 32, 128),

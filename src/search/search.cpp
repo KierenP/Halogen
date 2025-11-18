@@ -929,7 +929,34 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
     }
 
-    // Step 9: Rebel style IID
+    // Step 9: Razoring
+    //
+    // At shallow depths, if the static eval is hopeless relative to alpha we run a confirmation q-search to avoid
+    // searching the branch.
+    if (!root_node && !pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized)
+    {
+        const int max_razor_index = static_cast<int>(razor_margin.size()) - 1;
+        const int razor_depth = std::min(std::min(depth, razor_max_d), max_razor_index);
+        if (razor_depth > 0)
+        {
+            const int margin = razor_margin[razor_depth];
+            if (eval.value() + margin <= alpha.value())
+            {
+                const int capped_alpha = std::max(alpha.value() - margin, Score::Limits::MATED);
+                const Score razor_alpha = Score(capped_alpha);
+                const Score razor_beta = Score(razor_alpha.value() + 1);
+                auto razor_score
+                    = qsearch<SearchType::ZW>(position, ss, acc, local, shared, razor_alpha, razor_beta);
+
+                if (razor_score <= razor_alpha || depth == 1)
+                {
+                    return razor_score;
+                }
+            }
+        }
+    }
+
+    // Step 10: Rebel style IID
     //
     // If we have reached a node where we would normally expect a TT entry but there isn't one, we reduce the search
     // depth. This fits into the iterative deepening model better and avoids the engine spending too much time searching
@@ -939,7 +966,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth--;
     }
 
-    // Step 10: Static null move pruning (a.k.a reverse futility pruning)
+    // Step 11: Static null move pruning (a.k.a reverse futility pruning)
     //
     // If the static score is far above beta we fail high.
     const bool has_active_threat = position.board().active_lesser_threats();
@@ -951,7 +978,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return (beta.value() + eval.value()) / 2;
     }
 
-    // Step 11: Null move pruning
+    // Step 12: Null move pruning
     //
     // If our static store is above beta, we skip a move. If the resulting position is still above beta, then we can
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
@@ -966,7 +993,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 12: Probcut
+    // Step 13: Probcut
     //
     // If a reduced depth search gives us a candidate move that fails high sufficiently above beta, we assume the node
     // will fail high and return beta. For efficiency, we only look at tt-move and winning captures
@@ -1023,7 +1050,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
-    // Step 13: Iterate over each potential move until we reach the end or find a beta cutoff
+    // Step 14: Iterate over each potential move until we reach the end or find a beta cutoff
     while (gen.next(move))
     {
         if (move == ss->singular_exclusion || (root_node && local.should_skip_root_move(move)))
@@ -1035,7 +1062,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         const int64_t prev_nodes = local.nodes;
         seen_moves++;
 
-        // Step 14: Late move pruning
+        // Step 15: Late move pruning
         //
         // At low depths, we limit the number of candidate quiet moves. This is a more aggressive form of futility
         // pruning
@@ -1046,7 +1073,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             gen.skip_quiets();
         }
 
-        // Step 15: Futility pruning
+        // Step 16: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
         if (!pv_node && !InCheck && depth < fp_max_d
@@ -1059,7 +1086,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        // Step 16: SEE pruning
+        // Step 17: SEE pruning
         //
         // If a move appears to lose material we prune it. The margin is adjusted based on depth and history. This means
         // we more aggressivly prune bad history moves, and allow good history moves even if they appear to lose
@@ -1083,7 +1110,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         int extensions = 0;
 
-        // Step 17: Singular extensions.
+        // Step 18: Singular extensions.
         //
         // If one move is significantly better than all alternatives, we extend the search for that
         // critical move. When looking for potentially singular moves, we look for TT moves at sufficient depth with
@@ -1113,7 +1140,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
-        // Step 18: Late move reductions
+        // Step 19: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
             position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
@@ -1155,14 +1182,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        // Step 19: Update history move tables and check for fail-high
+        // Step 20: Update history move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 20: Handle terminal node conditions
+    // Step 21: Handle terminal node conditions
     if (noLegalMoves)
     {
         if (ss->singular_exclusion != Move::Uninitialized)
@@ -1191,7 +1218,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
 
-    // Step 21: Adjust eval correction history
+    // Step 22: Adjust eval correction history
     if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
@@ -1206,7 +1233,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 22: Update transposition table
+    // Step 23: Update transposition table
     shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
