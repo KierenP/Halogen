@@ -13,7 +13,8 @@
 #include <cassert>
 #include <cstddef>
 
-#if defined(USE_AVX512) || defined(USE_AVX512_VNNI)
+// IWYU thinks we need this due to pext usage in attack generation
+#if defined(USE_PEXT)
 #include <immintrin.h>
 #endif
 
