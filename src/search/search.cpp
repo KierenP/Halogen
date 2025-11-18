@@ -945,8 +945,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 const int capped_alpha = std::max(alpha.value() - margin, Score::Limits::MATED);
                 const Score razor_alpha = Score(capped_alpha);
                 const Score razor_beta = Score(razor_alpha.value() + 1);
-                auto razor_score
-                    = qsearch<SearchType::ZW>(position, ss, acc, local, shared, razor_alpha, razor_beta);
+                auto razor_score = qsearch<SearchType::ZW>(position, ss, acc, local, shared, razor_alpha, razor_beta);
 
                 if (razor_score <= razor_alpha || depth == 1)
                 {
