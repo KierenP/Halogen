@@ -193,7 +193,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 
 #if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load_si(nibble_offset_table.data());
+        auto indicies = SIMD::load(nibble_offset_table.data());
         indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
         _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
         sparse_nibbles_size += std::popcount(mask);
