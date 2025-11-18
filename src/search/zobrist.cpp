@@ -3,26 +3,25 @@
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
+#include "utility/splitmix64.h"
 
 #include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <random>
 
 namespace Zobrist
 {
+
+SplitMix64 rng(0);
 
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
     std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
 
-    std::mt19937_64 gen(0);
-    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
-
     for (size_t i = 0; i < table.size(); i++)
     {
-        table[i] = dist(gen);
+        table[i] = rng.next();
     }
 
     return table;
@@ -126,11 +125,9 @@ constexpr size_t fifty_move_buckets = 10;
 const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
 {
     std::array<uint64_t, fifty_move_buckets> table;
-    std::mt19937_64 gen(0);
-    std::uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
     for (size_t i = 0; i < fifty_move_buckets; i++)
     {
-        table[i] = dist(gen);
+        table[i] = rng.next();
     }
     return table;
 }();
