@@ -1,4 +1,4 @@
-name: Windows (Clang64)
+name: Windows
 
 on: 
   push:
@@ -24,7 +24,6 @@ jobs:
         # This ensures we can extract the expected bench from the commit message.
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          lfs: true
 
       - uses: msys2/setup-msys2@v2.22.0
         with:
