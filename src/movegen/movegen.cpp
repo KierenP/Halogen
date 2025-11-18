@@ -14,7 +14,7 @@
 #include <cstddef>
 
 // IWYU thinks we need this due to pext usage in attack generation
-#if defined(USE_PEXT)
+#if defined(USE_PEXT) || defined(USE_AVX512) || defined(USE_AVX512_VNNI)
 #include <immintrin.h>
 #endif
 
