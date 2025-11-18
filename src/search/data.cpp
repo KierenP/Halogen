@@ -17,6 +17,12 @@
 #include <ranges>
 #include <unordered_map>
 
+namespace
+{
+const SearchStack default_search_stack {};
+const AccumulatorStack default_acc_stack {};
+}
+
 SearchStackState::SearchStackState(int distance_from_root_)
     : distance_from_root(distance_from_root_)
 {
@@ -68,8 +74,8 @@ bool SearchLocalState::should_skip_root_move(Move move)
 void SearchLocalState::reset_new_search()
 {
     // We don't reset the history tables because it gains elo to perserve them between turns
-    search_stack = {};
-    acc_stack = {};
+    search_stack = default_search_stack;
+    acc_stack = default_acc_stack;
     tb_hits = 0;
     nodes = 0;
     sel_depth = 0;

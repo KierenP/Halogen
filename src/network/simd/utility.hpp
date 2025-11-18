@@ -3,7 +3,11 @@
 #include "network/simd/intrinsics.hpp"
 
 #include <cstdint>
+
+#if defined(SIMD_ENABLED)
 #include <immintrin.h>
+#endif
+
 #include <iostream>
 
 namespace NN::SIMD

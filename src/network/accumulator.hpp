@@ -5,7 +5,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+
+#if defined(SIMD_ENABLED)
 #include <immintrin.h>
+#endif
 
 namespace NN
 {
