@@ -143,6 +143,10 @@ ifeq ($(ARCH),native)
     ifneq ($(findstring __SSE4_2__, $(SUPPORTED)),)
         ARCH_DEFINES += -DUSE_SSE4
     endif
+
+    ifneq ($(findstring __ARM_NEON__, $(SUPPORTED)),)
+        ARCH_DEFINES += -DUSE_NEON
+    endif
 endif
 
 # Legacy - no special instructions
@@ -185,6 +189,12 @@ endif
 ifeq ($(ARCH),avx512vnni)
     ARCH_DEFINES := -DUSE_SSE4 -DUSE_AVX -DUSE_AVX2 -DUSE_POPCNT -DUSE_PEXT -DUSE_AVX512 -DUSE_AVX512_VNNI
     ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt -mbmi -mbmi2 -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
+endif
+
+# NEON (ARM)
+ifeq ($(ARCH),neon)
+    ARCH_DEFINES := -DUSE_NEON
+    ARCH_MARCH := -march=armv8-a+simd
 endif
 
 $(info Building for architecture: $(ARCH))

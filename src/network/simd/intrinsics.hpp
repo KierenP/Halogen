@@ -11,6 +11,9 @@
 namespace NN::SIMD
 {
 
+template <class>
+constexpr bool dependent_false = false; // workaround before CWG2518/P2593R1
+
 template <typename T>
 inline vec_type_t<T> load(const T* ptr)
 {
@@ -36,7 +39,7 @@ inline vec_type_t<T> load(const T* ptr)
     }
     else
     {
-        static_assert(false, "Unsupported type for SIMD::load");
+        static_assert(dependent_false<T>, "Unsupported type for SIMD::load");
     }
 }
 
@@ -65,7 +68,7 @@ inline void store(T* ptr, const vec_type_t<T>& v)
     }
     else
     {
-        static_assert(false, "Unsupported type for SIMD::store");
+        static_assert(dependent_false<T>, "Unsupported type for SIMD::store");
     }
 }
 
@@ -95,7 +98,7 @@ inline T setzero()
     }
     else
     {
-        static_assert(false, "Unsupported type for SIMD::setzero");
+        static_assert(dependent_false<T>, "Unsupported type for SIMD::setzero");
     }
 }
 
