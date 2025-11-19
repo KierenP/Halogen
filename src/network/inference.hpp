@@ -2,6 +2,7 @@
 
 #include "bitboard/define.h"
 #include "network/arch.hpp"
+#include "network/simd/define.hpp"
 #include "network/simd/intrinsics.hpp"
 #include "network/simd/utility.hpp"
 #include "tools/sparse_shuffle.hpp"
@@ -25,7 +26,7 @@
 // the correct FT nibbles.
 struct SparseAffineEntry
 {
-    alignas(16) std::array<uint16_t, 8> indicies;
+    alignas(16) std::array<int16_t, 8> indicies;
     size_t count;
 };
 
@@ -71,11 +72,14 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     // manually unrolled and interleaved x2, 13 max registers in use
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
     static_assert((FT_SIZE / 2) % (stride * 4) == 0);
-    const auto zero = SIMD::setzero_si();
-    const auto one = SIMD::set1_epi16(FT_SCALE);
+    const auto zero = SIMD::setzero<SIMD::veci16>();
+    const auto one = SIMD::set_i16(FT_SCALE);
 #if defined(USE_AVX512_VNNI)
-    auto sparse_nibble_offset = SIMD::set1_epi16(0);
-    const auto sparse_nibble_offset_adj = SIMD::set1_epi16(32);
+    auto sparse_nibble_offset = SIMD::set_i16(0);
+    const auto sparse_nibble_offset_adj = SIMD::set_i16(32);
+#elif defined(USE_NEON)
+    auto sparse_nibble_offset = SIMD::set_i16(0);
+    const auto sparse_nibble_offset_adj = SIMD::set_i16(8);
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
     const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
@@ -86,43 +90,43 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         // achieve this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16
         // bits. With an appropriate initial left shift, 255 * 255 * 2^7 / 2^16 = 127.00 we can calculate the screlu
         // and then get a value that fits into a int8 for the dense layer. This value when multiplied by the weights
-        // will give a result of 127.00 * 64 * 1.98 = 16093, hence the maddubs_epi16 will not overflow.
+        // will give a result of 127.00 * 64 * 1.98 = 16093, hence the dpbusd_epi32 will not overflow.
 
         // Another clever trick from Alexandria is we can skip two max_epi16 calls (one on each pairwise mul). This
         // is because mulhi_epi16 preserves the sign of the multiplication, meaning that after the packus we get the
         // correct result in all cases. For this to work, we need to make sure the int32 won't overflow, with
         // (-255) * 1.98 * (32+1) * 255 * 2^7 = -500M we are safe.
 
-        auto stm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&stm[i]));
-        auto stm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride]));
-        auto stm_vec3 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride * 2]));
-        auto stm_vec4 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + stride * 3]));
-        stm_vec1 = SIMD::max_epi16(zero, stm_vec1);
-        stm_vec2 = SIMD::max_epi16(zero, stm_vec2);
-        stm_vec3 = SIMD::max_epi16(zero, stm_vec3);
-        stm_vec4 = SIMD::max_epi16(zero, stm_vec4);
-        stm_vec1 = SIMD::slli_epi16(stm_vec1, 7);
-        stm_vec2 = SIMD::slli_epi16(stm_vec2, 7);
-        stm_vec3 = SIMD::slli_epi16(stm_vec3, 7);
-        stm_vec4 = SIMD::slli_epi16(stm_vec4, 7);
-        auto stm_vec5 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2]));
-        auto stm_vec6 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2 + stride]));
-        auto stm_vec7 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2 + stride * 2]));
-        auto stm_vec8 = SIMD::min_epi16(one, SIMD::load_si(&stm[i + FT_SIZE / 2 + stride * 3]));
-        stm_vec1 = SIMD::mulhi_epi16(stm_vec1, stm_vec5);
-        stm_vec2 = SIMD::mulhi_epi16(stm_vec2, stm_vec6);
-        stm_vec3 = SIMD::mulhi_epi16(stm_vec3, stm_vec7);
-        stm_vec4 = SIMD::mulhi_epi16(stm_vec4, stm_vec8);
+        auto stm_vec1 = SIMD::min_i16(one, SIMD::load(&stm[i]));
+        auto stm_vec2 = SIMD::min_i16(one, SIMD::load(&stm[i + stride]));
+        auto stm_vec3 = SIMD::min_i16(one, SIMD::load(&stm[i + stride * 2]));
+        auto stm_vec4 = SIMD::min_i16(one, SIMD::load(&stm[i + stride * 3]));
+        stm_vec1 = SIMD::max_i16(zero, stm_vec1);
+        stm_vec2 = SIMD::max_i16(zero, stm_vec2);
+        stm_vec3 = SIMD::max_i16(zero, stm_vec3);
+        stm_vec4 = SIMD::max_i16(zero, stm_vec4);
+        stm_vec1 = SIMD::slli_i16<7>(stm_vec1);
+        stm_vec2 = SIMD::slli_i16<7>(stm_vec2);
+        stm_vec3 = SIMD::slli_i16<7>(stm_vec3);
+        stm_vec4 = SIMD::slli_i16<7>(stm_vec4);
+        auto stm_vec5 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2]));
+        auto stm_vec6 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride]));
+        auto stm_vec7 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 2]));
+        auto stm_vec8 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 3]));
+        stm_vec1 = SIMD::mulhi_i16(stm_vec1, stm_vec5);
+        stm_vec2 = SIMD::mulhi_i16(stm_vec2, stm_vec6);
+        stm_vec3 = SIMD::mulhi_i16(stm_vec3, stm_vec7);
+        stm_vec4 = SIMD::mulhi_i16(stm_vec4, stm_vec8);
 
         // We permute the weights at startup to match the packus.
-        stm_vec1 = SIMD::packus_epi16(stm_vec1, stm_vec2);
-        stm_vec3 = SIMD::packus_epi16(stm_vec3, stm_vec4);
-        SIMD::store_si(&output[i], stm_vec1);
-        SIMD::store_si(&output[i + stride * 2], stm_vec3);
+        auto stm_u8_1 = SIMD::packus_i16(stm_vec1, stm_vec2);
+        auto stm_u8_3 = SIMD::packus_i16(stm_vec3, stm_vec4);
+        SIMD::store(&output[i], stm_u8_1);
+        SIMD::store(&output[i + stride * 2], stm_u8_3);
 
         // Cache the nonzero nibbles for sparse affine l1
-        auto mask1 = SIMD::cmpgt_epi32_mask(stm_vec1);
-        auto mask2 = SIMD::cmpgt_epi32_mask(stm_vec3);
+        auto mask1 = SIMD::cmpgt_i32_mask(stm_u8_1);
+        auto mask2 = SIMD::cmpgt_i32_mask(stm_u8_3);
 #if defined(USE_AVX512)
         uint32_t mask = mask1 | (mask2 << 16);
 #elif defined(USE_AVX2)
@@ -132,57 +136,64 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 
 #if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load_si(nibble_offset_table.data());
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
+        auto indicies = SIMD::load(nibble_offset_table.data());
+        indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
         _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
         sparse_nibbles_size += std::popcount(mask);
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
 #else
-        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
+        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
-            // Also, we could add a branch to sparse_nibble_offset increment to skip in cases where bytemask is zero,
-            // and save a store_si above in that case
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
             const auto& entry = sparse_affine_table.entry[bytemask];
+#if defined(USE_NEON)
+            auto indicies = vld1q_s16(entry.indicies.data());
+            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
             auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
             assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
             auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
             _mm_storeu_si128(sparse_nibbles_end, indicies);
             sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#endif
         }
 #endif
     }
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
-        auto nstm_vec1 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i]));
-        auto nstm_vec2 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride]));
-        auto nstm_vec3 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride * 2]));
-        auto nstm_vec4 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + stride * 3]));
-        nstm_vec1 = SIMD::max_epi16(zero, nstm_vec1);
-        nstm_vec2 = SIMD::max_epi16(zero, nstm_vec2);
-        nstm_vec3 = SIMD::max_epi16(zero, nstm_vec3);
-        nstm_vec4 = SIMD::max_epi16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::slli_epi16(nstm_vec1, 7);
-        nstm_vec2 = SIMD::slli_epi16(nstm_vec2, 7);
-        nstm_vec3 = SIMD::slli_epi16(nstm_vec3, 7);
-        nstm_vec4 = SIMD::slli_epi16(nstm_vec4, 7);
-        auto nstm_vec5 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2]));
-        auto nstm_vec6 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2 + stride]));
-        auto nstm_vec7 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2 + stride * 2]));
-        auto nstm_vec8 = SIMD::min_epi16(one, SIMD::load_si(&nstm[i + FT_SIZE / 2 + stride * 3]));
-        nstm_vec1 = SIMD::mulhi_epi16(nstm_vec1, nstm_vec5);
-        nstm_vec2 = SIMD::mulhi_epi16(nstm_vec2, nstm_vec6);
-        nstm_vec3 = SIMD::mulhi_epi16(nstm_vec3, nstm_vec7);
-        nstm_vec4 = SIMD::mulhi_epi16(nstm_vec4, nstm_vec8);
-        nstm_vec1 = SIMD::packus_epi16(nstm_vec1, nstm_vec2);
-        nstm_vec3 = SIMD::packus_epi16(nstm_vec3, nstm_vec4);
-        SIMD::store_si(&output[i + FT_SIZE / 2], nstm_vec1);
-        SIMD::store_si(&output[i + FT_SIZE / 2 + stride * 2], nstm_vec3);
-        auto mask1 = SIMD::cmpgt_epi32_mask(nstm_vec1);
-        auto mask2 = SIMD::cmpgt_epi32_mask(nstm_vec3);
+        auto nstm_vec1 = SIMD::min_i16(one, SIMD::load(&nstm[i]));
+        auto nstm_vec2 = SIMD::min_i16(one, SIMD::load(&nstm[i + stride]));
+        auto nstm_vec3 = SIMD::min_i16(one, SIMD::load(&nstm[i + stride * 2]));
+        auto nstm_vec4 = SIMD::min_i16(one, SIMD::load(&nstm[i + stride * 3]));
+        nstm_vec1 = SIMD::max_i16(zero, nstm_vec1);
+        nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
+        nstm_vec3 = SIMD::max_i16(zero, nstm_vec3);
+        nstm_vec4 = SIMD::max_i16(zero, nstm_vec4);
+        nstm_vec1 = SIMD::slli_i16<7>(nstm_vec1);
+        nstm_vec2 = SIMD::slli_i16<7>(nstm_vec2);
+        nstm_vec3 = SIMD::slli_i16<7>(nstm_vec3);
+        nstm_vec4 = SIMD::slli_i16<7>(nstm_vec4);
+        auto nstm_vec5 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2]));
+        auto nstm_vec6 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride]));
+        auto nstm_vec7 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 2]));
+        auto nstm_vec8 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 3]));
+        nstm_vec1 = SIMD::mulhi_i16(nstm_vec1, nstm_vec5);
+        nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec6);
+        nstm_vec3 = SIMD::mulhi_i16(nstm_vec3, nstm_vec7);
+        nstm_vec4 = SIMD::mulhi_i16(nstm_vec4, nstm_vec8);
+        auto nstm_u8_1 = SIMD::packus_i16(nstm_vec1, nstm_vec2);
+        auto nstm_u8_3 = SIMD::packus_i16(nstm_vec3, nstm_vec4);
+        SIMD::store(&output[i + FT_SIZE / 2], nstm_u8_1);
+        SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_u8_3);
+        auto mask1 = SIMD::cmpgt_i32_mask(nstm_u8_1);
+        auto mask2 = SIMD::cmpgt_i32_mask(nstm_u8_3);
 #if defined(USE_AVX512)
         uint32_t mask = mask1 | (mask2 << 16);
 #elif defined(USE_AVX2)
@@ -192,24 +203,33 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #endif
 
 #if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load_si(nibble_offset_table.data());
-        indicies = SIMD::add_epi16(indicies, sparse_nibble_offset);
+        auto indicies = SIMD::load(nibble_offset_table.data());
+        indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
         _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
         sparse_nibbles_size += std::popcount(mask);
-        sparse_nibble_offset = SIMD::add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+        sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
 #else
-        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
+        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
             const auto& entry = sparse_affine_table.entry[bytemask];
+#if defined(USE_NEON)
+            auto indicies = vld1q_s16(entry.indicies.data());
+            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
             auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
             assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
             auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
             _mm_storeu_si128(sparse_nibbles_end, indicies);
             sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#endif
         }
 #endif
     }
@@ -253,40 +273,40 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
-    SIMD::veci output_reg[L1_SIZE / stride];
+    SIMD::veci32 output_reg[L1_SIZE / stride];
 
     for (size_t i = 0; i < L1_SIZE; i += stride)
     {
-        output_reg[i / stride] = SIMD::load_si(&l1_bias[i]);
+        output_reg[i / stride] = SIMD::load(&l1_bias[i]);
     }
 
     for (size_t i = 0; i < sparse_nibbles_size; i++)
     {
         const auto& nibble_idx = sparse_nibbles[i];
         assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
-        const auto ft_nibble = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_idx);
-        const auto ft_vec = SIMD::set1_epi32(ft_nibble);
+        const auto ft_nibble = *(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx);
+        const auto ft_vec = SIMD::set_u8_from_u32(ft_nibble);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
-            output_reg[j / stride] = SIMD::dpbusd_epi32(
-                output_reg[j / stride], ft_vec, SIMD::load_si(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
+            output_reg[j / stride] = SIMD::dpbusd_i32(
+                output_reg[j / stride], ft_vec, SIMD::load(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
         }
     }
 
-    const auto zero = SIMD::setzero_ps();
-    const auto one = SIMD::set1_ps(1.f);
-    const auto one_reciprocal = SIMD::set1_ps(1.f / (127.f * L1_SCALE)); // 127 to match FT_activation adjustment
+    const auto zero = SIMD::setzero<SIMD::vecf32>();
+    const auto one = SIMD::set_f32(1.f);
+    const auto one_reciprocal = SIMD::set_f32(1.f / (127.f * L1_SCALE)); // 127 to match FT_activation adjustment
 
     for (size_t i = 0; i < L1_SIZE; i += stride)
     {
-        auto crelu = SIMD::cvtepi32_ps(output_reg[i / stride]);
-        crelu = SIMD::mul_ps(crelu, one_reciprocal);
-        auto screlu = SIMD::mul_ps(crelu, crelu);
-        crelu = SIMD::max_ps(zero, crelu);
-        crelu = SIMD::min_ps(one, crelu);
-        screlu = SIMD::min_ps(one, screlu);
-        SIMD::store_ps(&output[i], crelu);
-        SIMD::store_ps(&output[i + L1_SIZE], screlu);
+        auto crelu = SIMD::i32_to_f32(output_reg[i / stride]);
+        crelu = SIMD::mul_f32(crelu, one_reciprocal);
+        auto screlu = SIMD::mul_f32(crelu, crelu);
+        crelu = SIMD::max_f32(zero, crelu);
+        crelu = SIMD::min_f32(one, crelu);
+        screlu = SIMD::min_f32(one, screlu);
+        SIMD::store(&output[i], crelu);
+        SIMD::store(&output[i + L1_SIZE], screlu);
     }
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
@@ -312,11 +332,11 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(float);
     static_assert(L2_SIZE % stride == 0);
-    SIMD::vecs l2_reg[L2_SIZE / stride];
+    SIMD::vecf32 l2_reg[L2_SIZE / stride];
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        l2_reg[i / stride] = SIMD::load_ps(&output[i]);
+        l2_reg[i / stride] = SIMD::load(&output[i]);
     }
 
     // We would normally calculate a vector-matrix product by calculating the dot product of each row. In this case, the
@@ -324,22 +344,22 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
     // outputs in temporary registers as we go. It also makes the activation much simpler with a simple max/min_ps.
     for (size_t i = 0; i < L1_SIZE * 2; i++)
     {
-        auto input = SIMD::set1_ps(l1_activation[i]);
+        auto input = SIMD::set_f32(l1_activation[i]);
         for (size_t j = 0; j < L2_SIZE; j += stride)
         {
-            l2_reg[j / stride] = SIMD::fmadd_ps(input, SIMD::load_ps(&l2_weight[i][j]), l2_reg[j / stride]);
+            l2_reg[j / stride] = SIMD::fmadd_f32(input, SIMD::load(&l2_weight[i][j]), l2_reg[j / stride]);
         }
     }
 
-    const auto zero = SIMD::setzero_ps();
-    const auto one = SIMD::set1_ps(1.f);
+    const auto zero = SIMD::setzero<SIMD::vecf32>();
+    const auto one = SIMD::set_f32(1.f);
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
         auto result = l2_reg[i / stride];
-        result = SIMD::max_ps(result, zero);
-        result = SIMD::min_ps(result, one);
-        SIMD::store_ps(&output[i], result);
+        result = SIMD::max_f32(result, zero);
+        result = SIMD::min_f32(result, one);
+        SIMD::store(&output[i], result);
     }
 
 #else
@@ -365,39 +385,39 @@ void L3_activation(
     constexpr auto stride = SIMD::vec_size / sizeof(float);
     static_assert(L2_SIZE % stride == 0);
 
-    SIMD::vecs results[L2_SIZE / stride];
+    SIMD::vecf32 results[L2_SIZE / stride];
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        results[i / stride] = SIMD::setzero_ps();
+        results[i / stride] = SIMD::setzero<SIMD::vecf32>();
     }
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        auto vec = SIMD::load_ps(&l2_activation[i]);
-        results[i / stride] = SIMD::mul_ps(vec, SIMD::load_ps(&l3_weight[i]));
+        auto vec = SIMD::load(&l2_activation[i]);
+        results[i / stride] = SIMD::mul_f32(vec, SIMD::load(&l3_weight[i]));
     }
 
     // To make Halogen produce a stable bench on different platforms, we must add the floats in exactly the same way. To
     // achieve this, we can carefully combine the results together in the following way:
 
 #if defined(USE_AVX512)
-    results[0] = SIMD::add_ps(results[0], results[1]);
-    output += SIMD::hsum_ps(results[0]);
+    results[0] = SIMD::add_f32(results[0], results[1]);
+    output += SIMD::hsum_f32(results[0]);
 #elif defined(USE_AVX2)
-    results[0] = SIMD::add_ps(results[0], results[2]);
-    results[1] = SIMD::add_ps(results[1], results[3]);
-    results[0] = SIMD::add_ps(results[0], results[1]);
-    output += SIMD::hsum_ps(results[0]);
-#elif defined(USE_SSE4)
-    results[0] = SIMD::add_ps(results[0], results[4]);
-    results[1] = SIMD::add_ps(results[1], results[5]);
-    results[2] = SIMD::add_ps(results[2], results[6]);
-    results[3] = SIMD::add_ps(results[3], results[7]);
-    results[0] = SIMD::add_ps(results[0], results[2]);
-    results[1] = SIMD::add_ps(results[1], results[3]);
-    results[0] = SIMD::add_ps(results[0], results[1]);
-    output += SIMD::hsum_ps(results[0]);
+    results[0] = SIMD::add_f32(results[0], results[2]);
+    results[1] = SIMD::add_f32(results[1], results[3]);
+    results[0] = SIMD::add_f32(results[0], results[1]);
+    output += SIMD::hsum_f32(results[0]);
+#elif defined(USE_SSE4) || defined(USE_NEON)
+    results[0] = SIMD::add_f32(results[0], results[4]);
+    results[1] = SIMD::add_f32(results[1], results[5]);
+    results[2] = SIMD::add_f32(results[2], results[6]);
+    results[3] = SIMD::add_f32(results[3], results[7]);
+    results[0] = SIMD::add_f32(results[0], results[2]);
+    results[1] = SIMD::add_f32(results[1], results[3]);
+    results[0] = SIMD::add_f32(results[0], results[1]);
+    output += SIMD::hsum_f32(results[0]);
 #else
     static_assert(false, "Unsupported SIMD vector size");
 #endif
