@@ -77,6 +77,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #if defined(USE_AVX512_VNNI)
     auto sparse_nibble_offset = SIMD::set_i16(0);
     const auto sparse_nibble_offset_adj = SIMD::set_i16(32);
+#elif defined(USE_NEON)
+    auto sparse_nibble_offset = SIMD::set_i16(0);
+    const auto sparse_nibble_offset_adj = SIMD::set_i16(8);
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
     const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
@@ -139,20 +142,27 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         sparse_nibbles_size += std::popcount(mask);
         sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
 #else
-        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
+        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
-            // Also, we could add a branch to sparse_nibble_offset increment to skip in cases where bytemask is zero,
-            // and save a store_si above in that case
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
             const auto& entry = sparse_affine_table.entry[bytemask];
+#if defined(USE_NEON)
+            auto indicies = vld1q_s16(entry.indicies.data());
+            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
             auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
             assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
             auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
             _mm_storeu_si128(sparse_nibbles_end, indicies);
             sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#endif
         }
 #endif
     }
@@ -199,18 +209,27 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         sparse_nibbles_size += std::popcount(mask);
         sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
 #else
-        // 1 byte for SSE, 2 for AVX2, 4 for AVX512
+        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
         for (size_t j = 0; j < sizeof(mask); j++)
         {
             uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
             const auto& entry = sparse_affine_table.entry[bytemask];
+#if defined(USE_NEON)
+            auto indicies = vld1q_s16(entry.indicies.data());
+            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
+            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
+            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
+            sparse_nibbles_size += entry.count;
+            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#else
             auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi32(indicies, sparse_nibble_offset);
+            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
             assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
             auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
             _mm_storeu_si128(sparse_nibbles_end, indicies);
             sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi32(sparse_nibble_offset, sparse_nibble_offset_adj);
+            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
+#endif
         }
 #endif
     }
