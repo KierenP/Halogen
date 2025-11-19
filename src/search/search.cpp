@@ -932,7 +932,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // Step 9: Razoring
     //
     // At shallow depths, if the static eval is hopeless relative to alpha we run a confirmation q-search to avoid
-    // searching the branch. A second verification search is triggered if the q-search appears optimistic.
+    // searching the branch. The follow-up trim controls how aggressively we continue searching when the q-search still
+    // fails high.
     if (!root_node && !pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized)
     {
         const int max_razor_index = static_cast<int>(razor_margin.size()) - 1;
@@ -959,30 +960,10 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                     return razor_score;
                 }
 
-                // If q-search failed high we verify with a reduced depth zero-window search to avoid tactical blunders.
-                if (razor_score.value() >= razor_beta.value() + razor_verify_margin && depth > 1)
+                // If q-search failed high we optionally trim the depth to keep obviously-bad nodes cheap.
+                if (razor_score.value() >= razor_beta.value() + razor_verify_margin && depth > 1
+                    && depth <= razor_verify_d)
                 {
-                    if (depth <= razor_verify_d && alpha.value() < Score::Limits::MATE)
-                    {
-                        const auto ss_snapshot = *ss;
-                        const Score verify_alpha = alpha;
-                        const Score verify_beta = Score(alpha.value() + 1);
-                        auto verify_score = search<SearchType::ZW>(
-                            position, ss, acc, local, shared, depth - 1, verify_alpha, verify_beta, true);
-                        *ss = ss_snapshot;
-
-                        if (verify_score == SCORE_UNDEFINED)
-                        {
-                            return SCORE_UNDEFINED;
-                        }
-
-                        if (verify_score <= verify_alpha)
-                        {
-                            return verify_score;
-                        }
-                    }
-
-                    // Even if verification search couldn't prove fail-low, trim depth as indicated by the tunable.
                     depth -= std::min(razor_trim, depth - 1);
                 }
             }
