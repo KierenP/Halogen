@@ -939,8 +939,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         const int razor_depth = std::min(std::min(depth, razor_max_d), max_razor_index);
         if (razor_depth > 0)
         {
-            const int margin = razor_margin[razor_depth] + (improving ? razor_improving_bonus : -razor_non_improving_bonus)
-                + (depth - 1) * razor_depth_scale;
+            const int margin = razor_margin[razor_depth]
+                + (improving ? razor_improving_bonus : -razor_non_improving_bonus) + (depth - 1) * razor_depth_scale;
             if (eval.value() + margin <= alpha.value())
             {
                 const int capped_alpha = std::max(alpha.value() - margin, Score::Limits::MATED);
