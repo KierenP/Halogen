@@ -321,7 +321,8 @@ inline veci32 min_i32(const veci32& a, const veci32& b)
 #endif
 }
 
-inline veci16 slli_i16(const veci16& a, int imm)
+template <int imm>
+inline veci16 slli_i16(const veci16& a)
 {
 #if defined(USE_AVX512)
     return _mm512_slli_epi16(a, imm);

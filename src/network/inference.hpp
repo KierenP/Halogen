@@ -26,7 +26,7 @@
 // the correct FT nibbles.
 struct SparseAffineEntry
 {
-    alignas(16) std::array<uint16_t, 8> indicies;
+    alignas(16) std::array<int16_t, 8> indicies;
     size_t count;
 };
 
@@ -105,10 +105,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec2 = SIMD::max_i16(zero, stm_vec2);
         stm_vec3 = SIMD::max_i16(zero, stm_vec3);
         stm_vec4 = SIMD::max_i16(zero, stm_vec4);
-        stm_vec1 = SIMD::slli_i16(stm_vec1, 7);
-        stm_vec2 = SIMD::slli_i16(stm_vec2, 7);
-        stm_vec3 = SIMD::slli_i16(stm_vec3, 7);
-        stm_vec4 = SIMD::slli_i16(stm_vec4, 7);
+        stm_vec1 = SIMD::slli_i16<7>(stm_vec1);
+        stm_vec2 = SIMD::slli_i16<7>(stm_vec2);
+        stm_vec3 = SIMD::slli_i16<7>(stm_vec3);
+        stm_vec4 = SIMD::slli_i16<7>(stm_vec4);
         auto stm_vec5 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2]));
         auto stm_vec6 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 2]));
@@ -176,10 +176,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
         nstm_vec3 = SIMD::max_i16(zero, nstm_vec3);
         nstm_vec4 = SIMD::max_i16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::slli_i16(nstm_vec1, 7);
-        nstm_vec2 = SIMD::slli_i16(nstm_vec2, 7);
-        nstm_vec3 = SIMD::slli_i16(nstm_vec3, 7);
-        nstm_vec4 = SIMD::slli_i16(nstm_vec4, 7);
+        nstm_vec1 = SIMD::slli_i16<7>(nstm_vec1);
+        nstm_vec2 = SIMD::slli_i16<7>(nstm_vec2);
+        nstm_vec3 = SIMD::slli_i16<7>(nstm_vec3);
+        nstm_vec4 = SIMD::slli_i16<7>(nstm_vec4);
         auto nstm_vec5 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2]));
         auto nstm_vec6 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 2]));
@@ -409,7 +409,7 @@ void L3_activation(
     results[1] = SIMD::add_f32(results[1], results[3]);
     results[0] = SIMD::add_f32(results[0], results[1]);
     output += SIMD::hsum_f32(results[0]);
-#elif defined(USE_SSE4)
+#elif defined(USE_SSE4) || defined(USE_NEON)
     results[0] = SIMD::add_f32(results[0], results[4]);
     results[1] = SIMD::add_f32(results[1], results[5]);
     results[2] = SIMD::add_f32(results[2], results[6]);
