@@ -67,7 +67,11 @@ inline float hsum_f32(__m512 v)
 #if defined(USE_NEON)
 inline float hsum_f32(float32x4_t v)
 {
-    return vaddvq_f32(v);
+    // Can't use vaddvq_f32 here as it does not match SSE4 addition order exactly for bit-identical results
+    float32x2_t hi64 = vget_high_f32(v);
+    float32x2_t lo64 = vget_low_f32(v);
+    float32x2_t sum64 = vadd_f32(lo64, hi64);
+    return vget_lane_f32(sum64, 0) + vget_lane_f32(sum64, 1);
 }
 #endif
 
