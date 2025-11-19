@@ -277,6 +277,13 @@ auto Uci::options_handler()
         tuneable_int(razor_margin[1], 100, 800),
         tuneable_int(razor_margin[2], 100, 1000),
         tuneable_int(razor_margin[3], 100, 1500),
+        tuneable_int(razor_margin[4], 100, 2000),
+        tuneable_int(razor_verify_d, 1, 6),
+        tuneable_int(razor_trim, 0, 3),
+        tuneable_int(razor_verify_margin, 0, 400),
+        tuneable_int(razor_improving_bonus, -200, 200),
+        tuneable_int(razor_non_improving_bonus, -200, 200),
+        tuneable_int(razor_depth_scale, -50, 200),
 
         tuneable_fraction(nmp_const, 256, 1024),
         tuneable_fraction(nmp_depth, 256, 1024),
