@@ -2,12 +2,15 @@
 
 #include "network/simd/intrinsics.hpp"
 
-#include <cstdint>
-
-#if defined(SIMD_ENABLED)
+#if defined(USE_SSE4)
 #include <immintrin.h>
 #endif
 
+#if defined(USE_NEON)
+#include <arm_neon.h>
+#endif
+
+#include <cstdint>
 #include <iostream>
 
 namespace NN::SIMD
@@ -58,6 +61,13 @@ inline float hsum_f32(__m512 v)
 {
     __m256 sum256 = _mm256_add_ps(_mm512_castps512_ps256(v), _mm512_extractf32x8_ps(v, 1));
     return hsum_f32(sum256);
+}
+#endif
+
+#if defined(USE_NEON)
+inline float hsum_f32(float32x4_t v)
+{
+    return vaddvq_f32(v);
 }
 #endif
 

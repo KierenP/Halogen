@@ -1,5 +1,13 @@
 #pragma once
 
+#if defined(USE_SSE4)
+#include <immintrin.h>
+#endif
+
+#if defined(USE_NEON)
+#include <arm_neon.h>
+#endif
+
 #if defined(USE_SSE4) || defined(USE_NEON)
 #define SIMD_ENABLED
 #endif
@@ -8,11 +16,6 @@
 
 #include <cstdint>
 #include <utility>
-
-#include <immintrin.h>
-#if defined(USE_NEON)
-#include <arm_neon.h>
-#endif
 
 namespace NN::SIMD
 {
