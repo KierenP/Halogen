@@ -16,6 +16,11 @@
 #include <initializer_list>
 #include <iostream>
 
+#if defined(USE_SSE4)
+// IWYU is confused and thinks we need this
+#include <immintrin.h>
+#endif
+
 namespace NN
 {
 

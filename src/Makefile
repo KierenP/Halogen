@@ -144,7 +144,7 @@ ifeq ($(ARCH),native)
         ARCH_DEFINES += -DUSE_SSE4
     endif
 
-    ifneq ($(findstring __ARM_NEON__, $(SUPPORTED)),)
+    ifneq ($(findstring __ARM_NEON, $(SUPPORTED)),)
         ARCH_DEFINES += -DUSE_NEON
     endif
 endif

@@ -230,6 +230,19 @@ inline veci32 set_i32(int32_t a)
 #endif
 }
 
+inline vecu8 set_u8_from_u32(uint32_t a)
+{
+#if defined(USE_AVX512)
+    return _mm512_set1_epi32(static_cast<int32_t>(a));
+#elif defined(USE_AVX2)
+    return _mm256_set1_epi32(static_cast<int32_t>(a));
+#elif defined(USE_SSE4)
+    return _mm_set1_epi32(static_cast<int32_t>(a));
+#elif defined(USE_NEON)
+    return vreinterpretq_u8_u32(vdupq_n_u32(a));
+#endif
+}
+
 inline veci16 add_i16(const veci16& a, const veci16& b)
 {
 #if defined(USE_AVX512)
@@ -368,17 +381,18 @@ inline vecu8 packus_i16(const veci16& a, const veci16& b)
 #endif
 }
 
-inline uint16_t cmpgt_i32_mask(const veci32& a)
+inline uint16_t cmpgt_i32_mask(const vecu8& a)
 {
 #if defined(USE_AVX512)
+    // On x86, vecu8 is __m512i, just compare as int32
     return _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512());
 #elif defined(USE_AVX2)
     return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())));
 #elif defined(USE_SSE4)
     return _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())));
 #elif defined(USE_NEON)
-    // TODO: NEON doesn't have a direct equivalent, is there a better way?
-    uint32x4_t cmp = vcgtq_s32(a, vdupq_n_s32(0));
+    uint32x4_t a_u32 = vreinterpretq_u32_u8(a);
+    uint32x4_t cmp = vcgtq_u32(a_u32, vdupq_n_u32(0));
     uint32_t mask = 0;
     mask |= (vgetq_lane_u32(cmp, 0) & 1) << 0;
     mask |= (vgetq_lane_u32(cmp, 1) & 1) << 1;

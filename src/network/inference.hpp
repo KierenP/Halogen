@@ -119,14 +119,14 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec4 = SIMD::mulhi_i16(stm_vec4, stm_vec8);
 
         // We permute the weights at startup to match the packus.
-        stm_vec1 = SIMD::packus_i16(stm_vec1, stm_vec2);
-        stm_vec3 = SIMD::packus_i16(stm_vec3, stm_vec4);
-        SIMD::store(&output[i], stm_vec1);
-        SIMD::store(&output[i + stride * 2], stm_vec3);
+        auto stm_u8_1 = SIMD::packus_i16(stm_vec1, stm_vec2);
+        auto stm_u8_3 = SIMD::packus_i16(stm_vec3, stm_vec4);
+        SIMD::store(&output[i], stm_u8_1);
+        SIMD::store(&output[i + stride * 2], stm_u8_3);
 
         // Cache the nonzero nibbles for sparse affine l1
-        auto mask1 = SIMD::cmpgt_i32_mask(stm_vec1);
-        auto mask2 = SIMD::cmpgt_i32_mask(stm_vec3);
+        auto mask1 = SIMD::cmpgt_i32_mask(stm_u8_1);
+        auto mask2 = SIMD::cmpgt_i32_mask(stm_u8_3);
 #if defined(USE_AVX512)
         uint32_t mask = mask1 | (mask2 << 16);
 #elif defined(USE_AVX2)
@@ -188,12 +188,12 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec6);
         nstm_vec3 = SIMD::mulhi_i16(nstm_vec3, nstm_vec7);
         nstm_vec4 = SIMD::mulhi_i16(nstm_vec4, nstm_vec8);
-        nstm_vec1 = SIMD::packus_i16(nstm_vec1, nstm_vec2);
-        nstm_vec3 = SIMD::packus_i16(nstm_vec3, nstm_vec4);
-        SIMD::store(&output[i + FT_SIZE / 2], nstm_vec1);
-        SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_vec3);
-        auto mask1 = SIMD::cmpgt_i32_mask(nstm_vec1);
-        auto mask2 = SIMD::cmpgt_i32_mask(nstm_vec3);
+        auto nstm_u8_1 = SIMD::packus_i16(nstm_vec1, nstm_vec2);
+        auto nstm_u8_3 = SIMD::packus_i16(nstm_vec3, nstm_vec4);
+        SIMD::store(&output[i + FT_SIZE / 2], nstm_u8_1);
+        SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_u8_3);
+        auto mask1 = SIMD::cmpgt_i32_mask(nstm_u8_1);
+        auto mask2 = SIMD::cmpgt_i32_mask(nstm_u8_3);
 #if defined(USE_AVX512)
         uint32_t mask = mask1 | (mask2 << 16);
 #elif defined(USE_AVX2)
@@ -284,8 +284,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     {
         const auto& nibble_idx = sparse_nibbles[i];
         assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
-        const auto ft_nibble = *(reinterpret_cast<const int32_t*>(ft_activation.data()) + nibble_idx);
-        const auto ft_vec = SIMD::set_i32(ft_nibble);
+        const auto ft_nibble = *(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx);
+        const auto ft_vec = SIMD::set_u8_from_u32(ft_nibble);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
             output_reg[j / stride] = SIMD::dpbusd_i32(
