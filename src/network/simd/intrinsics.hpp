@@ -359,6 +359,8 @@ inline veci32 dpbusd_i32(const veci32& source, const vecu8& a, const veci8& b)
     auto dot = _mm_maddubs_epi16(a, b);
     dot = _mm_madd_epi16(dot, madd_helper);
     return _mm_add_epi32(source, dot);
+#elif defined(USE_NEON_DOTPROD)
+    return vdotq_s32(source, b, vreinterpretq_s8_u8(a));
 #elif defined(USE_NEON)
     // safe because a is [0, 127], so can be treated as signed without overflow
     int8x8_t a_low = vreinterpret_s8_u8(vget_low_u8(a));

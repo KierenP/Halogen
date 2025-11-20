@@ -146,6 +146,11 @@ ifeq ($(ARCH),native)
 
     ifneq ($(findstring __ARM_NEON, $(SUPPORTED)),)
         ARCH_DEFINES += -DUSE_NEON
+        # Apple Clang doesn't define __ARM_FEATURE_DOTPROD with march=native, even if the CPU supports it. So we need this hack to detect it.
+        DOTPROD_TEST := $(shell echo 'int main() { asm("udot v0.4s, v1.16b, v2.16b"); return 0; }' | $(CXX) -march=armv8.2-a+dotprod -x c++ - -o /dev/null 2>/dev/null && echo yes)
+        ifeq ($(DOTPROD_TEST),yes)
+            ARCH_DEFINES += -DUSE_NEON_DOTPROD
+        endif
     endif
 endif
 
@@ -191,10 +196,16 @@ ifeq ($(ARCH),avx512vnni)
     ARCH_MARCH := -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2 -mavx -mfma -mavx2 -mpopcnt -mbmi -mbmi2 -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512bitalg -mavx512vnni -mavx512vpopcntdq
 endif
 
-# NEON (ARM)
+# armv8
 ifeq ($(ARCH),neon)
     ARCH_DEFINES := -DUSE_NEON
     ARCH_MARCH := -march=armv8-a+simd
+endif
+
+# armv8.2
+ifeq ($(ARCH),neon-dotprod)
+    ARCH_DEFINES := -DUSE_NEON -DUSE_NEON_DOTPROD
+    ARCH_MARCH := -march=armv8.2-a+dotprod
 endif
 
 $(info Building for architecture: $(ARCH))
