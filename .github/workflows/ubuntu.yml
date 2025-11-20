@@ -23,7 +23,7 @@ jobs:
             config: { compiler: g++-13, packages: g++-13, profdata: NA }
           # ARM64 builds
           - os: ubuntu-24.04-arm
-            config: { compiler: g++-14, packages: g++-14, profdata: NA }
+            config: { compiler: g++-13, packages: g++-13, profdata: NA }
           # TODO: fix source of non-determinism with clang builds
           # - os: ubuntu-latest
           #   config: { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
