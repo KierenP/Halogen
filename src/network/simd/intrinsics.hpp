@@ -300,12 +300,8 @@ inline veci16 mulhi_i16(const veci16& a, const veci16& b)
 #elif defined(USE_SSE4)
     return _mm_mulhi_epi16(a, b);
 #elif defined(USE_NEON)
-    // TODO: NEON doesn't have a direct equivalent, is there a better way?
-    int32x4_t lo_low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
-    int32x4_t lo_high = vmull_high_s16(a, b);
-    int16x4_t res_low = vshrn_n_s32(lo_low, 16);
-    int16x4_t res_high = vshrn_n_s32(lo_high, 16);
-    return vcombine_s16(res_low, res_high);
+    // TODO: consider using vmulq_s16 + vqrshrun_n_s16 to combine with packus
+    return vqdmulhq_s16(a, b);
 #endif
 }
 

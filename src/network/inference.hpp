@@ -30,6 +30,11 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
 #endif
+#if defined(USE_NEON)
+    constexpr size_t lshift = 6;
+#else
+    constexpr size_t lshift = 7;
+#endif
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to
@@ -43,6 +48,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         // correct result in all cases. For this to work, we need to make sure the int32 won't overflow, with
         // (-255) * 1.98 * (32+1) * 255 * 2^7 = -500M we are safe.
 
+        // On NEON, vqdmulhq_s16 computes (a << 1) * b >> 16, so we adjust the left shift accordingly.
+
         auto stm_vec1 = SIMD::min_i16(one, SIMD::load(&stm[i]));
         auto stm_vec2 = SIMD::min_i16(one, SIMD::load(&stm[i + stride]));
         auto stm_vec3 = SIMD::min_i16(one, SIMD::load(&stm[i + stride * 2]));
@@ -51,10 +58,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec2 = SIMD::max_i16(zero, stm_vec2);
         stm_vec3 = SIMD::max_i16(zero, stm_vec3);
         stm_vec4 = SIMD::max_i16(zero, stm_vec4);
-        stm_vec1 = SIMD::lshift_i16<7>(stm_vec1);
-        stm_vec2 = SIMD::lshift_i16<7>(stm_vec2);
-        stm_vec3 = SIMD::lshift_i16<7>(stm_vec3);
-        stm_vec4 = SIMD::lshift_i16<7>(stm_vec4);
+        stm_vec1 = SIMD::lshift_i16<lshift>(stm_vec1);
+        stm_vec2 = SIMD::lshift_i16<lshift>(stm_vec2);
+        stm_vec3 = SIMD::lshift_i16<lshift>(stm_vec3);
+        stm_vec4 = SIMD::lshift_i16<lshift>(stm_vec4);
         auto stm_vec5 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2]));
         auto stm_vec6 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 2]));
@@ -84,10 +91,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
         nstm_vec3 = SIMD::max_i16(zero, nstm_vec3);
         nstm_vec4 = SIMD::max_i16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::lshift_i16<7>(nstm_vec1);
-        nstm_vec2 = SIMD::lshift_i16<7>(nstm_vec2);
-        nstm_vec3 = SIMD::lshift_i16<7>(nstm_vec3);
-        nstm_vec4 = SIMD::lshift_i16<7>(nstm_vec4);
+        nstm_vec1 = SIMD::lshift_i16<lshift>(nstm_vec1);
+        nstm_vec2 = SIMD::lshift_i16<lshift>(nstm_vec2);
+        nstm_vec3 = SIMD::lshift_i16<lshift>(nstm_vec3);
+        nstm_vec4 = SIMD::lshift_i16<lshift>(nstm_vec4);
         auto nstm_vec5 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2]));
         auto nstm_vec6 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 2]));
