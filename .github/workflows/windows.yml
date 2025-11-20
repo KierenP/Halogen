@@ -16,10 +16,10 @@ jobs:
         include:
           # x86_64 builds
           - os: windows-latest
-            config: { system: mingw64, package: x86_64-gcc, compiler: g++, git: x86_64-git }
+            config: { system: mingw64, package: x86_64-gcc, compiler: g++ }
           # ARM64 builds
           - os: windows-11-arm
-            config: { system: CLANGARM64, package: clang-aarch64, compiler: clang++, git: aarch64-git }
+            config: { system: CLANGARM64, package: clang-aarch64, compiler: clang++ }
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -31,7 +31,7 @@ jobs:
       - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
-          install: mingw-w64-${{matrix.config.package}} make git mingw-w64-${{matrix.config.git}}
+          install: mingw-w64-${{matrix.config.package}} make git
 
       - name: Add compiler to $PATH env
         shell: bash
