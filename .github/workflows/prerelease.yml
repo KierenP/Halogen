@@ -17,80 +17,66 @@ jobs:
           - os: ubuntu-latest
             arch: legacy
             target: pgo
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: sse4
             target: pgo
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: avx
             target: pgo
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: avx2
             target: pgo
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: avx2-pext
             target: pgo
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: avx512
             target: release
-            runner_arch: x64
             platform: linux-x86_64
           - os: ubuntu-latest
             arch: avx512vnni
             target: release
-            runner_arch: x64
             platform: linux-x86_64
           
           # Windows x86_64 builds
           - os: windows-latest
             arch: legacy
             target: pgo
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: sse4
             target: pgo
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: avx
             target: pgo
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: avx2
             target: pgo
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: avx2-pext
             target: pgo
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: avx512
             target: release
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           - os: windows-latest
             arch: avx512vnni
             target: release
-            runner_arch: x64
             platform: windows-x86_64
             extension: .exe
           
@@ -98,39 +84,34 @@ jobs:
           - os: macos-15-intel
             arch: legacy
             target: pgo
-            runner_arch: x64
             platform: macos-x86_64
           - os: macos-15-intel
             arch: sse4
             target: pgo
-            runner_arch: x64
             platform: macos-x86_64
           - os: macos-15-intel
             arch: avx
             target: pgo
-            runner_arch: x64
             platform: macos-x86_64
           - os: macos-15-intel
             arch: avx2
             target: pgo
-            runner_arch: x64
             platform: macos-x86_64
           - os: macos-15-intel
             arch: avx2-pext
             target: pgo
-            runner_arch: x64
             platform: macos-x86_64
           
           # macOS ARM64 (Apple Silicon) builds
           - os: macos-latest
-            arch: neon
+            arch: neon-dotprod
             target: pgo
             runner_arch: arm64
             platform: macos-arm64
           
           # Linux ARM64 builds
           - os: ubuntu-24.04-arm
-            arch: neon
+            arch: neon-dotprod
             target: pgo
             runner_arch: arm64
             platform: linux-arm64

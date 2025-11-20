@@ -145,12 +145,10 @@ ifeq ($(ARCH),native)
     endif
 
     ifneq ($(findstring __ARM_NEON, $(SUPPORTED)),)
+        # Assume if we support NEON, we also support DOTPROD. There's a small range of ARMv8.0-8.1 CPUs without 
+        # DOTPROD, but they are rare. Use ARCH=neon if you need to disable DOTPROD.
         ARCH_DEFINES += -DUSE_NEON
-        # Apple Clang doesn't define __ARM_FEATURE_DOTPROD with march=native, even if the CPU supports it. So we need this hack to detect it.
-        DOTPROD_TEST := $(shell echo 'int main() { asm("udot v0.4s, v1.16b, v2.16b"); return 0; }' | $(CXX) -march=armv8.2-a+dotprod -x c++ - -o /dev/null 2>/dev/null && echo yes)
-        ifeq ($(DOTPROD_TEST),yes)
-            ARCH_DEFINES += -DUSE_NEON_DOTPROD
-        endif
+        ARCH_DEFINES += -DUSE_NEON_DOTPROD
     endif
 endif
 
