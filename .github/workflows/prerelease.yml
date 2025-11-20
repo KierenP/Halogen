@@ -135,13 +135,14 @@ jobs:
             runner_arch: arm64
             platform: linux-arm64
           
+          # TODO: disabled due to msys2 install timeouts
           # Windows ARM64 builds
-          - os: windows-11-arm
-            arch: neon
-            target: pgo
-            runner_arch: arm64
-            platform: windows-arm64
-            extension: .exe
+          #- os: windows-11-arm
+          #  arch: neon
+          #  target: pgo
+          #  runner_arch: arm64
+          #  platform: windows-arm64
+          #  extension: .exe
 
     runs-on: ${{ matrix.os }}
 
@@ -203,7 +204,7 @@ jobs:
       uses: msys2/setup-msys2@v2.22.0
       with:
         msystem: CLANGARM64
-        install: mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-lld make git
+        install: mingw-w64-clang-aarch64-clang make git
 
     - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
       name: Set CC and CXX for Windows ARM64
