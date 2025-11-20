@@ -35,8 +35,13 @@ Halogen is officially supported on Windows and Ubuntu when using compilers gcc-1
 
 | Platform          | Build |
 |-------------------|-------|
-| Ubuntu            |  [![Ubuntu](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
-| Windows           |  [![Windows](https://github.com/KierenP/Halogen/actions/workflows/windows.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows.yml)     |
+| Ubuntu x86-64     |  [![Ubuntu x86-64](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
+| Ubuntu ARM64      |  [![Ubuntu ARM64](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/ubuntu.yml)     |
+| Windows x86-64    |  [![Windows x86-64](https://github.com/KierenP/Halogen/actions/workflows/windows.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/windows.yml)     |
+| Windows ARM64     |  Coming soon      |
+| MacOS x86-64      |  [![MacOS x86-64](https://github.com/KierenP/Halogen/actions/workflows/macos.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/macos.yml)     |
+| MacOS ARM64 (M1)  |  [![MacOS ARM64](https://github.com/KierenP/Halogen/actions/workflows/macos.yml/badge.svg)](https://github.com/KierenP/Halogen/actions/workflows/macos.yml)     |
+
 
 ## Strength
 
