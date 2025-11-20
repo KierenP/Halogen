@@ -12,57 +12,8 @@
 #include <cstdint>
 #include <iostream>
 
-// For the expensive FT -> L1 matmul, we want to do a sparse multiplication. The naive approach would be to construct a
-// vector of non zero FT activations, and then multiply by the corresponding L1 weights. Because we want to accumulate
-// u8*i8 into i32 using two madd instructions, it makes it much easier if we work in groups of 4 FT activations at a
-// time (called a FT nibble). Hence, we check blocks of 4 adjacent FT activations in a stride and omit any blocks of 4
-// zeros.
-//
-// In order to efficiently encode the sparse FT nibbles, we process them in blocks of 8 at a time (8 * 4 = 32). Using a
-// movemask instruction along with a greater than, we can extract one byte at a time to represent the sparsity of 8 FT
-// nibbles. We precompute a 256 entry lookup table to map to the corresponding mask. For example, if we the mask is
-// 0b10001001, then we would extract indicies = { 0, 3, 7 }. We store each index in a u16, so that 8 of them occupy
-// a _m128i register. This allows us to very quickly apply a offset using a add_epi16 to efficiently map the indicies to
-// the correct FT nibbles.
-struct SparseAffineEntry
-{
-    alignas(16) std::array<int16_t, 8> indicies;
-    size_t count;
-};
-
-struct SparseAffineTable
-{
-    SparseAffineTable()
-    {
-        for (uint64_t i = 0; i < 256; i++)
-        {
-            uint64_t bits = i;
-            size_t idx = 0;
-            while (bits)
-            {
-                entry[i].indicies[idx++] = lsbpop(bits);
-            }
-            entry[i].count = idx;
-        }
-    }
-
-    std::array<SparseAffineEntry, 256> entry;
-};
-
 namespace NN::Features
 {
-
-const static SparseAffineTable sparse_affine_table;
-
-alignas(64) static constexpr std::array<int16_t, 32> nibble_offset_table = []
-{
-    std::array<int16_t, 32> cache {};
-    for (int16_t i = 0; i < 32; ++i)
-    {
-        cache[i] = i;
-    }
-    return cache;
-}();
 
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int16_t, FT_SIZE>& nstm,
     std::array<uint8_t, FT_SIZE>& output, [[maybe_unused]] std::array<int16_t, FT_SIZE / 4>& sparse_nibbles,
@@ -74,15 +25,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
     static_assert((FT_SIZE / 2) % (stride * 4) == 0);
     const auto zero = SIMD::setzero<SIMD::veci16>();
     const auto one = SIMD::set_i16(FT_SCALE);
-#if defined(USE_AVX512_VNNI)
+#if defined(USE_AVX512_VNNI) || defined(USE_NEON)
     auto sparse_nibble_offset = SIMD::set_i16(0);
-    const auto sparse_nibble_offset_adj = SIMD::set_i16(32);
-#elif defined(USE_NEON)
-    auto sparse_nibble_offset = SIMD::set_i16(0);
-    const auto sparse_nibble_offset_adj = SIMD::set_i16(8);
 #else
     auto sparse_nibble_offset = _mm_set1_epi16(0);
-    const auto sparse_nibble_offset_adj = _mm_set1_epi16(8);
 #endif
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
@@ -105,10 +51,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec2 = SIMD::max_i16(zero, stm_vec2);
         stm_vec3 = SIMD::max_i16(zero, stm_vec3);
         stm_vec4 = SIMD::max_i16(zero, stm_vec4);
-        stm_vec1 = SIMD::slli_i16<7>(stm_vec1);
-        stm_vec2 = SIMD::slli_i16<7>(stm_vec2);
-        stm_vec3 = SIMD::slli_i16<7>(stm_vec3);
-        stm_vec4 = SIMD::slli_i16<7>(stm_vec4);
+        stm_vec1 = SIMD::lshift_i16<7>(stm_vec1);
+        stm_vec2 = SIMD::lshift_i16<7>(stm_vec2);
+        stm_vec3 = SIMD::lshift_i16<7>(stm_vec3);
+        stm_vec4 = SIMD::lshift_i16<7>(stm_vec4);
         auto stm_vec5 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2]));
         auto stm_vec6 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 2]));
@@ -119,52 +65,14 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec4 = SIMD::mulhi_i16(stm_vec4, stm_vec8);
 
         // We permute the weights at startup to match the packus.
-        auto stm_u8_1 = SIMD::packus_i16(stm_vec1, stm_vec2);
-        auto stm_u8_3 = SIMD::packus_i16(stm_vec3, stm_vec4);
+        auto stm_u8_1 = SIMD::pack_i16_to_u8(stm_vec1, stm_vec2);
+        auto stm_u8_3 = SIMD::pack_i16_to_u8(stm_vec3, stm_vec4);
         SIMD::store(&output[i], stm_u8_1);
         SIMD::store(&output[i + stride * 2], stm_u8_3);
 
         // Cache the nonzero nibbles for sparse affine l1
-        auto mask1 = SIMD::cmpgt_i32_mask(stm_u8_1);
-        auto mask2 = SIMD::cmpgt_i32_mask(stm_u8_3);
-#if defined(USE_AVX512)
-        uint32_t mask = mask1 | (mask2 << 16);
-#elif defined(USE_AVX2)
-        uint16_t mask = mask1 | (mask2 << 8);
-#else
-        uint8_t mask = mask1 | (mask2 << 4);
-#endif
-
-#if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load(nibble_offset_table.data());
-        indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
-        _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
-        sparse_nibbles_size += std::popcount(mask);
-        sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
-#else
-        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
-        for (size_t j = 0; j < sizeof(mask); j++)
-        {
-            uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
-            const auto& entry = sparse_affine_table.entry[bytemask];
-#if defined(USE_NEON)
-            auto indicies = vld1q_s16(entry.indicies.data());
-            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
-            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
-            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
-            sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
-#else
-            auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
-            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
-            auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
-            _mm_storeu_si128(sparse_nibbles_end, indicies);
-            sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
-#endif
-        }
-#endif
+        SIMD::deposit_nonzero_4xu8_block_indices_x2(
+            stm_u8_1, stm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
     for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
     {
@@ -176,10 +84,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
         nstm_vec3 = SIMD::max_i16(zero, nstm_vec3);
         nstm_vec4 = SIMD::max_i16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::slli_i16<7>(nstm_vec1);
-        nstm_vec2 = SIMD::slli_i16<7>(nstm_vec2);
-        nstm_vec3 = SIMD::slli_i16<7>(nstm_vec3);
-        nstm_vec4 = SIMD::slli_i16<7>(nstm_vec4);
+        nstm_vec1 = SIMD::lshift_i16<7>(nstm_vec1);
+        nstm_vec2 = SIMD::lshift_i16<7>(nstm_vec2);
+        nstm_vec3 = SIMD::lshift_i16<7>(nstm_vec3);
+        nstm_vec4 = SIMD::lshift_i16<7>(nstm_vec4);
         auto nstm_vec5 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2]));
         auto nstm_vec6 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 2]));
@@ -188,50 +96,12 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec6);
         nstm_vec3 = SIMD::mulhi_i16(nstm_vec3, nstm_vec7);
         nstm_vec4 = SIMD::mulhi_i16(nstm_vec4, nstm_vec8);
-        auto nstm_u8_1 = SIMD::packus_i16(nstm_vec1, nstm_vec2);
-        auto nstm_u8_3 = SIMD::packus_i16(nstm_vec3, nstm_vec4);
+        auto nstm_u8_1 = SIMD::pack_i16_to_u8(nstm_vec1, nstm_vec2);
+        auto nstm_u8_3 = SIMD::pack_i16_to_u8(nstm_vec3, nstm_vec4);
         SIMD::store(&output[i + FT_SIZE / 2], nstm_u8_1);
         SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_u8_3);
-        auto mask1 = SIMD::cmpgt_i32_mask(nstm_u8_1);
-        auto mask2 = SIMD::cmpgt_i32_mask(nstm_u8_3);
-#if defined(USE_AVX512)
-        uint32_t mask = mask1 | (mask2 << 16);
-#elif defined(USE_AVX2)
-        uint16_t mask = mask1 | (mask2 << 8);
-#else
-        uint8_t mask = mask1 | (mask2 << 4);
-#endif
-
-#if defined(USE_AVX512_VNNI)
-        auto indicies = SIMD::load(nibble_offset_table.data());
-        indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
-        _mm512_mask_compressstoreu_epi16(&sparse_nibbles[sparse_nibbles_size], mask, indicies);
-        sparse_nibbles_size += std::popcount(mask);
-        sparse_nibble_offset = SIMD::add_i32(sparse_nibble_offset, sparse_nibble_offset_adj);
-#else
-        // 1 byte for SSE/NEON, 2 for AVX2, 4 for AVX512
-        for (size_t j = 0; j < sizeof(mask); j++)
-        {
-            uint8_t bytemask = (mask >> (8 * j)) & 0xFF;
-            const auto& entry = sparse_affine_table.entry[bytemask];
-#if defined(USE_NEON)
-            auto indicies = vld1q_s16(entry.indicies.data());
-            indicies = SIMD::add_i16(indicies, sparse_nibble_offset);
-            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
-            vst1q_s16(&sparse_nibbles[sparse_nibbles_size], indicies);
-            sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = SIMD::add_i16(sparse_nibble_offset, sparse_nibble_offset_adj);
-#else
-            auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
-            indicies = _mm_add_epi16(indicies, sparse_nibble_offset);
-            assert(sparse_nibbles_size + entry.count <= sparse_nibbles.size());
-            auto* sparse_nibbles_end = reinterpret_cast<__m128i*>(&sparse_nibbles[sparse_nibbles_size]);
-            _mm_storeu_si128(sparse_nibbles_end, indicies);
-            sparse_nibbles_size += entry.count;
-            sparse_nibble_offset = _mm_add_epi16(sparse_nibble_offset, sparse_nibble_offset_adj);
-#endif
-        }
-#endif
+        SIMD::deposit_nonzero_4xu8_block_indices_x2(
+            nstm_u8_1, nstm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
