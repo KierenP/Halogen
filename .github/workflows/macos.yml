@@ -8,8 +8,12 @@ on:
 
 jobs:
   macOS:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+
+    strategy:
+      matrix:
+        os: [macos-latest, macos-13]
 
     steps:
       - uses: actions/checkout@v4.1.1
