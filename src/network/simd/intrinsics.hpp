@@ -360,37 +360,25 @@ inline veci32 dpbusd_i32(const veci32& source, const vecu8& a, const veci8& b)
     dot = _mm_madd_epi16(dot, madd_helper);
     return _mm_add_epi32(source, dot);
 #elif defined(USE_NEON)
-    // TODO: NEON doesn't have a direct equivalent, is there a better way?
-
-    // Emulate maddubs: multiply u8*i8 pairs, then horizontal add pairs to i16
-    // Then emulate madd: horizontal add pairs of i16 to i32
-    // Net result: groups of 4 u8*i8 products summed into each i32
-
-    // Split into 8-byte halves
-    uint8x8_t a_low = vget_low_u8(a);
-    uint8x8_t a_high = vget_high_u8(a);
+    int8x8_t a_low = vreinterpret_s8_u8(vget_low_u8(a));
+    int8x8_t a_high = vreinterpret_s8_u8(vget_high_u8(a));
     int8x8_t b_low = vget_low_s8(b);
     int8x8_t b_high = vget_high_s8(b);
 
-    // Widen to 16-bit and multiply
-    int16x8_t mul_low = vmulq_s16(vreinterpretq_s16_u16(vmovl_u8(a_low)), vmovl_s8(b_low));
-    int16x8_t mul_high = vmulq_s16(vreinterpretq_s16_u16(vmovl_u8(a_high)), vmovl_s8(b_high));
+    // Multiply directly as i8, producing i16
+    int16x8_t mul_low = vmull_s8(a_low, b_low);
+    int16x8_t mul_high = vmull_s8(a_high, b_high);
 
-    // Now we have:
-    // mul_low:  [a0*b0, a1*b1, a2*b2, a3*b3, a4*b4, a5*b5, a6*b6, a7*b7]
-    // mul_high: [a8*b8, a9*b9, a10*b10, a11*b11, a12*b12, a13*b13, a14*b14, a15*b15]
+    // Pairwise add
+    int32x4_t sum_low = vpaddlq_s16(mul_low);
+    int32x4_t sum_high = vpaddlq_s16(mul_high);
 
-    // Pairwise add within each vector: 8xi16 -> 4xi32
-    int32x4_t acc_low = vpaddlq_s16(mul_low); // [a0*b0+a1*b1, a2*b2+a3*b3, a4*b4+a5*b5, a6*b6+a7*b7]
-    int32x4_t acc_high = vpaddlq_s16(mul_high); // [a8*b8+a9*b9, a10*b10+a11*b11, a12*b12+a13*b13, a14*b14+a15*b15]
+    // Pairwise add again
+    int32x2_t final_low = vpadd_s32(vget_low_s32(sum_low), vget_high_s32(sum_low));
+    int32x2_t final_high = vpadd_s32(vget_low_s32(sum_high), vget_high_s32(sum_high));
 
-    // Pairwise add again to get groups of 4
-    int32x2_t sum_low = vpadd_s32(vget_low_s32(acc_low), vget_high_s32(acc_low));
-    int32x2_t sum_high = vpadd_s32(vget_low_s32(acc_high), vget_high_s32(acc_high));
-
-    // Combine into final result: 4 int32 values
-    int32x4_t result = vcombine_s32(sum_low, sum_high);
-
+    // Accumulate to source
+    int32x4_t result = vcombine_s32(final_low, final_high);
     return vaddq_s32(source, result);
 #endif
 }
