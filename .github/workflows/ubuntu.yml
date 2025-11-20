@@ -12,15 +12,21 @@ on:
 
 jobs:
   Ubuntu:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
     strategy:
       matrix:
-        config:
-        # TODO: fix source of non-determinism with clang builds
-          - { compiler: g++-13, packages: g++-13, profdata: NA }
-        # - { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
+        include:
+          # x86_64 builds
+          - os: ubuntu-latest
+            config: { compiler: g++-13, packages: g++-13, profdata: NA }
+          # ARM64 builds
+          - os: ubuntu-24.04-arm
+            config: { compiler: g++-13, packages: g++-13, profdata: NA }
+          # TODO: fix source of non-determinism with clang builds
+          # - os: ubuntu-latest
+          #   config: { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
 
     steps:
       - uses: actions/checkout@v4.1.1

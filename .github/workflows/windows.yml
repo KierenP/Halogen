@@ -8,15 +8,19 @@ on:
 
 jobs:
   Windows:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
 
     strategy:
       matrix:
-        config:
-        # TODO: fix source of non-determinism with clang builds
-        # - { system: clang64, package: clang-x86_64-clang, compiler: clang++ }
-          - { system: mingw64, package: x86_64-gcc, compiler: g++ }
+        include:
+          # x86_64 builds
+          - os: windows-latest
+            config: { system: mingw64, package: x86_64-gcc, compiler: g++ }
+          # TODO: disabled due to msys2 install timeouts
+          # ARM64 builds
+          #- os: windows-11-arm
+          #  config: { system: CLANGARM64, package: clang-aarch64-clang, compiler: clang++ }
 
     steps:
       - uses: actions/checkout@v4.1.1
@@ -28,7 +32,7 @@ jobs:
       - uses: msys2/setup-msys2@v2.22.0
         with:
           msystem: ${{matrix.config.system}}
-          install: mingw-w64-${{matrix.config.package}} make git mingw-w64-x86_64-git-lfs
+          install: mingw-w64-${{matrix.config.package}} make git
 
       - name: Add compiler to $PATH env
         shell: bash
