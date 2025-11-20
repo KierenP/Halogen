@@ -934,7 +934,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // At shallow depths, if the static eval is hopeless relative to alpha we run a confirmation q-search to avoid
     // searching the branch. The follow-up trim controls how aggressively we continue searching when the q-search still
     // fails high.
-    if (!root_node && !pv_node && !InCheck && ss->singular_exclusion == Move::Uninitialized)
+    if (!root_node && !pv_node && !InCheck && depth > 1 && ss->singular_exclusion == Move::Uninitialized)
     {
         const int max_razor_index = static_cast<int>(razor_margin.size()) - 1;
         const int razor_depth = std::min(std::min(depth, razor_max_d), max_razor_index);
@@ -954,8 +954,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                     return SCORE_UNDEFINED;
                 }
 
-                // We either proved a fail-low or are at depth 1 where we only want a quiescence search.
-                if (razor_score <= razor_alpha || depth == 1)
+                // We either proved a fail-low.
+                if (razor_score <= razor_alpha)
                 {
                     return razor_score;
                 }
