@@ -360,26 +360,17 @@ inline veci32 dpbusd_i32(const veci32& source, const vecu8& a, const veci8& b)
     dot = _mm_madd_epi16(dot, madd_helper);
     return _mm_add_epi32(source, dot);
 #elif defined(USE_NEON)
+    // safe because a is [0, 127], so can be treated as signed without overflow
     int8x8_t a_low = vreinterpret_s8_u8(vget_low_u8(a));
     int8x8_t a_high = vreinterpret_s8_u8(vget_high_u8(a));
     int8x8_t b_low = vget_low_s8(b);
     int8x8_t b_high = vget_high_s8(b);
 
-    // Multiply directly as i8, producing i16
-    int16x8_t mul_low = vmull_s8(a_low, b_low);
-    int16x8_t mul_high = vmull_s8(a_high, b_high);
-
-    // Pairwise add
-    int32x4_t sum_low = vpaddlq_s16(mul_low);
-    int32x4_t sum_high = vpaddlq_s16(mul_high);
-
-    // Pairwise add again
-    int32x2_t final_low = vpadd_s32(vget_low_s32(sum_low), vget_high_s32(sum_low));
-    int32x2_t final_high = vpadd_s32(vget_low_s32(sum_high), vget_high_s32(sum_high));
-
-    // Accumulate to source
-    int32x4_t result = vcombine_s32(final_low, final_high);
-    return vaddq_s32(source, result);
+    // Multiply i8 -> i16, add adjacent pairs, then add adjacent pairs again accumulating into i32
+    int16x8_t prod_low = vmull_s8(a_low, b_low);
+    int16x8_t prod_high = vmull_s8(a_high, b_high);
+    int16x8_t sum = vpaddq_s16(prod_low, prod_high);
+    return vpadalq_s16(source, sum);
 #endif
 }
 
