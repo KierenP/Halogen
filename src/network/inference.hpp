@@ -105,10 +105,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec2 = SIMD::max_i16(zero, stm_vec2);
         stm_vec3 = SIMD::max_i16(zero, stm_vec3);
         stm_vec4 = SIMD::max_i16(zero, stm_vec4);
-        stm_vec1 = SIMD::slli_i16<7>(stm_vec1);
-        stm_vec2 = SIMD::slli_i16<7>(stm_vec2);
-        stm_vec3 = SIMD::slli_i16<7>(stm_vec3);
-        stm_vec4 = SIMD::slli_i16<7>(stm_vec4);
+        stm_vec1 = SIMD::lshift_i16<7>(stm_vec1);
+        stm_vec2 = SIMD::lshift_i16<7>(stm_vec2);
+        stm_vec3 = SIMD::lshift_i16<7>(stm_vec3);
+        stm_vec4 = SIMD::lshift_i16<7>(stm_vec4);
         auto stm_vec5 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2]));
         auto stm_vec6 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::min_i16(one, SIMD::load(&stm[i + FT_SIZE / 2 + stride * 2]));
@@ -119,8 +119,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         stm_vec4 = SIMD::mulhi_i16(stm_vec4, stm_vec8);
 
         // We permute the weights at startup to match the packus.
-        auto stm_u8_1 = SIMD::packus_i16(stm_vec1, stm_vec2);
-        auto stm_u8_3 = SIMD::packus_i16(stm_vec3, stm_vec4);
+        auto stm_u8_1 = SIMD::pack_i16_to_u8(stm_vec1, stm_vec2);
+        auto stm_u8_3 = SIMD::pack_i16_to_u8(stm_vec3, stm_vec4);
         SIMD::store(&output[i], stm_u8_1);
         SIMD::store(&output[i + stride * 2], stm_u8_3);
 
@@ -176,10 +176,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
         nstm_vec3 = SIMD::max_i16(zero, nstm_vec3);
         nstm_vec4 = SIMD::max_i16(zero, nstm_vec4);
-        nstm_vec1 = SIMD::slli_i16<7>(nstm_vec1);
-        nstm_vec2 = SIMD::slli_i16<7>(nstm_vec2);
-        nstm_vec3 = SIMD::slli_i16<7>(nstm_vec3);
-        nstm_vec4 = SIMD::slli_i16<7>(nstm_vec4);
+        nstm_vec1 = SIMD::lshift_i16<7>(nstm_vec1);
+        nstm_vec2 = SIMD::lshift_i16<7>(nstm_vec2);
+        nstm_vec3 = SIMD::lshift_i16<7>(nstm_vec3);
+        nstm_vec4 = SIMD::lshift_i16<7>(nstm_vec4);
         auto nstm_vec5 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2]));
         auto nstm_vec6 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::min_i16(one, SIMD::load(&nstm[i + FT_SIZE / 2 + stride * 2]));
@@ -188,8 +188,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm, const std::array<int
         nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec6);
         nstm_vec3 = SIMD::mulhi_i16(nstm_vec3, nstm_vec7);
         nstm_vec4 = SIMD::mulhi_i16(nstm_vec4, nstm_vec8);
-        auto nstm_u8_1 = SIMD::packus_i16(nstm_vec1, nstm_vec2);
-        auto nstm_u8_3 = SIMD::packus_i16(nstm_vec3, nstm_vec4);
+        auto nstm_u8_1 = SIMD::pack_i16_to_u8(nstm_vec1, nstm_vec2);
+        auto nstm_u8_3 = SIMD::pack_i16_to_u8(nstm_vec3, nstm_vec4);
         SIMD::store(&output[i + FT_SIZE / 2], nstm_u8_1);
         SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_u8_3);
         auto mask1 = SIMD::cmpgt_i32_mask(nstm_u8_1);

@@ -17,7 +17,7 @@ constexpr bool dependent_false = false; // workaround before CWG2518/P2593R1
 template <typename T>
 inline vec_type_t<T> load(const T* ptr)
 {
-    if constexpr (std::is_same_v<T, int8_t>)
+    if constexpr (std::is_integral_v<T>)
     {
 #if defined(USE_AVX512)
         return _mm512_load_si512(ptr);
@@ -26,43 +26,14 @@ inline vec_type_t<T> load(const T* ptr)
 #elif defined(USE_SSE4)
         return _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
 #elif defined(USE_NEON)
-        return vld1q_s8(ptr);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, uint8_t>)
-    {
-#if defined(USE_AVX512)
-        return _mm512_load_si512(ptr);
-#elif defined(USE_AVX2)
-        return _mm256_load_si256(reinterpret_cast<const __m256i*>(ptr));
-#elif defined(USE_SSE4)
-        return _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
-#elif defined(USE_NEON)
-        return vld1q_u8(ptr);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, int16_t>)
-    {
-#if defined(USE_AVX512)
-        return _mm512_load_si512(ptr);
-#elif defined(USE_AVX2)
-        return _mm256_load_si256(reinterpret_cast<const __m256i*>(ptr));
-#elif defined(USE_SSE4)
-        return _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
-#elif defined(USE_NEON)
-        return vld1q_s16(ptr);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, int32_t>)
-    {
-#if defined(USE_AVX512)
-        return _mm512_load_si512(ptr);
-#elif defined(USE_AVX2)
-        return _mm256_load_si256(reinterpret_cast<const __m256i*>(ptr));
-#elif defined(USE_SSE4)
-        return _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
-#elif defined(USE_NEON)
-        return vld1q_s32(ptr);
+        if constexpr (std::is_same_v<T, int8_t>)
+            return vld1q_s8(ptr);
+        else if constexpr (std::is_same_v<T, uint8_t>)
+            return vld1q_u8(ptr);
+        else if constexpr (std::is_same_v<T, int16_t>)
+            return vld1q_s16(ptr);
+        else if constexpr (std::is_same_v<T, int32_t>)
+            return vld1q_s32(ptr);
 #endif
     }
     else if constexpr (std::is_same_v<T, float>)
@@ -86,7 +57,7 @@ inline vec_type_t<T> load(const T* ptr)
 template <typename T>
 inline void store(T* ptr, const vec_type_t<T>& v)
 {
-    if constexpr (std::is_same_v<T, int8_t>)
+    if constexpr (std::is_integral_v<T>)
     {
 #if defined(USE_AVX512)
         _mm512_store_si512(ptr, v);
@@ -95,43 +66,14 @@ inline void store(T* ptr, const vec_type_t<T>& v)
 #elif defined(USE_SSE4)
         _mm_store_si128(reinterpret_cast<__m128i*>(ptr), v);
 #elif defined(USE_NEON)
-        vst1q_s8(ptr, v);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, uint8_t>)
-    {
-#if defined(USE_AVX512)
-        _mm512_store_si512(ptr, v);
-#elif defined(USE_AVX2)
-        _mm256_store_si256(reinterpret_cast<__m256i*>(ptr), v);
-#elif defined(USE_SSE4)
-        _mm_store_si128(reinterpret_cast<__m128i*>(ptr), v);
-#elif defined(USE_NEON)
-        vst1q_u8(ptr, v);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, int16_t>)
-    {
-#if defined(USE_AVX512)
-        _mm512_store_si512(ptr, v);
-#elif defined(USE_AVX2)
-        _mm256_store_si256(reinterpret_cast<__m256i*>(ptr), v);
-#elif defined(USE_SSE4)
-        _mm_store_si128(reinterpret_cast<__m128i*>(ptr), v);
-#elif defined(USE_NEON)
-        vst1q_s16(ptr, v);
-#endif
-    }
-    else if constexpr (std::is_same_v<T, int32_t>)
-    {
-#if defined(USE_AVX512)
-        _mm512_store_si512(ptr, v);
-#elif defined(USE_AVX2)
-        _mm256_store_si256(reinterpret_cast<__m256i*>(ptr), v);
-#elif defined(USE_SSE4)
-        _mm_store_si128(reinterpret_cast<__m128i*>(ptr), v);
-#elif defined(USE_NEON)
-        vst1q_s32(ptr, v);
+        if constexpr (std::is_same_v<T, int8_t>)
+            vst1q_s8(ptr, v);
+        else if constexpr (std::is_same_v<T, uint8_t>)
+            vst1q_u8(ptr, v);
+        else if constexpr (std::is_same_v<T, int16_t>)
+            vst1q_s16(ptr, v);
+        else if constexpr (std::is_same_v<T, int32_t>)
+            vst1q_s32(ptr, v);
 #endif
     }
     else if constexpr (std::is_same_v<T, float>)
@@ -155,36 +97,37 @@ inline void store(T* ptr, const vec_type_t<T>& v)
 template <typename T>
 inline T setzero()
 {
+    if constexpr (std::is_integral_v<basic_type_t<T>>)
+    {
 #if defined(USE_AVX512)
-    if constexpr (std::is_same_v<T, __m512i> || std::is_same_v<T, veci16> || std::is_same_v<T, veci32>
-        || std::is_same_v<T, veci8> || std::is_same_v<T, vecu8>)
         return _mm512_setzero_si512();
-    else if constexpr (std::is_same_v<T, __m512> || std::is_same_v<T, vecf32>)
+#elif defined(USE_AVX2)
+        return _mm256_setzero_si256();
+#elif defined(USE_SSE4)
+        return _mm_setzero_si128();
+#elif defined(USE_NEON)
+        if constexpr (std::is_same_v<T, int16x8_t>)
+            return vdupq_n_s16(0);
+        else if constexpr (std::is_same_v<T, int32x4_t>)
+            return vdupq_n_s32(0);
+        else if constexpr (std::is_same_v<T, int8x16_t>)
+            return vdupq_n_s8(0);
+        else if constexpr (std::is_same_v<T, uint8x16_t>)
+            return vdupq_n_u8(0);
+#endif
+    }
+    else if constexpr (std::is_floating_point_v<basic_type_t<T>>)
+    {
+#if defined(USE_AVX512)
         return _mm512_setzero_ps();
 #elif defined(USE_AVX2)
-    if constexpr (std::is_same_v<T, __m256i> || std::is_same_v<T, veci16> || std::is_same_v<T, veci32>
-        || std::is_same_v<T, veci8> || std::is_same_v<T, vecu8>)
-        return _mm256_setzero_si256();
-    else if constexpr (std::is_same_v<T, __m256> || std::is_same_v<T, vecf32>)
         return _mm256_setzero_ps();
 #elif defined(USE_SSE4)
-    if constexpr (std::is_same_v<T, __m128i> || std::is_same_v<T, veci16> || std::is_same_v<T, veci32>
-        || std::is_same_v<T, veci8> || std::is_same_v<T, vecu8>)
-        return _mm_setzero_si128();
-    else if constexpr (std::is_same_v<T, __m128> || std::is_same_v<T, vecf32>)
         return _mm_setzero_ps();
 #elif defined(USE_NEON)
-    if constexpr (std::is_same_v<T, int16x8_t> || std::is_same_v<T, veci16>)
-        return vdupq_n_s16(0);
-    else if constexpr (std::is_same_v<T, int32x4_t> || std::is_same_v<T, veci32>)
-        return vdupq_n_s32(0);
-    else if constexpr (std::is_same_v<T, int8x16_t> || std::is_same_v<T, veci8>)
-        return vdupq_n_s8(0);
-    else if constexpr (std::is_same_v<T, uint8x16_t> || std::is_same_v<T, vecu8>)
-        return vdupq_n_u8(0);
-    else if constexpr (std::is_same_v<T, float32x4_t> || std::is_same_v<T, vecf32>)
         return vdupq_n_f32(0.0f);
 #endif
+    }
     else
     {
         static_assert(dependent_false<T>, "Unsupported type for SIMD::setzero");
@@ -335,7 +278,7 @@ inline veci32 min_i32(const veci32& a, const veci32& b)
 }
 
 template <int imm>
-inline veci16 slli_i16(const veci16& a)
+inline veci16 lshift_i16(const veci16& a)
 {
 #if defined(USE_AVX512)
     return _mm512_slli_epi16(a, imm);
@@ -366,7 +309,7 @@ inline veci16 mulhi_i16(const veci16& a, const veci16& b)
 #endif
 }
 
-inline vecu8 packus_i16(const veci16& a, const veci16& b)
+inline vecu8 pack_i16_to_u8(const veci16& a, const veci16& b)
 {
 #if defined(USE_AVX512)
     return _mm512_packus_epi16(a, b);
