@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux x86_64 builds (already exists)
+          # Linux x86_64 builds
           - os: ubuntu-latest
             arch: legacy
             target: pgo
@@ -50,7 +50,7 @@ jobs:
             runner_arch: x64
             platform: linux-x86_64
           
-          # Windows x86_64 builds (already exists)
+          # Windows x86_64 builds
           - os: windows-latest
             arch: legacy
             target: pgo
@@ -128,14 +128,14 @@ jobs:
             runner_arch: arm64
             platform: macos-arm64
           
-          # Linux ARM64 builds (native)
+          # Linux ARM64 builds
           - os: ubuntu-24.04-arm
             arch: neon
             target: pgo
             runner_arch: arm64
             platform: linux-arm64
           
-          # Windows ARM64 builds (native)
+          # Windows ARM64 builds
           - os: windows-11-arm
             arch: neon
             target: pgo
