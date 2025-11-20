@@ -187,18 +187,45 @@ jobs:
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
 
-    - if: runner.os == 'Windows'
-      name: Install GCC 13 (Windows)
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
+      name: Install GCC 13 (Windows x64)
       run: choco install mingw --version=13.2.0
 
-    - if: runner.os == 'Windows'
-      name: Set CC and CXX for Windows
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
+      name: Set CC and CXX for Windows x64
       shell: powershell
       run: |
         echo "CC=gcc" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         echo "CXX=g++" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-    - name: Build
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+      name: Setup msys2 for Windows ARM64
+      uses: msys2/setup-msys2@v2.22.0
+      with:
+        msystem: CLANGARM64
+        install: mingw-w64-clang-aarch64-clang mingw-w64-clang-aarch64-lld make git
+
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+      name: Set CC and CXX for Windows ARM64
+      shell: bash
+      run: |
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+        echo "PATH=$PATH:/c/msys64/CLANGARM64/bin" >> $GITHUB_ENV
+
+    - name: Build (Windows x64)
+      if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64'
+      working-directory: src
+      run: make ${{ matrix.target }} ARCH=${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
+
+    - name: Build (Windows ARM64)
+      if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
+      shell: msys2 {0}
+      working-directory: src
+      run: make ${{ matrix.target }} ARCH=${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
+
+    - name: Build (Non-Windows)
+      if: runner.os != 'Windows'
       working-directory: src
       run: make ${{ matrix.target }} ARCH=${{ matrix.arch }} EXE=../build/Halogen${{ matrix.extension }} -j
 
