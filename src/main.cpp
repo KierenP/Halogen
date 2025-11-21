@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 #include <string_view>
 
 #include "search/cuckoo.h"
