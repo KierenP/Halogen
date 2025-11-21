@@ -40,19 +40,22 @@ void static_exchange_evaluation_test()
     }
 
     {
-        auto exchange1 = see_values[QUEEN] - see_values[ROOK];
-        auto exchange2 = exchange1 + see_values[BISHOP] - see_values[ROOK] + see_values[BISHOP];
+        const auto exchange = see_values[QUEEN]
+            - std::max(0,
+                see_values[ROOK]
+                    - std::max(
+                        0, see_values[BISHOP] - std::max(0, see_values[ROOK] - std::max(0, see_values[BISHOP]))));
         auto position = GameState::from_fen("1k1r4/1pp4p/p2b1b2/4q3/8/P3R1P1/1PP1R1BP/2K1Q3 w - - 0 1");
-        test_see(position, Move(SQ_E3, SQ_E5, CAPTURE), std::max(exchange1, exchange2));
+        test_see(position, Move(SQ_E3, SQ_E5, CAPTURE), exchange);
     }
 
     // en-passant tests, with discovered attacks
 
     {
-        const auto exchange1 = see_values[PAWN];
-        const auto exchange2 = exchange1 - see_values[PAWN] + see_values[BISHOP] - see_values[KNIGHT];
+        const auto exchange = see_values[PAWN]
+            - std::max(0, see_values[PAWN] - std::max(0, see_values[BISHOP] - std::max(0, see_values[KNIGHT])));
         auto position = GameState::from_fen("1k6/8/4R3/6B1/2n1Pp2/8/8/1K6 b - e3 0 1");
-        test_see(position, Move(SQ_F4, SQ_E3, EN_PASSANT), std::min(exchange1, exchange2));
+        test_see(position, Move(SQ_F4, SQ_E3, EN_PASSANT), exchange);
     }
 
     // king attacks
@@ -75,10 +78,10 @@ void static_exchange_evaluation_test()
     // king attacks + en passant + discovered attacks
 
     {
-        auto exchange1 = see_values[PAWN];
-        auto exchange2 = exchange1 - see_values[PAWN] + see_values[BISHOP] - see_values[KNIGHT];
+        auto exchange = see_values[PAWN]
+            - std::max(0, see_values[PAWN] - std::max(0, see_values[BISHOP] - std::max(0, see_values[KNIGHT])));
         auto position = GameState::from_fen("1k6/8/8/3n2B1/4Pp2/8/3K4/8 b - e3 0 1");
-        test_see(position, Move(SQ_F4, SQ_E3, EN_PASSANT), std::min(exchange1, exchange2));
+        test_see(position, Move(SQ_F4, SQ_E3, EN_PASSANT), exchange);
     }
 
     {
