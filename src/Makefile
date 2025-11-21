@@ -48,7 +48,8 @@ SRCS := \
     third-party/Pyrrhic/tbprobe.cpp \
     uci/uci.cpp \
     datagen/datagen.cpp \
-    datagen/encode.cpp
+    datagen/encode.cpp \
+    utility/arch.cpp
 
 OBJS := $(SRCS:%=$(BUILD_DIR)/$(ARCH)/%.o)
 

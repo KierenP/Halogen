@@ -12,7 +12,7 @@ jobs:
   Matetrack:
     name: Matetrack
     timeout-minutes: 10
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Halogen repo 
         uses: actions/checkout@v4.1.1
@@ -28,6 +28,12 @@ jobs:
         with:
           repository: KierenP/matetrack
           path: matetrack
+
+      # matetrack requires an older python version
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: matetrack install deps
         working-directory: matetrack

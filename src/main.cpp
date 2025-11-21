@@ -1,39 +1,14 @@
 #include <iostream>
+#include <string>
 #include <string_view>
 
 #include "search/cuckoo.h"
 #include "search/thread.h"
 #include "test/static_exchange_evaluation_test.h"
 #include "uci/uci.h"
+#include "utility/arch.h"
 
-constexpr std::string_view version = "15.18.9";
-
-void PrintVersion()
-{
-    std::cout << "Halogen " << version;
-
-#if defined(_WIN64) or defined(__x86_64__)
-    std::cout << " x64";
-#endif
-
-#if defined(USE_AVX512_VNNI)
-    std::cout << " AVX512_VNNI";
-#elif defined(USE_AVX512)
-    std::cout << " AVX512";
-#elif defined(USE_AVX2)
-    std::cout << " AVX2";
-#elif defined(USE_AVX)
-    std::cout << " AVX";
-#elif defined(USE_SSE4)
-    std::cout << " SSE4";
-#endif
-
-#if defined(USE_PEXT)
-    std::cout << " PEXT";
-#endif
-
-    std::cout << std::endl;
-}
+constexpr std::string_view version = "15.19.0";
 
 int main(int argc, char* argv[])
 {
@@ -45,7 +20,7 @@ int main(int argc, char* argv[])
     static_exchange_evaluation_test();
 #endif
 
-    PrintVersion();
+    std::cout << fmt_version_platform_arch(version) << std::endl;
 
     UCI::UciOutput output;
     SearchThreadPool pool { output, 1 };
