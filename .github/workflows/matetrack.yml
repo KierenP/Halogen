@@ -12,28 +12,28 @@ jobs:
   Matetrack:
     name: Matetrack
     timeout-minutes: 10
-    # matetrack requires a older python version on ubuntu-22.04, but we need a newer compiler to build Halogen.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Halogen repo 
         uses: actions/checkout@v4.1.1
         with:
           path: Halogen
 
-      - name: Install
-        run: |
-          sudo apt update
-          sudo apt install g++-13
-
       - name: Build Halogen
         working-directory: Halogen/src
-        run: make CXX=g++-13 -j release
+        run: make -j release
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4
         with:
           repository: KierenP/matetrack
           path: matetrack
+
+      # matetrack requires an older python version
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: matetrack install deps
         working-directory: matetrack
