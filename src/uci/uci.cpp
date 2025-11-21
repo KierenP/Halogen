@@ -278,6 +278,8 @@ auto Uci::options_handler()
         tuneable_int(razor_margin[2], 100, 1000),
         tuneable_int(razor_margin[3], 100, 1500),
         tuneable_int(razor_margin[4], 100, 2000),
+        tuneable_int(razor_full_d, 1, 4),
+        tuneable_int(razor_full_margin, 0, 400),
         tuneable_int(razor_verify_d, 1, 6),
         tuneable_int(razor_trim, 0, 3),
         tuneable_int(razor_verify_margin, 0, 400),

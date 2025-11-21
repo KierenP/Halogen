@@ -931,10 +931,9 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // Step 9: Razoring
     //
-    // At shallow depths, if the static eval is hopeless relative to alpha we run a confirmation q-search to avoid
-    // searching the branch. The follow-up trim controls how aggressively we continue searching when the q-search still
-    // fails high.
-    if (!root_node && !pv_node && !InCheck && depth > 1 && ss->singular_exclusion == Move::Uninitialized)
+    // At shallow depths, if the static eval is hopeless relative to alpha we run a verification q-search or,
+    // for the shallowest nodes, drop straight into q-search (full razoring).
+    if (!root_node && !pv_node && !InCheck && depth <= razor_max_d && ss->singular_exclusion == Move::Uninitialized)
     {
         const int max_razor_index = static_cast<int>(razor_margin.size()) - 1;
         const int razor_depth = std::min(std::min(depth, razor_max_d), max_razor_index);
@@ -942,8 +941,18 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         {
             const int margin = razor_margin[razor_depth]
                 + (improving ? razor_improving_bonus : -razor_non_improving_bonus) + (depth - 1) * razor_depth_scale;
+
             if (eval.value() + margin <= alpha.value())
             {
+                // Full razoring kicks in when the position looks truly hopeless at shallow depth. Depth 1 always
+                // goes straight to qsearch; deeper plies need an additional safety margin before skipping the tree.
+                const bool allow_full_razor = depth == 1
+                    || (depth <= razor_full_d && eval.value() + margin + razor_full_margin <= alpha.value());
+                if (allow_full_razor)
+                {
+                    return qsearch<SearchType::ZW>(position, ss, acc, local, shared, alpha, beta);
+                }
+
                 const int capped_alpha = std::max(alpha.value() - margin, Score::Limits::MATED);
                 const Score razor_alpha = Score(capped_alpha);
                 const Score razor_beta = Score(razor_alpha.value() + 1);
@@ -961,8 +970,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 }
 
                 // If q-search failed high we optionally trim the depth to keep obviously-bad nodes cheap.
-                if (razor_score.value() >= razor_beta.value() + razor_verify_margin && depth > 1
-                    && depth <= razor_verify_d)
+                if (razor_score.value() >= razor_beta.value() + razor_verify_margin && depth <= razor_verify_d)
                 {
                     depth -= std::min(razor_trim, depth - 1);
                 }

@@ -44,6 +44,8 @@ TUNEABLE_CONSTANT auto aspiration_window_growth_factor = Fraction<64>::from_raw(
 
 TUNEABLE_CONSTANT int razor_max_d = 3;
 TUNEABLE_CONSTANT std::array<int, 5> razor_margin = { 0, 360, 600, 850, 950 };
+TUNEABLE_CONSTANT int razor_full_d = 2;
+TUNEABLE_CONSTANT int razor_full_margin = 150;
 TUNEABLE_CONSTANT int razor_verify_d = 3;
 TUNEABLE_CONSTANT int razor_trim = 1;
 TUNEABLE_CONSTANT int razor_verify_margin = 0;
