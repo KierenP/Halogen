@@ -1224,6 +1224,17 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         return score;
     }
 
+    // Prior counter-move: if this node failed low, the parent fails high. We give a small history bonus to the prior
+    // move which helps in situations where we would otherwise not update the history (e.g LMR fails high causing
+    // research which is disproven)
+    if (score <= original_alpha && (ss - 1)->move != Move::Uninitialized && !(ss - 1)->move.is_capture()
+        && !(ss - 1)->move.is_promotion())
+    {
+        const auto bonus = (Fraction<64>::from_raw(375) + Fraction<64>::from_raw(-18) * depth
+            + Fraction<64>::from_raw(55) * depth * depth);
+        local.threat_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+    }
+
     const auto bound = score <= original_alpha ? SearchResultType::UPPER_BOUND
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
