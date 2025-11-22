@@ -1157,10 +1157,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         int extensions = 0;
         constexpr int min_extension = -2;
         constexpr int max_extension = 3;
-        auto apply_extension = [&](int amount)
-        {
-            extensions = std::clamp(extensions + amount, min_extension, max_extension);
-        };
+        auto apply_extension
+            = [&](int amount) { extensions = std::clamp(extensions + amount, min_extension, max_extension); };
 
         // Step 18: Singular extensions.
         //
