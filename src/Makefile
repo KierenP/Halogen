@@ -230,7 +230,9 @@ else
     LTO_FLAGS := -flto
     PGO_GEN := -fprofile-instr-generate=$(BUILD_DIR)/$(ARCH)/default.profraw
     PGO_MERGE := $(LLVM_PROFDATA) merge -output=$(BUILD_DIR)/$(ARCH)/merged.profdata $(BUILD_DIR)/$(ARCH)/default.profraw --sparse=true
-    PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/$(ARCH)/merged.profdata
+    # Some auxiliary translation units (tests, datagen tools) won't have profile hits; silence the noisy warning from
+    # clang when applying PGO data.
+    PGO_USE := -fprofile-instr-use=$(BUILD_DIR)/$(ARCH)/merged.profdata -Wno-profile-instr-unprofiled
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
