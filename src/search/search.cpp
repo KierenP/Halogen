@@ -1308,6 +1308,27 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
     auto original_alpha = alpha;
     bool no_legal_moves = true;
     int seen_moves = 0;
+    // Expected promotion gain for delta pruning; keeps the table local to qsearch.
+    auto promotion_gain = [](MoveFlag flag) -> int {
+        switch (flag)
+        {
+        case KNIGHT_PROMOTION:
+        case KNIGHT_PROMOTION_CAPTURE:
+            return see_values[KNIGHT] - see_values[PAWN];
+        case BISHOP_PROMOTION:
+        case BISHOP_PROMOTION_CAPTURE:
+            return see_values[BISHOP] - see_values[PAWN];
+        case ROOK_PROMOTION:
+        case ROOK_PROMOTION_CAPTURE:
+            return see_values[ROOK] - see_values[PAWN];
+        case QUEEN_PROMOTION:
+        case QUEEN_PROMOTION_CAPTURE:
+            return see_values[QUEEN] - see_values[PAWN];
+        default:
+            return 0;
+        }
+    };
+
     StagedMoveGenerator gen(position, ss, local, tt_move, !in_check);
     Move move;
 
@@ -1321,6 +1342,20 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
         }
 
         bool is_loud_move = move.is_capture() || move.is_promotion();
+
+        // Cheap delta pruning: if the static eval plus captured/promotion gain still misses alpha, skip the move.
+        if (!pv_node && !in_check && !score.is_loss() && alpha < Score::tb_win_in(MAX_RECURSION))
+        {
+            const auto captured_piece = move.flag() == EN_PASSANT ? get_piece(PAWN, !position.board().stm)
+                : position.board().get_square_piece(move.to());
+            const int delta_margin = qsearch_delta_margin + promotion_gain(move.flag())
+                + (captured_piece == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured_piece)]);
+
+            if (eval.value() + delta_margin < alpha.value())
+            {
+                continue;
+            }
+        }
 
         if (!score.is_loss() && !is_loud_move
             && !see_ge(position.board(), move, local.get_quiet_search_history(ss, move) / qsearch_see_hist))
