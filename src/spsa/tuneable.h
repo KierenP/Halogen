@@ -42,6 +42,13 @@ TUNEABLE_CONSTANT auto LMR_reduction = Initialise_LMR_reduction();
 TUNEABLE_CONSTANT auto aspiration_window_size = Fraction<64>::from_raw(543);
 TUNEABLE_CONSTANT auto aspiration_window_growth_factor = Fraction<64>::from_raw(92);
 
+TUNEABLE_CONSTANT int razor_max_d = 3;
+TUNEABLE_CONSTANT std::array<int, 5> razor_margin = { 0, 360, 600, 850, 950 };
+TUNEABLE_CONSTANT int razor_full_d = 2;
+TUNEABLE_CONSTANT int razor_full_margin = 150;
+TUNEABLE_CONSTANT int razor_verify_d = 3;
+TUNEABLE_CONSTANT int razor_trim = 1;
+
 TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(381);
 TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(579);
 TUNEABLE_CONSTANT auto nmp_score = Fraction<16384>::from_raw(69);
