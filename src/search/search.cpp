@@ -477,6 +477,42 @@ bool IsEndGame(const BoardState& board)
         == (board.get_pieces_bb(KING, board.stm) | board.get_pieces_bb(PAWN, board.stm)));
 }
 
+int relative_rank(Side side, Square square)
+{
+    const auto rank = enum_to<Rank>(square);
+    return static_cast<int>(side == WHITE ? rank : mirror(rank));
+}
+
+bool is_passed_pawn(const BoardState& board, Side side, Square square)
+{
+    const auto file = enum_to<File>(square);
+    uint64_t mask = FileBB[file];
+    if (file > FILE_A)
+    {
+        mask |= FileBB[file - 1];
+    }
+    if (file < FILE_H)
+    {
+        mask |= FileBB[file + 1];
+    }
+
+    const int rank_index = static_cast<int>(enum_to<Rank>(square));
+    uint64_t forward_mask = 0;
+    if (side == WHITE)
+    {
+        if (rank_index < static_cast<int>(RANK_8))
+        {
+            forward_mask = mask & (~uint64_t(0) << (8 * (rank_index + 1)));
+        }
+    }
+    else if (rank_index > 0)
+    {
+        forward_mask = mask & ((uint64_t(1) << (8 * rank_index)) - 1);
+    }
+
+    return (board.get_pieces_bb(PAWN, !side) & forward_mask) == 0;
+}
+
 std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
     SearchLocalState& local, SearchSharedState& shared, const int distance_from_root, const int depth,
     const Score static_score, const Score beta)
@@ -1119,6 +1155,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
 
         int extensions = 0;
+        constexpr int min_extension = -2;
+        constexpr int max_extension = 3;
+        auto apply_extension = [&](int amount)
+        {
+            extensions = std::clamp(extensions + amount, min_extension, max_extension);
+        };
 
         // Step 18: Singular extensions.
         //
@@ -1149,6 +1191,50 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
+
+        // Tactical/critical extensions
+        const Side us = enum_to<Side>(ss->moved_piece);
+
+        const bool gives_check = position.board().checkers != 0;
+        if (gives_check && depth <= check_extension_depth)
+        {
+            const int checker_count = std::popcount(position.board().checkers);
+            int check_ext = 1;
+            if ((InCheck || checker_count > 1) && depth <= double_check_extension_depth)
+            {
+                check_ext++;
+            }
+            apply_extension(check_ext);
+        }
+
+        const bool moved_pawn = enum_to<PieceType>(ss->moved_piece) == PAWN && !move.is_promotion();
+        const int rel_rank = moved_pawn ? relative_rank(us, move.to()) : 0;
+        if (moved_pawn && rel_rank >= static_cast<int>(RANK_6) && depth <= passer_push_extension_depth
+            && is_passed_pawn(position.board(), us, move.to()))
+        {
+            apply_extension(1);
+            if (rel_rank >= static_cast<int>(RANK_7) && depth <= passer_push_double_extension_depth)
+            {
+                apply_extension(1);
+            }
+        }
+
+        if (move.is_capture() && depth <= recapture_extension_depth)
+        {
+            const Move prev_move = (ss - 1)->move;
+            if (prev_move != Move::Uninitialized && prev_move.to() == move.to())
+            {
+                const auto& parent_board = position.prev_board();
+                const Piece captured = parent_board.get_square_piece(move.to());
+                if (captured != N_PIECES && enum_to<Side>(captured) != us
+                    && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value)
+                {
+                    apply_extension(1);
+                }
+            }
+        }
+
+        extensions = std::clamp(extensions, min_extension, max_extension);
 
         // Step 19: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
