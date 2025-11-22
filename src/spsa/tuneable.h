@@ -151,3 +151,7 @@ TUNEABLE_CONSTANT int generalized_tt_failhigh_depth = 5;
 TUNEABLE_CONSTANT float smp_voting_depth = 2.046f;
 TUNEABLE_CONSTANT float smp_voting_score = 12.72f;
 TUNEABLE_CONSTANT float smp_voting_const = 276.3f;
+
+TUNEABLE_CONSTANT auto pcm_const = Fraction<64>::from_raw(375);
+TUNEABLE_CONSTANT auto pcm_depth = Fraction<64>::from_raw(-18);
+TUNEABLE_CONSTANT auto pcm_quad = Fraction<64>::from_raw(55);
