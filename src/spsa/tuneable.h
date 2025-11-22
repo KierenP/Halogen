@@ -48,10 +48,6 @@ TUNEABLE_CONSTANT int razor_full_d = 2;
 TUNEABLE_CONSTANT int razor_full_margin = 150;
 TUNEABLE_CONSTANT int razor_verify_d = 3;
 TUNEABLE_CONSTANT int razor_trim = 1;
-TUNEABLE_CONSTANT int razor_verify_margin = 0;
-TUNEABLE_CONSTANT int razor_improving_bonus = 0;
-TUNEABLE_CONSTANT int razor_non_improving_bonus = 0;
-TUNEABLE_CONSTANT int razor_depth_scale = 0;
 
 TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(381);
 TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(579);

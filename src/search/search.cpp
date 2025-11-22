@@ -936,44 +936,32 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     if (!root_node && !pv_node && !InCheck && depth <= razor_max_d && ss->singular_exclusion == Move::Uninitialized)
     {
         const int max_razor_index = static_cast<int>(razor_margin.size()) - 1;
-        const int razor_depth = std::min(std::min(depth, razor_max_d), max_razor_index);
-        if (razor_depth > 0)
+        const int razor_depth = std::min({ depth, razor_max_d, max_razor_index });
+        const int margin = razor_margin[razor_depth];
+        if (eval + margin <= alpha)
         {
-            const int margin = razor_margin[razor_depth]
-                + (improving ? razor_improving_bonus : -razor_non_improving_bonus) + (depth - 1) * razor_depth_scale;
-
-            if (eval.value() + margin <= alpha.value())
+            // Full razoring kicks in when the position looks truly hopeless at shallow depth. Depth 1 always
+            // goes straight to qsearch; deeper plies need an additional safety margin before skipping the tree.
+            const bool allow_full_razor
+                = depth == 1 || (depth <= razor_full_d && eval + margin + razor_full_margin <= alpha);
+            if (allow_full_razor)
             {
-                // Full razoring kicks in when the position looks truly hopeless at shallow depth. Depth 1 always
-                // goes straight to qsearch; deeper plies need an additional safety margin before skipping the tree.
-                const bool allow_full_razor = depth == 1
-                    || (depth <= razor_full_d && eval.value() + margin + razor_full_margin <= alpha.value());
-                if (allow_full_razor)
-                {
-                    return qsearch<SearchType::ZW>(position, ss, acc, local, shared, alpha, beta);
-                }
+                return qsearch<SearchType::ZW>(position, ss, acc, local, shared, alpha, beta);
+            }
 
-                const int capped_alpha = std::max(alpha.value() - margin, Score::Limits::MATED);
-                const Score razor_alpha = Score(capped_alpha);
-                const Score razor_beta = Score(razor_alpha.value() + 1);
-                auto razor_score = qsearch<SearchType::ZW>(position, ss, acc, local, shared, razor_alpha, razor_beta);
+            const Score razor_alpha = std::max<Score>(alpha - margin, Score::Limits::MATED);
+            auto razor_score = qsearch<SearchType::ZW>(position, ss, acc, local, shared, razor_alpha, razor_alpha + 1);
 
-                if (razor_score == SCORE_UNDEFINED)
-                {
-                    return SCORE_UNDEFINED;
-                }
+            // We either proved a fail-low.
+            if (razor_score <= razor_alpha)
+            {
+                return razor_score;
+            }
 
-                // We either proved a fail-low.
-                if (razor_score <= razor_alpha)
-                {
-                    return razor_score;
-                }
-
-                // If q-search failed high we optionally trim the depth to keep obviously-bad nodes cheap.
-                if (razor_score.value() >= razor_beta.value() + razor_verify_margin && depth <= razor_verify_d)
-                {
-                    depth -= std::min(razor_trim, depth - 1);
-                }
+            // If q-search failed high we optionally trim the depth to keep obviously-bad nodes cheap.
+            if (razor_score > razor_alpha && depth <= razor_verify_d)
+            {
+                depth -= std::min(razor_trim, depth - 1);
             }
         }
     }
