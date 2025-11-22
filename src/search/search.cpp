@@ -1139,6 +1139,12 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
+        // Encourage resolving direct captures on the same square as the opponent's last capture.
+        if (depth > 1 && move.is_capture() && (ss - 1)->move.is_capture() && (ss - 1)->move.to() == move.to())
+        {
+            extensions += 1;
+        }
+
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
