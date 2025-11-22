@@ -140,7 +140,6 @@ TUNEABLE_CONSTANT int good_loud_see_hist = 52;
 
 TUNEABLE_CONSTANT int qsearch_lmp = 2;
 TUNEABLE_CONSTANT int qsearch_see_hist = 163;
-TUNEABLE_CONSTANT int qsearch_delta_margin = 120;
 
 TUNEABLE_CONSTANT int probcut_beta = 214;
 TUNEABLE_CONSTANT int probcut_min_depth = 3;
