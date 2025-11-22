@@ -409,6 +409,10 @@ auto Uci::options_handler()
         tuneable_float(smp_voting_depth, 0.0, 10.0),
         tuneable_float(smp_voting_score, 0.0, 200.0),
         tuneable_float(smp_voting_const, 0.0, 2000.0),
+
+        tuneable_fraction(pcm_const, 200, 600),
+        tuneable_fraction(pcm_depth, -100, 100),
+        tuneable_fraction(pcm_quad, 20, 80),
 #else
 #endif
     };
