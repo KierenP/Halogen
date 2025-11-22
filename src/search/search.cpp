@@ -502,12 +502,12 @@ bool is_passed_pawn(const BoardState& board, Side side, Square square)
     {
         if (rank_index < static_cast<int>(RANK_8))
         {
-            forward_mask = mask & (~uint64_t(0) << (8 * (rank_index + 1)));
+            forward_mask = mask & (~uint64_t(0) << (8 * rank_index));
         }
     }
     else if (rank_index > 0)
     {
-        forward_mask = mask & ((uint64_t(1) << (8 * rank_index)) - 1);
+        forward_mask = mask & ((uint64_t(1) << (8 * (rank_index + 1))) - 1);
     }
 
     return (board.get_pieces_bb(PAWN, !side) & forward_mask) == 0;
