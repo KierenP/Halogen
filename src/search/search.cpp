@@ -1309,7 +1309,8 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
     bool no_legal_moves = true;
     int seen_moves = 0;
     // Expected promotion gain for delta pruning; keeps the table local to qsearch.
-    auto promotion_gain = [](MoveFlag flag) -> int {
+    auto promotion_gain = [](MoveFlag flag) -> int
+    {
         switch (flag)
         {
         case KNIGHT_PROMOTION:
@@ -1347,7 +1348,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
         if (!pv_node && !in_check && !score.is_loss() && alpha < Score::tb_win_in(MAX_RECURSION))
         {
             const auto captured_piece = move.flag() == EN_PASSANT ? get_piece(PAWN, !position.board().stm)
-                : position.board().get_square_piece(move.to());
+                                                                  : position.board().get_square_piece(move.to());
             const int delta_margin = qsearch_delta_margin + promotion_gain(move.flag())
                 + (captured_piece == N_PIECES ? 0 : see_values[enum_to<PieceType>(captured_piece)]);
 
