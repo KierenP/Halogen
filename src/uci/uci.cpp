@@ -335,6 +335,7 @@ auto Uci::options_handler()
 
         tuneable_int(hist_prune_depth, 1500, 6000),
         tuneable_int(hist_prune, -2000, 2000),
+        tuneable_int(check_ext_single_d, 2, 10),
 
         tuneable_int(eval_scale[PAWN], -200, 200),
         tuneable_int(eval_scale[KNIGHT], 200, 800),

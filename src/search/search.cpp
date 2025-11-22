@@ -1057,6 +1057,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     int seen_moves = 0;
     bool noLegalMoves = true;
 
+    int evasion_count = -1;
+    if (InCheck && depth <= check_ext_single_d)
+    {
+        BasicMoveList evasions;
+        legal_moves(position.board(), evasions);
+        evasion_count = static_cast<int>(evasions.size());
+    }
+
     StagedMoveGenerator gen(position, ss, local, tt_move);
     Move move;
 
@@ -1119,6 +1127,10 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
 
         int extensions = 0;
+        if (InCheck && depth <= check_ext_single_d && evasion_count == 1)
+        {
+            extensions += 1;
+        }
 
         // Step 18: Singular extensions.
         //

@@ -102,6 +102,8 @@ TUNEABLE_CONSTANT int see_max_depth = 7;
 TUNEABLE_CONSTANT int hist_prune_depth = 1598;
 TUNEABLE_CONSTANT int hist_prune = 604;
 
+TUNEABLE_CONSTANT int check_ext_single_d = 6;
+
 TUNEABLE_CONSTANT std::array eval_scale = { 56, 567, 545, 525, 1663 };
 TUNEABLE_CONSTANT int eval_scale_const = 15206;
 
