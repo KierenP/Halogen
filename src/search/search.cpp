@@ -485,6 +485,7 @@ int relative_rank(Side side, Square square)
 
 bool is_passed_pawn(const BoardState& board, Side side, Square square)
 {
+    // Mask pawn's file plus adjacent files; opponents on or ahead of the pawn in these files deny passer status.
     const auto file = enum_to<File>(square);
     uint64_t mask = FileBB[file];
     if (file > FILE_A)
@@ -1155,10 +1156,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
 
         int extensions = 0;
+        int extension_bonus = 0;
         constexpr int min_extension = -2;
-        constexpr int max_extension = 3;
-        auto apply_extension
-            = [&](int amount) { extensions = std::clamp(extensions + amount, min_extension, max_extension); };
+        constexpr int max_extension = 2;
+        // Keep cumulative extensions within a sane window to avoid pathological branching or large slowdowns.
+        auto apply_extension = [&](int amount) { extension_bonus = std::max(extension_bonus, amount); };
 
         // Step 18: Singular extensions.
         //
@@ -1193,12 +1195,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Tactical/critical extensions
         const Side us = enum_to<Side>(ss->moved_piece);
 
+        // Checks: extend to verify forcing lines, and double-check/counter-check get an extra ply.
         const bool gives_check = position.board().checkers != 0;
-        if (gives_check && depth <= check_extension_depth)
+        if (gives_check && depth <= check_extension_depth && (pv_node || (!cut_node && seen_moves <= 4)))
         {
             const int checker_count = std::popcount(position.board().checkers);
             int check_ext = 1;
-            if ((InCheck || checker_count > 1) && depth <= double_check_extension_depth)
+            // Only PV nodes get a double extension for the most forcing cases.
+            if (pv_node && (InCheck || checker_count > 1) && depth <= double_check_extension_depth)
             {
                 check_ext++;
             }
@@ -1207,8 +1211,19 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         const bool moved_pawn = enum_to<PieceType>(ss->moved_piece) == PAWN && !move.is_promotion();
         const int rel_rank = moved_pawn ? relative_rank(us, move.to()) : 0;
-        if (moved_pawn && rel_rank >= static_cast<int>(RANK_6) && depth <= passer_push_extension_depth
-            && is_passed_pawn(position.board(), us, move.to()))
+        // Passed pawn pushes on 6th/7th get extra depth to resolve promotion races and blockades sooner.
+        const bool forward_push = moved_pawn
+            && ((us == WHITE && enum_to<Rank>(move.to()) > enum_to<Rank>(move.from()))
+                || (us == BLACK && enum_to<Rank>(move.to()) < enum_to<Rank>(move.from())));
+
+        Square forward_sq = move.to();
+        const int forward_offset = us == WHITE ? 8 : -8;
+        const int forward_idx = static_cast<int>(forward_sq) + forward_offset;
+        const bool clear_front = forward_idx >= static_cast<int>(SQ_A1) && forward_idx <= static_cast<int>(SQ_H8)
+            && position.board().is_empty(static_cast<Square>(forward_idx));
+
+        if (!cut_node && moved_pawn && forward_push && clear_front && rel_rank >= static_cast<int>(RANK_6)
+            && depth <= passer_push_extension_depth && is_passed_pawn(position.board(), us, move.to()))
         {
             apply_extension(1);
             if (rel_rank >= static_cast<int>(RANK_7) && depth <= passer_push_double_extension_depth)
@@ -1217,22 +1232,23 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        if (move.is_capture() && depth <= recapture_extension_depth)
+        if (pv_node && move.is_capture() && depth <= recapture_extension_depth)
         {
             const Move prev_move = (ss - 1)->move;
-            if (prev_move != Move::Uninitialized && prev_move.to() == move.to())
+            if (prev_move != Move::Uninitialized && prev_move.to() == move.to() && prev_move.is_capture())
             {
                 const auto& parent_board = position.prev_board();
                 const Piece captured = parent_board.get_square_piece(move.to());
+                // Same-square recapture of a valuable piece: extend to stabilize material exchanges.
                 if (captured != N_PIECES && enum_to<Side>(captured) != us
-                    && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value)
+                    && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value) // SEE table values
                 {
                     apply_extension(1);
                 }
             }
         }
 
-        extensions = std::clamp(extensions, min_extension, max_extension);
+        extensions = std::clamp(extensions + extension_bonus, min_extension, max_extension);
 
         // Step 19: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
