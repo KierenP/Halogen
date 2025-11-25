@@ -1123,7 +1123,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Step 16: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!pv_node && !InCheck && depth < fp_max_d
+        if (!root_node && !InCheck && depth < fp_max_d
             && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth).to_int() < alpha && !score.is_loss())
         {
             gen.skip_quiets();
@@ -1348,6 +1348,19 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     {
         const auto bonus = pcm_const + pcm_depth * depth + pcm_quad * depth * depth;
         local.threat_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        local.pawn_hist.add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        if ((ss - 2)->cont_hist_subtable)
+        {
+            (ss - 2)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        }
+        if ((ss - 3)->cont_hist_subtable)
+        {
+            (ss - 3)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        }
+        if ((ss - 5)->cont_hist_subtable)
+        {
+            (ss - 5)->cont_hist_subtable->add(position.prev_board(), ss - 1, (ss - 1)->move, bonus);
+        }
     }
 
     const auto bound = score <= original_alpha ? SearchResultType::UPPER_BOUND

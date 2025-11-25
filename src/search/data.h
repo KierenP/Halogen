@@ -65,8 +65,8 @@ struct SearchStackState
 
 class SearchStack
 {
-    // The search accesses [ss-4, ss+1]
-    constexpr static int min_access = -4;
+    // The search accesses [ss-5, ss+1]
+    constexpr static int min_access = -5;
     constexpr static int max_access = 1;
     constexpr static size_t size = MAX_RECURSION + max_access - min_access;
 

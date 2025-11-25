@@ -79,7 +79,7 @@ endif
 #----------------------------------------------------------------------------------------------------------------------
 
 WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-ignored-attributes
-BASE_FLAGS := $(WARN_FLAGS) -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\"
+BASE_FLAGS := $(WARN_FLAGS) -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\" -ffp-contract=off
 BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
 # Optimization levels
