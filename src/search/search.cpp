@@ -546,11 +546,14 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     ss->singular_exclusion = Move::Uninitialized;
 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (se_score < sbeta - se_triple + se_triple_noisy_margin * is_loud_move && !pv_node)
+    int triple_margin = se_triple + se_triple_noisy_margin * is_loud_move;
+    int double_margin = se_double + se_double_noisy_margin * is_loud_move;
+    
+    if (se_score < sbeta - triple_margin && !pv_node)
     {
         extensions += 3;
     }
-    else if (se_score < sbeta - se_double + se_double_noisy_margin * is_loud_move && !pv_node)
+    else if (se_score < sbeta - double_margin && !pv_node)
     {
         extensions += 2;
     }
