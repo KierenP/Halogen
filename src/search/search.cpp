@@ -534,7 +534,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
 template <bool pv_node>
 std::optional<Score> singular_extensions(GameState& position, SearchStackState* ss, NN::Accumulator* acc,
     SearchLocalState& local, SearchSharedState& shared, int depth, const Score tt_score, const Move tt_move,
-    const Score beta, int& extensions, bool cut_node, bool quiet)
+    const Score beta, int& extensions, bool cut_node, bool is_loud_move)
 {
     Score sbeta = tt_score - (se_sbeta_depth * depth).to_int();
     int sdepth = depth / 2;
@@ -546,11 +546,11 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     ss->singular_exclusion = Move::Uninitialized;
 
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (se_score < sbeta - se_triple + se_triple_noisy_margin * !quiet && !pv_node)
+    if (se_score < sbeta - se_triple + se_triple_noisy_margin * is_loud_move && !pv_node)
     {
         extensions += 3;
     }
-    else if (se_score < sbeta - se_double + se_double_noisy_margin * !quiet && !pv_node)
+    else if (se_score < sbeta - se_double + se_double_noisy_margin * is_loud_move && !pv_node)
     {
         extensions += 2;
     }
@@ -1133,7 +1133,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             && tt_score != SCORE_UNDEFINED)
         {
             if (auto value = singular_extensions<pv_node>(
-                    position, ss, acc, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node, ))
+                    position, ss, acc, local, shared, depth, tt_score, tt_move, beta, extensions, cut_node, is_loud_move))
             {
                 return *value;
             }
