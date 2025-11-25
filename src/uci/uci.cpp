@@ -296,6 +296,12 @@ auto Uci::options_handler()
         tuneable_int(se_triple, 15, 60),
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
+        tuneable_int(check_extension_depth, 2, 8),
+        tuneable_int(double_check_extension_depth, 1, 6),
+        tuneable_int(passer_push_extension_depth, 4, 10),
+        tuneable_int(passer_push_double_extension_depth, 4, 10),
+        tuneable_int(recapture_extension_depth, 2, 8),
+        tuneable_int(recapture_extension_value, 300, 600),
 
         tuneable_fraction(lmr_pv, 700, 2800),
         tuneable_fraction(lmr_cut, 700, 2800),
