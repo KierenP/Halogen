@@ -1195,9 +1195,10 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Tactical/critical extensions
         const Side us = enum_to<Side>(ss->moved_piece);
         const auto& parent_board = position.prev_board();
+        const bool unclear_eval = eval != SCORE_UNDEFINED && std::abs(eval.value()) < 160;
         const Score quiet_check_margin(-see_values[PAWN] / 2);
-        const Score passer_push_margin(-see_values[PAWN] / 2);
-        const Score recapture_margin(-recapture_extension_value / 4);
+        const Score passer_push_margin(-see_values[PAWN] / 3);
+        const Score recapture_margin(0);
 
         // CHECKS: Selective check extensions for forcing sequences
         const bool gives_check = position.board().checkers != 0;
@@ -1217,7 +1218,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 }
             }
             // Single checks: PV-only, require the check to be tactically sound and position unclear
-            else if (safe_check && (pv_node || InCheck || depth <= 3))
+            else if (safe_check && pv_node && unclear_eval && depth <= double_check_extension_depth)
+            {
+                apply_extension(1);
+            }
+            else if (safe_check && InCheck && depth <= 3)
             {
                 apply_extension(1);
             }
@@ -1249,14 +1254,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                     apply_extension(1);
                 }
             }
-            else if (pv_node && rel_rank == static_cast<int>(RANK_6))
+            else if (pv_node && rel_rank == static_cast<int>(RANK_6) && unclear_eval)
             {
                 apply_extension(1);
             }
         }
 
         // Recaptures: keep when they stabilize material on the same square
-        if (move.is_capture() && depth <= recapture_extension_depth)
+        if (pv_node && move.is_capture() && depth <= recapture_extension_depth)
         {
             const Move prev_move = (ss - 1)->move;
             const bool same_square_recapture
@@ -1269,7 +1274,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                     && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value;
                 const bool restores_material = see_ge(parent_board, move, recapture_margin);
 
-                if (meaningful_material && restores_material && (pv_node || (!improving && depth >= 3)))
+                if (meaningful_material && restores_material)
                 {
                     apply_extension(1);
                 }

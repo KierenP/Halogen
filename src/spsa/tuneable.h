@@ -66,7 +66,7 @@ TUNEABLE_CONSTANT int check_extension_depth = 7;
 TUNEABLE_CONSTANT int double_check_extension_depth = 5;
 TUNEABLE_CONSTANT int passer_push_extension_depth = 7;
 TUNEABLE_CONSTANT int passer_push_double_extension_depth = 5;
-TUNEABLE_CONSTANT int recapture_extension_depth = 7;
+TUNEABLE_CONSTANT int recapture_extension_depth = 6;
 TUNEABLE_CONSTANT int recapture_extension_value = 400;
 
 TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1429);
