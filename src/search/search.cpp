@@ -1195,9 +1195,9 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Tactical/critical extensions
         const Side us = enum_to<Side>(ss->moved_piece);
         const auto& parent_board = position.prev_board();
-        const bool unclear_eval = eval != SCORE_UNDEFINED && std::abs(eval.value()) < 160;
-        const Score quiet_check_margin(-see_values[PAWN] / 2);
-        const Score passer_push_margin(-see_values[PAWN] / 3);
+        const bool unclear_eval = eval != SCORE_UNDEFINED && std::abs(eval.value()) < 240;
+        const Score quiet_check_margin(0);
+        const Score passer_push_margin(-see_values[PAWN] / 4);
         const Score recapture_margin(0);
 
         // CHECKS: Selective check extensions for forcing sequences
@@ -1212,19 +1212,22 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             if (checker_count > 1 && depth <= double_check_extension_depth)
             {
                 apply_extension(1);
-                if (InCheck && depth <= double_check_extension_depth)
+                if (InCheck && depth <= 3)
                 {
                     apply_extension(1);
                 }
             }
             // Single checks: PV-only, require the check to be tactically sound and position unclear
-            else if (safe_check && pv_node && unclear_eval && depth <= double_check_extension_depth)
+            else if (safe_check && depth <= check_extension_depth)
             {
-                apply_extension(1);
-            }
-            else if (safe_check && InCheck && depth <= 3)
-            {
-                apply_extension(1);
+                if (InCheck && depth <= 3)
+                {
+                    apply_extension(1);
+                }
+                else if (pv_node && unclear_eval && depth <= check_extension_depth - 1)
+                {
+                    apply_extension(1);
+                }
             }
         }
 
@@ -1241,7 +1244,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             && position.board().is_empty(static_cast<Square>(forward_idx));
         const bool passed_pawn_push
             = moved_pawn && forward_push && clear_front && is_passed_pawn(position.board(), us, move.to());
-        const bool safe_push = passed_pawn_push ? see_ge(parent_board, move, passer_push_margin) : false;
+        const bool safe_push = passed_pawn_push && see_ge(parent_board, move, passer_push_margin);
 
         // Passed pawn pushes: prefer advanced, safe runners and reward PV races
         if (safe_push && depth <= passer_push_extension_depth)
@@ -1249,7 +1252,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             if (rel_rank >= static_cast<int>(RANK_7))
             {
                 apply_extension(1);
-                if (pv_node && depth <= passer_push_double_extension_depth)
+                if (pv_node && depth <= passer_push_double_extension_depth && unclear_eval)
                 {
                     apply_extension(1);
                 }
@@ -1261,7 +1264,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
 
         // Recaptures: keep when they stabilize material on the same square
-        if (pv_node && move.is_capture() && depth <= recapture_extension_depth)
+        if (move.is_capture() && depth <= recapture_extension_depth)
         {
             const Move prev_move = (ss - 1)->move;
             const bool same_square_recapture
@@ -1274,7 +1277,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                     && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value;
                 const bool restores_material = see_ge(parent_board, move, recapture_margin);
 
-                if (meaningful_material && restores_material)
+                if (meaningful_material && restores_material && (pv_node || (!improving && depth >= 3)))
                 {
                     apply_extension(1);
                 }
