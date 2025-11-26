@@ -1194,26 +1194,30 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         // Tactical/critical extensions
         const Side us = enum_to<Side>(ss->moved_piece);
+        const auto& parent_board = position.prev_board();
+        const Score quiet_check_margin(-see_values[PAWN] / 2);
+        const Score passer_push_margin(-see_values[PAWN] / 2);
+        const Score recapture_margin(-recapture_extension_value / 4);
 
-        // Checks: extend more aggressively for forcing lines
-        // Double/counter-checks are almost always forced, single checks in PV nodes get extension too
+        // CHECKS: Selective check extensions for forcing sequences
         const bool gives_check = position.board().checkers != 0;
         if (gives_check && depth <= check_extension_depth)
         {
             const int checker_count = std::popcount(position.board().checkers);
-            
-            // Double checks: almost always critical, extend in all node types
+            const bool quiet_check = !move.is_capture() && !move.is_promotion();
+            const bool safe_check = quiet_check ? see_ge(parent_board, move, quiet_check_margin) : true;
+
+            // Double checks: extend but keep depth bounded and reward counter-checks
             if (checker_count > 1 && depth <= double_check_extension_depth)
             {
                 apply_extension(1);
-                // Counter-checks in checked positions get extra priority
-                if (InCheck && depth <= 4)
+                if (InCheck && depth <= double_check_extension_depth)
                 {
                     apply_extension(1);
                 }
             }
-            // Single checks: extend in PV or when we're already in check (responding to threat)
-            else if ((pv_node || InCheck) && depth <= 6)
+            // Single checks: PV-only, require the check to be tactically sound and position unclear
+            else if (safe_check && (pv_node || InCheck || depth <= 3))
             {
                 apply_extension(1);
             }
@@ -1221,7 +1225,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         const bool moved_pawn = enum_to<PieceType>(ss->moved_piece) == PAWN && !move.is_promotion();
         const int rel_rank = moved_pawn ? relative_rank(us, move.to()) : 0;
-        // Passed pawn pushes get extension to handle promotion races and blockades
         const bool forward_push = moved_pawn
             && ((us == WHITE && enum_to<Rank>(move.to()) > enum_to<Rank>(move.from()))
                 || (us == BLACK && enum_to<Rank>(move.to()) < enum_to<Rank>(move.from())));
@@ -1231,39 +1234,42 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         const int forward_idx = static_cast<int>(forward_sq) + forward_offset;
         const bool clear_front = forward_idx >= static_cast<int>(SQ_A1) && forward_idx <= static_cast<int>(SQ_H8)
             && position.board().is_empty(static_cast<Square>(forward_idx));
+        const bool passed_pawn_push
+            = moved_pawn && forward_push && clear_front && is_passed_pawn(position.board(), us, move.to());
+        const bool safe_push = passed_pawn_push ? see_ge(parent_board, move, passer_push_margin) : false;
 
-        // Rank 7 passed pawns: highest priority for extension (promotion race is critical)
-        if (moved_pawn && forward_push && clear_front && rel_rank >= static_cast<int>(RANK_7)
-            && depth <= passer_push_double_extension_depth && is_passed_pawn(position.board(), us, move.to()))
+        // Passed pawn pushes: prefer advanced, safe runners and reward PV races
+        if (safe_push && depth <= passer_push_extension_depth)
         {
-            apply_extension(1);
-            // Double extension for rank 7 in PV when not too deep
-            if (pv_node && depth <= 4)
+            if (rel_rank >= static_cast<int>(RANK_7))
+            {
+                apply_extension(1);
+                if (pv_node && depth <= passer_push_double_extension_depth)
+                {
+                    apply_extension(1);
+                }
+            }
+            else if (pv_node && rel_rank == static_cast<int>(RANK_6))
             {
                 apply_extension(1);
             }
         }
-        // Rank 6 passed pawns: also important for reaching promotion
-        else if (moved_pawn && forward_push && clear_front && rel_rank >= static_cast<int>(RANK_6)
-            && rel_rank < static_cast<int>(RANK_7) && depth <= passer_push_extension_depth
-            && is_passed_pawn(position.board(), us, move.to()))
-        {
-            apply_extension(1);
-        }
 
-        // Recaptures: extend when stabilizing material exchange on the same square
+        // Recaptures: keep when they stabilize material on the same square
         if (move.is_capture() && depth <= recapture_extension_depth)
         {
             const Move prev_move = (ss - 1)->move;
-            if (prev_move != Move::Uninitialized && prev_move.to() == move.to() && prev_move.is_capture())
+            const bool same_square_recapture
+                = prev_move != Move::Uninitialized && prev_move.to() == move.to() && prev_move.is_capture();
+
+            if (same_square_recapture)
             {
-                const auto& parent_board = position.prev_board();
                 const Piece captured = parent_board.get_square_piece(move.to());
-                // Same-square recapture of valuable piece: extend to resolve tactics
-                // Include in PV but also in interesting non-PV positions
-                if (captured != N_PIECES && enum_to<Side>(captured) != us
-                    && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value
-                    && (pv_node || !improving))
+                const bool meaningful_material = captured != N_PIECES && enum_to<Side>(captured) != us
+                    && see_values[enum_to<PieceType>(captured)] >= recapture_extension_value;
+                const bool restores_material = see_ge(parent_board, move, recapture_margin);
+
+                if (meaningful_material && restores_material && (pv_node || (!improving && depth >= 3)))
                 {
                     apply_extension(1);
                 }
