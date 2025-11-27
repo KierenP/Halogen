@@ -53,7 +53,7 @@ TUNEABLE_CONSTANT auto nmp_const = Fraction<64>::from_raw(381);
 TUNEABLE_CONSTANT auto nmp_depth = Fraction<4096>::from_raw(579);
 TUNEABLE_CONSTANT auto nmp_score = Fraction<16384>::from_raw(69);
 TUNEABLE_CONSTANT auto nmp_score_max = Fraction<64>::from_raw(330);
-TUNEABLE_CONSTANT int  nmp_beta_constant_margin = 30;
+TUNEABLE_CONSTANT int nmp_beta_constant_margin = 30;
 
 TUNEABLE_CONSTANT int iid_no_tt_depth = 1;
 TUNEABLE_CONSTANT int iid_no_move_depth = 6;
