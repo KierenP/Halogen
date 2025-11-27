@@ -994,7 +994,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
     // fail high assuming there is at least one move in the current position that would allow us to improve. This
     // heruistic fails in zugzwang positions, so we have a verification search.
     if (cut_node && !InCheck && ss->singular_exclusion == Move::Uninitialized && (ss - 1)->move != Move::Uninitialized
-        && distance_from_root >= ss->nmp_verification_depth && eval > beta
+        && distance_from_root >= ss->nmp_verification_depth && eval > beta + nmp_beta_constant_margin
         && !(tt_entry && tt_cutoff == SearchResultType::UPPER_BOUND && tt_score < beta))
     {
         if (auto value = null_move_pruning(position, ss, acc, local, shared, distance_from_root, depth, eval, beta))
