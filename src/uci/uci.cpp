@@ -287,6 +287,7 @@ auto Uci::options_handler()
         tuneable_fraction(nmp_depth, 256, 1024),
         tuneable_fraction(nmp_score, 32, 128),
         tuneable_fraction(nmp_score_max, 200, 800),
+        tuneable_int(nmp_beta_constant_margin, 10, 240),
 
         tuneable_int(iid_no_tt_depth, 1, 10),
         tuneable_int(iid_no_move_depth, 1, 10),
