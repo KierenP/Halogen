@@ -298,6 +298,8 @@ auto Uci::options_handler()
         tuneable_int(se_min_depth, 3, 12),
         tuneable_int(se_tt_depth, 0, 10),
 
+        tuneable_int(check_ext_max_depth, 10, 30),
+
         tuneable_fraction(lmr_pv, 700, 2800),
         tuneable_fraction(lmr_cut, 700, 2800),
         tuneable_fraction(lmr_improving, 500, 2000),

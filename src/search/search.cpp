@@ -929,6 +929,15 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         depth++;
     }
 
+    // Step 8.5: Check extensions
+    //
+    // When in check, we extend the search by one ply to ensure we properly evaluate all escape moves. This is
+    // important because check positions are often tactically critical and require deeper analysis.
+    if (!root_node && InCheck && ss->singular_exclusion == Move::Uninitialized && depth <= check_ext_max_depth)
+    {
+        depth++;
+    }
+
     // Step 9: Razoring
     //
     // At shallow depths, if the static eval is hopeless relative to alpha we run a verification q-search or,

@@ -64,6 +64,8 @@ TUNEABLE_CONSTANT int se_triple = 31;
 TUNEABLE_CONSTANT int se_min_depth = 6;
 TUNEABLE_CONSTANT int se_tt_depth = 5;
 
+TUNEABLE_CONSTANT int check_ext_max_depth = 20;
+
 TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1429);
 TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1820);
 TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(807);
