@@ -58,6 +58,38 @@ template <SearchType search_type>
 Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, SearchLocalState& local,
     SearchSharedState& shared, Score alpha, Score beta);
 
+int compute_check_extension(const GameState& position, int depth)
+{
+    const auto& board = position.board();
+
+    if (!board.checkers || depth > check_ext_max_depth)
+    {
+        return 0;
+    }
+
+    const int checker_count = std::popcount(board.checkers);
+    if (checker_count > 1)
+    {
+        return 2;
+    }
+
+    BasicMoveList evasions;
+    legal_moves(board, evasions);
+    const int evasion_count = static_cast<int>(evasions.size());
+
+    if (evasion_count == 1)
+    {
+        return 2;
+    }
+
+    if (depth <= check_ext_shallow_depth || evasion_count <= check_ext_few_evasions)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 void launch_worker_search(GameState& position, SearchLocalState& local, SearchSharedState& shared)
 {
     iterative_deepening(position, local, shared);
@@ -931,11 +963,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
     // Step 8.5: Check extensions
     //
-    // When in check, we extend the search by one ply to ensure we properly evaluate all escape moves. This is
-    // important because check positions are often tactically critical and require deeper analysis.
-    if (!root_node && InCheck && ss->singular_exclusion == Move::Uninitialized && depth <= check_ext_max_depth)
+    // Extend in-check nodes based on how constrained the position is. Forced or double checks get a bigger
+    // extension, while noisier check positions avoid wasting extra plies.
+    if (!root_node && InCheck && ss->singular_exclusion == Move::Uninitialized)
     {
-        depth++;
+        depth += compute_check_extension(position, depth);
     }
 
     // Step 9: Razoring
