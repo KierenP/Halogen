@@ -222,9 +222,8 @@ jobs:
       run: |
         Move-Item -Path "${{ github.workspace }}\build\Halogen${{ matrix.extension }}" -Destination "${{ github.workspace }}\Halogen-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.extension }}"
 
-    # Verification - skip for avx512, legacy, and sse4
-    # legacy and sse4 skipped due to non-deterministic bench due to floats
-    - if: runner.os == 'Linux' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'legacy' && matrix.arch != 'sse4'
+    # runners don't support avx512 so we can't run the verification step for those builds
+    - if: runner.os == 'Linux' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
       name: Verify (Linux)
       run: |
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
@@ -235,7 +234,7 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: runner.os == 'macOS' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'legacy' && matrix.arch != 'sse4'
+    - if: runner.os == 'macOS' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
       name: Verify (macOS)
       run: |
         commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
@@ -246,7 +245,7 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'legacy' && matrix.arch != 'sse4'
+    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
       name: Verify (Windows)
       shell: pwsh
       run: |

@@ -196,7 +196,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         }
 
         // 127 to match the FT_activation adjustment
-        float float_output = (float)int_output / float(127 * L1_SCALE);
+        float float_output = (float)int_output * float(1.f / (127 * L1_SCALE));
         output[i] = std::clamp(float_output, 0.f, 1.f);
         output[i + L1_SIZE] = std::clamp(float_output * float_output, 0.f, 1.f);
     }
