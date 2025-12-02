@@ -1216,6 +1216,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
+    if (score >= beta && !score.is_decisive() && !beta.is_decisive())
+    {
+        score = (score.value() * depth + beta.value()) / (depth + 1);
+    }
+
     score = std::clamp(score, min_score, max_score);
 
     // Return early when in a singular extension root search
