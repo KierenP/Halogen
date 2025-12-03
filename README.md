@@ -31,7 +31,7 @@ To build Halogen yourself, simply use the included makefile in the `src` directo
 > make
 ```
 
-Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-13 and clang-16 or newer
+Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-11 and clang-16 or newer
 
 | Platform          | Build |
 |-------------------|-------|
