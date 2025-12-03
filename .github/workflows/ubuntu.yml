@@ -20,13 +20,11 @@ jobs:
         include:
           # x86_64 builds
           - os: ubuntu-latest
-            config: { compiler: g++-13, packages: g++-13, profdata: NA }
+            config: { compiler: g++-11, packages: g++-11, profdata: NA }
+            config: { compiler: clang++-15, packages: "clang-15 llvm-15", profdata: llvm-profdata-15 }
           # ARM64 builds
           - os: ubuntu-24.04-arm
-            config: { compiler: g++-13, packages: g++-13, profdata: NA }
-          # TODO: fix source of non-determinism with clang builds
-          # - os: ubuntu-latest
-          #   config: { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 }
+            config: { compiler: g++-11, packages: g++-11, profdata: NA }
 
     steps:
       - uses: actions/checkout@v4.1.1

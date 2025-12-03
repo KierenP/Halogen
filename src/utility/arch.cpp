@@ -1,5 +1,5 @@
 #include "arch.h"
-#include <format>
+#include <sstream>
 #include <string_view>
 
 constexpr std::string_view get_platform()
@@ -83,5 +83,6 @@ std::string fmt_version_platform_arch(std::string_view version)
 {
     static constexpr auto platform = get_platform();
     static constexpr auto arch = get_arch();
-    return std::format("Halogen {} {} {}", version, platform, arch);
+    // std::format requires gcc 13+
+    return (std::stringstream() << "Halogen " << version << " " << platform << " " << arch).str();
 }
