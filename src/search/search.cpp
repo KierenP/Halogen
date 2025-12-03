@@ -1216,7 +1216,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    if (score >= beta && !score.is_decisive() && !beta.is_decisive())
+    if (!root_node && score >= beta && !score.is_decisive() && !beta.is_decisive())
     {
         score = (score.value() * depth + beta.value()) / (depth + 1);
     }
