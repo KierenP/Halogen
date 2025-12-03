@@ -19,10 +19,10 @@ jobs:
       matrix:
         include:
           # x86_64 builds
-          - { os: ubuntu-latest, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
-          - { os: ubuntu-latest, config: { compiler: clang++-15, packages: "clang-15 llvm-15", profdata: llvm-profdata-15 } }
+          - { os: ubuntu-22.04, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
+          - { os: ubuntu-22.04, config: { compiler: clang++-15, packages: "clang-15 llvm-15", profdata: llvm-profdata-15 } }
           # arm64 builds
-          - { os: ubuntu-24.04-arm, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
+          - { os: ubuntu-22.04-arm, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
 
     steps:
       - uses: actions/checkout@v4.1.1
