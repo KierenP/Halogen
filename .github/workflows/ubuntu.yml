@@ -20,7 +20,7 @@ jobs:
         include:
           # x86_64 builds
           - { os: ubuntu-22.04, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
-          - { os: ubuntu-22.04, config: { compiler: clang++-15, packages: "clang-15 llvm-15", profdata: llvm-profdata-15 } }
+          - { os: ubuntu-22.04, config: { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 } }
           # arm64 builds
           - { os: ubuntu-22.04-arm, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
 
