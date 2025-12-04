@@ -245,7 +245,7 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512'
+    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.runner_arch != 'sse4'
       name: Verify (Windows)
       shell: pwsh
       run: |
