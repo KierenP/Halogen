@@ -587,11 +587,6 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 template <bool pv_node>
 int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud)
 {
-    if (seen_moves == 1)
-    {
-        return 0;
-    }
-
     auto r = LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)];
 
     if constexpr (pv_node)
@@ -681,7 +676,7 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
 
-    if (reductions > 0)
+    if (seen_moves > 1)
     {
         ss->reduction = reductions;
         search_score = -search<SearchType::ZW>(
@@ -699,7 +694,7 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
     }
 
     // If the reduced depth search was skipped, we do a full depth zero width search
-    else if (!pv_node || seen_moves > 1)
+    else if (!pv_node)
     {
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
