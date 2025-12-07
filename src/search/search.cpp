@@ -696,7 +696,7 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
     }
 
     // If the reduced depth search was skipped, we do a full depth zero width search
-    else if (!pv_node)
+    else if (!pv_node || seen_moves > 1)
     {
         search_score = -search<SearchType::ZW>(
             position, ss + 1, acc + 1, local, shared, new_depth, -(alpha + 1), -alpha, !cut_node);
