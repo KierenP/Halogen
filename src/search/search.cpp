@@ -676,11 +676,13 @@ Score search_move(GameState& position, SearchStackState* ss, NN::Accumulator* ac
     const int new_depth = depth + extensions - 1;
     Score search_score = 0;
 
-    if (seen_moves > 1)
+    if (depth >= 2 && seen_moves > 1)
     {
+        const auto lmr_depth = std::max(1, depth + extensions - 1 - reductions);
+
         ss->reduction = reductions;
-        search_score = -search<SearchType::ZW>(
-            position, ss + 1, acc + 1, local, shared, new_depth - reductions, -(alpha + 1), -alpha, true);
+        search_score
+            = -search<SearchType::ZW>(position, ss + 1, acc + 1, local, shared, lmr_depth, -(alpha + 1), -alpha, true);
         ss->reduction = 0;
 
         if (search_score > alpha)
