@@ -116,3 +116,32 @@ Score PieceMoveCorrHistory::get_correction_score(const BoardState& board, const 
 {
     return *get(board, ss) / eval_scale();
 }
+
+void RandomSliceHistory::add(const BoardState& board, int depth, int eval_diff)
+{
+    const auto& stm = board.stm;
+    const uint64_t key = board.random_slice_key;
+
+    // Update all 4 slices
+    for (int i = 0; i < 4; i++)
+    {
+        auto* entry = &table[stm][i][(key >> (i * 16)) & 0xFFFF];
+
+        int change = std::clamp(
+            eval_diff * depth * scale / 64, -correction_max * eval_scale() / 4, correction_max * eval_scale() / 4);
+
+        *entry += change - *entry * abs(change) / (correction_max * eval_scale());
+    }
+}
+
+Score RandomSliceHistory::get_correction_score(const BoardState& board) const
+{
+    const auto& stm = board.stm;
+    const uint64_t key = board.random_slice_key;
+
+    int sum = 0;
+    for (int i = 0; i < 4; i++)
+        sum += table[stm][i][(key >> (i * 16)) & 0xFFFF];
+
+    return sum / eval_scale();
+}

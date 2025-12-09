@@ -10,6 +10,7 @@
 #include <cassert>
 #include <charconv>
 #include <cstddef>
+#include <cstdlib>
 #include <iostream>
 
 BoardState::BoardState()
@@ -127,6 +128,7 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
 
     recalculate_side_bb();
     key = Zobrist::key(*this);
+    random_slice_key = RandomSliceHash::key(*this);
     pawn_key = Zobrist::pawn_key(*this);
     non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
     non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
@@ -337,6 +339,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(piece, move.from());
         key ^= Zobrist::piece_square(piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.to());
         if (enum_to<PieceType>(piece) == PAWN)
         {
             pawn_key ^= Zobrist::piece_square(piece, move.from());
@@ -379,6 +383,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(piece, move.from());
         key ^= Zobrist::piece_square(piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.to());
         pawn_key ^= Zobrist::piece_square(piece, move.from());
         pawn_key ^= Zobrist::piece_square(piece, move.to());
 
@@ -400,6 +406,10 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(KING, stm), king_start);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(KING, stm), king_end);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(ROOK, stm), rook_start);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(ROOK, stm), rook_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
@@ -425,6 +435,10 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(KING, stm), king_start);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(KING, stm), king_end);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(ROOK, stm), rook_start);
+        random_slice_key ^= RandomSliceHash::piece_square(get_piece(ROOK, stm), rook_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
@@ -445,6 +459,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(piece, move.from());
         key ^= Zobrist::piece_square(piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.to());
         if (enum_to<PieceType>(piece) == PAWN)
         {
             pawn_key ^= Zobrist::piece_square(piece, move.from());
@@ -456,6 +472,7 @@ void BoardState::apply_move(Move move)
             non_pawn_key[stm] ^= Zobrist::piece_square(piece, move.to());
         }
         key ^= Zobrist::piece_square(cap_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, move.to());
         if (enum_to<PieceType>(cap_piece) == PAWN)
         {
             pawn_key ^= Zobrist::piece_square(cap_piece, move.to());
@@ -480,6 +497,9 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(cap_piece, ep_cap_sq);
         key ^= Zobrist::piece_square(piece, move.from());
         key ^= Zobrist::piece_square(piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, ep_cap_sq);
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(piece, move.to());
 
         pawn_key ^= Zobrist::piece_square(cap_piece, ep_cap_sq);
         pawn_key ^= Zobrist::piece_square(piece, move.from());
@@ -497,6 +517,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
 
@@ -512,6 +534,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
 
@@ -527,6 +551,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         // major_key ^= Zobrist::piece_square(promo_piece, move.to());
@@ -543,6 +569,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         // major_key ^= Zobrist::piece_square(promo_piece, move.to());
@@ -561,6 +589,8 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
@@ -580,9 +610,12 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
 
         break;
@@ -599,9 +632,12 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
 
         break;
@@ -618,9 +654,12 @@ void BoardState::apply_move(Move move)
 
         key ^= Zobrist::piece_square(pawn_piece, move.from());
         key ^= Zobrist::piece_square(promo_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(pawn_piece, move.from());
+        random_slice_key ^= RandomSliceHash::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
 
         break;
@@ -641,6 +680,7 @@ void BoardState::apply_move(Move move)
     // std::cout << move << std::endl;
 
     assert(key == Zobrist::key(*this));
+    assert(random_slice_key == RandomSliceHash::key(*this));
     assert(pawn_key == Zobrist::pawn_key(*this));
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
@@ -665,6 +705,7 @@ void BoardState::apply_null_move()
     stm = !stm;
 
     assert(key == Zobrist::key(*this));
+    assert(random_slice_key == RandomSliceHash::key(*this));
     assert(pawn_key == Zobrist::pawn_key(*this));
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));

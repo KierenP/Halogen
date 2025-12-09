@@ -21,3 +21,9 @@ uint64_t non_pawn_key(const BoardState& board, Side side);
 
 uint64_t get_fifty_move_adj_key(const BoardState& board);
 }
+
+namespace RandomSliceHash
+{
+uint64_t piece_square(Piece piece, Square square);
+uint64_t key(const BoardState& board);
+}

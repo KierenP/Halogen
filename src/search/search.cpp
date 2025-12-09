@@ -734,6 +734,7 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto eval_corr_history = [&](Score eval)
     {
+        eval += local.random_slice_hist.get_correction_score(position.board());
         eval += local.pawn_corr_hist.get_correction_score(position.board());
         eval += local.non_pawn_corr[WHITE].get_correction_score(position.board(), WHITE);
         eval += local.non_pawn_corr[BLACK].get_correction_score(position.board(), BLACK);
@@ -1257,6 +1258,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
         const auto adj = score.value() - ss->adjusted_eval.value();
+        local.random_slice_hist.add(position.board(), depth, adj);
         local.pawn_corr_hist.add(position.board(), depth, adj);
         local.non_pawn_corr[WHITE].add(position.board(), WHITE, depth, adj);
         local.non_pawn_corr[BLACK].add(position.board(), BLACK, depth, adj);
