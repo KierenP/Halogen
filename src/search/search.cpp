@@ -1256,14 +1256,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
-        const auto adj = score.value() - ss->adjusted_eval.value();
-        local.pawn_corr_hist.add(position.board(), depth, adj);
-        local.non_pawn_corr[WHITE].add(position.board(), WHITE, depth, adj);
-        local.non_pawn_corr[BLACK].add(position.board(), BLACK, depth, adj);
-        if ((ss - 2)->cont_corr_hist_subtable)
-        {
-            (ss - 2)->cont_corr_hist_subtable->add(position.board(), ss, depth, adj);
-        }
     }
 
     // Step 23: Update transposition table
