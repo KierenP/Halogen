@@ -174,6 +174,17 @@ struct ContinuationCorrHistory
     }
 };
 
+// Idea from Winter
+//
+// Random Slice History (RSH):
+// Each piece-square is assigned a 64-bit "Zobrist" value with exactly one non-zero 16-bit slice.
+// The slice is placed randomly in one of the 4 possible 16-bit blocks: [0-15], [16-31], [32-47], or [48-63].
+// XORing all pieces on the board produces a 64-bit board key, which is then split into 4 slices.
+// Each slice indexes its own correction history table, effectively creating 4 overlapping
+// “views” of the board. This preserves locality: similar positions share most slices,
+// allowing corrections to generalize. This scheme is analogous to pawn/non-pawn/minor/major tables,
+// but the partitions are chosen randomly rather than by hand.
+//
 struct RandomSliceHistory
 {
     static constexpr size_t slice_table_size = 65536;
