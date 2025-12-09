@@ -10,10 +10,10 @@
 #include <cstddef>
 #include <cstdint>
 
+SplitMix64 rng(0);
+
 namespace Zobrist
 {
-
-SplitMix64 rng(0);
 
 const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
@@ -159,3 +159,40 @@ uint64_t get_fifty_move_adj_key(const BoardState& board)
 }
 
 } // namespace Zobrist
+
+namespace RandomSliceHash
+{
+const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
+{
+    std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
+
+    for (size_t i = 0; i < table.size(); i++)
+    {
+        auto a = rng.next();
+        auto b = rng.next();
+
+        table[i] = (a & 0xFFFF) << (16 * (b % 4));
+    }
+
+    return table;
+}();
+
+uint64_t piece_square(Piece piece, Square square)
+{
+    return Table[piece * 64 + square];
+}
+
+uint64_t key(const BoardState& board)
+{
+    uint64_t key = 0;
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        uint64_t bitboard = board.get_pieces_bb(static_cast<Piece>(i));
+        while (bitboard != 0)
+        {
+            key ^= piece_square(static_cast<Piece>(i), lsbpop(bitboard));
+        }
+    }
+    return key;
+}
+} // namespace RandomSliceHash

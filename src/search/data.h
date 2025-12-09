@@ -137,6 +137,7 @@ public:
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
     PawnCorrHistory pawn_corr_hist;
+    RandomSliceHistory random_slice_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     ContinuationCorrHistory cont_corr_hist;
     int sel_depth = 0;

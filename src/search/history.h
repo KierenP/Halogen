@@ -173,3 +173,28 @@ struct ContinuationCorrHistory
         memset(table, 0, sizeof(table));
     }
 };
+
+struct RandomSliceHistory
+{
+    static constexpr size_t slice_table_size = 65536;
+    static TUNEABLE_CONSTANT int correction_max = 93;
+    static TUNEABLE_CONSTANT int scale = 82;
+
+    // 2 sides × 4 slices × 65536 entries
+    int16_t table[N_SIDES][4][slice_table_size] = {};
+
+    void add(const BoardState& board, int depth, int eval_diff);
+
+    Score get_correction_score(const BoardState& board) const;
+
+    constexpr void reset()
+    {
+        memset(table, 0, sizeof(table));
+    }
+
+private:
+    static int eval_scale()
+    {
+        return slice_table_size / correction_max;
+    }
+};
