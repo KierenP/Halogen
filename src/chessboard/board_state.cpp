@@ -594,6 +594,7 @@ void BoardState::apply_move(Move move)
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
         key ^= Zobrist::piece_square(cap_piece, move.to());
+        random_slice_key ^= RandomSliceHash::piece_square(cap_piece, move.to());
         non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
 
         break;
