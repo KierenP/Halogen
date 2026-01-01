@@ -612,7 +612,7 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
     r -= (history * lmr_h).rescale<LMR_SCALE>();
 
     r = (r + lmr_offset);
-    return std::max(-pv_node, r.to_int());
+    return std::max(-pv_node * 2, r.to_int());
 }
 
 void UpdatePV(Move move, SearchStackState* ss)
