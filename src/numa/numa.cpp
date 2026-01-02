@@ -1,4 +1,5 @@
 #include "numa.h"
+#include <cstddef>
 
 #ifdef TOURNAMENT_MODE
 #include <cstdlib>
@@ -87,6 +88,9 @@ void numa_free_node(void* ptr, size_t size)
 #else
 
 #include <cstdlib>
+#ifdef _WIN32
+#include <malloc.h>
+#endif
 
 size_t get_numa_node(size_t)
 {
@@ -102,12 +106,12 @@ void bind_thread(size_t) { }
 
 void* numa_alloc_on_node(size_t size, size_t)
 {
-    return std::aligned_alloc(alignof(std::max_align_t), size);
+    return allocate_huge_page<std::byte>(size);
 }
 
 void numa_free_node(void* ptr, size_t)
 {
-    std::free(ptr);
+    deallocate_huge_page(static_cast<std::byte*>(ptr));
 }
 
 #endif
