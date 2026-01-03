@@ -332,7 +332,7 @@ SearchInfoData SearchSharedState::get_best_root_move()
         best_root_move->pv, best_root_move->type);
 }
 
-SharedHistory* SearchSharedState::get_corr_hist(size_t thread_index)
+SharedHistory* SearchSharedState::get_shared_hist(size_t thread_index)
 {
     return shared_hist_->get(thread_index);
 }

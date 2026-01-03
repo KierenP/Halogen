@@ -217,7 +217,7 @@ public:
         const StaticVector<Move, MAX_RECURSION>& pv, SearchResultType type) const;
 
     void report_thread_wants_to_stop();
-    SharedHistory* get_corr_hist(size_t thread_index);
+    SharedHistory* get_shared_hist(size_t thread_index);
 
     bool chess_960 {};
     SearchLimits limits;
