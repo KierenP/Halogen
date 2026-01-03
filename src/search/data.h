@@ -6,6 +6,7 @@
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "network/network.h"
+#include "numa/numa.h"
 #include "search/history.h"
 #include "search/limit/limits.h"
 #include "search/limit/time.h"
@@ -19,6 +20,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <new>
 #include <utility>
@@ -118,7 +120,7 @@ struct RootMove
 struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
 public:
-    SearchLocalState(int thread_id);
+    SearchLocalState(int thread_id, CorrectionHistory* corr_hist);
 
     bool should_skip_root_move(Move move);
     void reset_new_search();
@@ -136,9 +138,7 @@ public:
     ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
-    PawnCorrHistory pawn_corr_hist;
-    std::array<NonPawnCorrHistory, 2> non_pawn_corr;
-    ContinuationCorrHistory cont_corr_hist;
+    CorrectionHistory* corr_hist = nullptr;
     int sel_depth = 0;
     SingleWriterAtomicCounter<int64_t> tb_hits = 0;
     SingleWriterAtomicCounter<int64_t> nodes = 0;
@@ -217,6 +217,7 @@ public:
         const StaticVector<Move, MAX_RECURSION>& pv, SearchResultType type) const;
 
     void report_thread_wants_to_stop();
+    CorrectionHistory* get_corr_hist(size_t thread_index);
 
     bool chess_960 {};
     SearchLimits limits;
@@ -232,4 +233,9 @@ private:
     mutable std::recursive_mutex lock_;
     int multi_pv_setting {};
     int threads_setting {};
+
+    // Idea from Stockfish: sharing correction history between threads has great SMP scaling. We need to avoid sharing
+    // across NUMA nodes though, as the latency penalty is too high.
+    std::unique_ptr<PerNumaAllocation<CorrectionHistory>> corr_hist_
+        = std::make_unique<PerNumaAllocation<CorrectionHistory>>();
 };

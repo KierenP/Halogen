@@ -2,7 +2,6 @@
 
 #include "bitboard/define.h"
 #include "movegen/move.h"
-#include "search/data.h"
 #include "search/score.h"
 #include "utility/static_vector.h"
 
@@ -11,6 +10,7 @@
 #include <string_view>
 
 class GameState;
+struct SearchLocalState;
 
 class RootProbeResult
 {

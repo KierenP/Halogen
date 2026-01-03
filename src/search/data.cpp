@@ -48,8 +48,9 @@ NN::Accumulator* AccumulatorStack::root()
     return &acc_stack_[0];
 }
 
-SearchLocalState::SearchLocalState(int thread_id_)
+SearchLocalState::SearchLocalState(int thread_id_, CorrectionHistory* corr_hist_)
     : thread_id(thread_id_)
+    , corr_hist(corr_hist_)
 {
 }
 
@@ -193,6 +194,7 @@ void SearchSharedState::reset_new_search()
 void SearchSharedState::reset_new_game()
 {
     transposition_table.clear(get_threads_setting());
+    corr_hist_ = std::make_unique<PerNumaAllocation<CorrectionHistory>>();
     reset_new_search();
 }
 
@@ -328,4 +330,9 @@ SearchInfoData SearchSharedState::get_best_root_move()
 
     return build_search_info(best_root_move->search_depth, best_root_move->sel_depth, best_root_move->score, 1,
         best_root_move->pv, best_root_move->type);
+}
+
+CorrectionHistory* SearchSharedState::get_corr_hist(size_t thread_index)
+{
+    return corr_hist_->get(thread_index);
 }

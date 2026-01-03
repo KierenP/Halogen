@@ -1,10 +1,16 @@
 #include "numa.h"
 
+#include "utility/huge_pages.h"
+#include <cstddef>
+
 #ifdef TOURNAMENT_MODE
 #include <cstdlib>
 #include <iostream>
 #include <numa.h>
 #include <vector>
+
+namespace
+{
 
 std::vector<cpu_set_t> get_cpu_masks_per_numa_node()
 {
@@ -46,14 +52,63 @@ std::vector<cpu_set_t> get_cpu_masks_per_numa_node()
     return node_cpu_masks;
 }
 
-void bind_thread(size_t index)
+const std::vector<cpu_set_t>& get_mapping()
 {
     static auto mapping = get_cpu_masks_per_numa_node();
-    size_t node = index % mapping.size();
+    return mapping;
+}
+
+} // namespace
+
+size_t get_numa_node(size_t thread_index)
+{
+    return thread_index % get_mapping().size();
+}
+
+size_t get_numa_node_count()
+{
+    return get_mapping().size();
+}
+
+void bind_thread(size_t index)
+{
+    size_t node = get_numa_node(index);
     pthread_t handle = pthread_self();
-    pthread_setaffinity_np(handle, sizeof(cpu_set_t), &mapping[node]);
+    pthread_setaffinity_np(handle, sizeof(cpu_set_t), &get_mapping()[node]);
+}
+
+void* numa_alloc_on_node(size_t size, size_t node)
+{
+    return numa_alloc_onnode(size, static_cast<int>(node));
+}
+
+void numa_free_node(void* ptr, size_t size)
+{
+    numa_free(ptr, size);
 }
 
 #else
+
+size_t get_numa_node(size_t)
+{
+    return 0;
+}
+
+size_t get_numa_node_count()
+{
+    return 1;
+}
+
 void bind_thread(size_t) { }
+
+void* numa_alloc_on_node(size_t size, size_t)
+{
+    return allocate_huge_page<std::max_align_t>(size);
+}
+
+void numa_free_node(void* ptr, size_t)
+{
+    deallocate_huge_page(static_cast<std::max_align_t*>(ptr));
+}
+
 #endif

@@ -7,6 +7,7 @@
 #include "utility/fraction.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -171,5 +172,20 @@ struct ContinuationCorrHistory
     constexpr void reset()
     {
         memset(table, 0, sizeof(table));
+    }
+};
+
+struct CorrectionHistory
+{
+    PawnCorrHistory pawn_corr_hist;
+    std::array<NonPawnCorrHistory, 2> non_pawn_corr;
+    ContinuationCorrHistory cont_corr_hist;
+
+    void reset()
+    {
+        pawn_corr_hist.reset();
+        non_pawn_corr[0].reset();
+        non_pawn_corr[1].reset();
+        cont_corr_hist.reset();
     }
 };

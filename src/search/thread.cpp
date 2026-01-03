@@ -22,7 +22,7 @@
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
     : thread_id_(thread_id)
     , shared_state(shared_state_)
-    , local_state(make_unique_huge_page<SearchLocalState>(thread_id))
+    , local_state(make_unique_huge_page<SearchLocalState>(thread_id, shared_state.get_corr_hist(thread_id)))
 {
 }
 
@@ -87,7 +87,7 @@ void SearchThread::reset_new_game(std::latch& latch)
     enqueue_task(
         [this, &latch]()
         {
-            local_state = std::make_unique<SearchLocalState>(thread_id_);
+            local_state = std::make_unique<SearchLocalState>(thread_id_, shared_state.get_corr_hist(thread_id_));
             latch.count_down();
         });
 }
