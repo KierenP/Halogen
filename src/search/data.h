@@ -120,7 +120,7 @@ struct RootMove
 struct alignas(hardware_destructive_interference_size) SearchLocalState
 {
 public:
-    SearchLocalState(int thread_id, CorrectionHistory* corr_hist);
+    SearchLocalState(int thread_id, SharedHistory* corr_hist);
 
     bool should_skip_root_move(Move move);
     void reset_new_search();
@@ -138,7 +138,7 @@ public:
     ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
-    CorrectionHistory* corr_hist = nullptr;
+    SharedHistory* shared_hist = nullptr;
     int sel_depth = 0;
     SingleWriterAtomicCounter<int64_t> tb_hits = 0;
     SingleWriterAtomicCounter<int64_t> nodes = 0;
@@ -217,7 +217,7 @@ public:
         const StaticVector<Move, MAX_RECURSION>& pv, SearchResultType type) const;
 
     void report_thread_wants_to_stop();
-    CorrectionHistory* get_corr_hist(size_t thread_index);
+    SharedHistory* get_shared_hist(size_t thread_index);
 
     bool chess_960 {};
     SearchLimits limits;
@@ -236,6 +236,6 @@ private:
 
     // Idea from Stockfish: sharing correction history between threads has great SMP scaling. We need to avoid sharing
     // across NUMA nodes though, as the latency penalty is too high.
-    std::unique_ptr<PerNumaAllocation<CorrectionHistory>> corr_hist_
-        = std::make_unique<PerNumaAllocation<CorrectionHistory>>();
+    std::unique_ptr<PerNumaAllocation<SharedHistory>> shared_hist_
+        = std::make_unique<PerNumaAllocation<SharedHistory>>();
 };
