@@ -106,12 +106,12 @@ void bind_thread(size_t) { }
 
 void* numa_alloc_on_node(size_t size, size_t)
 {
-    return allocate_huge_page<std::byte>(size);
+    return allocate_huge_page<std::max_align_t>(size);
 }
 
 void numa_free_node(void* ptr, size_t)
 {
-    deallocate_huge_page(static_cast<std::byte*>(ptr));
+    deallocate_huge_page(static_cast<std::max_align_t*>(ptr));
 }
 
 #endif

@@ -2,3 +2,9 @@
 race:search/transposition/table.cpp
 race:probe_tt
 race:get_search_eval
+
+# Same for Correction Histories
+race:PawnCorrHistory
+race:NonPawnCorrHistory
+race:PieceMoveCorrHistory
+race:ContinuationCorrHistory
