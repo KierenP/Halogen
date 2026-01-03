@@ -9,6 +9,7 @@
     { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
     { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
     { include: [ "<__new/interference_size.h>", private, "<new>", public ] },
+    { include: [ "<__cstddef/max_align_t.h>", private, "<cstddef>", public ] },
 
     # Mappings for includes between public headers
     { include: [ "<ios>", public, "<iostream>", public ] },
