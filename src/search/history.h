@@ -33,12 +33,6 @@ struct HistoryTable
         }
         adjust_history(*entry, change);
     }
-
-    constexpr void reset()
-    {
-        auto& table = static_cast<Derived&>(*this).table;
-        memset(table, 0, sizeof(table));
-    }
 };
 
 struct PawnHistory : HistoryTable<PawnHistory>
@@ -83,11 +77,6 @@ struct ContinuationHistory
 {
     static constexpr int cont_hist_depth = 2;
     PieceMoveHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
-
-    constexpr void reset()
-    {
-        memset(table, 0, sizeof(table));
-    }
 };
 
 struct PawnCorrHistory
@@ -104,11 +93,6 @@ struct PawnCorrHistory
 
     void add(const BoardState& board, int depth, int eval_diff);
     Score get_correction_score(const BoardState& board) const;
-
-    constexpr void reset()
-    {
-        memset(table, 0, sizeof(table));
-    }
 
 private:
     static int eval_scale()
@@ -130,11 +114,6 @@ struct NonPawnCorrHistory
     void add(const BoardState& board, Side side, int depth, int eval_diff);
     Score get_correction_score(const BoardState& board, Side side);
 
-    constexpr void reset()
-    {
-        memset(table, 0, sizeof(table));
-    }
-
 private:
     static int eval_scale()
     {
@@ -153,11 +132,6 @@ struct PieceMoveCorrHistory
     void add(const BoardState& board, const SearchStackState* ss, int depth, int eval_diff);
     Score get_correction_score(const BoardState& board, const SearchStackState* ss);
 
-    constexpr void reset()
-    {
-        memset(table, 0, sizeof(table));
-    }
-
 private:
     static int eval_scale()
     {
@@ -168,24 +142,11 @@ private:
 struct ContinuationCorrHistory
 {
     PieceMoveCorrHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
-
-    constexpr void reset()
-    {
-        memset(table, 0, sizeof(table));
-    }
 };
 
-struct CorrectionHistory
+struct SharedHistory
 {
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     ContinuationCorrHistory cont_corr_hist;
-
-    void reset()
-    {
-        pawn_corr_hist.reset();
-        non_pawn_corr[0].reset();
-        non_pawn_corr[1].reset();
-        cont_corr_hist.reset();
-    }
 };

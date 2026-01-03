@@ -736,9 +736,9 @@ std::tuple<Score, Score> get_search_eval(const GameState& position, SearchStackS
 
     auto eval_corr_history = [&](Score eval)
     {
-        eval += local.corr_hist->pawn_corr_hist.get_correction_score(position.board());
-        eval += local.corr_hist->non_pawn_corr[WHITE].get_correction_score(position.board(), WHITE);
-        eval += local.corr_hist->non_pawn_corr[BLACK].get_correction_score(position.board(), BLACK);
+        eval += local.shared_hist->pawn_corr_hist.get_correction_score(position.board());
+        eval += local.shared_hist->non_pawn_corr[WHITE].get_correction_score(position.board(), WHITE);
+        eval += local.shared_hist->non_pawn_corr[BLACK].get_correction_score(position.board(), BLACK);
 
         if ((ss - 2)->cont_corr_hist_subtable)
         {
@@ -1024,7 +1024,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             ss->cont_hist_subtable
                 = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
             ss->cont_corr_hist_subtable
-                = &local.corr_hist->cont_corr_hist
+                = &local.shared_hist->cont_corr_hist
                        .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
             position.apply_move(move);
             shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
@@ -1141,7 +1141,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
-        ss->cont_corr_hist_subtable = &local.corr_hist->cont_corr_hist
+        ss->cont_corr_hist_subtable = &local.shared_hist->cont_corr_hist
                                            .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(
@@ -1260,9 +1260,9 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
     {
         const auto adj = score.value() - ss->adjusted_eval.value();
-        local.corr_hist->pawn_corr_hist.add(position.board(), depth, adj);
-        local.corr_hist->non_pawn_corr[WHITE].add(position.board(), WHITE, depth, adj);
-        local.corr_hist->non_pawn_corr[BLACK].add(position.board(), BLACK, depth, adj);
+        local.shared_hist->pawn_corr_hist.add(position.board(), depth, adj);
+        local.shared_hist->non_pawn_corr[WHITE].add(position.board(), WHITE, depth, adj);
+        local.shared_hist->non_pawn_corr[BLACK].add(position.board(), BLACK, depth, adj);
         if ((ss - 2)->cont_corr_hist_subtable)
         {
             (ss - 2)->cont_corr_hist_subtable->add(position.board(), ss, depth, adj);
@@ -1360,7 +1360,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
             = &local.cont_hist.table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
-        ss->cont_corr_hist_subtable = &local.corr_hist->cont_corr_hist
+        ss->cont_corr_hist_subtable = &local.shared_hist->cont_corr_hist
                                            .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
