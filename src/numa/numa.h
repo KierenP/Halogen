@@ -1,10 +1,7 @@
 #pragma once
 
-#include "utility/huge_pages.h"
-
 #include <cstddef>
-#include <functional>
-#include <memory>
+#include <new>
 #include <vector>
 
 size_t get_numa_node(size_t thread_index);

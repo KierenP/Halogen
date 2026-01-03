@@ -5,6 +5,7 @@
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "movegen/move.h"
+#include "search/data.h"
 #include "third-party/Pyrrhic/tbprobe.h"
 #include "utility/atomic.h"
 

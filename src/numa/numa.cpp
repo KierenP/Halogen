@@ -1,4 +1,6 @@
 #include "numa.h"
+
+#include "utility/huge_pages.h"
 #include <cstddef>
 
 #ifdef TOURNAMENT_MODE
@@ -86,11 +88,6 @@ void numa_free_node(void* ptr, size_t size)
 }
 
 #else
-
-#include <cstdlib>
-#ifdef _WIN32
-#include <malloc.h>
-#endif
 
 size_t get_numa_node(size_t)
 {

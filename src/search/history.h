@@ -7,6 +7,7 @@
 #include "utility/fraction.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
