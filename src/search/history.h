@@ -145,6 +145,9 @@ struct ContinuationCorrHistory
 
 struct SharedHistory
 {
+    PawnHistory pawn_hist;
+    ThreatHistory threat_hist;
+
     PawnCorrHistory pawn_corr_hist;
     std::array<NonPawnCorrHistory, 2> non_pawn_corr;
     ContinuationCorrHistory cont_corr_hist;

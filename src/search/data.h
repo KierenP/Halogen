@@ -134,8 +134,6 @@ public:
 
     int thread_id;
     SearchStack search_stack;
-    PawnHistory pawn_hist;
-    ThreatHistory threat_hist;
     ContinuationHistory cont_hist;
     CaptureHistory capt_hist;
     SharedHistory* shared_hist = nullptr;

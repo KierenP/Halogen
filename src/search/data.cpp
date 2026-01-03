@@ -99,12 +99,12 @@ int SearchLocalState::get_quiet_search_history(const SearchStackState* ss, Move 
 {
     int total = 0;
 
-    if (auto* hist = pawn_hist.get(position.board(), ss, move))
+    if (auto* hist = shared_hist->pawn_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
-    if (auto* hist = threat_hist.get(position.board(), ss, move))
+    if (auto* hist = shared_hist->threat_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
@@ -126,12 +126,12 @@ int SearchLocalState::get_quiet_order_history(const SearchStackState* ss, Move m
 {
     int total = 0;
 
-    if (auto* hist = pawn_hist.get(position.board(), ss, move))
+    if (auto* hist = shared_hist->pawn_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
 
-    if (auto* hist = threat_hist.get(position.board(), ss, move))
+    if (auto* hist = shared_hist->threat_hist.get(position.board(), ss, move))
     {
         total += *hist;
     }
@@ -166,8 +166,8 @@ int SearchLocalState::get_loud_history(const SearchStackState* ss, Move move)
 
 void SearchLocalState::add_quiet_history(const SearchStackState* ss, Move move, Fraction<64> change)
 {
-    pawn_hist.add(position.board(), ss, move, change);
-    threat_hist.add(position.board(), ss, move, change);
+    shared_hist->pawn_hist.add(position.board(), ss, move, change);
+    shared_hist->threat_hist.add(position.board(), ss, move, change);
     if ((ss - 1)->cont_hist_subtable)
         (ss - 1)->cont_hist_subtable->add(position.board(), ss, move, change);
     if ((ss - 2)->cont_hist_subtable)
