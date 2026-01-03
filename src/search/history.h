@@ -10,7 +10,6 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 
 class BoardState;
 struct SearchStackState;
