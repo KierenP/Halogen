@@ -1084,9 +1084,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         // Step 16: Futility pruning
         //
         // Prune quiet moves if we are significantly below alpha. TODO: this implementation is a little strange
-        if (!root_node && !InCheck && depth < fp_max_d
-            && eval + (fp_const + fp_depth * depth + fp_quad * depth * depth).to_int() < alpha && !score.is_loss())
+        const auto futility_value = eval + (fp_const + fp_depth * depth + fp_quad * depth * depth).to_int();
+        if (!root_node && !InCheck && depth < fp_max_d && futility_value < alpha && !score.is_loss())
         {
+            if (!futility_value.is_win() && !score.is_win())
+            {
+                score = std::max(futility_value, score);
+            }
+
             gen.skip_quiets();
             if (gen.get_stage() >= Stage::GIVE_BAD_LOUD)
             {
