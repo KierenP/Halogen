@@ -224,8 +224,8 @@ constexpr bool path_clear(Square from, Square to, uint64_t pieces)
     return (BetweenBB[from][to] & pieces) == 0;
 }
 
-const int MAX_ITERATIVE_DEEPENING = 128;
-const int MAX_RECURSION = 128;
+constexpr int MAX_ITERATIVE_DEEPENING = 128;
+constexpr int MAX_RECURSION = 128;
 inline constexpr size_t MAX_LEGAL_MOVES = 256;
 
 enum class Shift : int8_t
