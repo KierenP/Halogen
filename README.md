@@ -47,7 +47,6 @@ This will build `Halogen-pgo` in the `bin` directory using your native CPU archi
 - **`make sanitize-thread`** - Build with ThreadSanitizer for race condition detection
 - **`make tune`** - Build for parameter tuning
 - **`make tournament`** - Tournament mode build with NUMA support
-- **`make release-all`** - Build binaries for all supported architectures
 
 ### Architecture Options
 
