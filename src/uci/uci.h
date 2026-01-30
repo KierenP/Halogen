@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iosfwd>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,6 +18,8 @@ struct SearchInfoData;
 
 namespace UCI
 {
+
+extern std::mutex output_mutex;
 
 class UciOutput;
 

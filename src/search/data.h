@@ -203,7 +203,7 @@ public:
     void reset_new_game();
     void set_multi_pv(int multi_pv);
     void set_threads(int threads);
-    void set_hash(int hash_size_mb);
+    void set_hash(int hash_size_mb, bool print = false);
     SearchInfoData get_best_root_move();
 
     // Below functions are thread-safe and non-blocking
