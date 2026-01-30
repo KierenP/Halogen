@@ -79,7 +79,7 @@ endif
 #----------------------------------------------------------------------------------------------------------------------
 
 WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-ignored-attributes
-BASE_FLAGS := $(WARN_FLAGS) -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\" -ffp-contract=off
+BASE_FLAGS := $(WARN_FLAGS) -pthread -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\" -ffp-contract=off
 BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
 # Optimization levels
@@ -91,11 +91,7 @@ OPT_RELEASE := -O3 -DNDEBUG
 # Linker Flags
 #----------------------------------------------------------------------------------------------------------------------
 
-ifeq ($(DETECTED_OS),Darwin)
-    BASE_LDFLAGS := -lpthread -lm
-else
-    BASE_LDFLAGS := -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-endif
+BASE_LDFLAGS := -pthread -lm
 BASE_LDFLAGS += $(EXTRA_LDFLAGS)
 
 ifeq ($(DETECTED_OS),Windows)
