@@ -91,11 +91,7 @@ OPT_RELEASE := -O3 -DNDEBUG
 # Linker Flags
 #----------------------------------------------------------------------------------------------------------------------
 
-ifeq ($(DETECTED_OS),Darwin)
-    BASE_LDFLAGS := -lpthread -lm
-else
-    BASE_LDFLAGS := -Wl,--whole-archive -lpthread -Wl,--no-whole-archive -lm
-endif
+BASE_LDFLAGS := -pthread -lm
 BASE_LDFLAGS += $(EXTRA_LDFLAGS)
 
 ifeq ($(DETECTED_OS),Windows)
