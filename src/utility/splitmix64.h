@@ -39,12 +39,12 @@ struct SplitMix64
 {
     uint64_t state;
 
-    SplitMix64(uint64_t seed)
+    SplitMix64(uint64_t seed) noexcept
         : state(seed)
     {
     }
 
-    uint64_t next()
+    uint64_t next() noexcept
     {
         uint64_t z = (state += 0x9E3779B97F4A7C15ULL);
         z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;

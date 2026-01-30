@@ -26,23 +26,23 @@ public:
     Table(Table&&) = delete;
     Table& operator=(Table&&) = delete;
 
-    [[nodiscard]] int get_hashfull(int halfmove) const;
+    [[nodiscard]] int get_hashfull(int halfmove) const noexcept;
 
-    void clear(int thread_count);
+    void clear(int thread_count) noexcept;
 
     // will wipe the table and reconstruct a new empty table with a set size. units in MB!
-    void set_size(uint64_t MB, int thread_count);
+    void set_size(uint64_t MB, int thread_count) noexcept;
 
     void add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount, int distanceFromRoot,
-        SearchResultType Cutoff, Score static_eval);
+        SearchResultType Cutoff, Score static_eval) noexcept;
 
-    void prefetch(uint64_t key) const;
+    void prefetch(uint64_t key) const noexcept;
 
     // find a matching entry at any depth
-    Entry* get_entry(uint64_t key, int distanceFromRoot, int half_turn_count);
+    Entry* get_entry(uint64_t key, int distanceFromRoot, int half_turn_count) noexcept;
 
 private:
-    Bucket& get_bucket(uint64_t key) const;
+    Bucket& get_bucket(uint64_t key) const noexcept;
 
     unique_ptr_huge_page<Bucket[]> table;
     size_t size_ = 0;

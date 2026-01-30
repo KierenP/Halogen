@@ -10,5 +10,5 @@ class Network;
 struct Accumulator;
 }
 
-bool insufficient_material(const BoardState& board);
-Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net);
+bool insufficient_material(const BoardState& board) noexcept;
+Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net) noexcept;

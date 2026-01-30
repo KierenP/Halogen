@@ -16,16 +16,16 @@ namespace Cuckoo
 inline std::array<uint64_t, 8192> table;
 inline std::array<Move, 8192> move_table;
 
-inline uint16_t H1(uint64_t h)
+inline uint16_t H1(uint64_t h) noexcept
 {
     return (h >> 32) & 0x1fff;
 };
 
-inline uint16_t H2(uint64_t h)
+inline uint16_t H2(uint64_t h) noexcept
 {
     return (h >> 48) & 0x1fff;
 };
 
-void init();
+void init() noexcept;
 
 }

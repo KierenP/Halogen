@@ -12,9 +12,9 @@ enum class SearchResultType : uint8_t;
 namespace Transposition
 {
 
-Score convert_to_tt_score(Score val, int distance_from_root);
-Score convert_from_tt_score(Score val, int distance_from_root);
-int8_t get_generation(int currentTurnCount, int distanceFromRoot);
+Score convert_to_tt_score(Score val, int distance_from_root) noexcept;
+Score convert_from_tt_score(Score val, int distance_from_root) noexcept;
+int8_t get_generation(int currentTurnCount, int distanceFromRoot) noexcept;
 
 constexpr static int GENERATION_MAX = 1 << 6;
 

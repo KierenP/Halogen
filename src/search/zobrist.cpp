@@ -27,17 +27,17 @@ const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
     return table;
 }();
 
-uint64_t piece_square(Piece piece, Square square)
+uint64_t piece_square(Piece piece, Square square) noexcept
 {
     return Table[piece * 64 + square];
 }
 
-uint64_t stm()
+uint64_t stm() noexcept
 {
     return Table[12 * 64];
 }
 
-uint64_t castle(Square square)
+uint64_t castle(Square square) noexcept
 {
     assert(enum_to<Rank>(square) == RANK_1 || enum_to<Rank>(square) == RANK_8);
 
@@ -47,12 +47,12 @@ uint64_t castle(Square square)
         return Table[12 * 64 + 9 + enum_to<File>(square)];
 }
 
-uint64_t en_passant(File file)
+uint64_t en_passant(File file) noexcept
 {
     return Table[12 * 64 + 17 + file];
 }
 
-uint64_t key(const BoardState& board)
+uint64_t key(const BoardState& board) noexcept
 {
     uint64_t key = 0;
 
@@ -84,7 +84,7 @@ uint64_t key(const BoardState& board)
     return key;
 }
 
-uint64_t pawn_key(const BoardState& board)
+uint64_t pawn_key(const BoardState& board) noexcept
 {
     uint64_t key = 0;
 
@@ -103,7 +103,7 @@ uint64_t pawn_key(const BoardState& board)
     return key;
 }
 
-uint64_t non_pawn_key(const BoardState& board, Side side)
+uint64_t non_pawn_key(const BoardState& board, Side side) noexcept
 {
     uint64_t key = 0;
 
@@ -152,7 +152,7 @@ const auto fifty_move_hash = []()
     return buckets;
 }();
 
-uint64_t get_fifty_move_adj_key(const BoardState& board)
+uint64_t get_fifty_move_adj_key(const BoardState& board) noexcept
 {
     assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
     return board.key ^ fifty_move_hash[board.fifty_move_count];

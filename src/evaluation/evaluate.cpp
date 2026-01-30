@@ -11,7 +11,7 @@
 #include <bit>
 #include <cassert>
 
-Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
+Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net) noexcept
 {
     // apply lazy updates to accumulator stack
     //
@@ -42,7 +42,7 @@ Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
     return std::clamp<Score>(eval, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
-bool insufficient_material(const BoardState& board)
+bool insufficient_material(const BoardState& board) noexcept
 {
     if ((board.get_pieces_bb(WHITE_PAWN)) != 0)
         return false;

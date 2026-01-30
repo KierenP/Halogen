@@ -37,7 +37,7 @@ uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Pi
     return 0;
 }
 
-bool see_ge(const BoardState& board, Move move, Score threshold)
+bool see_ge(const BoardState& board, Move move, Score threshold) noexcept
 {
     if (move.is_castle())
     {

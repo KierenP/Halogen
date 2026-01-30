@@ -20,7 +20,7 @@ namespace Transposition
 {
 
 void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount,
-    int distanceFromRoot, SearchResultType Cutoff, Score static_eval)
+    int distanceFromRoot, SearchResultType Cutoff, Score static_eval) noexcept
 {
     score = convert_to_tt_score(score, distanceFromRoot);
     auto key16 = uint16_t(ZobristKey);
@@ -74,7 +74,7 @@ void Table::add_entry(const Move& best, uint64_t ZobristKey, Score score, int De
     write_to_entry(bucket[std::distance(scores.begin(), std::min_element(scores.begin(), scores.end()))]);
 }
 
-Entry* Table::get_entry(uint64_t key, int distanceFromRoot, int half_turn_count)
+Entry* Table::get_entry(uint64_t key, int distanceFromRoot, int half_turn_count) noexcept
 {
     auto& bucket = get_bucket(key);
     auto key16 = uint16_t(key);
@@ -93,7 +93,7 @@ Entry* Table::get_entry(uint64_t key, int distanceFromRoot, int half_turn_count)
     return nullptr;
 }
 
-int Table::get_hashfull(int halfmove) const
+int Table::get_hashfull(int halfmove) const noexcept
 {
     int count = 0;
     int8_t current_generation = get_generation(halfmove, 0);
@@ -111,7 +111,7 @@ int Table::get_hashfull(int halfmove) const
     return count;
 }
 
-void Table::clear(int thread_count)
+void Table::clear(int thread_count) noexcept
 {
     // For extremely large hash sizes, we clear the table using multiple threads
 
@@ -134,14 +134,14 @@ void Table::clear(int thread_count)
     }
 }
 
-void Table::set_size(uint64_t MB, int thread_count)
+void Table::set_size(uint64_t MB, int thread_count) noexcept
 {
     size_ = MB * 1024 * 1024 / sizeof(Bucket);
     table = make_unique_for_overwrite_huge_page<Bucket[]>(size_);
     clear(thread_count);
 }
 
-void Table::prefetch(uint64_t key) const
+void Table::prefetch(uint64_t key) const noexcept
 {
     __builtin_prefetch(&get_bucket(key));
 }
@@ -164,7 +164,7 @@ size_t tt_index(uint64_t key, size_t tt_size)
 #endif
 }
 
-Bucket& Table::get_bucket(uint64_t key) const
+Bucket& Table::get_bucket(uint64_t key) const noexcept
 {
     return table[tt_index(key, size_)];
 }
