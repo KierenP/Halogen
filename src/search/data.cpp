@@ -18,6 +18,7 @@
 #include <mutex>
 #include <numeric>
 #include <ranges>
+#include <ratio>
 #include <unordered_map>
 
 namespace
