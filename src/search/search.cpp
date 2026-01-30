@@ -1148,7 +1148,15 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
-        // Step 19: Late move reductions
+        // Step 19: Check extensions
+        //
+        // If the move gives check, extend the search by one ply to better explore forcing sequences
+        if (position.board().checkers)
+        {
+            extensions += check_extension_depth;
+        }
+
+        // Step 20: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
         Score search_score = search_move<pv_node>(
             position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
@@ -1190,14 +1198,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        // Step 20: Update history move tables and check for fail-high
+        // Step 21: Update history move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 21: Handle terminal node conditions
+    // Step 22: Handle terminal node conditions
     if (noLegalMoves)
     {
         if (ss->singular_exclusion != Move::Uninitialized)
@@ -1254,7 +1262,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
 
-    // Step 22: Adjust eval correction history
+    // Step 23: Adjust eval correction history
     if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
@@ -1269,7 +1277,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 23: Update transposition table
+    // Step 24: Update transposition table
     shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
