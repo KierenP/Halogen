@@ -4,6 +4,7 @@
 #include "network/arch.hpp"
 #include "network/simd/define.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdlib>
