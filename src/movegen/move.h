@@ -35,23 +35,23 @@ class Move
 {
 public:
     Move() = default;
-    Move(Square from, Square to, MoveFlag flag);
-    explicit Move(uint16_t data);
+    Move(Square from, Square to, MoveFlag flag) noexcept;
+    explicit Move(uint16_t data) noexcept;
 
-    Square from() const;
-    Square to() const;
-    MoveFlag flag() const;
+    Square from() const noexcept;
+    Square to() const noexcept;
+    MoveFlag flag() const noexcept;
 
-    bool is_promotion() const;
-    bool is_capture() const;
-    bool is_castle() const;
+    bool is_promotion() const noexcept;
+    bool is_capture() const noexcept;
+    bool is_castle() const noexcept;
 
-    constexpr bool operator==(const Move& rhs) const
+    constexpr bool operator==(const Move& rhs) const noexcept
     {
         return (data == rhs.data);
     }
 
-    constexpr bool operator!=(const Move& rhs) const
+    constexpr bool operator!=(const Move& rhs) const noexcept
     {
         return (data != rhs.data);
     }
@@ -88,7 +88,7 @@ namespace std
 template <>
 struct hash<Move>
 {
-    std::size_t operator()(const Move& m) const
+    std::size_t operator()(const Move& m) const noexcept
     {
         return std::hash<uint16_t>()(m.data);
     }

@@ -9,44 +9,44 @@ constexpr int FROM_MASK = 0b111111; // 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1
 constexpr int TO_MASK = 0b111111 << 6; // 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0
 constexpr int FLAG_MASK = 0b1111 << 12; // 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0
 
-Move::Move(Square from, Square to, MoveFlag flag)
+Move::Move(Square from, Square to, MoveFlag flag) noexcept
     : data(from | (to << 6) | (flag << 12))
 {
     assert(from < 64);
     assert(to < 64);
 }
 
-Move::Move(uint16_t data_)
+Move::Move(uint16_t data_) noexcept
     : data(data_)
 {
 }
 
-Square Move::from() const
+Square Move::from() const noexcept
 {
     return static_cast<Square>(data & FROM_MASK);
 }
 
-Square Move::to() const
+Square Move::to() const noexcept
 {
     return static_cast<Square>((data & TO_MASK) >> 6);
 }
 
-MoveFlag Move::flag() const
+MoveFlag Move::flag() const noexcept
 {
     return static_cast<MoveFlag>((data & FLAG_MASK) >> 12);
 }
 
-bool Move::is_promotion() const
+bool Move::is_promotion() const noexcept
 {
     return ((data & PROMOTION_MASK) != 0);
 }
 
-bool Move::is_capture() const
+bool Move::is_capture() const noexcept
 {
     return ((data & CAPTURE_MASK) != 0);
 }
 
-bool Move::is_castle() const
+bool Move::is_castle() const noexcept
 {
     return flag() == A_SIDE_CASTLE || flag() == H_SIDE_CASTLE;
 }

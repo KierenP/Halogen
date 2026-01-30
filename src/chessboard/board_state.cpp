@@ -12,12 +12,12 @@
 #include <cstddef>
 #include <iostream>
 
-BoardState::BoardState()
+BoardState::BoardState() noexcept
 {
     mailbox.fill(N_PIECES);
 }
 
-bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
+bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen) noexcept
 {
     *this = BoardState(); // reset the board state
 
@@ -136,7 +136,7 @@ bool BoardState::init_from_fen(const std::array<std::string_view, 6>& fen)
     return true;
 }
 
-void BoardState::recalculate_side_bb()
+void BoardState::recalculate_side_bb() noexcept
 {
     side_bb[WHITE] = get_pieces_bb(WHITE_PAWN) | get_pieces_bb(WHITE_KNIGHT) | get_pieces_bb(WHITE_BISHOP)
         | get_pieces_bb(WHITE_ROOK) | get_pieces_bb(WHITE_QUEEN) | get_pieces_bb(WHITE_KING);
@@ -144,12 +144,12 @@ void BoardState::recalculate_side_bb()
         | get_pieces_bb(BLACK_ROOK) | get_pieces_bb(BLACK_QUEEN) | get_pieces_bb(BLACK_KING);
 }
 
-uint64_t BoardState::get_pieces_bb(Side colour) const
+uint64_t BoardState::get_pieces_bb(Side colour) const noexcept
 {
     return side_bb[colour];
 }
 
-void BoardState::add_piece_sq(Square square, Piece piece)
+void BoardState::add_piece_sq(Square square, Piece piece) noexcept
 {
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
@@ -159,7 +159,7 @@ void BoardState::add_piece_sq(Square square, Piece piece)
     mailbox[square] = piece;
 }
 
-void BoardState::remove_piece_sq(Square square, Piece piece)
+void BoardState::remove_piece_sq(Square square, Piece piece) noexcept
 {
     assert(square < N_SQUARES);
     assert(piece < N_PIECES);
@@ -169,17 +169,17 @@ void BoardState::remove_piece_sq(Square square, Piece piece)
     mailbox[square] = N_PIECES;
 }
 
-uint64_t BoardState::get_pieces_bb(Piece piece) const
+uint64_t BoardState::get_pieces_bb(Piece piece) const noexcept
 {
     return board[enum_to<PieceType>(piece)] & side_bb[enum_to<Side>(piece)];
 }
 
-uint64_t BoardState::get_pieces_bb(PieceType type) const
+uint64_t BoardState::get_pieces_bb(PieceType type) const noexcept
 {
     return board[type];
 }
 
-void BoardState::clear_sq(Square square)
+void BoardState::clear_sq(Square square) noexcept
 {
     assert(square < N_SQUARES);
 
@@ -193,45 +193,45 @@ void BoardState::clear_sq(Square square)
     mailbox[square] = N_PIECES;
 }
 
-uint64_t BoardState::get_pieces_bb(PieceType pieceType, Side colour) const
+uint64_t BoardState::get_pieces_bb(PieceType pieceType, Side colour) const noexcept
 {
     return board[pieceType] & side_bb[colour];
 }
 
-Square BoardState::get_king_sq(Side colour) const
+Square BoardState::get_king_sq(Side colour) const noexcept
 {
     assert(get_pieces_bb(KING, colour) != 0);
     return lsb(get_pieces_bb(KING, colour));
 }
 
-bool BoardState::is_empty(Square square) const
+bool BoardState::is_empty(Square square) const noexcept
 {
     assert(square != N_SQUARES);
     return (mailbox[square] == N_PIECES);
 }
 
-bool BoardState::is_occupied(Square square) const
+bool BoardState::is_occupied(Square square) const noexcept
 {
     assert(square != N_SQUARES);
     return !is_empty(square);
 }
 
-Piece BoardState::get_square_piece(Square square) const
+Piece BoardState::get_square_piece(Square square) const noexcept
 {
     return mailbox[square];
 }
 
-uint64_t BoardState::get_pieces_bb() const
+uint64_t BoardState::get_pieces_bb() const noexcept
 {
     return get_pieces_bb(WHITE) | get_pieces_bb(BLACK);
 }
 
-uint64_t BoardState::get_empty_bb() const
+uint64_t BoardState::get_empty_bb() const noexcept
 {
     return ~get_pieces_bb();
 }
 
-void BoardState::update_castle_rights(Move move)
+void BoardState::update_castle_rights(Move move) noexcept
 {
     // check for the king or rook moving, or a rook being captured
 
@@ -310,7 +310,7 @@ std::ostream& operator<<(std::ostream& os, const BoardState& b)
     return os;
 }
 
-void BoardState::apply_move(Move move)
+void BoardState::apply_move(Move move) noexcept
 {
     // std::cout << *this << std::endl;
 
@@ -649,7 +649,7 @@ void BoardState::apply_move(Move move)
     update_pinned();
 }
 
-void BoardState::apply_null_move()
+void BoardState::apply_null_move() noexcept
 {
     key ^= Zobrist::stm();
 
@@ -673,7 +673,7 @@ void BoardState::apply_null_move()
     update_pinned();
 }
 
-MoveFlag BoardState::infer_move_flag(Square from, Square to) const
+MoveFlag BoardState::infer_move_flag(Square from, Square to) const noexcept
 {
     // Castling (normal chess)
     if ((from == SQ_E1 && to == SQ_G1 && get_square_piece(from) == WHITE_KING)
@@ -723,14 +723,14 @@ MoveFlag BoardState::infer_move_flag(Square from, Square to) const
     return QUIET;
 }
 
-uint64_t BoardState::active_lesser_threats() const
+uint64_t BoardState::active_lesser_threats() const noexcept
 {
     return (lesser_threats[KNIGHT] & get_pieces_bb(KNIGHT, stm)) | (lesser_threats[BISHOP] & get_pieces_bb(BISHOP, stm))
         | (lesser_threats[ROOK] & get_pieces_bb(ROOK, stm)) | (lesser_threats[QUEEN] & get_pieces_bb(QUEEN, stm))
         | (lesser_threats[KING] & get_pieces_bb(KING, stm));
 }
 
-void BoardState::update_lesser_threats()
+void BoardState::update_lesser_threats() noexcept
 {
     // x-ray through own king: this has no effect on search, but makes lesser threats useful for king evasion movegen.
     uint64_t occ = get_pieces_bb();
@@ -778,7 +778,7 @@ void BoardState::update_lesser_threats()
     lesser_threats[KING] = attacks;
 }
 
-void BoardState::update_checkers()
+void BoardState::update_checkers() noexcept
 {
     checkers = EMPTY;
 
@@ -798,7 +798,7 @@ void BoardState::update_checkers()
     assert(std::popcount(checkers) <= 2); // triple or more check is impossible
 }
 
-void BoardState::update_pinned()
+void BoardState::update_pinned() noexcept
 {
     const Square king = get_king_sq(stm);
     const uint64_t all_pieces = get_pieces_bb();

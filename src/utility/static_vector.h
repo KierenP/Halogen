@@ -23,49 +23,49 @@ public:
 
     // element access
 
-    reference at(size_t pos)
+    reference at(size_t pos) noexcept
     {
         assert(pos < size_);
         return elems_[pos];
     }
 
-    const_reference at(size_t pos) const
+    const_reference at(size_t pos) const noexcept
     {
         assert(pos < size_);
         return elems_[pos];
     }
 
-    reference operator[](size_t pos)
+    reference operator[](size_t pos) noexcept
     {
         assert(pos < size_);
         return elems_[pos];
     }
 
-    const_reference operator[](size_t pos) const
+    const_reference operator[](size_t pos) const noexcept
     {
         assert(pos < size_);
         return elems_[pos];
     }
 
-    reference front()
+    reference front() noexcept
     {
         assert(size_ > 0);
         return elems_[0];
     }
 
-    const_reference front() const
+    const_reference front() const noexcept
     {
         assert(size_ > 0);
         return elems_[0];
     }
 
-    reference back()
+    reference back() noexcept
     {
         assert(size_ > 0);
         return elems_[size_ - 1];
     }
 
-    const_reference back() const
+    const_reference back() const noexcept
     {
         assert(size_ > 0);
         return elems_[size_ - 1];
@@ -73,106 +73,106 @@ public:
 
     // iterators
 
-    iterator begin()
+    iterator begin() noexcept
     {
         return &elems_[0];
     };
 
-    const_iterator begin() const
+    const_iterator begin() const noexcept
     {
         return &elems_[0];
     };
 
-    const_iterator cbegin() const
+    const_iterator cbegin() const noexcept
     {
         return &elems_[0];
     };
 
-    iterator end()
+    iterator end() noexcept
     {
         return &elems_[size_];
     }
 
-    const_iterator end() const
+    const_iterator end() const noexcept
     {
         return &elems_[size_];
     }
 
-    const_iterator cend() const
+    const_iterator cend() const noexcept
     {
         return &elems_[size_];
     }
 
-    reverse_iterator rbegin()
+    reverse_iterator rbegin() noexcept
     {
         return end();
     }
 
-    const_reverse_iterator rbegin() const
+    const_reverse_iterator rbegin() const noexcept
     {
         return end();
     }
 
-    const_reverse_iterator crbegin() const
+    const_reverse_iterator crbegin() const noexcept
     {
         return end();
     }
 
-    reverse_iterator rend()
+    reverse_iterator rend() noexcept
     {
         return begin();
     }
 
-    const_reverse_iterator rend() const
+    const_reverse_iterator rend() const noexcept
     {
         return begin();
     }
 
-    const_reverse_iterator crend() const
+    const_reverse_iterator crend() const noexcept
     {
         return begin();
     }
 
     // capacity
 
-    bool empty() const
+    bool empty() const noexcept
     {
         return size_ == 0;
     }
 
-    size_t size() const
+    size_t size() const noexcept
     {
         return size_;
     }
 
-    size_t max_size() const
+    size_t max_size() const noexcept
     {
         return N;
     }
 
-    void reserve(std::size_t)
+    void reserve(std::size_t) noexcept
     {
         // no-op
     }
 
-    std::size_t capacity() const
+    std::size_t capacity() const noexcept
     {
         return N;
     }
 
-    void shrink_to_fit()
+    void shrink_to_fit() noexcept
     {
         // no-op
     }
 
     // modifiers
 
-    void clear()
+    void clear() noexcept
     {
         size_ = 0;
     }
 
-    iterator insert(const_iterator pos, const T& value)
+    iterator insert(const_iterator pos, const T& value) noexcept
     {
         assert(size_ < N);
         std::move_backward(pos, end(), std::next(end()));
@@ -181,7 +181,7 @@ public:
         return pos;
     }
 
-    iterator insert(const_iterator pos, T&& value)
+    iterator insert(const_iterator pos, T&& value) noexcept
     {
         assert(size_ < N);
         std::move_backward(pos, end(), std::next(end()));
@@ -191,7 +191,7 @@ public:
     }
 
     template <class InputIt>
-    iterator insert(const_iterator pos, InputIt first, InputIt last)
+    iterator insert(const_iterator pos, InputIt first, InputIt last) noexcept
     {
         assert(size_ + (last - first) <= N);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -202,7 +202,7 @@ public:
     }
 
     template <class... Args>
-    iterator emplace(const_iterator pos, Args&&... args)
+    iterator emplace(const_iterator pos, Args&&... args) noexcept
     {
         assert(size_ < N);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -212,7 +212,7 @@ public:
         return mutable_it;
     }
 
-    iterator erase(const_iterator pos)
+    iterator erase(const_iterator pos) noexcept
     {
         assert(size_ > 0);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -221,7 +221,7 @@ public:
         return mutable_it;
     }
 
-    iterator erase(const_iterator first, const_iterator last)
+    iterator erase(const_iterator first, const_iterator last) noexcept
     {
         assert((int)size_ > (last - first));
         auto mutable_first = begin() + std::distance(cbegin(), first);
@@ -230,44 +230,44 @@ public:
         return mutable_first;
     }
 
-    void push_back(const T& value)
+    void push_back(const T& value) noexcept
     {
         assert(size_ < N);
         elems_[size_++] = value;
     }
 
-    void push_back(T&& value)
+    void push_back(T&& value) noexcept
     {
         assert(size_ < N);
         elems_[size_++] = std::move(value);
     }
 
     template <class... Args>
-    reference emplace_back(Args&&... args)
+    reference emplace_back(Args&&... args) noexcept
     {
         assert(size_ < N);
         elems_[size_++] = T { std::forward<Args>(args)... };
         return back();
     }
 
-    void pop_back()
+    void pop_back() noexcept
     {
         assert(size_ > 0);
         size_--;
     }
 
-    bool operator<=>(const StaticVector& other) const
+    bool operator<=>(const StaticVector& other) const noexcept
     {
         return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
     }
 
-    bool operator==(const StaticVector& other) const
+    bool operator==(const StaticVector& other) const noexcept
     {
         return size_ == other.size_ && std::equal(begin(), end(), other.begin());
     }
 
     // extensions
-    void unsafe_resize(std::size_t new_size)
+    void unsafe_resize(std::size_t new_size) noexcept
     {
         assert(new_size <= N);
         size_ = new_size;

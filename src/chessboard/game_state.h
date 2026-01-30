@@ -16,34 +16,34 @@ including all previous game states for the purposes of draw by repetition.
 class GameState
 {
 public:
-    [[nodiscard]] static GameState starting_position();
-    [[nodiscard]] static GameState from_fen(std::string_view fen);
+    [[nodiscard]] static GameState starting_position() noexcept;
+    [[nodiscard]] static GameState from_fen(std::string_view fen) noexcept;
 
-    void apply_move(Move move);
-    void apply_move(std::string_view strmove);
-    void revert_move();
+    void apply_move(Move move) noexcept;
+    void apply_move(std::string_view strmove) noexcept;
+    void revert_move() noexcept;
 
-    void apply_null_move();
-    void revert_null_move();
+    void apply_null_move() noexcept;
+    void revert_null_move() noexcept;
 
     // returns true after sucsessful execution, false otherwise
-    bool init_from_fen(std::string_view fen);
+    bool init_from_fen(std::string_view fen) noexcept;
 
-    bool is_repetition(int distance_from_root) const;
-    bool is_two_fold_repetition() const;
-    bool upcoming_rep(int distanceFromRoot, Move excluded_move = Move::Uninitialized) const;
-    bool has_repeated() const;
+    bool is_repetition(int distance_from_root) const noexcept;
+    bool is_two_fold_repetition() const noexcept;
+    bool upcoming_rep(int distanceFromRoot, Move excluded_move = Move::Uninitialized) const noexcept;
+    bool has_repeated() const noexcept;
 
-    const BoardState& board() const;
-    const BoardState& prev_board() const;
+    const BoardState& board() const noexcept;
+    const BoardState& prev_board() const noexcept;
 
 private:
     GameState() = default;
-    BoardState& MutableBoard();
+    BoardState& MutableBoard() noexcept;
 
     // We store history back to the last zeroing move, and enough space for the max search depth
     StaticVector<BoardState, 100 + MAX_RECURSION + 1> previousStates;
 
-    bool init_from_fen(std::array<std::string_view, 6> fen);
-    void update_current_position_repetition();
+    bool init_from_fen(std::array<std::string_view, 6> fen) noexcept;
+    void update_current_position_repetition() noexcept;
 };

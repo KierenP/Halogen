@@ -143,13 +143,13 @@ struct FancyMagicStrategy
         }
     }
 
-    constexpr uint64_t& attack_mask(Square sq, uint64_t occupied)
+    constexpr uint64_t& attack_mask(Square sq, uint64_t occupied) noexcept
     {
         const size_t offset = ((occupied & metadata[sq].mask) * metadata[sq].magic) >> metadata[sq].shift;
         return attacks[metadata[sq].index + offset];
     }
 
-    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const
+    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const noexcept
     {
         return const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this)->attack_mask(sq, occupied);
     }

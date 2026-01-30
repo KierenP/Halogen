@@ -11,7 +11,7 @@ class Score
 public:
     Score() = default;
 
-    constexpr Score(int value)
+    constexpr Score(int value) noexcept
         : value_(value)
     {
     }
@@ -31,121 +31,121 @@ public:
     };
 
     // helper factory functions
-    static constexpr Score mated_in(int depth)
+    static constexpr Score mated_in(int depth) noexcept
     {
         return Score(Limits::MATED + depth);
     }
 
-    static constexpr Score mate_in(int depth)
+    static constexpr Score mate_in(int depth) noexcept
     {
         return Score(Limits::MATE - depth);
     }
 
-    static constexpr Score tb_loss_in(int depth)
+    static constexpr Score tb_loss_in(int depth) noexcept
     {
         return Score(Limits::TB_LOSS_SCORE + depth);
     }
 
-    static constexpr Score tb_win_in(int depth)
+    static constexpr Score tb_win_in(int depth) noexcept
     {
         return Score(Limits::TB_WIN_SCORE - depth);
     }
 
-    static constexpr Score draw()
+    static constexpr Score draw() noexcept
     {
         return Score(Limits::DRAW);
     }
 
     // Draw randomness as in https://github.com/Luecx/Koivisto/commit/c8f01211c290a582b69e4299400b667a7731a9f7
-    static constexpr Score draw_random(uint64_t x)
+    static constexpr Score draw_random(uint64_t x) noexcept
     {
         return 8 - (x & 0b1111);
     }
 
-    constexpr int value() const
+    constexpr int value() const noexcept
     {
         return value_;
     }
 
     // unary minus
-    constexpr Score operator-() const
+    constexpr Score operator-() const noexcept
     {
         return Score(-value_);
     }
 
     // comparison operators
-    constexpr bool operator<(const Score& rhs) const
+    constexpr bool operator<(const Score& rhs) const noexcept
     {
         return value_ < rhs.value_;
     }
 
-    constexpr bool operator>(const Score& rhs) const
+    constexpr bool operator>(const Score& rhs) const noexcept
     {
         return value_ > rhs.value_;
     }
 
-    constexpr bool operator<=(const Score& rhs) const
+    constexpr bool operator<=(const Score& rhs) const noexcept
     {
         return value_ <= rhs.value_;
     }
 
-    constexpr bool operator>=(const Score& rhs) const
+    constexpr bool operator>=(const Score& rhs) const noexcept
     {
         return value_ >= rhs.value_;
     }
 
-    constexpr bool operator==(const Score& rhs) const
+    constexpr bool operator==(const Score& rhs) const noexcept
     {
         return value_ == rhs.value_;
     }
 
-    constexpr bool operator!=(const Score& rhs) const
+    constexpr bool operator!=(const Score& rhs) const noexcept
     {
         return value_ != rhs.value_;
     }
 
-    constexpr Score& operator+=(const Score& rhs)
+    constexpr Score& operator+=(const Score& rhs) noexcept
     {
         value_ += rhs.value_;
         return *this;
     }
 
-    friend constexpr Score operator+(const Score& lhs, const Score& rhs)
+    friend constexpr Score operator+(const Score& lhs, const Score& rhs) noexcept
     {
         return Score(lhs.value_ + rhs.value_);
     }
 
-    constexpr Score& operator-=(const Score& rhs)
+    constexpr Score& operator-=(const Score& rhs) noexcept
     {
         value_ -= rhs.value_;
         return *this;
     }
 
-    friend constexpr Score operator-(const Score& lhs, const Score& rhs)
+    friend constexpr Score operator-(const Score& lhs, const Score& rhs) noexcept
     {
         return Score(lhs.value_ - rhs.value_);
     }
 
     // scalar multiplication
-    constexpr Score& operator*=(const int& value)
+    constexpr Score& operator*=(const int& value) noexcept
     {
         value_ *= value;
         return *this;
     }
 
-    friend constexpr Score operator*(const Score& lhs, const int& value)
+    friend constexpr Score operator*(const Score& lhs, const int& value) noexcept
     {
         return Score(lhs.value_ * value);
     }
 
     // scalar division
-    constexpr Score& operator/=(const int& value)
+    constexpr Score& operator/=(const int& value) noexcept
     {
         value_ /= value;
         return *this;
     }
 
-    friend constexpr Score operator/(const Score& lhs, const int& value)
+    friend constexpr Score operator/(const Score& lhs, const int& value) noexcept
     {
         return Score(lhs.value_ / value);
     }
@@ -157,22 +157,22 @@ public:
     }
 
     // helper functions
-    [[nodiscard]] constexpr bool is_win() const
+    [[nodiscard]] constexpr bool is_win() const noexcept
     {
         return *this >= Score::tb_win_in(MAX_RECURSION);
     }
 
-    [[nodiscard]] constexpr bool is_draw() const
+    [[nodiscard]] constexpr bool is_draw() const noexcept
     {
         return *this == Score::draw();
     }
 
-    [[nodiscard]] constexpr bool is_loss() const
+    [[nodiscard]] constexpr bool is_loss() const noexcept
     {
         return *this <= Score::tb_loss_in(MAX_RECURSION);
     }
 
-    [[nodiscard]] constexpr bool is_decisive() const
+    [[nodiscard]] constexpr bool is_decisive() const noexcept
     {
         return is_win() || is_loss();
     }
@@ -200,7 +200,7 @@ public:
     };
 };
 
-inline Score abs(Score val)
+inline Score abs(Score val) noexcept
 {
     return std::abs(val.value());
 }

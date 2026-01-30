@@ -6,7 +6,7 @@
 #include <ostream>
 
 // Helper to check if a number is a power of two
-constexpr bool is_power_of_two(int64_t n)
+constexpr bool is_power_of_two(int64_t n) noexcept
 {
     return n > 0 && (n & (n - 1)) == 0;
 }
@@ -20,117 +20,117 @@ class Fraction
 
 public:
     // Constructors
-    constexpr Fraction()
+    constexpr Fraction() noexcept
         : value_(0)
     {
     }
 
-    constexpr Fraction(int v)
+    constexpr Fraction(int v) noexcept
         : value_(static_cast<int64_t>(v) * Precision)
     {
     }
 
-    [[nodiscard]] constexpr int to_int() const
+    [[nodiscard]] constexpr int to_int() const noexcept
     {
         return value_ / Precision;
     }
 
     // Get raw value
-    [[nodiscard]] constexpr int64_t raw() const
+    [[nodiscard]] constexpr int64_t raw() const noexcept
     {
         return value_;
     }
 
     // Get precision
-    [[nodiscard]] static constexpr int64_t precision()
+    [[nodiscard]] static constexpr int64_t precision() noexcept
     {
         return Precision;
     }
 
     // Arithmetic operators with same precision (no loss possible)
-    constexpr Fraction operator+(const Fraction& rhs) const
+    constexpr Fraction operator+(const Fraction& rhs) const noexcept
     {
         return Fraction::from_raw(value_ + rhs.value_);
     }
-    constexpr Fraction operator-(const Fraction& rhs) const
+    constexpr Fraction operator-(const Fraction& rhs) const noexcept
     {
         return Fraction::from_raw(value_ - rhs.value_);
     }
 
     // Arithmetic operators with int
-    constexpr Fraction operator+(int rhs) const
+    constexpr Fraction operator+(int rhs) const noexcept
     {
         return Fraction::from_raw(value_ + static_cast<int64_t>(rhs) * Precision);
     }
-    constexpr Fraction operator-(int rhs) const
+    constexpr Fraction operator-(int rhs) const noexcept
     {
         return Fraction::from_raw(value_ - static_cast<int64_t>(rhs) * Precision);
     }
-    constexpr Fraction operator*(int rhs) const
+    constexpr Fraction operator*(int rhs) const noexcept
     {
         return Fraction::from_raw(value_ * rhs);
     }
 
     // Compound assignment operators
-    constexpr Fraction& operator+=(const Fraction& rhs)
+    constexpr Fraction& operator+=(const Fraction& rhs) noexcept
     {
         value_ += rhs.value_;
         return *this;
     }
-    constexpr Fraction& operator-=(const Fraction& rhs)
+    constexpr Fraction& operator-=(const Fraction& rhs) noexcept
     {
         value_ -= rhs.value_;
         return *this;
     }
-    constexpr Fraction& operator+=(int rhs)
+    constexpr Fraction& operator+=(int rhs) noexcept
     {
         value_ += static_cast<int64_t>(rhs) * Precision;
         return *this;
     }
-    constexpr Fraction& operator-=(int rhs)
+    constexpr Fraction& operator-=(int rhs) noexcept
     {
         value_ -= static_cast<int64_t>(rhs) * Precision;
         return *this;
     }
-    constexpr Fraction& operator*=(int rhs)
+    constexpr Fraction& operator*=(int rhs) noexcept
     {
         value_ *= rhs;
         return *this;
     }
 
-    constexpr Fraction operator-() const
+    constexpr Fraction operator-() const noexcept
     {
         return Fraction::from_raw(-value_);
     }
 
     // Comparison operators
-    constexpr bool operator==(const Fraction& rhs) const
+    constexpr bool operator==(const Fraction& rhs) const noexcept
     {
         return value_ == rhs.value_;
     }
-    constexpr bool operator!=(const Fraction& rhs) const
+    constexpr bool operator!=(const Fraction& rhs) const noexcept
     {
         return value_ != rhs.value_;
     }
-    constexpr bool operator<(const Fraction& rhs) const
+    constexpr bool operator<(const Fraction& rhs) const noexcept
     {
         return value_ < rhs.value_;
     }
-    constexpr bool operator<=(const Fraction& rhs) const
+    constexpr bool operator<=(const Fraction& rhs) const noexcept
     {
         return value_ <= rhs.value_;
     }
-    constexpr bool operator>(const Fraction& rhs) const
+    constexpr bool operator>(const Fraction& rhs) const noexcept
     {
         return value_ > rhs.value_;
     }
-    constexpr bool operator>=(const Fraction& rhs) const
+    constexpr bool operator>=(const Fraction& rhs) const noexcept
     {
         return value_ >= rhs.value_;
     }
 
     // Static factory for raw value
-    constexpr static Fraction from_raw(int64_t raw)
+    constexpr static Fraction from_raw(int64_t raw) noexcept
     {
         Fraction f;
         f.value_ = raw;
@@ -138,7 +138,7 @@ public:
     }
 
     template <int64_t NewPrecision>
-    [[nodiscard]] constexpr Fraction<NewPrecision> rescale() const
+    [[nodiscard]] constexpr Fraction<NewPrecision> rescale() const noexcept
     {
         if constexpr (NewPrecision < precision())
         {
@@ -154,7 +154,7 @@ public:
 // Arithmetic operators between Fractions of different precisions
 // Result precision is LCM to avoid any loss
 template <int64_t P1, int64_t P2>
-constexpr auto operator+(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fraction<std::lcm(P1, P2)>
+constexpr auto operator+(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept -> Fraction<std::lcm(P1, P2)>
 {
     constexpr int64_t ResultPrecision = std::lcm(P1, P2);
     constexpr int64_t scale1 = ResultPrecision / P1;
@@ -163,7 +163,7 @@ constexpr auto operator+(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fr
 }
 
 template <int64_t P1, int64_t P2>
-constexpr auto operator-(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fraction<std::lcm(P1, P2)>
+constexpr auto operator-(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept -> Fraction<std::lcm(P1, P2)>
 {
     constexpr int64_t ResultPrecision = std::lcm(P1, P2);
     constexpr int64_t scale1 = ResultPrecision / P1;
@@ -173,7 +173,7 @@ constexpr auto operator-(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fr
 
 // Multiplication between fractions (handles same and different precisions)
 template <int64_t P1, int64_t P2>
-constexpr auto operator*(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fraction<P1 * P2>
+constexpr auto operator*(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept -> Fraction<P1 * P2>
 {
     // (lhs.raw / P1) * (rhs.raw / P2) = (lhs.raw * rhs.raw) / (P1 * P2)
     return Fraction<P1 * P2>::from_raw(lhs.raw() * rhs.raw());
@@ -181,7 +181,7 @@ constexpr auto operator*(const Fraction<P1>& lhs, const Fraction<P2>& rhs) -> Fr
 
 // Comparison operators between different precisions
 template <int64_t P1, int64_t P2>
-constexpr bool operator==(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator==(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     constexpr int64_t CommonPrecision = std::lcm(P1, P2);
     constexpr int64_t scale1 = CommonPrecision / P1;
@@ -190,13 +190,13 @@ constexpr bool operator==(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
 }
 
 template <int64_t P1, int64_t P2>
-constexpr bool operator!=(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator!=(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     return !(lhs == rhs);
 }
 
 template <int64_t P1, int64_t P2>
-constexpr bool operator<(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator<(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     constexpr int64_t CommonPrecision = std::lcm(P1, P2);
     constexpr int64_t scale1 = CommonPrecision / P1;
@@ -205,111 +205,111 @@ constexpr bool operator<(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
 }
 
 template <int64_t P1, int64_t P2>
-constexpr bool operator<=(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator<=(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     return !(rhs < lhs);
 }
 
 template <int64_t P1, int64_t P2>
-constexpr bool operator>(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator>(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     return rhs < lhs;
 }
 
 template <int64_t P1, int64_t P2>
-constexpr bool operator>=(const Fraction<P1>& lhs, const Fraction<P2>& rhs)
+constexpr bool operator>=(const Fraction<P1>& lhs, const Fraction<P2>& rhs) noexcept
 {
     return !(lhs < rhs);
 }
 
 // Free function operators for int on left side
 template <int64_t Precision>
-constexpr Fraction<Precision> operator+(int lhs, const Fraction<Precision>& rhs)
+constexpr Fraction<Precision> operator+(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return rhs + lhs;
 }
 
 template <int64_t Precision>
-constexpr Fraction<Precision> operator-(int lhs, const Fraction<Precision>& rhs)
+constexpr Fraction<Precision> operator-(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return Fraction<Precision>::from_raw(static_cast<int64_t>(lhs) * Precision - rhs.raw());
 }
 
 template <int64_t Precision>
-constexpr Fraction<Precision> operator*(int lhs, const Fraction<Precision>& rhs)
+constexpr Fraction<Precision> operator*(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return rhs * lhs;
 }
 
 // Comparison operators with int
 template <int64_t Precision>
-constexpr bool operator==(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator==(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return lhs.raw() == static_cast<int64_t>(rhs) * Precision;
 }
 
 template <int64_t Precision>
-constexpr bool operator==(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator==(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return rhs == lhs;
 }
 
 template <int64_t Precision>
-constexpr bool operator!=(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator!=(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return !(lhs == rhs);
 }
 
 template <int64_t Precision>
-constexpr bool operator!=(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator!=(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return !(rhs == lhs);
 }
 
 template <int64_t Precision>
-constexpr bool operator<(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator<(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return lhs.raw() < static_cast<int64_t>(rhs) * Precision;
 }
 
 template <int64_t Precision>
-constexpr bool operator<(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator<(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return static_cast<int64_t>(lhs) * Precision < rhs.raw();
 }
 
 template <int64_t Precision>
-constexpr bool operator<=(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator<=(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return lhs.raw() <= static_cast<int64_t>(rhs) * Precision;
 }
 
 template <int64_t Precision>
-constexpr bool operator<=(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator<=(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return static_cast<int64_t>(lhs) * Precision <= rhs.raw();
 }
 
 template <int64_t Precision>
-constexpr bool operator>(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator>(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return lhs.raw() > static_cast<int64_t>(rhs) * Precision;
 }
 
 template <int64_t Precision>
-constexpr bool operator>(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator>(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return static_cast<int64_t>(lhs) * Precision > rhs.raw();
 }
 
 template <int64_t Precision>
-constexpr bool operator>=(const Fraction<Precision>& lhs, int rhs)
+constexpr bool operator>=(const Fraction<Precision>& lhs, int rhs) noexcept
 {
     return lhs.raw() >= static_cast<int64_t>(rhs) * Precision;
 }
 
 template <int64_t Precision>
-constexpr bool operator>=(int lhs, const Fraction<Precision>& rhs)
+constexpr bool operator>=(int lhs, const Fraction<Precision>& rhs) noexcept
 {
     return static_cast<int64_t>(lhs) * Precision >= rhs.raw();
 }
@@ -322,13 +322,13 @@ inline std::ostream& operator<<(std::ostream& os, const Fraction<Precision>& f)
 }
 
 template <int64_t Precision>
-constexpr Fraction<Precision> abs(const Fraction<Precision>& f)
+constexpr Fraction<Precision> abs(const Fraction<Precision>& f) noexcept
 {
     return f.raw() >= 0 ? f : -f;
 }
 
 template <int64_t NewPrecision, int64_t OldPrecision>
-constexpr Fraction<NewPrecision> rescale(const Fraction<OldPrecision>& f)
+constexpr Fraction<NewPrecision> rescale(const Fraction<OldPrecision>& f) noexcept
 {
     return f.template rescale<NewPrecision>();
 }

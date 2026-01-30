@@ -30,7 +30,7 @@ enum Square : int8_t
     // clang-format on
 };
 
-constexpr Square& operator++(Square& sq)
+constexpr Square& operator++(Square& sq) noexcept
 {
     assert(sq < N_SQUARES);
     sq = static_cast<Square>(sq + 1);
@@ -45,7 +45,7 @@ enum Side : int8_t
     N_SIDES
 };
 
-constexpr Side operator!(const Side& val)
+constexpr Side operator!(const Side& val) noexcept
 {
     return val == WHITE ? BLACK : WHITE;
 }
@@ -95,13 +95,13 @@ enum Rank : int8_t
     N_RANKS
 };
 
-constexpr Rank mirror(Rank rank)
+constexpr Rank mirror(Rank rank) noexcept
 {
     assert(rank < N_RANKS);
     return static_cast<Rank>(RANK_8 - rank);
 }
 
-constexpr Rank& operator++(Rank& rank)
+constexpr Rank& operator++(Rank& rank) noexcept
 {
     assert(rank < N_RANKS);
     rank = static_cast<Rank>(rank + 1);
@@ -122,7 +122,7 @@ enum File : int8_t
     N_FILES
 };
 
-constexpr File& operator++(File& file)
+constexpr File& operator++(File& file) noexcept
 {
     assert(file < N_FILES);
     file = static_cast<File>(file + 1);
@@ -150,7 +150,7 @@ enum Diagonal : int8_t
     N_DIAGONALS
 };
 
-constexpr Diagonal& operator++(Diagonal& diagonal)
+constexpr Diagonal& operator++(Diagonal& diagonal) noexcept
 {
     assert(diagonal < N_DIAGONALS);
     diagonal = static_cast<Diagonal>(diagonal + 1);
@@ -178,7 +178,7 @@ enum AntiDiagonal : int8_t
     N_ANTI_DIAGONALS
 };
 
-constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal)
+constexpr AntiDiagonal& operator++(AntiDiagonal& antidiagonal) noexcept
 {
     assert(antidiagonal < N_ANTI_DIAGONALS);
     antidiagonal = static_cast<AntiDiagonal>(antidiagonal + 1);
@@ -242,57 +242,57 @@ static constexpr PieceType piece_to_type[N_PIECES] = {
 // clang-format on
 
 template <typename T, typename U>
-constexpr T enum_to(U u);
+constexpr T enum_to(U u) noexcept;
 
 template <>
-constexpr Side enum_to(Piece piece)
+constexpr Side enum_to(Piece piece) noexcept
 {
     assert(piece < N_PIECES);
     return piece_to_side[piece];
 }
 
 template <>
-constexpr PieceType enum_to(Piece piece)
+constexpr PieceType enum_to(Piece piece) noexcept
 {
     assert(piece < N_PIECES);
     return piece_to_type[piece];
 }
 
 template <>
-constexpr File enum_to(Square square)
+constexpr File enum_to(Square square) noexcept
 {
     assert(square < N_SQUARES);
     return square_to_file[square];
 }
 
 template <>
-constexpr Rank enum_to(Square square)
+constexpr Rank enum_to(Square square) noexcept
 {
     assert(square < N_SQUARES);
     return square_to_rank[square];
 }
 
 template <>
-constexpr Diagonal enum_to(Square square)
+constexpr Diagonal enum_to(Square square) noexcept
 {
     assert(square < N_SQUARES);
     return square_to_diagonal[square];
 }
 
 template <>
-constexpr AntiDiagonal enum_to(Square square)
+constexpr AntiDiagonal enum_to(Square square) noexcept
 {
     assert(square < N_SQUARES);
     return square_to_antidiagonal[square];
 }
 
-constexpr int rank_diff(Square sq1, Square sq2)
+constexpr int rank_diff(Square sq1, Square sq2) noexcept
 {
     assert(sq1 < N_SQUARES && sq2 < N_SQUARES);
     return static_cast<int>(enum_to<Rank>(sq1)) - static_cast<int>(enum_to<Rank>(sq2));
 }
 
-constexpr int file_diff(Square sq1, Square sq2)
+constexpr int file_diff(Square sq1, Square sq2) noexcept
 {
     assert(sq1 < N_SQUARES && sq2 < N_SQUARES);
     return static_cast<int>(enum_to<File>(sq1)) - static_cast<int>(enum_to<File>(sq2));
@@ -306,7 +306,7 @@ constexpr auto abs_constexpr(T const& x) noexcept
     return x < 0 ? -x : x;
 }
 
-constexpr int abs_rank_diff(Square sq1, Square sq2)
+constexpr int abs_rank_diff(Square sq1, Square sq2) noexcept
 {
     assert(sq1 < N_SQUARES);
     assert(sq2 < N_SQUARES);
@@ -314,7 +314,7 @@ constexpr int abs_rank_diff(Square sq1, Square sq2)
     return abs_constexpr(static_cast<int>(enum_to<Rank>(sq1)) - static_cast<int>(enum_to<Rank>(sq2)));
 }
 
-constexpr int abs_file_diff(Square sq1, Square sq2)
+constexpr int abs_file_diff(Square sq1, Square sq2) noexcept
 {
     assert(sq1 < N_SQUARES);
     assert(sq2 < N_SQUARES);
@@ -322,7 +322,7 @@ constexpr int abs_file_diff(Square sq1, Square sq2)
     return abs_constexpr(static_cast<int>(enum_to<File>(sq1)) - static_cast<int>(enum_to<File>(sq2)));
 }
 
-constexpr Piece get_piece(PieceType type, Side colour)
+constexpr Piece get_piece(PieceType type, Side colour) noexcept
 {
     assert(type < N_PIECE_TYPES);
     assert(colour < N_SIDES);
@@ -330,7 +330,7 @@ constexpr Piece get_piece(PieceType type, Side colour)
     return static_cast<Piece>((int)type + (int)N_PIECE_TYPES * (int)colour);
 }
 
-constexpr Square get_square(File file, Rank rank)
+constexpr Square get_square(File file, Rank rank) noexcept
 {
     assert(file < N_FILES);
     assert(rank < N_RANKS);

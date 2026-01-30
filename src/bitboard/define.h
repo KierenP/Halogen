@@ -16,12 +16,12 @@
         __builtin_unreachable();                                                                                       \
     }
 
-constexpr Square flip_square_vertical(Square sq)
+constexpr Square flip_square_vertical(Square sq) noexcept
 {
     return static_cast<Square>(sq ^ 56);
 }
 
-constexpr Square flip_square_horizontal(Square sq)
+constexpr Square flip_square_horizontal(Square sq) noexcept
 {
     return static_cast<Square>(sq ^ 7);
 }
@@ -32,7 +32,7 @@ constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
 namespace Detail // so these don't polute the global scope
 {
 // Not my code, slightly modified
-constexpr uint64_t inBetween(int sq1, int sq2)
+constexpr uint64_t inBetween(int sq1, int sq2) noexcept
 {
     const uint64_t a2a7 = uint64_t(0x0001010101010100);
     const uint64_t b2g7 = uint64_t(0x0040201008040200);
@@ -197,13 +197,13 @@ constexpr auto QueenAttacks = []()
     return ret;
 }();
 
-constexpr Square lsb(uint64_t bb)
+constexpr Square lsb(uint64_t bb) noexcept
 {
     HALOGEN_ASSUME(bb != 0);
     return static_cast<Square>(std::countr_zero(bb));
 }
 
-constexpr Square lsbpop(uint64_t& bb)
+constexpr Square lsbpop(uint64_t& bb) noexcept
 {
     HALOGEN_ASSUME(bb != 0);
 
@@ -213,13 +213,13 @@ constexpr Square lsbpop(uint64_t& bb)
     return index;
 }
 
-constexpr Square msb(uint64_t bb)
+constexpr Square msb(uint64_t bb) noexcept
 {
     HALOGEN_ASSUME(bb != 0);
     return static_cast<Square>(SQ_H8 - std::countl_zero(bb));
 }
 
-constexpr bool path_clear(Square from, Square to, uint64_t pieces)
+constexpr bool path_clear(Square from, Square to, uint64_t pieces) noexcept
 {
     return (BetweenBB[from][to] & pieces) == 0;
 }
@@ -239,63 +239,63 @@ enum class Shift : int8_t
     // clang-format on
 };
 
-constexpr Square operator+(Square sq, Shift s)
+constexpr Square operator+(Square sq, Shift s) noexcept
 {
     return static_cast<Square>((int)sq + (int)s);
 };
 
-constexpr Square operator-(Square sq, Shift s)
+constexpr Square operator-(Square sq, Shift s) noexcept
 {
     return static_cast<Square>((int)sq - (int)s);
 };
 
 template <Shift direction>
-constexpr auto shift_bb(uint64_t bb);
+constexpr auto shift_bb(uint64_t bb) noexcept;
 
 template <>
-constexpr auto shift_bb<Shift::N>(uint64_t bb)
+constexpr auto shift_bb<Shift::N>(uint64_t bb) noexcept
 {
     return bb << 8;
 }
 
 template <>
-constexpr auto shift_bb<Shift::S>(uint64_t bb)
+constexpr auto shift_bb<Shift::S>(uint64_t bb) noexcept
 {
     return bb >> 8;
 }
 
 template <>
-constexpr auto shift_bb<Shift::W>(uint64_t bb)
+constexpr auto shift_bb<Shift::W>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_A]) >> 1;
 }
 
 template <>
-constexpr auto shift_bb<Shift::E>(uint64_t bb)
+constexpr auto shift_bb<Shift::E>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_H]) << 1;
 }
 
 template <>
-constexpr auto shift_bb<Shift::NW>(uint64_t bb)
+constexpr auto shift_bb<Shift::NW>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_A]) << 7;
 }
 
 template <>
-constexpr auto shift_bb<Shift::NE>(uint64_t bb)
+constexpr auto shift_bb<Shift::NE>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_H]) << 9;
 }
 
 template <>
-constexpr auto shift_bb<Shift::SW>(uint64_t bb)
+constexpr auto shift_bb<Shift::SW>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_A]) >> 9;
 }
 
 template <>
-constexpr auto shift_bb<Shift::SE>(uint64_t bb)
+constexpr auto shift_bb<Shift::SE>(uint64_t bb) noexcept
 {
     return (bb & ~FileBB[FILE_H]) >> 7;
 }

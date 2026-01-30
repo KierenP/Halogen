@@ -7,7 +7,7 @@
 
 struct MagicOffset
 {
-    constexpr MagicOffset(uint64_t m, size_t o)
+    constexpr MagicOffset(uint64_t m, size_t o) noexcept
         : magic(m)
         , offset(o)
     {
@@ -216,14 +216,14 @@ struct BlackMagicStrategy
     }
 
     template <size_t shift>
-    constexpr uint64_t& attack_mask(Square sq, uint64_t occupied, const std::array<Metadata, N_SQUARES>& metadata)
+    constexpr uint64_t& attack_mask(Square sq, uint64_t occupied, const std::array<Metadata, N_SQUARES>& metadata) noexcept
     {
         const size_t offset = ((occupied | metadata[sq].notmask) * metadata[sq].magic) >> (64 - shift);
         return attacks[metadata[sq].index + offset];
     }
 
     template <size_t shift>
-    constexpr uint64_t attack_mask(Square sq, uint64_t occupied, const std::array<Metadata, N_SQUARES>& metadata) const
+    constexpr uint64_t attack_mask(Square sq, uint64_t occupied, const std::array<Metadata, N_SQUARES>& metadata) const noexcept
     {
         return const_cast<std::remove_const_t<std::remove_pointer_t<decltype(this)>>*>(this)
             ->template attack_mask<shift>(sq, occupied, metadata);
@@ -245,7 +245,7 @@ struct BlackMagicStrategyRookAccessor
 {
     const BlackMagicStrategy<Traits>& strategy = get_shared_black_magic_strategy<Traits>();
 
-    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const
+    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const noexcept
     {
         return strategy.template attack_mask<Traits::RookTraits::shift>(sq, occupied, strategy.rook_metadata);
     }
@@ -256,7 +256,7 @@ struct BlackMagicStrategyBishopAccessor
 {
     const BlackMagicStrategy<Traits>& strategy = get_shared_black_magic_strategy<Traits>();
 
-    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const
+    constexpr uint64_t attack_mask(Square sq, uint64_t occupied) const noexcept
     {
         return strategy.template attack_mask<Traits::BishopTraits::shift>(sq, occupied, strategy.bishop_metadata);
     }

@@ -19,68 +19,68 @@
 #endif
 
 template <Side STM, typename T>
-void add_loud_moves(const BoardState& board, T& moves); // captures and/or promotions
+void add_loud_moves(const BoardState& board, T& moves) noexcept; // captures and/or promotions
 template <Side STM, typename T>
-void add_quiet_moves(const BoardState& board, T& moves);
+void add_quiet_moves(const BoardState& board, T& moves) noexcept;
 
 // Pawn moves
 template <Side STM, typename T>
-void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
+void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE) noexcept;
 template <Side STM, typename T>
-void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
+void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE) noexcept;
 template <Side STM, typename T>
-void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
+void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE) noexcept;
 template <Side STM, typename T>
 // Ep moves are always checked for legality so no need for pinned mask
-void pawn_ep(const BoardState& board, T& moves);
+void pawn_ep(const BoardState& board, T& moves) noexcept;
 template <Side STM, typename T>
-void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE);
+void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares = UNIVERSE) noexcept;
 
 // All other pieces
 template <bool capture, Side STM, typename T>
-void generate_knight_moves(const BoardState& board, T& moves, Square square);
+void generate_knight_moves(const BoardState& board, T& moves, Square square) noexcept;
 template <bool capture, Side STM, typename T>
-void generate_king_moves(const BoardState& board, T& moves, Square from);
+void generate_king_moves(const BoardState& board, T& moves, Square from) noexcept;
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations);
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations) noexcept;
 
 // misc
 template <Side STM, typename T>
-void castle_moves(const BoardState& board, T& moves);
+void castle_moves(const BoardState& board, T& moves) noexcept;
 
 // utility functions
 template <Side STM>
-bool move_puts_self_in_check(const BoardState& board, const Move& move);
+bool move_puts_self_in_check(const BoardState& board, const Move& move) noexcept;
 template <Side STM>
-bool ep_is_legal(const BoardState& board, const Move& move);
+bool ep_is_legal(const BoardState& board, const Move& move) noexcept;
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Side colour>
-bool is_square_threatened(const BoardState& board, Square square);
+bool is_square_threatened(const BoardState& board, Square square) noexcept;
 // colour is of the attacked piece! So to get the black threats of a white piece pass colour = WHITE!
 template <Side colour>
-uint64_t attacks_to_sq(const BoardState& board, Square square);
+uint64_t attacks_to_sq(const BoardState& board, Square square) noexcept;
 template <Side STM>
-bool is_legal(const BoardState& board, const Move& move);
+bool is_legal(const BoardState& board, const Move& move) noexcept;
 
 // special generators for when in check
 template <bool capture, Side STM, typename T>
-void king_evasions(const BoardState& board, T& moves, Square from);
+void king_evasions(const BoardState& board, T& moves, Square from) noexcept;
 // capture the attacker	(single threat only)
 template <Side STM, typename T>
-void capture_threat(const BoardState& board, T& moves);
+void capture_threat(const BoardState& board, T& moves) noexcept;
 // block the attacker (single threat only)
 template <Side STM, typename T>
-void block_threat(const BoardState& board, T& moves);
+void block_threat(const BoardState& board, T& moves) noexcept;
 
 template <typename T>
-void legal_moves(const BoardState& board, T& moves)
+void legal_moves(const BoardState& board, T& moves) noexcept
 {
     loud_moves(board, moves);
     quiet_moves(board, moves);
 }
 
 template <typename T>
-void loud_moves(const BoardState& board, T& moves)
+void loud_moves(const BoardState& board, T& moves) noexcept
 {
     if (board.stm == WHITE)
     {
@@ -93,7 +93,7 @@ void loud_moves(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void add_loud_moves(const BoardState& board, T& moves)
+void add_loud_moves(const BoardState& board, T& moves) noexcept
 {
     const Square king = board.get_king_sq(STM);
 
@@ -150,7 +150,7 @@ void add_loud_moves(const BoardState& board, T& moves)
 }
 
 template <typename T>
-void quiet_moves(const BoardState& board, T& moves)
+void quiet_moves(const BoardState& board, T& moves) noexcept
 {
     if (board.stm == WHITE)
     {
@@ -163,7 +163,7 @@ void quiet_moves(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void add_quiet_moves(const BoardState& board, T& moves)
+void add_quiet_moves(const BoardState& board, T& moves) noexcept
 {
     const Square king = board.get_king_sq(STM);
 
@@ -221,7 +221,7 @@ void add_quiet_moves(const BoardState& board, T& moves)
 
 // Moves going from a square to squares on a bitboard
 template <Side STM, MoveFlag flag, typename T>
-void append_legal_moves(Square from, uint64_t to, T& moves)
+void append_legal_moves(Square from, uint64_t to, T& moves) noexcept
 {
 #ifdef USE_AVX512_VNNI
     // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
@@ -265,7 +265,7 @@ void append_legal_moves(Square from, uint64_t to, T& moves)
 
 // Moves going to a square from squares on a bitboard
 template <Side STM, MoveFlag flag, typename T>
-void append_legal_moves(uint64_t from, Square to, T& moves)
+void append_legal_moves(uint64_t from, Square to, T& moves) noexcept
 {
 #ifdef USE_AVX512_VNNI
     // Idea by 87flowers, Using AVX512_VBMI2 instructions, we can splat moves in parallel
@@ -308,7 +308,7 @@ void append_legal_moves(uint64_t from, Square to, T& moves)
 }
 
 template <bool capture, Side STM, typename T>
-void king_evasions(const BoardState& board, T& moves, Square from)
+void king_evasions(const BoardState& board, T& moves, Square from) noexcept
 {
     const uint64_t occupied = board.get_pieces_bb();
     const auto flag = capture ? CAPTURE : QUIET;
@@ -320,7 +320,7 @@ void king_evasions(const BoardState& board, T& moves, Square from)
 }
 
 template <Side STM, typename T>
-void capture_threat(const BoardState& board, T& moves)
+void capture_threat(const BoardState& board, T& moves) noexcept
 {
     const Square square = lsb(board.checkers);
 
@@ -333,7 +333,7 @@ void capture_threat(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void block_threat(const BoardState& board, T& moves)
+void block_threat(const BoardState& board, T& moves) noexcept
 {
     const Square threatSquare = lsb(board.checkers);
     const Piece piece = board.get_square_piece(threatSquare);
@@ -356,7 +356,7 @@ void block_threat(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares)
+void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares) noexcept
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     const uint64_t pawnSquares
@@ -404,7 +404,7 @@ void pawn_pushes(const BoardState& board, T& moves, uint64_t target_squares)
 }
 
 template <Side STM, typename T>
-void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares)
+void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares) noexcept
 {
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
     const uint64_t pawnSquares = board.get_pieces_bb(PAWN, STM) & ~board.pinned;
@@ -454,7 +454,7 @@ void pawn_promotions(const BoardState& board, T& moves, uint64_t target_squares)
 }
 
 template <Side STM, typename T>
-void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares)
+void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squares) noexcept
 {
     constexpr Shift foward2 = STM == WHITE ? Shift::NN : Shift::SS;
     constexpr Shift foward = STM == WHITE ? Shift::N : Shift::S;
@@ -502,7 +502,7 @@ void pawn_double_pushes(const BoardState& board, T& moves, uint64_t target_squar
 }
 
 template <Side STM, typename T>
-void pawn_ep(const BoardState& board, T& moves)
+void pawn_ep(const BoardState& board, T& moves) noexcept
 {
     if (board.en_passant <= SQ_H8)
     {
@@ -519,7 +519,7 @@ void pawn_ep(const BoardState& board, T& moves)
 }
 
 template <Side STM, typename T>
-void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares)
+void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares) noexcept
 {
     constexpr Shift fowardleft = STM == WHITE ? Shift::NW : Shift::SE;
     constexpr Shift fowardright = STM == WHITE ? Shift::NE : Shift::SW;
@@ -707,7 +707,7 @@ void pawn_captures(const BoardState& board, T& moves, uint64_t target_squares)
 
 template <Side STM>
 bool check_castle_move(
-    const BoardState& board, Square king_start_sq, Square king_end_sq, Square rook_start_sq, Square rook_end_sq)
+    const BoardState& board, Square king_start_sq, Square king_end_sq, Square rook_start_sq, Square rook_end_sq) noexcept
 {
     const uint64_t blockers = board.get_pieces_bb() ^ SquareBB[king_start_sq] ^ SquareBB[rook_start_sq];
 
@@ -726,7 +726,7 @@ bool check_castle_move(
 }
 
 template <Side STM, typename T>
-void castle_moves(const BoardState& board, T& moves)
+void castle_moves(const BoardState& board, T& moves) noexcept
 {
     // tricky edge case, if the rook is pinned then castling will put the king in check,
     // but it is possible none of the squares the king will move through will be threatened
@@ -767,7 +767,7 @@ void castle_moves(const BoardState& board, T& moves)
 }
 
 template <bool capture, Side STM, typename T>
-void generate_knight_moves(const BoardState& board, T& moves, Square square)
+void generate_knight_moves(const BoardState& board, T& moves, Square square) noexcept
 {
     const uint64_t occupied = board.get_pieces_bb();
     const uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<KNIGHT>(square, occupied);
@@ -776,7 +776,7 @@ void generate_knight_moves(const BoardState& board, T& moves, Square square)
 }
 
 template <PieceType piece, bool capture, Side STM, typename T>
-void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations)
+void generate_sliding_moves(const BoardState& board, T& moves, Square square, uint64_t valid_destinations) noexcept
 {
     const uint64_t occupied = board.get_pieces_bb();
     const uint64_t targets = (capture ? board.get_pieces_bb(!STM) : ~occupied) & attack_bb<piece>(square, occupied);
@@ -785,7 +785,7 @@ void generate_sliding_moves(const BoardState& board, T& moves, Square square, ui
 }
 
 template <bool capture, Side STM, typename T>
-void generate_king_moves(const BoardState& board, T& moves, Square from)
+void generate_king_moves(const BoardState& board, T& moves, Square from) noexcept
 {
     const uint64_t occupied = board.get_pieces_bb();
     const auto flag = capture ? CAPTURE : QUIET;
@@ -797,13 +797,13 @@ void generate_king_moves(const BoardState& board, T& moves, Square from)
 }
 
 template <Side colour>
-bool is_square_threatened(const BoardState& board, Square square)
+bool is_square_threatened(const BoardState& board, Square square) noexcept
 {
     return (board.lesser_threats[KING] | attack_bb<KING>(board.get_king_sq(!colour))) & SquareBB[square];
 }
 
 template <Side colour>
-uint64_t attacks_to_sq(const BoardState& board, Square square)
+uint64_t attacks_to_sq(const BoardState& board, Square square) noexcept
 {
     uint64_t threats = EMPTY;
 
@@ -821,7 +821,7 @@ uint64_t attacks_to_sq(const BoardState& board, Square square)
     return threats;
 }
 
-bool is_legal(const BoardState& board, const Move& move)
+bool is_legal(const BoardState& board, const Move& move) noexcept
 {
     if (board.stm == WHITE)
     {
@@ -834,7 +834,7 @@ bool is_legal(const BoardState& board, const Move& move)
 }
 
 template <Side STM>
-bool is_legal(const BoardState& board, const Move& move)
+bool is_legal(const BoardState& board, const Move& move) noexcept
 {
     /*Obvious check first*/
     if (move == Move::Uninitialized)
@@ -1015,7 +1015,7 @@ bool is_legal(const BoardState& board, const Move& move)
 This function does not work for casteling moves. They are tested for legality their creation.
 */
 template <Side STM>
-bool move_puts_self_in_check(const BoardState& board, const Move& move)
+bool move_puts_self_in_check(const BoardState& board, const Move& move) noexcept
 {
     assert(move.flag() != A_SIDE_CASTLE);
     assert(move.flag() != H_SIDE_CASTLE);
@@ -1057,7 +1057,7 @@ bool move_puts_self_in_check(const BoardState& board, const Move& move)
     return false;
 }
 
-bool ep_is_legal(const BoardState& board, const Move& move)
+bool ep_is_legal(const BoardState& board, const Move& move) noexcept
 {
     if (board.stm == WHITE)
     {
@@ -1070,7 +1070,7 @@ bool ep_is_legal(const BoardState& board, const Move& move)
 }
 
 template <Side STM>
-bool ep_is_legal(const BoardState& board, const Move& move)
+bool ep_is_legal(const BoardState& board, const Move& move) noexcept
 {
     const Square king = board.get_king_sq(STM);
 
@@ -1103,38 +1103,38 @@ bool ep_is_legal(const BoardState& board, const Move& move)
 }
 
 template <>
-uint64_t attack_bb<KNIGHT>(Square sq, uint64_t)
+uint64_t attack_bb<KNIGHT>(Square sq, uint64_t) noexcept
 {
     return KnightAttacks[sq];
 }
 
 template <>
-uint64_t attack_bb<BISHOP>(Square sq, uint64_t occupied)
+uint64_t attack_bb<BISHOP>(Square sq, uint64_t occupied) noexcept
 {
     return BishopSlidingAttacks.attack_mask(sq, occupied);
 }
 
 template <>
-uint64_t attack_bb<ROOK>(Square sq, uint64_t occupied)
+uint64_t attack_bb<ROOK>(Square sq, uint64_t occupied) noexcept
 {
     return RookSlidingAttacks.attack_mask(sq, occupied);
 }
 
 template <>
-uint64_t attack_bb<QUEEN>(Square sq, uint64_t occupied)
+uint64_t attack_bb<QUEEN>(Square sq, uint64_t occupied) noexcept
 {
     return attack_bb<ROOK>(sq, occupied) | attack_bb<BISHOP>(sq, occupied);
 }
 
 template <>
-uint64_t attack_bb<KING>(Square sq, uint64_t)
+uint64_t attack_bb<KING>(Square sq, uint64_t) noexcept
 {
     return KingAttacks[sq];
 }
 
 // Explicit template instantiation
-template void legal_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void legal_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves) noexcept;
 
-template void loud_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void loud_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves) noexcept;
 
-template void quiet_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves);
+template void quiet_moves<BasicMoveList>(const BoardState& board, BasicMoveList& moves) noexcept;

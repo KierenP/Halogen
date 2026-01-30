@@ -14,13 +14,13 @@
 #include <cstdint>
 #include <optional>
 
-void GameState::apply_move(Move move)
+void GameState::apply_move(Move move) noexcept
 {
     previousStates.emplace_back(previousStates.back()).apply_move(move);
     update_current_position_repetition();
 }
 
-void GameState::apply_move(std::string_view strmove)
+void GameState::apply_move(std::string_view strmove) noexcept
 {
     Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
     Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
@@ -58,46 +58,46 @@ void GameState::apply_move(std::string_view strmove)
     }
 }
 
-void GameState::revert_move()
+void GameState::revert_move() noexcept
 {
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
 }
 
-void GameState::apply_null_move()
+void GameState::apply_null_move() noexcept
 {
     previousStates.push_back(previousStates.back());
     MutableBoard().apply_null_move();
     update_current_position_repetition();
 }
 
-void GameState::revert_null_move()
+void GameState::revert_null_move() noexcept
 {
     assert(previousStates.size() > 0);
 
     previousStates.pop_back();
 }
 
-GameState GameState::starting_position()
+GameState GameState::starting_position() noexcept
 {
     return from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 }
 
-GameState GameState::from_fen(std::string_view fen)
+GameState GameState::from_fen(std::string_view fen) noexcept
 {
     GameState state;
     state.init_from_fen(fen);
     return state;
 }
 
-bool GameState::init_from_fen(std::array<std::string_view, 6> fen)
+bool GameState::init_from_fen(std::array<std::string_view, 6> fen) noexcept
 {
     previousStates.clear();
     return previousStates.emplace_back().init_from_fen(fen);
 }
 
-bool GameState::init_from_fen(std::string_view fen)
+bool GameState::init_from_fen(std::string_view fen) noexcept
 {
     // Split the line into an array of strings seperated by each space
     std::array<std::string_view, 6> splitFen = {
@@ -127,36 +127,36 @@ bool GameState::init_from_fen(std::string_view fen)
     return init_from_fen(splitFen);
 }
 
-const BoardState& GameState::board() const
+const BoardState& GameState::board() const noexcept
 {
     assert(previousStates.size() >= 1);
     return previousStates.back();
 }
 
-const BoardState& GameState::prev_board() const
+const BoardState& GameState::prev_board() const noexcept
 {
     assert(previousStates.size() >= 2);
     return previousStates[previousStates.size() - 2];
 }
 
-BoardState& GameState::MutableBoard()
+BoardState& GameState::MutableBoard() noexcept
 {
     assert(previousStates.size() >= 1);
     return previousStates.back();
 }
 
-bool GameState::is_repetition(int distance_from_root) const
+bool GameState::is_repetition(int distance_from_root) const noexcept
 {
     return board().three_fold_rep
         || (board().repetition.has_value() && board().repetition.value() < distance_from_root);
 }
 
-bool GameState::is_two_fold_repetition() const
+bool GameState::is_two_fold_repetition() const noexcept
 {
     return board().repetition.has_value();
 }
 
-void GameState::update_current_position_repetition()
+void GameState::update_current_position_repetition() noexcept
 {
     assert(previousStates.size() >= 1);
 
@@ -177,7 +177,7 @@ void GameState::update_current_position_repetition()
     }
 }
 
-bool GameState::upcoming_rep(int distanceFromRoot, Move excluded_move) const
+bool GameState::upcoming_rep(int distanceFromRoot, Move excluded_move) const noexcept
 {
     const int i = (int)previousStates.size() - 1;
     const int max_ply = std::min(i, previousStates[i].fifty_move_count);
@@ -228,7 +228,7 @@ bool GameState::upcoming_rep(int distanceFromRoot, Move excluded_move) const
     return false;
 }
 
-bool GameState::has_repeated() const
+bool GameState::has_repeated() const noexcept
 {
     // true if the game has repeated since the last zeroing move
     const int start = (int)previousStates.size() - 1;
