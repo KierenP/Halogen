@@ -1150,8 +1150,11 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
 
         // Step 19: Check extensions
         //
-        // If the move gives check, extend the search by one ply to better explore forcing sequences
-        if (position.board().checkers)
+        // If the move gives check, extend the search by one ply to better explore forcing sequences. We only
+        // apply check extensions at sufficient depth to avoid extension explosion at shallow depths and in
+        // positions with many checking moves. We also cap the total extensions to prevent excessive depth
+        // when combining with singular extensions.
+        if (depth >= check_extension_min_depth && position.board().checkers && extensions < check_extension_max)
         {
             extensions += check_extension_depth;
         }
