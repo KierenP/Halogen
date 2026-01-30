@@ -84,7 +84,7 @@ make EVALFILE=/path/to/network.nn release
 
 ### Requirements
 
-Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-11 and clang-16 or newer
+Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-11 and clang-16 or newer.
 
 | Platform          | Build |
 |-------------------|-------|
