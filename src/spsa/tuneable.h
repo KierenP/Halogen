@@ -68,6 +68,7 @@ TUNEABLE_CONSTANT auto lmr_pv = Fraction<LMR_SCALE>::from_raw(1376);
 TUNEABLE_CONSTANT auto lmr_cut = Fraction<LMR_SCALE>::from_raw(1969);
 TUNEABLE_CONSTANT auto lmr_improving = Fraction<LMR_SCALE>::from_raw(881);
 TUNEABLE_CONSTANT auto lmr_loud = Fraction<LMR_SCALE>::from_raw(733);
+TUNEABLE_CONSTANT auto lmr_gives_check = Fraction<LMR_SCALE>::from_raw(1024);
 TUNEABLE_CONSTANT auto lmr_h = Fraction<16777216>::from_raw(2232);
 TUNEABLE_CONSTANT auto lmr_offset = Fraction<LMR_SCALE>::from_raw(576);
 TUNEABLE_CONSTANT int lmr_shallower = 9;

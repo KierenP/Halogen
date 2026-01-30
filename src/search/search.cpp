@@ -585,7 +585,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 }
 
 template <bool pv_node>
-int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud)
+int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, bool improving, bool loud, bool gives_check)
 {
     auto r = LMR_reduction[std::clamp(depth, 0, 63)][std::clamp(seen_moves, 0, 63)];
 
@@ -607,6 +607,11 @@ int late_move_reduction(int depth, int seen_moves, int history, bool cut_node, b
     if (loud)
     {
         r -= lmr_loud;
+    }
+
+    if (gives_check)
+    {
+        r -= lmr_gives_check;
     }
 
     r -= (history * lmr_h).rescale<LMR_SCALE>();
@@ -1148,8 +1153,13 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
 
-        // Step 19: Late move reductions
-        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
+        // Step 19: Check detection for LMR reduction
+        const bool gives_check = position.board().checkers;
+
+        // Step 20: Late move reductions
+        //
+        // Moves that give check receive reduced LMR to ensure tactical sequences involving checks are explored deeper.
+        int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move, gives_check);
         Score search_score = search_move<pv_node>(
             position, ss, acc, local, shared, depth, extensions, r, alpha, beta, seen_moves, cut_node, score);
 
@@ -1190,14 +1200,14 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
-        // Step 20: Update history move tables and check for fail-high
+        // Step 21: Update history move tables and check for fail-high
         if (update_search_stats<pv_node>(ss, gen, depth, search_score, move, score, bestMove, alpha, beta))
         {
             break;
         }
     }
 
-    // Step 21: Handle terminal node conditions
+    // Step 22: Handle terminal node conditions
     if (noLegalMoves)
     {
         if (ss->singular_exclusion != Move::Uninitialized)
@@ -1254,7 +1264,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         : score >= beta                        ? SearchResultType::LOWER_BOUND
                                                : SearchResultType::EXACT;
 
-    // Step 22: Adjust eval correction history
+    // Step 23: Adjust eval correction history
     if (!InCheck && !(bestMove.is_capture() || bestMove.is_promotion())
         && !(bound == SearchResultType::LOWER_BOUND && score <= ss->adjusted_eval)
         && !(bound == SearchResultType::UPPER_BOUND && score >= ss->adjusted_eval))
@@ -1269,7 +1279,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 23: Update transposition table
+    // Step 24: Update transposition table
     shared.transposition_table.add_entry(bestMove, Zobrist::get_fifty_move_adj_key(position.board()), score, depth,
         position.board().half_turn_count, distance_from_root, bound, raw_eval);
 
