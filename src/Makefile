@@ -349,20 +349,6 @@ pgo:
 pgo-instrumented pgo-compile: verbatim_binary binary
 
 #----------------------------------------------------------------------------------------------------------------------
-# Multi-Architecture Release Target
-#----------------------------------------------------------------------------------------------------------------------
-
-.PHONY: release-all
-release-all:
-	$(MAKE) ARCH=legacy release
-	$(MAKE) ARCH=sse4 release
-	$(MAKE) ARCH=avx release
-	$(MAKE) ARCH=avx2 release
-	$(MAKE) ARCH=avx2-pext release
-	$(MAKE) ARCH=avx512 release
-	$(MAKE) ARCH=avx512vnni release
-
-#----------------------------------------------------------------------------------------------------------------------
 # Network File Management
 #----------------------------------------------------------------------------------------------------------------------
 
