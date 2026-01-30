@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <tuple>
 #include <utility>
 
@@ -78,6 +79,13 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
         747, 468, 745, 739, 182, 417, 166, 112, 473, 744, 662, 709, 729, 320, 377, 134, 39, 574, 43, 487, 365,
     };
     // clang-format on
+
+    constexpr auto is_valid_permutation = [](auto order) constexpr
+    {
+        std::ranges::sort(order);
+        return std::ranges::equal(order, std::views::iota(size_t { 0 }, FT_SIZE / 2));
+    };
+    static_assert(is_valid_permutation(shuffle_order), "shuffle_order must be a valid permutation of [0, FT_SIZE / 2)");
 
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
