@@ -444,8 +444,7 @@ std::tuple<Transposition::Entry*, Score, int, SearchResultType, Move, Score> pro
     const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.board());
     auto* tt_entry
         = shared.transposition_table.get_entry(adjusted_key, distance_from_root, position.board().half_turn_count);
-    
-    // Copy the full 10 bytes at once to avoid multiple conditional branches
+
     if (tt_entry)
     {
         auto entry_copy = *tt_entry;
