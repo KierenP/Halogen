@@ -83,6 +83,8 @@ static_assert(std::is_trivial_v<Move>);
 constexpr Move::Move(Square from, Square to, MoveFlag flag)
     : data(from | (to << 6) | (flag << 12))
 {
+    assert(from < 64);
+    assert(to < 64);
 }
 
 constexpr Move::Move(uint16_t data_)
