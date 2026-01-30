@@ -33,6 +33,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -444,13 +445,20 @@ std::tuple<Transposition::Entry*, Score, int, SearchResultType, Move, Score> pro
     const auto adjusted_key = Zobrist::get_fifty_move_adj_key(position.board());
     auto* tt_entry
         = shared.transposition_table.get_entry(adjusted_key, distance_from_root, position.board().half_turn_count);
-    const auto tt_score
-        = tt_entry ? Transposition::convert_from_tt_score(tt_entry->score, distance_from_root) : SCORE_UNDEFINED;
-    const auto tt_depth = tt_entry ? tt_entry->depth : 0;
-    const auto tt_cutoff = tt_entry ? tt_entry->meta.type : SearchResultType::EMPTY;
-    const auto tt_move = tt_entry ? tt_entry->move : Move::Uninitialized;
-    const auto tt_eval = tt_entry ? tt_entry->static_eval : SCORE_UNDEFINED;
-    return { tt_entry, tt_score, tt_depth, tt_cutoff, tt_move, tt_eval };
+    
+    // Copy the full 10 bytes at once to avoid multiple conditional branches
+    Transposition::Entry entry_copy;
+    if (tt_entry)
+    {
+        std::memcpy(&entry_copy, tt_entry, sizeof(Transposition::Entry));
+        const auto tt_score = Transposition::convert_from_tt_score(entry_copy.score, distance_from_root);
+        const auto tt_cutoff = entry_copy.meta.type;
+        return { tt_entry, tt_score, entry_copy.depth, tt_cutoff, entry_copy.move, entry_copy.static_eval };
+    }
+    else
+    {
+        return { nullptr, SCORE_UNDEFINED, 0, SearchResultType::EMPTY, Move::Uninitialized, SCORE_UNDEFINED };
+    }
 }
 
 std::optional<Score> tt_cutoff_node(const GameState& position, const Score tt_score, const SearchResultType tt_cutoff,
