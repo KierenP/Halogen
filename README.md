@@ -24,14 +24,66 @@ Halogen is not a stand alone application and should be used with any popular che
 
 ## How to build
 
-To build Halogen yourself, simply use the included makefile in the `src` directory:
+To build Halogen yourself, use the included Makefile in the `src` directory. The Makefile provides several build targets and configuration options.
+
+### Quick Start
+
+For a basic optimized build with PGO (Profile-Guided Optimization):
 
 ```bash
-> cd src
-> make
+cd src
+make
 ```
 
-Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-11 and clang-16 or newer
+This will build `Halogen-pgo` in the `bin` directory using your native CPU architecture.
+
+### Build Targets
+
+- **`make pgo`** (default) - PGO-optimized build for maximum performance
+- **`make release`** - Standard optimized release build with LTO
+- **`make debug`** - Debug build with symbols and no optimization
+- **`make sanitize-address`** - Build with AddressSanitizer for memory debugging
+- **`make sanitize-undefined`** - Build with UndefinedBehaviorSanitizer
+- **`make sanitize-thread`** - Build with ThreadSanitizer for race condition detection
+- **`make tune`** - Build for parameter tuning
+- **`make tournament`** - Tournament mode build with NUMA support
+
+### Architecture Options
+
+You can specify the target CPU architecture using the `ARCH` parameter:
+
+```bash
+make ARCH=<architecture> <target>
+```
+
+Supported architectures:
+- **`native`** (default) - Auto-detect and optimize for your CPU
+- **`legacy`** - Basic build without SIMD instructions
+- **`sse4`** - For Intel Nehalem (2008) and newer
+- **`avx`** - For Intel Sandy Bridge (2011) and newer
+- **`avx2`** - For Intel Haswell (2013) and newer
+- **`avx2-pext`** - Haswell with BMI2 instructions
+- **`avx512`** - For Intel Skylake-X (2017) and newer
+- **`avx512vnni`** - For Intel Cascade Lake (2019) and newer
+- **`neon`** - For ARM v8.0+ processors
+- **`neon-dotprod`** - For ARM v8.2+ with dot product support
+
+Example:
+```bash
+make ARCH=avx2 release
+```
+
+### Network File
+
+Halogen uses a neural network for evaluation. The Makefile will automatically download the default network if needed. You can also specify a custom network file:
+
+```bash
+make EVALFILE=/path/to/network.nn release
+```
+
+### Requirements
+
+Halogen is officially supported on Windows, Ubuntu, and MacOS for both x86-64 and ARM64 platforms, when using compilers gcc-11 and clang-16 or newer.
 
 | Platform          | Build |
 |-------------------|-------|
