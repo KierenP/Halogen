@@ -10,18 +10,18 @@
 struct ExtendedMove
 {
     ExtendedMove() = default;
-    ExtendedMove(const Move _move, int _score)
+    constexpr ExtendedMove(const Move _move, int _score)
         : move(_move)
         , score(_score)
     {
     }
 
-    bool operator<(const ExtendedMove& rhs) const
+    constexpr bool operator<(const ExtendedMove& rhs) const
     {
         return score < rhs.score;
     };
 
-    bool operator>(const ExtendedMove& rhs) const
+    constexpr bool operator>(const ExtendedMove& rhs) const
     {
         return score > rhs.score;
     };

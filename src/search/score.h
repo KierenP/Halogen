@@ -200,8 +200,8 @@ public:
     };
 };
 
-inline Score abs(Score val)
+inline constexpr Score abs(Score val)
 {
-    return std::abs(val.value());
+    return val.value() < 0 ? Score(-val.value()) : val;
 }
 }
