@@ -216,7 +216,7 @@ void SearchSharedState::set_hash(int hash_size_mb, bool print)
     auto start = std::chrono::steady_clock::now();
     transposition_table.set_size(hash_size_mb, get_threads_setting());
     auto end = std::chrono::steady_clock::now();
-    
+
     if (print && uci_handler.output_level > UCI::OutputLevel::None)
     {
         auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
