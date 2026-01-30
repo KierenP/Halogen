@@ -7,12 +7,15 @@
 #include "search/score.h"
 #include "search/transposition/table.h"
 #include "spsa/tuneable.h"
+#include "uci/uci.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <iterator>
+#include <mutex>
 #include <numeric>
 #include <ranges>
 #include <unordered_map>
@@ -208,9 +211,18 @@ void SearchSharedState::set_threads(int threads)
     threads_setting = threads;
 }
 
-void SearchSharedState::set_hash(int hash_size_mb)
+void SearchSharedState::set_hash(int hash_size_mb, bool print)
 {
+    auto start = std::chrono::steady_clock::now();
     transposition_table.set_size(hash_size_mb, get_threads_setting());
+    auto end = std::chrono::steady_clock::now();
+
+    if (print && uci_handler.output_level > UCI::OutputLevel::None)
+    {
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::lock_guard io { UCI::output_mutex };
+        std::cout << "info string hash init time " << duration_ms << "ms" << std::endl;
+    }
 }
 
 int64_t SearchSharedState::tb_hits() const

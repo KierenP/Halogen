@@ -66,7 +66,7 @@ public:
     void reset_new_game();
 
     void set_position(const GameState& position);
-    void set_hash(int hash_size_mb);
+    void set_hash(int hash_size_mb, bool print = false);
     void set_multi_pv(int multi_pv);
     void set_chess960(bool chess960);
     void set_threads(size_t threads);

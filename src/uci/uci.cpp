@@ -487,7 +487,7 @@ void Uci::handle_setoption_clear_hash()
 
 void Uci::handle_setoption_hash(int value)
 {
-    search_thread_pool.set_hash(value);
+    search_thread_pool.set_hash(value, finished_startup);
 }
 
 void Uci::handle_setoption_threads(int value)

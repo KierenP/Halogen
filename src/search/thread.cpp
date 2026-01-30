@@ -173,9 +173,9 @@ void SearchThreadPool::reset_new_game()
     latch.wait();
 }
 
-void SearchThreadPool::set_hash(int hash_size_mb)
+void SearchThreadPool::set_hash(int hash_size_mb, bool print)
 {
-    shared_state.set_hash(hash_size_mb);
+    shared_state.set_hash(hash_size_mb, print);
 }
 
 void SearchThreadPool::set_multi_pv(int multi_pv)
