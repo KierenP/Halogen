@@ -33,7 +33,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -447,10 +446,9 @@ std::tuple<Transposition::Entry*, Score, int, SearchResultType, Move, Score> pro
         = shared.transposition_table.get_entry(adjusted_key, distance_from_root, position.board().half_turn_count);
     
     // Copy the full 10 bytes at once to avoid multiple conditional branches
-    Transposition::Entry entry_copy;
     if (tt_entry)
     {
-        std::memcpy(&entry_copy, tt_entry, sizeof(Transposition::Entry));
+        auto entry_copy = *tt_entry;
         const auto tt_score = Transposition::convert_from_tt_score(entry_copy.score, distance_from_root);
         const auto tt_cutoff = entry_copy.meta.type;
         return { tt_entry, tt_score, entry_copy.depth, tt_cutoff, entry_copy.move, entry_copy.static_eval };
