@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 
 constexpr size_t INPUT_SIZE = 12 * 64;
 constexpr size_t FT_SIZE = 1536;
