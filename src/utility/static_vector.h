@@ -172,7 +172,7 @@ public:
         size_ = 0;
     }
 
-    iterator insert(const_iterator pos, const T& value) noexcept
+    iterator insert(const_iterator pos, const T& value)
     {
         assert(size_ < N);
         std::move_backward(pos, end(), std::next(end()));
@@ -181,7 +181,7 @@ public:
         return pos;
     }
 
-    iterator insert(const_iterator pos, T&& value) noexcept
+    iterator insert(const_iterator pos, T&& value)
     {
         assert(size_ < N);
         std::move_backward(pos, end(), std::next(end()));
@@ -191,7 +191,7 @@ public:
     }
 
     template <class InputIt>
-    iterator insert(const_iterator pos, InputIt first, InputIt last) noexcept
+    iterator insert(const_iterator pos, InputIt first, InputIt last)
     {
         assert(size_ + (last - first) <= N);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -202,7 +202,7 @@ public:
     }
 
     template <class... Args>
-    iterator emplace(const_iterator pos, Args&&... args) noexcept
+    iterator emplace(const_iterator pos, Args&&... args)
     {
         assert(size_ < N);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -212,7 +212,7 @@ public:
         return mutable_it;
     }
 
-    iterator erase(const_iterator pos) noexcept
+    iterator erase(const_iterator pos)
     {
         assert(size_ > 0);
         auto mutable_it = begin() + std::distance(cbegin(), pos);
@@ -221,7 +221,7 @@ public:
         return mutable_it;
     }
 
-    iterator erase(const_iterator first, const_iterator last) noexcept
+    iterator erase(const_iterator first, const_iterator last)
     {
         assert((int)size_ > (last - first));
         auto mutable_first = begin() + std::distance(cbegin(), first);
@@ -230,20 +230,20 @@ public:
         return mutable_first;
     }
 
-    void push_back(const T& value) noexcept
+    void push_back(const T& value)
     {
         assert(size_ < N);
         elems_[size_++] = value;
     }
 
-    void push_back(T&& value) noexcept
+    void push_back(T&& value)
     {
         assert(size_ < N);
         elems_[size_++] = std::move(value);
     }
 
     template <class... Args>
-    reference emplace_back(Args&&... args) noexcept
+    reference emplace_back(Args&&... args)
     {
         assert(size_ < N);
         elems_[size_++] = T { std::forward<Args>(args)... };
@@ -256,12 +256,12 @@ public:
         size_--;
     }
 
-    bool operator<=>(const StaticVector& other) const noexcept
+    bool operator<=>(const StaticVector& other) const
     {
         return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
     }
 
-    bool operator==(const StaticVector& other) const noexcept
+    bool operator==(const StaticVector& other) const
     {
         return size_ == other.size_ && std::equal(begin(), end(), other.begin());
     }

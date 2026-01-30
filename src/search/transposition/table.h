@@ -28,10 +28,10 @@ public:
 
     [[nodiscard]] int get_hashfull(int halfmove) const noexcept;
 
-    void clear(int thread_count) noexcept;
+    void clear(int thread_count);
 
     // will wipe the table and reconstruct a new empty table with a set size. units in MB!
-    void set_size(uint64_t MB, int thread_count) noexcept;
+    void set_size(uint64_t MB, int thread_count);
 
     void add_entry(const Move& best, uint64_t ZobristKey, Score score, int Depth, int Turncount, int distanceFromRoot,
         SearchResultType Cutoff, Score static_eval) noexcept;

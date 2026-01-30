@@ -111,7 +111,7 @@ int Table::get_hashfull(int halfmove) const noexcept
     return count;
 }
 
-void Table::clear(int thread_count) noexcept
+void Table::clear(int thread_count)
 {
     // For extremely large hash sizes, we clear the table using multiple threads
 
@@ -134,7 +134,7 @@ void Table::clear(int thread_count) noexcept
     }
 }
 
-void Table::set_size(uint64_t MB, int thread_count) noexcept
+void Table::set_size(uint64_t MB, int thread_count)
 {
     size_ = MB * 1024 * 1024 / sizeof(Bucket);
     table = make_unique_for_overwrite_huge_page<Bucket[]>(size_);
