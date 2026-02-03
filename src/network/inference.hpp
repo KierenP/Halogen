@@ -204,7 +204,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 }
 
 void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
-    const std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>& l2_weight, std::array<float, L2_SIZE>& output)
+    const std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>& l2_weight, const std::array<float, L2_SIZE>& l2_bias,
+    std::array<float, L2_SIZE / 2>& output)
 {
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(float);
@@ -213,7 +214,7 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        l2_reg[i / stride] = SIMD::load(&output[i]);
+        l2_reg[i / stride] = SIMD::load(&l2_bias[i]);
     }
 
     // We would normally calculate a vector-matrix product by calculating the dot product of each row. In this case, the
@@ -228,48 +229,62 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
         }
     }
 
+    // SwiGLU activation: output[i] = first_half[i] * hardswish6(second_half[i])
+    // where hardswish6(x) = x * clamp(x/6 + 0.5, 0, 1)
     const auto zero = SIMD::setzero<SIMD::vecf32>();
     const auto one = SIMD::set_f32(1.f);
+    const auto sixth = SIMD::set_f32(1.f / 6.f);
+    const auto half = SIMD::set_f32(0.5f);
 
-    for (size_t i = 0; i < L2_SIZE; i += stride)
+    for (size_t i = 0; i < L2_SIZE / 2; i += stride)
     {
-        auto result = l2_reg[i / stride];
-        result = SIMD::max_f32(result, zero);
-        result = SIMD::min_f32(result, one);
+        auto first_half = l2_reg[i / stride];
+        auto second_half = l2_reg[i / stride + L2_SIZE / 2 / stride];
+
+        // hardswish6(x) = x * clamp(x/6 + 0.5, 0, 1)
+        auto gate = SIMD::fmadd_f32(second_half, sixth, half);
+        gate = SIMD::max_f32(gate, zero);
+        gate = SIMD::min_f32(gate, one);
+        auto result = SIMD::mul_f32(first_half, SIMD::mul_f32(second_half, gate));
+
         SIMD::store(&output[i], result);
     }
 
 #else
+    std::array<float, L2_SIZE> l2_raw = l2_bias;
+
     for (size_t i = 0; i < L1_SIZE * 2; i++)
     {
         for (size_t j = 0; j < L2_SIZE; j++)
         {
-            output[j] = std::fma(l1_activation[i], l2_weight[i][j], output[j]);
+            l2_raw[j] = std::fma(l1_activation[i], l2_weight[i][j], l2_raw[j]);
         }
     }
 
-    for (size_t i = 0; i < L2_SIZE; i++)
+    for (size_t i = 0; i < L2_SIZE / 2; i++)
     {
-        output[i] = std::clamp(output[i], 0.f, 1.f);
+        float first_half = l2_raw[i];
+        float second_half = l2_raw[i + L2_SIZE / 2];
+        float gate = std::clamp(second_half / 6.f + 0.5f, 0.f, 1.f);
+        output[i] = first_half * second_half * gate;
     }
 #endif
 }
 
 void L3_activation(
-    const std::array<float, L2_SIZE>& l2_activation, const std::array<float, L2_SIZE>& l3_weight, float& output)
+    const std::array<float, L2_SIZE / 2>& l2_activation, const std::array<float, L2_SIZE / 2>& l3_weight, float& output)
 {
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(float);
-    static_assert(L2_SIZE % stride == 0);
+    static_assert((L2_SIZE / 2) % stride == 0);
 
-    SIMD::vecf32 results[L2_SIZE / stride];
-
-    for (size_t i = 0; i < L2_SIZE; i += stride)
+    SIMD::vecf32 results[L2_SIZE / 2 / stride];
+    for (size_t i = 0; i < L2_SIZE / 2; i += stride)
     {
         results[i / stride] = SIMD::setzero<SIMD::vecf32>();
     }
 
-    for (size_t i = 0; i < L2_SIZE; i += stride)
+    for (size_t i = 0; i < L2_SIZE / 2; i += stride)
     {
         auto vec = SIMD::load(&l2_activation[i]);
         results[i / stride] = SIMD::mul_f32(vec, SIMD::load(&l3_weight[i]));
@@ -301,12 +316,12 @@ void L3_activation(
 
 #else
     // this whole song and dance is to match the order the floats are added in the SIMD code above
-    float results[L2_SIZE];
-    for (size_t i = 0; i < L2_SIZE; i++)
+    float results[L2_SIZE / 2];
+    for (size_t i = 0; i < L2_SIZE / 2; i++)
     {
         results[i] = l2_activation[i] * l3_weight[i];
     }
-    size_t size = L2_SIZE;
+    size_t size = L2_SIZE / 2;
     while (size > 1)
     {
         for (size_t i = 0; i < size / 2; i++)
