@@ -513,11 +513,9 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     alignas(64) std::array<float, L1_SIZE * 2> l1_activation;
     NN::Features::L1_activation(ft_activation, net.l1_weight[output_bucket], net.l1_bias[output_bucket],
         sparse_ft_nibbles, sparse_nibbles_size, l1_activation);
-    assert(std::all_of(l1_activation.begin(), l1_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
 
-    alignas(64) std::array<float, L2_SIZE> l2_activation = net.l2_bias[output_bucket];
-    NN::Features::L2_activation(l1_activation, net.l2_weight[output_bucket], l2_activation);
-    assert(std::all_of(l2_activation.begin(), l2_activation.end(), [](auto x) { return 0 <= x && x <= 1; }));
+    alignas(64) std::array<float, L2_SIZE / 2> l2_activation = {};
+    NN::Features::L2_activation(l1_activation, net.l2_weight[output_bucket], net.l2_bias[output_bucket], l2_activation);
 
     float output = net.l3_bias[output_bucket];
     NN::Features::L3_activation(l2_activation, net.l3_weight[output_bucket], output);

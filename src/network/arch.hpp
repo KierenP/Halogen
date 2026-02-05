@@ -11,7 +11,7 @@
 constexpr size_t INPUT_SIZE = 12 * 64;
 constexpr size_t FT_SIZE = 1536;
 constexpr size_t L1_SIZE = 16;
-constexpr size_t L2_SIZE = 32;
+constexpr size_t L2_SIZE = 64;
 
 constexpr size_t OUTPUT_BUCKETS = 8;
 
@@ -54,7 +54,7 @@ struct network
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE / 2>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 };
 

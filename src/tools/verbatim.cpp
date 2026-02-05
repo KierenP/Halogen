@@ -27,7 +27,7 @@ struct raw_network
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
     alignas(64) std::array<std::array<std::array<float, L1_SIZE * 2>, L2_SIZE>, OUTPUT_BUCKETS> l2_weight = {};
     alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l2_bias = {};
-    alignas(64) std::array<std::array<float, L2_SIZE>, OUTPUT_BUCKETS> l3_weight = {};
+    alignas(64) std::array<std::array<float, L2_SIZE / 2>, OUTPUT_BUCKETS> l3_weight = {};
     alignas(64) std::array<float, OUTPUT_BUCKETS> l3_bias = {};
 };
 
