@@ -93,10 +93,6 @@ void deallocate_huge_page(T* ptr)
 #endif
 }
 
-// Custom deleters for huge-page-allocated memory. Using a concrete type rather than
-// std::function prevents implicit conversion from std::unique_ptr (std::default_delete),
-// turning mismatched-allocator bugs into compile errors.
-
 template <typename T>
 struct HugePageDeleter
 {
