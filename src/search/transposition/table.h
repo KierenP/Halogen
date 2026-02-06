@@ -1,6 +1,7 @@
 #pragma once
 
 #include "search/score.h"
+#include "search/transposition/entry.h"
 #include "utility/huge_pages.h"
 
 #include <cstddef>
@@ -12,9 +13,6 @@ enum class SearchResultType : uint8_t;
 
 namespace Transposition
 {
-
-class Entry;
-struct Bucket;
 
 class Table
 {
