@@ -175,19 +175,21 @@ public:
     iterator insert(const_iterator pos, const T& value)
     {
         assert(size_ < N);
-        std::move_backward(pos, end(), std::next(end()));
-        *pos = value;
+        auto mutable_it = begin() + std::distance(cbegin(), pos);
+        std::move_backward(mutable_it, end(), std::next(end()));
+        *mutable_it = value;
         size_++;
-        return pos;
+        return mutable_it;
     }
 
     iterator insert(const_iterator pos, T&& value)
     {
         assert(size_ < N);
-        std::move_backward(pos, end(), std::next(end()));
-        *pos = std::move(value);
+        auto mutable_it = begin() + std::distance(cbegin(), pos);
+        std::move_backward(mutable_it, end(), std::next(end()));
+        *mutable_it = std::move(value);
         size_++;
-        return pos;
+        return mutable_it;
     }
 
     template <class InputIt>
@@ -223,7 +225,7 @@ public:
 
     iterator erase(const_iterator first, const_iterator last)
     {
-        assert((int)size_ > (last - first));
+        assert((int)size_ >= (last - first));
         auto mutable_first = begin() + std::distance(cbegin(), first);
         std::move(last, cend(), mutable_first);
         size_ -= last - first;
