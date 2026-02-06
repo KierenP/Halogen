@@ -1,6 +1,5 @@
 #include "movegen/move.h"
 
-#include <cassert>
 #include <iostream>
 
 std::ostream& operator<<(std::ostream& os, Move m)
