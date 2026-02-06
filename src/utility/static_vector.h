@@ -258,7 +258,7 @@ public:
         size_--;
     }
 
-    constexpr bool operator<=>(const StaticVector& other) const
+    constexpr auto operator<=>(const StaticVector& other) const
     {
         return std::lexicographical_compare_three_way(begin(), end(), other.begin(), other.end());
     }
