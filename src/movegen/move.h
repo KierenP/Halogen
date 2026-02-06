@@ -2,6 +2,7 @@
 
 #include "bitboard/enum.h"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
