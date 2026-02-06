@@ -6,7 +6,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 
 class Move;
 enum class SearchResultType : uint8_t;
