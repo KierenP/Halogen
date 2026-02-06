@@ -122,9 +122,9 @@ constexpr bool Move::is_castle() const
     return flag() == A_SIDE_CASTLE || flag() == H_SIDE_CASTLE;
 }
 
-inline constexpr Move Move::Uninitialized = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
+inline constexpr Move Move::Uninitialized
+    = Move(static_cast<Square>(0), static_cast<Square>(0), static_cast<MoveFlag>(0));
 
-// Compile-time verification that Move is constexpr
 static_assert(Move(SQ_E2, SQ_E4, PAWN_DOUBLE_MOVE).from() == SQ_E2);
 static_assert(Move(SQ_E2, SQ_E4, PAWN_DOUBLE_MOVE).to() == SQ_E4);
 static_assert(Move(SQ_E2, SQ_E4, PAWN_DOUBLE_MOVE).flag() == PAWN_DOUBLE_MOVE);

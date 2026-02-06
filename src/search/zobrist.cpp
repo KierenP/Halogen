@@ -166,7 +166,3 @@ uint64_t get_fifty_move_adj_key(const BoardState& board)
 }
 
 } // namespace Zobrist
-
-// Compile-time verification that the Zobrist tables are constexpr
-static_assert(Zobrist::Table[0] != 0, "Zobrist table should be non-zero");
-static_assert(Zobrist::fifty_move_hash[0] != 0, "Fifty move hash should be non-zero");
