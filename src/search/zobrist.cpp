@@ -13,11 +13,10 @@
 namespace Zobrist
 {
 
-SplitMix64 rng(0);
-
-const std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
+constexpr std::array<uint64_t, 12 * 64 + 1 + 16 + 8> Table = []
 {
-    std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table;
+    SplitMix64 rng(0);
+    std::array<uint64_t, 12 * 64 + 1 + 16 + 8> table {};
 
     for (size_t i = 0; i < table.size(); i++)
     {
@@ -122,9 +121,17 @@ uint64_t non_pawn_key(const BoardState& board, Side side)
 
 constexpr size_t fifty_move_buckets = 10;
 
-const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
+constexpr std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
 {
-    std::array<uint64_t, fifty_move_buckets> table;
+    // Continue from where the main Table left off (seed at same state)
+    SplitMix64 rng(0);
+    // Advance rng to the state after Table initialization
+    for (size_t i = 0; i < 12 * 64 + 1 + 16 + 8; i++)
+    {
+        rng.next();
+    }
+
+    std::array<uint64_t, fifty_move_buckets> table {};
     for (size_t i = 0; i < fifty_move_buckets; i++)
     {
         table[i] = rng.next();
@@ -132,19 +139,19 @@ const std::array<uint64_t, fifty_move_buckets> fifty_move_bucket_hash = []()
     return table;
 }();
 
-size_t calculate_fifty_move_bucket(int fifty_move_count)
+constexpr size_t calculate_fifty_move_bucket(int fifty_move_count)
 {
     return (fifty_move_count * 1024) / ((101 * 1024) / fifty_move_buckets);
 }
 
-uint64_t calculate_fifty_move_hash(int fifty_move_count)
+constexpr uint64_t calculate_fifty_move_hash(int fifty_move_count)
 {
     return fifty_move_bucket_hash[calculate_fifty_move_bucket(fifty_move_count)];
 }
 
-const auto fifty_move_hash = []()
+constexpr auto fifty_move_hash = []()
 {
-    std::array<size_t, 101> buckets = {};
+    std::array<uint64_t, 101> buckets = {};
     for (int i = 0; i <= 100; i++)
     {
         buckets[i] = calculate_fifty_move_hash(i);
