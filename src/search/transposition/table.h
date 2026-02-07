@@ -1,20 +1,17 @@
 #pragma once
 
 #include "search/score.h"
+#include "search/transposition/entry.h"
 #include "utility/huge_pages.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 
 class Move;
 enum class SearchResultType : uint8_t;
 
 namespace Transposition
 {
-
-class Entry;
-struct Bucket;
 
 class Table
 {

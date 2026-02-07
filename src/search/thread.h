@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <functional>
 #include <latch>
-#include <memory>
 #include <mutex>
 #include <queue>
 #include <thread>

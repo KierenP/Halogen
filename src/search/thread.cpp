@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <future>
+#include <memory>
 #include <optional>
 #include <thread>
 #include <utility>
@@ -87,7 +88,7 @@ void SearchThread::reset_new_game(std::latch& latch)
     enqueue_task(
         [this, &latch]()
         {
-            local_state = std::make_unique<SearchLocalState>(thread_id_, shared_state.get_shared_hist(thread_id_));
+            local_state = make_unique_huge_page<SearchLocalState>(thread_id_, shared_state.get_shared_hist(thread_id_));
             latch.count_down();
         });
 }

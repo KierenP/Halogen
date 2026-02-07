@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -12,12 +11,6 @@
 #elif defined(_WIN32)
 #include <windows.h>
 #endif
-
-template <typename T>
-using unique_ptr_huge_page = std::conditional_t<std::is_array_v<T>, //
-    std::unique_ptr<T, std::function<void(std::remove_all_extents_t<T>*)>>, //
-    std::unique_ptr<T, std::function<void(T*)>> //
-    >;
 
 template <typename T>
 T* allocate_huge_page(std::size_t size)
@@ -100,18 +93,38 @@ void deallocate_huge_page(T* ptr)
 #endif
 }
 
+template <typename T>
+struct HugePageDeleter
+{
+    void operator()(T* ptr) const
+    {
+        std::destroy_at(ptr);
+        deallocate_huge_page(ptr);
+    }
+};
+
+template <typename T>
+struct HugePageDeleter<T[]>
+{
+    std::size_t count = 0;
+
+    void operator()(T* ptr) const
+    {
+        std::destroy_n(ptr, count);
+        deallocate_huge_page(ptr);
+    }
+};
+
+template <typename T>
+using unique_ptr_huge_page = std::unique_ptr<T, HugePageDeleter<T>>;
+
 template <class T, class... Args>
     requires(!std::is_array_v<T>)
 unique_ptr_huge_page<T> make_unique_huge_page(Args&&... args)
 {
     T* data = allocate_huge_page<T>(sizeof(T));
     std::construct_at(data, std::forward<Args>(args)...);
-    return unique_ptr_huge_page<T>(data,
-        [](T* ptr)
-        {
-            std::destroy_at(ptr);
-            deallocate_huge_page(ptr);
-        });
+    return unique_ptr_huge_page<T>(data, HugePageDeleter<T> {});
 }
 
 template <class T>
@@ -121,12 +134,7 @@ unique_ptr_huge_page<T> make_unique_huge_page(std::size_t n)
     using E = std::remove_all_extents_t<T>;
     E* data = allocate_huge_page<E>(n * sizeof(E));
     std::uninitialized_value_construct_n(data, n);
-    return unique_ptr_huge_page<T>(data,
-        [n](E* ptr)
-        {
-            std::destroy_n(ptr, n);
-            deallocate_huge_page(ptr);
-        });
+    return unique_ptr_huge_page<T>(data, HugePageDeleter<T> { n });
 }
 
 template <class T, class... Args>
@@ -139,12 +147,7 @@ unique_ptr_huge_page<T> make_unique_for_overwrite_huge_page()
 {
     T* data = allocate_huge_page<T>(sizeof(T));
     new (data) T;
-    return unique_ptr_huge_page<T>(data,
-        [](T* ptr)
-        {
-            std::destroy_at(ptr);
-            deallocate_huge_page(ptr);
-        });
+    return unique_ptr_huge_page<T>(data, HugePageDeleter<T> {});
 }
 
 template <class T>
@@ -154,12 +157,7 @@ unique_ptr_huge_page<T> make_unique_for_overwrite_huge_page(std::size_t n)
     using E = std::remove_all_extents_t<T>;
     E* data = allocate_huge_page<E>(n * sizeof(E));
     std::uninitialized_default_construct_n(data, n);
-    return unique_ptr_huge_page<T>(data,
-        [n](E* ptr)
-        {
-            std::destroy_n(ptr, n);
-            deallocate_huge_page(ptr);
-        });
+    return unique_ptr_huge_page<T>(data, HugePageDeleter<T> { n });
 }
 
 template <class T, class... Args>
