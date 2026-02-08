@@ -16,17 +16,31 @@ constexpr size_t L2_SIZE = 32;
 constexpr size_t OUTPUT_BUCKETS = 8;
 
 // clang-format off
-constexpr std::array<size_t, N_SQUARES> KING_BUCKETS = {
-    0, 1, 2, 3, 3, 2, 1, 0,
-    4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
+constexpr std::array<size_t, N_SQUARES / 2> KING_BUCKETS_HALF = {
+     0,  1,  2,  3,
+     4,  5,  6,  7,
+     8,  9, 10, 11,
+     8,  9, 10, 11,
+    12, 12, 13, 13,
+    12, 12, 13, 13,
+    14, 14, 15, 15,
+    14, 14, 15, 15,
 };
 // clang-format on
+
+constexpr auto KING_BUCKETS = []()
+{
+    // horizontally mirrored, so KING_BUCKETS[SQ_B3] == KING_BUCKETS[SQ_G3]
+    std::array<size_t, N_SQUARES> buckets = {};
+    for (Square sq = SQ_A1; sq <= SQ_H8; ++sq)
+    {
+        auto file = sq % 8;
+        auto rank = sq / 8;
+        auto mirrored_file = file >= 4 ? 7 - file : file;
+        buckets[sq] = KING_BUCKETS_HALF[rank * 4 + mirrored_file];
+    }
+    return buckets;
+}();
 
 constexpr size_t KING_BUCKET_COUNT = []()
 {
