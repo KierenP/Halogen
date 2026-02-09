@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 
 #if defined(USE_SSE4)
 // IWYU is confused and thinks we need this
@@ -520,7 +521,7 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     float output = net.l3_bias[output_bucket];
     NN::Features::L3_activation(l2_activation, net.l3_weight[output_bucket], output);
 
-    return output * SCALE_FACTOR;
+    return std::clamp<int>(output * SCALE_FACTOR, Score::Limits::EVAL_MIN, Score::Limits::EVAL_MAX);
 }
 
 Score Network::slow_eval(const BoardState& board)
