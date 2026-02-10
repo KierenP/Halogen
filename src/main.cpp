@@ -8,7 +8,7 @@
 #include "uci/uci.h"
 #include "utility/arch.h"
 
-constexpr std::string_view version = "15.33.3";
+constexpr std::string_view version = "16.0.0";
 
 int main(int argc, char* argv[])
 {
