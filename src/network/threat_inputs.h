@@ -23,41 +23,20 @@ namespace NN
 
 constexpr uint32_t INVALID_THREAT = UINT32_MAX;
 
-// Deduplication: for symmetric attack patterns, keep (atk_idx, atk_sq) < (vic_idx, vic_sq).
-// Symmetric pairs: knight-knight, bishop-bishop, rook-rook, queen-queen, pawn-pawn (opposite sides).
-// Cross-type slider threats: bishop/rook do NOT threaten queens; only queens threaten bishops/rooks.
-// King only threatens pawns, knights, bishops, rooks.
-constexpr bool is_duplicate_threat(
-    PieceType atk_piece, Side atk_side, int atk_sq, PieceType vic_piece, Side vic_side, int vic_sq)
-{
-    bool symmetric = false;
-    if (atk_piece == vic_piece)
-    {
-        switch (atk_piece)
-        {
-        case KNIGHT:
-        case BISHOP:
-        case ROOK:
-        case QUEEN:
-            symmetric = true;
-            break;
-        case PAWN:
-            symmetric = (atk_side != vic_side);
-            break;
-        default:
-            break;
-        }
-    }
-
-    if (!symmetric)
-        return false;
-
-    int atk_idx = atk_side * 6 + atk_piece;
-    int vic_idx = vic_side * 6 + vic_piece;
-
-    return (atk_idx > vic_idx) || (atk_idx == vic_idx && atk_sq > vic_sq);
-}
-
+// Threat restrictions:
+// - Pawn only threatens pawns, knights, rooks (6 victims)
+// - Bishop/rook don't threaten queens; only queens threaten bishops/rooks
+// - King only threatens pawns, knights, bishops, rooks (8 victims)
+//
+// Threat counts (no deduplication of symmetric same-piece threats):
+// - pawn:   84 attacks * 6 victims  = 504
+// - knight: 336 attacks * 12 victims = 4,032
+// - bishop: 560 attacks * 10 victims = 5,600
+// - rook:   896 attacks * 10 victims = 8,960
+// - queen:  1456 attacks * 12 victims = 17,472
+// - king:   420 attacks * 8 victims  = 3,360
+// - TOTAL: (504 + 4032 + 5600 + 8960 + 17472 + 3360) * 2 sides = 79,856
+//
 // Check if an attacker piece type is allowed to threaten a victim piece type.
 constexpr bool can_threaten(PieceType atk_piece, PieceType vic_piece)
 {
@@ -156,10 +135,6 @@ constexpr ThreatTable build_threat_table()
                         {
                             int target_sq = std::countr_zero(bb);
                             bb &= bb - 1;
-
-                            if (is_duplicate_threat(
-                                    atk_piece, side, atk_sq, vic_piece, static_cast<Side>(vic_side), target_sq))
-                                continue;
 
                             table.lookup[atk_idx][atk_sq][vic_idx][target_sq] = current_offset;
                             current_offset++;
