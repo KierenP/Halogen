@@ -3,9 +3,11 @@
 #include "bitboard/define.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "network/accumulator.hpp"
 #include "network/arch.hpp"
 #include "network/inference.hpp"
+#include "network/threat_inputs.h"
 #include "third-party/incbin/incbin.h"
 
 #include <algorithm>
@@ -47,6 +49,7 @@ int get_king_bucket(Square king_sq, Side view)
     return KING_BUCKETS[king_sq];
 }
 
+// King-bucketed piece-square index (same as before, in [0, 768 * KING_BUCKET_COUNT))
 int index(Square king_sq, Square piece_sq, Piece piece, Side view)
 {
     piece_sq = view == WHITE ? piece_sq : flip_square_vertical(piece_sq);
@@ -59,12 +62,31 @@ int index(Square king_sq, Square piece_sq, Piece piece, Side view)
     return king_bucket * 64 * 6 * 2 + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
 }
 
-void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, Side view)
+// Unbucketed piece-square index (in [PSQT_OFFSET, PSQT_OFFSET + 768))
+// Uses the same relative color / piece type / square mapping as king-bucketed, but without king bucket offset
+// and always from the perspective of the viewing side (vertically flipped for black, no horizontal mirror).
+int psqt_index(Square piece_sq, Piece piece, Side view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
+    piece_sq = view == WHITE ? piece_sq : flip_square_vertical(piece_sq);
 
-    add1sub1(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[sub1_index]);
+    Side relativeColor = static_cast<Side>(view != enum_to<Side>(piece));
+    PieceType pieceType = enum_to<PieceType>(piece);
+
+    return PSQT_OFFSET + relativeColor * 64 * 6 + pieceType * 64 + piece_sq;
+}
+
+void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& a1, const Input& s1, Side view)
+{
+    size_t a1_kb = index(a1.king_sq, a1.piece_sq, a1.piece, view);
+    size_t s1_kb = index(s1.king_sq, s1.piece_sq, s1.piece, view);
+    size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
+    size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
+
+    // Apply king-bucketed: next = prev + a1_kb - s1_kb
+    add1sub1(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[s1_kb]);
+    // Apply psqt: next += a1_ps - s1_ps
+    NN::add1(next.side[view], net.ft_weight[a1_ps]);
+    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
 }
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
@@ -73,15 +95,22 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1,
     Add1Sub1(prev, next, { add1.b_king, add1.piece_sq, add1.piece }, { sub1.b_king, sub1.piece_sq, sub1.piece }, BLACK);
 }
 
-void Add1Sub2(
-    const Accumulator& prev, Accumulator& next, const Input& add1, const Input& sub1, const Input& sub2, Side view)
+void Add1Sub2(const Accumulator& prev, Accumulator& next, const Input& a1, const Input& s1, const Input& s2, Side view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    size_t a1_kb = index(a1.king_sq, a1.piece_sq, a1.piece, view);
+    size_t s1_kb = index(s1.king_sq, s1.piece_sq, s1.piece, view);
+    size_t s2_kb = index(s2.king_sq, s2.piece_sq, s2.piece, view);
 
-    add1sub2(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[sub1_index],
-        net.ft_weight[sub2_index]);
+    // Apply king-bucketed
+    add1sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[s1_kb], net.ft_weight[s2_kb]);
+
+    // Apply psqt
+    size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
+    size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
+    size_t s2_ps = psqt_index(s2.piece_sq, s2.piece, view);
+    NN::add1(next.side[view], net.ft_weight[a1_ps]);
+    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
+    NN::sub1(next.side[view], net.ft_weight[s2_ps]);
 }
 
 void Add1Sub2(
@@ -93,16 +122,27 @@ void Add1Sub2(
         { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
 }
 
-void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& add1, const Input& add2, const Input& sub1,
-    const Input& sub2, Side view)
+void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& a1, const Input& a2, const Input& s1,
+    const Input& s2, Side view)
 {
-    size_t add1_index = index(add1.king_sq, add1.piece_sq, add1.piece, view);
-    size_t add2_index = index(add2.king_sq, add2.piece_sq, add2.piece, view);
-    size_t sub1_index = index(sub1.king_sq, sub1.piece_sq, sub1.piece, view);
-    size_t sub2_index = index(sub2.king_sq, sub2.piece_sq, sub2.piece, view);
+    size_t a1_kb = index(a1.king_sq, a1.piece_sq, a1.piece, view);
+    size_t a2_kb = index(a2.king_sq, a2.piece_sq, a2.piece, view);
+    size_t s1_kb = index(s1.king_sq, s1.piece_sq, s1.piece, view);
+    size_t s2_kb = index(s2.king_sq, s2.piece_sq, s2.piece, view);
 
-    add2sub2(next.side[view], prev.side[view], net.ft_weight[add1_index], net.ft_weight[add2_index],
-        net.ft_weight[sub1_index], net.ft_weight[sub2_index]);
+    // Apply king-bucketed
+    add2sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[a2_kb], net.ft_weight[s1_kb],
+        net.ft_weight[s2_kb]);
+
+    // Apply psqt
+    size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
+    size_t a2_ps = psqt_index(a2.piece_sq, a2.piece, view);
+    size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
+    size_t s2_ps = psqt_index(s2.piece_sq, s2.piece, view);
+    NN::add1(next.side[view], net.ft_weight[a1_ps]);
+    NN::add1(next.side[view], net.ft_weight[a2_ps]);
+    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
+    NN::sub1(next.side[view], net.ft_weight[s2_ps]);
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
@@ -114,6 +154,60 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1,
         { sub1.b_king, sub1.piece_sq, sub1.piece }, { sub2.b_king, sub2.piece_sq, sub2.piece }, BLACK);
 }
 
+// --- King-bucketed input operations ---
+
+void Accumulator::add_king_input(const InputPair& input)
+{
+    add_king_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    add_king_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+}
+
+void Accumulator::add_king_input(const Input& input, Side view)
+{
+    size_t idx = index(input.king_sq, input.piece_sq, input.piece, view);
+    NN::add1(side[view], net.ft_weight[idx]);
+}
+
+void Accumulator::sub_king_input(const InputPair& input)
+{
+    sub_king_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    sub_king_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+}
+
+void Accumulator::sub_king_input(const Input& input, Side view)
+{
+    size_t idx = index(input.king_sq, input.piece_sq, input.piece, view);
+    NN::sub1(side[view], net.ft_weight[idx]);
+}
+
+// --- Unbucketed piece-square input operations ---
+
+void Accumulator::add_psqt_input(const InputPair& input)
+{
+    add_psqt_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    add_psqt_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+}
+
+void Accumulator::add_psqt_input(const Input& input, Side view)
+{
+    size_t idx = psqt_index(input.piece_sq, input.piece, view);
+    NN::add1(side[view], net.ft_weight[idx]);
+}
+
+void Accumulator::sub_psqt_input(const InputPair& input)
+{
+    sub_psqt_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
+    sub_psqt_input({ input.b_king, input.piece_sq, input.piece }, BLACK);
+}
+
+void Accumulator::sub_psqt_input(const Input& input, Side view)
+{
+    size_t idx = psqt_index(input.piece_sq, input.piece, view);
+    NN::sub1(side[view], net.ft_weight[idx]);
+}
+
+// --- Combined input operations (king-bucketed + psqt) ---
+
 void Accumulator::add_input(const InputPair& input)
 {
     add_input({ input.w_king, input.piece_sq, input.piece }, WHITE);
@@ -122,8 +216,10 @@ void Accumulator::add_input(const InputPair& input)
 
 void Accumulator::add_input(const Input& input, Side view)
 {
-    size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    add1(side[view], net.ft_weight[side_index]);
+    size_t kb_idx = index(input.king_sq, input.piece_sq, input.piece, view);
+    size_t ps_idx = psqt_index(input.piece_sq, input.piece, view);
+    NN::add1(side[view], net.ft_weight[kb_idx]);
+    NN::add1(side[view], net.ft_weight[ps_idx]);
 }
 
 void Accumulator::sub_input(const InputPair& input)
@@ -134,8 +230,10 @@ void Accumulator::sub_input(const InputPair& input)
 
 void Accumulator::sub_input(const Input& input, Side view)
 {
-    size_t side_index = index(input.king_sq, input.piece_sq, input.piece, view);
-    sub1(side[view], net.ft_weight[side_index]);
+    size_t kb_idx = index(input.king_sq, input.piece_sq, input.piece, view);
+    size_t ps_idx = psqt_index(input.piece_sq, input.piece, view);
+    NN::sub1(side[view], net.ft_weight[kb_idx]);
+    NN::sub1(side[view], net.ft_weight[ps_idx]);
 }
 
 void Accumulator::recalculate(const BoardState& board_)
@@ -499,15 +597,113 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
+// Compute threat features from the board position and add their weight contributions to the accumulator.
+// The base accumulator (with king-bucketed + psqt features) is passed in, and this function produces output
+// accumulators with threat features applied on top.
+void apply_threat_features(const BoardState& board, const std::array<int16_t, FT_SIZE>& base_stm,
+    const std::array<int16_t, FT_SIZE>& base_nstm, std::array<int16_t, FT_SIZE>& out_stm,
+    std::array<int16_t, FT_SIZE>& out_nstm)
+{
+    out_stm = base_stm;
+    out_nstm = base_nstm;
+
+    auto stm = board.stm;
+    uint64_t occ = board.get_pieces_bb();
+
+    // For each piece on the board, compute its attacks and find threatened pieces
+    for (int piece_idx = 0; piece_idx < N_PIECES; piece_idx++)
+    {
+        Piece atk_piece = static_cast<Piece>(piece_idx);
+        PieceType atk_pt = enum_to<PieceType>(atk_piece);
+        Side atk_color = enum_to<Side>(atk_piece);
+
+        // Side index for this attacker from STM perspective: 0 = STM's piece, 1 = NSTM's piece
+        int atk_side_stm = (atk_color == stm) ? 0 : 1;
+        // Side index from NSTM perspective: flipped
+        int atk_side_nstm = atk_side_stm ^ 1;
+
+        uint64_t atk_bb = board.get_pieces_bb(atk_piece);
+        while (atk_bb)
+        {
+            Square atk_sq = lsbpop(atk_bb);
+
+            // Compute attacks for this piece using actual board occupancy for sliders
+            uint64_t attacks;
+            switch (atk_pt)
+            {
+            case PAWN:
+                attacks = PawnAttacks[atk_color][atk_sq];
+                break;
+            case KNIGHT:
+                attacks = KnightAttacks[atk_sq];
+                break;
+            case BISHOP:
+                attacks = attack_bb<BISHOP>(atk_sq, occ);
+                break;
+            case ROOK:
+                attacks = attack_bb<ROOK>(atk_sq, occ);
+                break;
+            case QUEEN:
+                attacks = attack_bb<QUEEN>(atk_sq, occ);
+                break;
+            case KING:
+                attacks = KingAttacks[atk_sq];
+                break;
+            default:
+                attacks = 0;
+                break;
+            }
+
+            // Find pieces being attacked
+            uint64_t attacked = attacks & occ;
+            while (attacked)
+            {
+                Square vic_sq = lsbpop(attacked);
+                Piece vic_piece = board.get_square_piece(vic_sq);
+                PieceType vic_pt = enum_to<PieceType>(vic_piece);
+                Side vic_color = enum_to<Side>(vic_piece);
+                int vic_side_stm = (vic_color == stm) ? 0 : 1;
+                int vic_side_nstm = vic_side_stm ^ 1;
+
+                // --- STM perspective ---
+                // Squares are as-is (STM = WHITE perspective in ChessBoard encoding)
+                int stm_atk_idx = atk_pt * 2 + atk_side_stm;
+                int stm_vic_idx = vic_pt * 2 + vic_side_stm;
+                uint32_t stm_threat = THREAT_TABLE.lookup[stm_atk_idx][atk_sq][stm_vic_idx][vic_sq];
+
+                // --- NSTM perspective ---
+                // Squares are vertically mirrored, sides are flipped
+                int nstm_atk_idx = atk_pt * 2 + atk_side_nstm;
+                int nstm_vic_idx = vic_pt * 2 + vic_side_nstm;
+                int nstm_atk_sq = atk_sq ^ 56;
+                int nstm_vic_sq = vic_sq ^ 56;
+                uint32_t nstm_threat = THREAT_TABLE.lookup[nstm_atk_idx][nstm_atk_sq][nstm_vic_idx][nstm_vic_sq];
+
+                // If the threat is valid (not deduped/excluded), add the weight row
+                if (stm_threat != INVALID_THREAT && nstm_threat != INVALID_THREAT)
+                {
+                    NN::add1(out_stm, net.ft_weight[THREAT_OFFSET + stm_threat]);
+                    NN::add1(out_nstm, net.ft_weight[THREAT_OFFSET + nstm_threat]);
+                }
+            }
+        }
+    }
+}
+
 Score Network::eval(const BoardState& board, const Accumulator& acc)
 {
     auto stm = board.stm;
     auto output_bucket = calculate_output_bucket(std::popcount(board.get_pieces_bb()));
 
+    // Apply threat features on top of the incrementally-updated accumulator
+    alignas(64) std::array<int16_t, FT_SIZE> threat_stm;
+    alignas(64) std::array<int16_t, FT_SIZE> threat_nstm;
+    apply_threat_features(board, acc.side[stm], acc.side[!stm], threat_stm, threat_nstm);
+
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
     alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
     size_t sparse_nibbles_size = 0;
-    NN::Features::FT_activation(acc.side[stm], acc.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
+    NN::Features::FT_activation(threat_stm, threat_nstm, ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<float, L1_SIZE * 2> l1_activation;
