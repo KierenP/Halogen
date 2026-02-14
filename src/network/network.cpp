@@ -666,17 +666,19 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
                 int vic_side_nstm = vic_side_stm ^ 1;
 
                 // --- STM perspective ---
-                // Squares are as-is (STM = WHITE perspective in ChessBoard encoding)
+                // Squares must be in STM-relative coordinates (flip if STM is BLACK)
                 int stm_atk_idx = atk_pt * 2 + atk_side_stm;
                 int stm_vic_idx = vic_pt * 2 + vic_side_stm;
-                uint32_t stm_threat = THREAT_TABLE.lookup[stm_atk_idx][atk_sq][stm_vic_idx][vic_sq];
+                int stm_atk_sq = (stm == BLACK) ? (atk_sq ^ 56) : atk_sq;
+                int stm_vic_sq = (stm == BLACK) ? (vic_sq ^ 56) : vic_sq;
+                uint32_t stm_threat = THREAT_TABLE.lookup[stm_atk_idx][stm_atk_sq][stm_vic_idx][stm_vic_sq];
 
                 // --- NSTM perspective ---
-                // Squares are vertically mirrored, sides are flipped
+                // Squares must be in NSTM-relative coordinates (flip if NSTM is BLACK, i.e. STM is WHITE)
                 int nstm_atk_idx = atk_pt * 2 + atk_side_nstm;
                 int nstm_vic_idx = vic_pt * 2 + vic_side_nstm;
-                int nstm_atk_sq = atk_sq ^ 56;
-                int nstm_vic_sq = vic_sq ^ 56;
+                int nstm_atk_sq = (stm == WHITE) ? (atk_sq ^ 56) : atk_sq;
+                int nstm_vic_sq = (stm == WHITE) ? (vic_sq ^ 56) : vic_sq;
                 uint32_t nstm_threat = THREAT_TABLE.lookup[nstm_atk_idx][nstm_atk_sq][nstm_vic_idx][nstm_vic_sq];
 
                 // If the threat is valid (not deduped/excluded), add the weight row

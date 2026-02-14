@@ -76,12 +76,15 @@ constexpr bool can_threaten(PieceType atk_piece, PieceType vic_piece)
 }
 
 // Get attack bitboard for a piece type on a square (on an empty board for table construction)
+// NOTE: side here uses threat-table convention (0=STM attacks upward, 1=NSTM attacks downward),
+// which is the opposite of the engine's Side enum (BLACK=0 attacks downward, WHITE=1 attacks upward).
+// We flip the side for pawn lookups so the table matches the Rust training code.
 constexpr uint64_t piece_attacks_empty(PieceType pt, Side side, int sq)
 {
     switch (pt)
     {
     case PAWN:
-        return PawnAttacks[side][sq];
+        return PawnAttacks[!side][sq];
     case KNIGHT:
         return KnightAttacks[sq];
     case BISHOP:
