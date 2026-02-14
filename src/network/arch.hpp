@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bitboard/enum.h"
+#include "network/threat_inputs.h"
 #include "spsa/tuneable.h"
 
 #include <algorithm>
@@ -9,7 +10,7 @@
 #include <cstdint>
 
 constexpr size_t INPUT_SIZE = 12 * 64;
-constexpr size_t FT_SIZE = 1536;
+constexpr size_t FT_SIZE = 512;
 constexpr size_t L1_SIZE = 16;
 constexpr size_t L2_SIZE = 32;
 
@@ -34,6 +35,14 @@ constexpr size_t KING_BUCKET_COUNT = []()
     return *max - *min + 1;
 }();
 
+// Total number of inputs into the feature transformer:
+//   king-bucketed piece-square + unbucketed piece-square + threat features
+constexpr size_t TOTAL_FT_INPUTS = INPUT_SIZE * KING_BUCKET_COUNT + NN::PSQT_INPUT_COUNT + NN::TOTAL_THREAT_FEATURES;
+
+// Offsets into the weight matrix for each input type
+constexpr size_t PSQT_OFFSET = INPUT_SIZE * KING_BUCKET_COUNT;
+constexpr size_t THREAT_OFFSET = PSQT_OFFSET + NN::PSQT_INPUT_COUNT;
+
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
 //  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
@@ -48,7 +57,7 @@ namespace NN
 
 struct network
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, TOTAL_FT_INPUTS> ft_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};

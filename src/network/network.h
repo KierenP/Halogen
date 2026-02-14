@@ -14,7 +14,7 @@ class Move;
 namespace NN
 {
 
-// represents a single input on one accumulator side
+// represents a single input on one accumulator side (king-bucketed or psqt)
 struct Input
 {
     Square king_sq;
@@ -31,7 +31,9 @@ struct InputPair
     Piece piece;
 };
 
-// stored the accumulated first layer values for each side
+// Stores the accumulated first layer values for each side. This contains the incrementally-updatable part of the
+// feature transformer: king-bucketed piece-square features and unbucketed piece-square features. Threat features
+// are computed at eval time and added on top.
 struct Accumulator
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, N_SIDES> side = {};
@@ -41,9 +43,21 @@ struct Accumulator
         return side == rhs.side;
     }
 
+    // King-bucketed input operations
+    void add_king_input(const InputPair& input);
+    void add_king_input(const Input& input, Side side);
+    void sub_king_input(const InputPair& input);
+    void sub_king_input(const Input& input, Side side);
+
+    // Unbucketed piece-square input operations
+    void add_psqt_input(const InputPair& input);
+    void add_psqt_input(const Input& input, Side side);
+    void sub_psqt_input(const InputPair& input);
+    void sub_psqt_input(const Input& input, Side side);
+
+    // Combined: add both king-bucketed and psqt inputs for a piece
     void add_input(const InputPair& input);
     void add_input(const Input& input, Side side);
-
     void sub_input(const InputPair& input);
     void sub_input(const Input& input, Side side);
 
@@ -78,6 +92,12 @@ struct AccumulatorTable
 
     void recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
 };
+
+// Compute threat features and add them to a copy of the accumulator for eval.
+// This produces a temporary accumulator with threats applied on top.
+void apply_threat_features(const BoardState& board, const std::array<int16_t, FT_SIZE>& base_stm,
+    const std::array<int16_t, FT_SIZE>& base_nstm, std::array<int16_t, FT_SIZE>& out_stm,
+    std::array<int16_t, FT_SIZE>& out_nstm);
 
 // TODO: this class can mostly disappear and be replaced with stand alone functions
 class Network
