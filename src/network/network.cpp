@@ -82,11 +82,8 @@ void Add1Sub1(const Accumulator& prev, Accumulator& next, const Input& a1, const
     size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
     size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
 
-    // Apply king-bucketed: next = prev + a1_kb - s1_kb
     add1sub1(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[s1_kb]);
-    // Apply psqt: next += a1_ps - s1_ps
-    NN::add1(next.side[view], net.ft_weight[a1_ps]);
-    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
+    add1sub1(next.side[view], next.side[view], net.ft_weight[a1_ps], net.ft_weight[s1_ps]);
 }
 
 void Add1Sub1(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& sub1)
@@ -100,17 +97,12 @@ void Add1Sub2(const Accumulator& prev, Accumulator& next, const Input& a1, const
     size_t a1_kb = index(a1.king_sq, a1.piece_sq, a1.piece, view);
     size_t s1_kb = index(s1.king_sq, s1.piece_sq, s1.piece, view);
     size_t s2_kb = index(s2.king_sq, s2.piece_sq, s2.piece, view);
-
-    // Apply king-bucketed
-    add1sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[s1_kb], net.ft_weight[s2_kb]);
-
-    // Apply psqt
     size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
     size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
     size_t s2_ps = psqt_index(s2.piece_sq, s2.piece, view);
-    NN::add1(next.side[view], net.ft_weight[a1_ps]);
-    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
-    NN::sub1(next.side[view], net.ft_weight[s2_ps]);
+
+    add1sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[s1_kb], net.ft_weight[s2_kb]);
+    add1sub2(next.side[view], next.side[view], net.ft_weight[a1_ps], net.ft_weight[s1_ps], net.ft_weight[s2_ps]);
 }
 
 void Add1Sub2(
@@ -129,20 +121,15 @@ void Add2Sub2(const Accumulator& prev, Accumulator& next, const Input& a1, const
     size_t a2_kb = index(a2.king_sq, a2.piece_sq, a2.piece, view);
     size_t s1_kb = index(s1.king_sq, s1.piece_sq, s1.piece, view);
     size_t s2_kb = index(s2.king_sq, s2.piece_sq, s2.piece, view);
-
-    // Apply king-bucketed
-    add2sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[a2_kb], net.ft_weight[s1_kb],
-        net.ft_weight[s2_kb]);
-
-    // Apply psqt
     size_t a1_ps = psqt_index(a1.piece_sq, a1.piece, view);
     size_t a2_ps = psqt_index(a2.piece_sq, a2.piece, view);
     size_t s1_ps = psqt_index(s1.piece_sq, s1.piece, view);
     size_t s2_ps = psqt_index(s2.piece_sq, s2.piece, view);
-    NN::add1(next.side[view], net.ft_weight[a1_ps]);
-    NN::add1(next.side[view], net.ft_weight[a2_ps]);
-    NN::sub1(next.side[view], net.ft_weight[s1_ps]);
-    NN::sub1(next.side[view], net.ft_weight[s2_ps]);
+
+    add2sub2(next.side[view], prev.side[view], net.ft_weight[a1_kb], net.ft_weight[a2_kb], net.ft_weight[s1_kb],
+        net.ft_weight[s2_kb]);
+    add2sub2(next.side[view], next.side[view], net.ft_weight[a1_ps], net.ft_weight[a2_ps], net.ft_weight[s1_ps],
+        net.ft_weight[s2_ps]);
 }
 
 void Add2Sub2(const Accumulator& prev, Accumulator& next, const InputPair& add1, const InputPair& add2,
@@ -687,6 +674,9 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
                     NN::add1(out_stm, net.ft_weight[THREAT_OFFSET + stm_threat]);
                     NN::add1(out_nstm, net.ft_weight[THREAT_OFFSET + nstm_threat]);
                 }
+
+                // either threat is present for both perspectives or neither.
+                assert(((stm_threat == INVALID_THREAT) ^ (nstm_threat == INVALID_THREAT)) == 0);
             }
         }
     }
