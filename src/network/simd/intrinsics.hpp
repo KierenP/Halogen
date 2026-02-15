@@ -199,6 +199,21 @@ inline veci16 add_i16(const veci16& a, const veci16& b)
 #endif
 }
 
+// Sign-extend the lower half of an i8 vector to a full i16 vector.
+// 'ptr' points to vec_size/2 int8_t values which are widened to vec_size/2 int16_t values.
+inline veci16 cvt_i8_to_i16(const int8_t* ptr)
+{
+#if defined(USE_AVX512)
+    return _mm512_cvtepi8_epi16(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(ptr)));
+#elif defined(USE_AVX2)
+    return _mm256_cvtepi8_epi16(_mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr)));
+#elif defined(USE_SSE4)
+    return _mm_cvtepi8_epi16(_mm_loadl_epi64(reinterpret_cast<const __m128i*>(ptr)));
+#elif defined(USE_NEON)
+    return vmovl_s8(vld1_s8(ptr));
+#endif
+}
+
 inline veci32 add_i32(const veci32& a, const veci32& b)
 {
 #if defined(USE_AVX512)

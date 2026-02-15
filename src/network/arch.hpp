@@ -45,6 +45,7 @@ constexpr size_t THREAT_OFFSET = PSQT_OFFSET + NN::PSQT_INPUT_COUNT;
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
+// TODO: update comment
 //  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
 //  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
 
@@ -55,9 +56,13 @@ TUNEABLE_CONSTANT float SCALE_FACTOR = 192.5f;
 namespace NN
 {
 
+// Number of PSQ inputs (king-bucketed + unbucketed) stored as int16_t
+constexpr size_t PSQ_FT_INPUTS = THREAT_OFFSET;
+
 struct network
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, TOTAL_FT_INPUTS> ft_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, PSQ_FT_INPUTS> ft_weight = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE>, NN::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
