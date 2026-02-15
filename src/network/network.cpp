@@ -597,6 +597,12 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
     auto stm = board.stm;
     uint64_t occ = board.get_pieces_bb();
 
+    const auto pawns = board.get_pieces_bb(PAWN);
+    const auto knights = board.get_pieces_bb(KNIGHT);
+    const auto bishops = board.get_pieces_bb(BISHOP);
+    const auto rooks = board.get_pieces_bb(ROOK);
+    const auto kings = board.get_pieces_bb(KING);
+
     // For each piece on the board, compute its attacks and find threatened pieces
     for (int piece_idx = 0; piece_idx < N_PIECES; piece_idx++)
     {
@@ -614,35 +620,33 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
         {
             Square atk_sq = lsbpop(atk_bb);
 
-            // Compute attacks for this piece using actual board occupancy for sliders
-            uint64_t attacks;
+            // Compute attacks for this piece using actual board occupancy for sliders, for valid targets
+            uint64_t attacked;
             switch (atk_pt)
             {
             case PAWN:
-                attacks = PawnAttacks[atk_color][atk_sq];
+                attacked = (PawnAttacks[atk_color][atk_sq]) & (pawns | knights | rooks);
                 break;
             case KNIGHT:
-                attacks = KnightAttacks[atk_sq];
+                attacked = KnightAttacks[atk_sq] & occ;
                 break;
             case BISHOP:
-                attacks = attack_bb<BISHOP>(atk_sq, occ);
+                attacked = attack_bb<BISHOP>(atk_sq, occ) & (pawns | knights | bishops | rooks | kings);
                 break;
             case ROOK:
-                attacks = attack_bb<ROOK>(atk_sq, occ);
+                attacked = attack_bb<ROOK>(atk_sq, occ) & (pawns | knights | bishops | rooks | kings);
                 break;
             case QUEEN:
-                attacks = attack_bb<QUEEN>(atk_sq, occ);
+                attacked = attack_bb<QUEEN>(atk_sq, occ) & occ;
                 break;
             case KING:
-                attacks = KingAttacks[atk_sq];
+                attacked = KingAttacks[atk_sq] & (pawns | knights | bishops | rooks);
                 break;
             default:
-                attacks = 0;
+                attacked = 0;
                 break;
             }
 
-            // Find pieces being attacked
-            uint64_t attacked = attacks & occ;
             while (attacked)
             {
                 Square vic_sq = lsbpop(attacked);
@@ -668,15 +672,11 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
                 int nstm_vic_sq = (stm == WHITE) ? (vic_sq ^ 56) : vic_sq;
                 uint32_t nstm_threat = THREAT_TABLE.lookup[nstm_atk_idx][nstm_atk_sq][nstm_vic_idx][nstm_vic_sq];
 
-                // If the threat is valid (not deduped/excluded), add the weight row
-                if (stm_threat != INVALID_THREAT && nstm_threat != INVALID_THREAT)
-                {
-                    NN::add1(out_stm, net.ft_weight[THREAT_OFFSET + stm_threat]);
-                    NN::add1(out_nstm, net.ft_weight[THREAT_OFFSET + nstm_threat]);
-                }
+                NN::add1(out_stm, net.ft_weight[THREAT_OFFSET + stm_threat]);
+                NN::add1(out_nstm, net.ft_weight[THREAT_OFFSET + nstm_threat]);
 
-                // either threat is present for both perspectives or neither.
-                assert(((stm_threat == INVALID_THREAT) ^ (nstm_threat == INVALID_THREAT)) == 0);
+                assert(stm_threat != INVALID_THREAT);
+                assert(nstm_threat != INVALID_THREAT);
             }
         }
     }
