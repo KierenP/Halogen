@@ -672,8 +672,8 @@ void apply_threat_features(const BoardState& board, const std::array<int16_t, FT
                 int nstm_vic_sq = (stm == WHITE) ? (vic_sq ^ 56) : vic_sq;
                 uint32_t nstm_threat = THREAT_TABLE.lookup[nstm_atk_idx][nstm_atk_sq][nstm_vic_idx][nstm_vic_sq];
 
-                NN::add1(out_stm, net.ft_weight[THREAT_OFFSET + stm_threat]);
-                NN::add1(out_nstm, net.ft_weight[THREAT_OFFSET + nstm_threat]);
+                NN::add1(out_stm, net.ft_threat_weight[stm_threat]);
+                NN::add1(out_nstm, net.ft_threat_weight[nstm_threat]);
 
                 assert(stm_threat != INVALID_THREAT);
                 assert(nstm_threat != INVALID_THREAT);

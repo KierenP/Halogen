@@ -35,6 +35,30 @@ void add1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b)
 }
 
 template <size_t SIZE>
+void add1(std::array<int16_t, SIZE>& a, const std::array<int8_t, SIZE>& b)
+{
+#if defined(SIMD_ENABLED)
+    // Each iteration: load stride int8 values, widen to int16, add to accumulator
+    constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
+    static_assert(SIZE % (stride * 2) == 0);
+    for (size_t i = 0; i < SIZE; i += stride * 2)
+    {
+        auto a_vec1 = SIMD::load(&a[i]);
+        auto a_vec2 = SIMD::load(&a[i + stride]);
+        a_vec1 = SIMD::add_i16(a_vec1, SIMD::cvt_i8_to_i16(&b[i]));
+        a_vec2 = SIMD::add_i16(a_vec2, SIMD::cvt_i8_to_i16(&b[i + stride]));
+        SIMD::store(&a[i], a_vec1);
+        SIMD::store(&a[i + stride], a_vec2);
+    }
+#else
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        a[i] += static_cast<int16_t>(b[i]);
+    }
+#endif
+}
+
+template <size_t SIZE>
 void sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b)
 {
 #if defined(SIMD_ENABLED)
