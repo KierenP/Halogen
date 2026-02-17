@@ -496,6 +496,19 @@ struct ThreatAccumulator
     {
         side = prev.side;
 
+        // ~3% speedup from prefetching
+        for (size_t i = 0; i < n_threat_subs; i++)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[threat_subs[i].white_idx]);
+            __builtin_prefetch(&net.ft_threat_weight[threat_subs[i].black_idx]);
+        }
+
+        for (size_t i = 0; i < n_threat_adds; i++)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[threat_adds[i].white_idx]);
+            __builtin_prefetch(&net.ft_threat_weight[threat_adds[i].black_idx]);
+        }
+
         for (size_t i = 0; i < n_threat_subs; i++)
         {
             NN::sub1(side[WHITE], net.ft_threat_weight[threat_subs[i].white_idx]);
