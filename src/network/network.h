@@ -3,26 +3,21 @@
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "network/arch.hpp"
+#include "network/inputs/king_bucket.h"
+#include "network/inputs/piece_square.h"
+#include "network/inputs/threat.h"
 #include "search/score.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
-#include <cstring>
 
 class Move;
 
 namespace NN
 {
 
-// represents a single input on one accumulator side (king-bucketed or psqt)
-struct Input
-{
-    Square king_sq;
-    Square piece_sq;
-    Piece piece;
-};
-
-// represents a pair of inputs (one on each accumulator side)
+// represents a pair of inputs (one for each side's king)
 struct InputPair
 {
     Square w_king;
@@ -31,35 +26,18 @@ struct InputPair
     Piece piece;
 };
 
-// Stores the accumulated first layer values for each side. This contains the incrementally-updatable part of the
-// feature transformer: king-bucketed piece-square features and unbucketed piece-square features. Threat features
-// are computed at eval time and added on top.
+// The main accumulator, composed of independently-updatable sub-accumulators for each input type.
+// All three sub-accumulators are incrementally updated.
 struct Accumulator
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, N_SIDES> side = {};
+    KingBucketPieceSquareAccumulator king_bucket;
+    PieceSquareAccumulator piece_square;
+    ThreatAccumulator threats;
 
     bool operator==(const Accumulator& rhs) const
     {
-        return side == rhs.side;
+        return king_bucket == rhs.king_bucket && piece_square == rhs.piece_square && threats == rhs.threats;
     }
-
-    // King-bucketed input operations
-    void add_king_input(const InputPair& input);
-    void add_king_input(const Input& input, Side side);
-    void sub_king_input(const InputPair& input);
-    void sub_king_input(const Input& input, Side side);
-
-    // Unbucketed piece-square input operations
-    void add_psqt_input(const InputPair& input);
-    void add_psqt_input(const Input& input, Side side);
-    void sub_psqt_input(const InputPair& input);
-    void sub_psqt_input(const Input& input, Side side);
-
-    // Combined: add both king-bucketed and psqt inputs for a piece
-    void add_input(const InputPair& input);
-    void add_input(const Input& input, Side side);
-    void sub_input(const InputPair& input);
-    void sub_input(const Input& input, Side side);
 
     void recalculate(const BoardState& board);
     void recalculate(const BoardState& board, Side side);
@@ -75,17 +53,17 @@ struct Accumulator
     BoardState board;
 };
 
-// An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
-// cached in each side might be different, so white_bb != black_bb
+// An accumulator table entry caches the king-bucketed accumulator for a particular king position.
+// The psqt accumulator doesn't depend on king position so doesn't need to be cached here.
 struct AccumulatorTableEntry
 {
-    Accumulator acc;
+    KingBucketPieceSquareAccumulator acc;
     std::array<uint64_t, N_PIECES> white_bb = {};
     std::array<uint64_t, N_PIECES> black_bb = {};
 };
 
-// A cache of accumulators for each king bucket. When we want to recalculate the accumulator, we use this as a base
-// rather than initializing from scratch
+// A cache of king-bucketed accumulators for each king bucket. When we want to recalculate the
+// king-bucketed accumulator, we use this as a base rather than initializing from scratch.
 struct AccumulatorTable
 {
     std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
@@ -93,13 +71,6 @@ struct AccumulatorTable
     void recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
 };
 
-// Compute threat features and add them to a copy of the accumulator for eval.
-// This produces a temporary accumulator with threats applied on top.
-void apply_threat_features(const BoardState& board, const std::array<int16_t, FT_SIZE>& base_stm,
-    const std::array<int16_t, FT_SIZE>& base_nstm, std::array<int16_t, FT_SIZE>& out_stm,
-    std::array<int16_t, FT_SIZE>& out_nstm);
-
-// TODO: this class can mostly disappear and be replaced with stand alone functions
 class Network
 {
 public:
