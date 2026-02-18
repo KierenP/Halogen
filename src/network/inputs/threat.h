@@ -325,31 +325,22 @@ struct ThreatAccumulator
     //   - collect_threats_to: gets threats where the piece is the VICTIM, excluding attackers that are
     //     themselves in the changed set (they'll be counted via their own collect_threats_from)
     //   - x-ray: excludes changed squares as both sliders and victims
-    void compute_threat_deltas(const BoardState& prev_board, const BoardState& post_board, const Square* sub_sqs,
-        size_t n_sub_sqs, const Square* add_sqs, size_t n_add_sqs, const Square* vacated_sqs, size_t n_vacated,
-        const Square* newly_occupied_sqs, size_t n_newly_occupied)
+    void compute_threat_deltas(
+        const BoardState& prev_board, const BoardState& post_board, uint64_t sub_bb, uint64_t add_bb)
     {
         n_threat_adds = 0;
         n_threat_subs = 0;
 
         uint64_t old_occ = prev_board.get_pieces_bb();
         uint64_t new_occ = post_board.get_pieces_bb();
-
-        // Build exclude masks once upfront
-        uint64_t sub_mask = 0;
-        for (size_t i = 0; i < n_sub_sqs; i++)
-            sub_mask |= SquareBB[sub_sqs[i]];
-
-        uint64_t add_mask = 0;
-        for (size_t i = 0; i < n_add_sqs; i++)
-            add_mask |= SquareBB[add_sqs[i]];
-
-        uint64_t all_changed_mask = sub_mask | add_mask;
+        uint64_t all_changed_mask = sub_bb | add_bb;
+        uint64_t newly_vacated_bb = sub_bb & ~add_bb;
+        uint64_t newly_occupied_bb = add_bb & ~sub_bb;
 
         // --- Remove old threats involving sub squares ---
-        for (size_t i = 0; i < n_sub_sqs; i++)
+        for (auto sub_copy = sub_bb; sub_copy != EMPTY;)
         {
-            Square sq = sub_sqs[i];
+            Square sq = lsbpop(sub_copy);
 
             // Threats FROM this piece as attacker
             collect_threats_from(prev_board, sq, old_occ,
@@ -360,7 +351,7 @@ struct ThreatAccumulator
                 });
 
             // Threats TO this piece as victim, excluding other sub squares as attackers
-            collect_threats_to(prev_board, sq, old_occ, sub_mask,
+            collect_threats_to(prev_board, sq, old_occ, sub_bb,
                 [&](ThreatDelta td)
                 {
                     assert(n_threat_subs < MAX_THREAT_DELTAS);
@@ -369,9 +360,9 @@ struct ThreatAccumulator
         }
 
         // --- Add new threats involving add squares ---
-        for (size_t i = 0; i < n_add_sqs; i++)
+        for (auto add_copy = add_bb; add_copy != EMPTY;)
         {
-            Square sq = add_sqs[i];
+            Square sq = lsbpop(add_copy);
 
             // Threats FROM this piece as attacker
             collect_threats_from(post_board, sq, new_occ,
@@ -382,7 +373,7 @@ struct ThreatAccumulator
                 });
 
             // Threats TO this piece as victim, excluding other add squares as attackers
-            collect_threats_to(post_board, sq, new_occ, add_mask,
+            collect_threats_to(post_board, sq, new_occ, add_bb,
                 [&](ThreatDelta td)
                 {
                     assert(n_threat_adds < MAX_THREAT_DELTAS);
@@ -391,9 +382,9 @@ struct ThreatAccumulator
         }
 
         // --- X-ray: discovered attacks through vacated squares ---
-        for (size_t i = 0; i < n_vacated; i++)
+        while (newly_vacated_bb)
         {
-            Square sq = vacated_sqs[i];
+            Square sq = lsbpop(newly_vacated_bb);
 
             // slider_occ: old occupancy with only THIS vacated square removed.
             // This ensures only sliders that were actually blocked by THIS square are found.
@@ -412,9 +403,9 @@ struct ThreatAccumulator
         }
 
         // --- X-ray: blocked attacks through newly occupied squares ---
-        for (size_t i = 0; i < n_newly_occupied; i++)
+        while (newly_occupied_bb)
         {
-            Square sq = newly_occupied_sqs[i];
+            Square sq = lsbpop(newly_occupied_bb);
 
             // slider_occ: new occupancy with only THIS newly-occupied square removed.
             // This ensures only sliders that are now blocked by THIS square are found.

@@ -257,200 +257,87 @@ void Network::store_lazy_updates(
             }
 
             acc.board = post_move_board;
-
-            if (move.is_castle())
-            {
-                Square king_start = move.from();
-                Square king_end
-                    = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-                Square rook_start = move.to();
-                Square rook_end
-                    = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
-
-                acc.n_adds = 2;
-                acc.n_subs = 2;
-
-                acc.adds[0] = { w_king, b_king, king_end, from_piece };
-                acc.adds[1] = { w_king, b_king, rook_end, cap_piece };
-
-                acc.subs[0] = { w_king, b_king, king_start, from_piece };
-                acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
-            }
-            else if (move.is_capture())
-            {
-                acc.n_adds = 1;
-                acc.n_subs = 2;
-
-                acc.adds[0] = { w_king, b_king, to_sq, from_piece };
-
-                acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-                acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
-            }
-            else
-            {
-                acc.n_adds = 1;
-                acc.n_subs = 1;
-
-                acc.adds[0] = { w_king, b_king, to_sq, from_piece };
-
-                acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            }
         }
-        else if (move.is_castle())
-        {
-            Square king_start = move.from();
-            Square king_end
-                = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
-            Square rook_start = move.to();
-            Square rook_end
-                = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
+    }
 
-            acc.n_adds = 2;
-            acc.n_subs = 2;
+    if (move.is_castle())
+    {
+        Square king_start = move.from();
+        Square king_end
+            = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_C1 : SQ_C8) : (stm == WHITE ? SQ_G1 : SQ_G8);
+        Square rook_start = move.to();
+        Square rook_end
+            = move.flag() == A_SIDE_CASTLE ? (stm == WHITE ? SQ_D1 : SQ_D8) : (stm == WHITE ? SQ_F1 : SQ_F8);
 
-            acc.adds[0] = { w_king, b_king, king_end, from_piece };
-            acc.adds[1] = { w_king, b_king, rook_end, cap_piece };
+        acc.n_adds = 2;
+        acc.n_subs = 2;
 
-            acc.subs[0] = { w_king, b_king, king_start, from_piece };
-            acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
-        }
-        else if (move.is_capture())
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 2;
+        acc.adds[0] = { w_king, b_king, king_end, from_piece };
+        acc.adds[1] = { w_king, b_king, rook_end, cap_piece };
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+        acc.subs[0] = { w_king, b_king, king_start, from_piece };
+        acc.subs[1] = { w_king, b_king, rook_start, cap_piece };
+    }
+    else if (move.is_promotion() && move.is_capture())
+    {
+        acc.n_adds = 1;
+        acc.n_subs = 2;
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
-        }
-        else
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 1;
+        acc.adds[0] = { w_king, b_king, to_sq, to_piece };
 
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+        acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+        acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
+    }
+    else if (move.is_promotion())
+    {
+        acc.n_adds = 1;
+        acc.n_subs = 1;
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-        }
+        acc.adds[0] = { w_king, b_king, to_sq, to_piece };
+
+        acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+    }
+    else if (move.is_capture() && move.flag() == EN_PASSANT)
+    {
+        auto ep_capture_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
+
+        acc.n_adds = 1;
+        acc.n_subs = 2;
+
+        acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+
+        acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+        acc.subs[1] = { w_king, b_king, ep_capture_sq, get_piece(PAWN, !stm) };
+    }
+    else if (move.is_capture())
+    {
+        acc.n_adds = 1;
+        acc.n_subs = 2;
+
+        acc.adds[0] = { w_king, b_king, to_sq, from_piece };
+
+        acc.subs[0] = { w_king, b_king, from_sq, from_piece };
+        acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
     }
     else
     {
-        if (move.is_promotion() && move.is_capture())
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 2;
+        acc.n_adds = 1;
+        acc.n_subs = 1;
 
-            acc.adds[0] = { w_king, b_king, to_sq, to_piece };
+        acc.adds[0] = { w_king, b_king, to_sq, from_piece };
 
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
-        }
-        else if (move.is_promotion())
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 1;
-
-            acc.adds[0] = { w_king, b_king, to_sq, to_piece };
-
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-        }
-        else if (move.is_capture() && move.flag() == EN_PASSANT)
-        {
-            auto ep_capture_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
-
-            acc.n_adds = 1;
-            acc.n_subs = 2;
-
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
-
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, ep_capture_sq, get_piece(PAWN, !stm) };
-        }
-        else if (move.is_capture())
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 2;
-
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
-
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-            acc.subs[1] = { w_king, b_king, to_sq, cap_piece };
-        }
-        else
-        {
-            acc.n_adds = 1;
-            acc.n_subs = 1;
-
-            acc.adds[0] = { w_king, b_king, to_sq, from_piece };
-
-            acc.subs[0] = { w_king, b_king, from_sq, from_piece };
-        }
+        acc.subs[0] = { w_king, b_king, from_sq, from_piece };
     }
 
-    // Compute threat deltas based on which piece-square inputs changed.
-    //
-    // For each piece-square sub (piece removed from old board):
-    //   - collect threats FROM and TO that piece on old board → threat subs
-    // For each piece-square add (piece placed on new board):
-    //   - collect threats FROM and TO that piece on new board → threat adds
-    //
-    // For x-rays through squares where occupancy changed (occupied↔empty):
-    //   - square vacated: discover new x-ray threats on new board → adds
-    //   - square newly occupied: old x-ray threats on old board → subs
     {
-        // Piece-square sub/add squares (where pieces were removed/added)
-        Square sub_sqs[4];
-        size_t n_sub_sqs = 0;
-        Square add_sqs[4];
-        size_t n_add_sqs = 0;
-
+        uint64_t sub_bb = 0;
         for (size_t i = 0; i < acc.n_subs; i++)
-            sub_sqs[n_sub_sqs++] = acc.subs[i].piece_sq;
+            sub_bb |= SquareBB[acc.subs[i].piece_sq];
+        uint64_t add_bb = 0;
         for (size_t i = 0; i < acc.n_adds; i++)
-            add_sqs[n_add_sqs++] = acc.adds[i].piece_sq;
+            add_bb |= SquareBB[acc.adds[i].piece_sq];
 
-        // Occupancy-changed squares (for x-ray computation only)
-        // A square occupied on both boards (capture: to_sq) does NOT change occupancy.
-        Square vacated[4]; // occupied → empty
-        size_t n_vacated = 0;
-        Square newly_occupied[4]; // empty → occupied
-        size_t n_newly_occupied = 0;
-
-        if (move.is_castle())
-        {
-            // Castling can have overlapping squares (e.g. rook_end == king_start in some cases).
-            // Use the occupancy diff directly.
-            uint64_t old_occ = prev_move_board.get_pieces_bb();
-            uint64_t new_occ = post_move_board.get_pieces_bb();
-            uint64_t became_empty = old_occ & ~new_occ;
-            uint64_t became_occupied = new_occ & ~old_occ;
-            while (became_empty)
-                vacated[n_vacated++] = lsbpop(became_empty);
-            while (became_occupied)
-                newly_occupied[n_newly_occupied++] = lsbpop(became_occupied);
-        }
-        else if (move.is_capture() && move.flag() == EN_PASSANT)
-        {
-            auto ep_capture_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
-            vacated[n_vacated++] = from_sq;
-            vacated[n_vacated++] = ep_capture_sq;
-            newly_occupied[n_newly_occupied++] = to_sq;
-        }
-        else if (move.is_capture())
-        {
-            // Only from_sq changes occupancy (to_sq stays occupied, just different piece)
-            vacated[n_vacated++] = from_sq;
-        }
-        else
-        {
-            // Quiet move (including promotions): from_sq becomes empty, to_sq becomes occupied
-            vacated[n_vacated++] = from_sq;
-            newly_occupied[n_newly_occupied++] = to_sq;
-        }
-
-        acc.threats.compute_threat_deltas(prev_move_board, post_move_board, sub_sqs, n_sub_sqs, add_sqs, n_add_sqs,
-            vacated, n_vacated, newly_occupied, n_newly_occupied);
+        acc.threats.compute_threat_deltas(prev_move_board, post_move_board, sub_bb, add_bb);
     }
 }
 
