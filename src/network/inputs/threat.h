@@ -468,8 +468,8 @@ struct ThreatAccumulator
 
                     auto td = get_threat_indices(atk_pt, atk_color, atk_sq, vic_pt, vic_color, vic_sq);
 
-                    NN::add1(side[WHITE], net.ft_threat_weight[td.white_idx]);
-                    NN::add1(side[BLACK], net.ft_threat_weight[td.black_idx]);
+                    NN::add1(side[WHITE], net.ft_weight[THREAT_OFFSET + td.white_idx]);
+                    NN::add1(side[BLACK], net.ft_weight[THREAT_OFFSET + td.black_idx]);
                 }
             }
         }
@@ -483,26 +483,26 @@ struct ThreatAccumulator
         // ~3% speedup from prefetching
         for (size_t i = 0; i < n_threat_subs; i++)
         {
-            __builtin_prefetch(&net.ft_threat_weight[threat_subs[i].white_idx]);
-            __builtin_prefetch(&net.ft_threat_weight[threat_subs[i].black_idx]);
+            __builtin_prefetch(&net.ft_weight[THREAT_OFFSET + threat_subs[i].white_idx]);
+            __builtin_prefetch(&net.ft_weight[THREAT_OFFSET + threat_subs[i].black_idx]);
         }
 
         for (size_t i = 0; i < n_threat_adds; i++)
         {
-            __builtin_prefetch(&net.ft_threat_weight[threat_adds[i].white_idx]);
-            __builtin_prefetch(&net.ft_threat_weight[threat_adds[i].black_idx]);
+            __builtin_prefetch(&net.ft_weight[THREAT_OFFSET + threat_adds[i].white_idx]);
+            __builtin_prefetch(&net.ft_weight[THREAT_OFFSET + threat_adds[i].black_idx]);
         }
 
         for (size_t i = 0; i < n_threat_subs; i++)
         {
-            NN::sub1(side[WHITE], net.ft_threat_weight[threat_subs[i].white_idx]);
-            NN::sub1(side[BLACK], net.ft_threat_weight[threat_subs[i].black_idx]);
+            NN::sub1(side[WHITE], net.ft_weight[THREAT_OFFSET + threat_subs[i].white_idx]);
+            NN::sub1(side[BLACK], net.ft_weight[THREAT_OFFSET + threat_subs[i].black_idx]);
         }
 
         for (size_t i = 0; i < n_threat_adds; i++)
         {
-            NN::add1(side[WHITE], net.ft_threat_weight[threat_adds[i].white_idx]);
-            NN::add1(side[BLACK], net.ft_threat_weight[threat_adds[i].black_idx]);
+            NN::add1(side[WHITE], net.ft_weight[THREAT_OFFSET + threat_adds[i].white_idx]);
+            NN::add1(side[BLACK], net.ft_weight[THREAT_OFFSET + threat_adds[i].black_idx]);
         }
     }
 };

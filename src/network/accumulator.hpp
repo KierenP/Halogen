@@ -58,7 +58,7 @@ void sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b)
 #endif
 }
 
-template <size_t SIZE>
+/*template <size_t SIZE>
 void sub1(std::array<int16_t, SIZE>& a, const std::array<int8_t, SIZE>& b)
 {
 #if defined(SIMD_ENABLED)
@@ -79,7 +79,7 @@ void sub1(std::array<int16_t, SIZE>& a, const std::array<int8_t, SIZE>& b)
         a[i] -= static_cast<int16_t>(b[i]);
     }
 #endif
-}
+}*/
 
 template <size_t SIZE>
 void add1sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, const std::array<int16_t, SIZE>& c,
