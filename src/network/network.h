@@ -4,7 +4,6 @@
 #include "chessboard/board_state.h"
 #include "network/arch.hpp"
 #include "network/inputs/king_bucket.h"
-#include "network/inputs/piece_square.h"
 #include "network/inputs/threat.h"
 #include "search/score.h"
 
@@ -27,16 +26,15 @@ struct InputPair
 };
 
 // The main accumulator, composed of independently-updatable sub-accumulators for each input type.
-// All three sub-accumulators are incrementally updated.
+// king_bucket stores bias + king-bucketed + piece-square combined; threats is updated separately.
 struct Accumulator
 {
     KingBucketPieceSquareAccumulator king_bucket;
-    PieceSquareAccumulator piece_square;
     ThreatAccumulator threats;
 
     bool operator==(const Accumulator& rhs) const
     {
-        return king_bucket == rhs.king_bucket && piece_square == rhs.piece_square && threats == rhs.threats;
+        return king_bucket == rhs.king_bucket && threats == rhs.threats;
     }
 
     void recalculate(const BoardState& board);
@@ -54,7 +52,7 @@ struct Accumulator
 };
 
 // An accumulator table entry caches the king-bucketed accumulator for a particular king position.
-// The psqt accumulator doesn't depend on king position so doesn't need to be cached here.
+// When copying to the live accumulator, piece-square inputs are added on top from scratch.
 struct AccumulatorTableEntry
 {
     KingBucketPieceSquareAccumulator acc;

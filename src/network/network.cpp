@@ -8,7 +8,6 @@
 #include "network/arch.hpp"
 #include "network/inference.hpp"
 #include "network/inputs/king_bucket.h"
-#include "network/inputs/piece_square.h"
 #include "network/inputs/threat.h"
 #include "network/threat_inputs.h"
 #include "third-party/incbin/incbin.h"
@@ -51,29 +50,24 @@ const network& net = reinterpret_cast<const network&>(*gNetData);
 void apply_add1sub1(const Accumulator& prev, Accumulator& next, const InputPair& a1, const InputPair& s1, Side view)
 {
     auto king = view == WHITE ? a1.w_king : a1.b_king;
-    next.king_bucket.add1sub1(
+    next.king_bucket.fused_add1sub1(
         prev.king_bucket, { king, a1.piece_sq, a1.piece }, { king, s1.piece_sq, s1.piece }, view, net);
-    next.piece_square.add1sub1(prev.piece_square, { a1.piece_sq, a1.piece }, { s1.piece_sq, s1.piece }, view, net);
 }
 
 void apply_add1sub2(const Accumulator& prev, Accumulator& next, const InputPair& a1, const InputPair& s1,
     const InputPair& s2, Side view)
 {
     auto king = view == WHITE ? a1.w_king : a1.b_king;
-    next.king_bucket.add1sub2(prev.king_bucket, { king, a1.piece_sq, a1.piece }, { king, s1.piece_sq, s1.piece },
+    next.king_bucket.fused_add1sub2(prev.king_bucket, { king, a1.piece_sq, a1.piece }, { king, s1.piece_sq, s1.piece },
         { king, s2.piece_sq, s2.piece }, view, net);
-    next.piece_square.add1sub2(
-        prev.piece_square, { a1.piece_sq, a1.piece }, { s1.piece_sq, s1.piece }, { s2.piece_sq, s2.piece }, view, net);
 }
 
 void apply_add2sub2(const Accumulator& prev, Accumulator& next, const InputPair& a1, const InputPair& a2,
     const InputPair& s1, const InputPair& s2, Side view)
 {
     auto king = view == WHITE ? a1.w_king : a1.b_king;
-    next.king_bucket.add2sub2(prev.king_bucket, { king, a1.piece_sq, a1.piece }, { king, a2.piece_sq, a2.piece },
+    next.king_bucket.fused_add2sub2(prev.king_bucket, { king, a1.piece_sq, a1.piece }, { king, a2.piece_sq, a2.piece },
         { king, s1.piece_sq, s1.piece }, { king, s2.piece_sq, s2.piece }, view, net);
-    next.piece_square.add2sub2(prev.piece_square, { a1.piece_sq, a1.piece }, { a2.piece_sq, a2.piece },
-        { s1.piece_sq, s1.piece }, { s2.piece_sq, s2.piece }, view, net);
 }
 
 // Apply fused updates to both sub-accumulators for both sides
@@ -107,7 +101,6 @@ void Accumulator::recalculate(const BoardState& board_)
 void Accumulator::recalculate(const BoardState& board_, Side view)
 {
     king_bucket.side[view] = net.ft_bias;
-    piece_square.side[view] = {};
     auto king = board_.get_king_sq(view);
 
     for (int i = 0; i < N_PIECES; i++)
@@ -119,7 +112,7 @@ void Accumulator::recalculate(const BoardState& board_, Side view)
         {
             Square sq = lsbpop(bb);
             king_bucket.add_input({ king, sq, piece }, view, net);
-            piece_square.add_input({ sq, piece }, view, net);
+            king_bucket.add_psq_input(sq, piece, view, net);
         }
     }
 }
@@ -168,6 +161,19 @@ void AccumulatorTable::recalculate(Accumulator& acc, const BoardState& board, Si
     }
 
     acc.king_bucket.side[side] = entry.acc.side[side];
+
+    // Add piece-square contributions from scratch on top of the copied kb data
+    for (int i = 0; i < N_PIECES; i++)
+    {
+        Piece piece = static_cast<Piece>(i);
+        uint64_t piece_bb = board.get_pieces_bb(piece);
+
+        while (piece_bb)
+        {
+            Square sq = lsbpop(piece_bb);
+            acc.king_bucket.add_psq_input(sq, piece, side, net);
+        }
+    }
 }
 
 void Network::reset_new_search(const BoardState& board, Accumulator& acc)
@@ -188,7 +194,6 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
 {
     Accumulator expected = {};
     expected.king_bucket.side = { net.ft_bias, net.ft_bias };
-    expected.piece_square.side = {};
     auto w_king = board.get_king_sq(WHITE);
     auto b_king = board.get_king_sq(BLACK);
 
@@ -201,9 +206,9 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
         {
             Square sq = lsbpop(bb);
             expected.king_bucket.add_input({ w_king, sq, piece }, WHITE, net);
+            expected.king_bucket.add_psq_input(sq, piece, WHITE, net);
             expected.king_bucket.add_input({ b_king, sq, piece }, BLACK, net);
-            expected.piece_square.add_input({ sq, piece }, WHITE, net);
-            expected.piece_square.add_input({ sq, piece }, BLACK, net);
+            expected.king_bucket.add_psq_input(sq, piece, BLACK, net);
         }
     }
 
@@ -460,61 +465,31 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
 
     if (next_acc.white_requires_recalculation)
     {
-        // King changed bucket for white — recalculate king-bucketed from table
+        // King changed bucket for white — recalculate from table (sets kb + psq for WHITE)
         table.recalculate(next_acc, next_acc.board, WHITE, next_acc.board.get_king_sq(WHITE));
 
-        // Incrementally update psqt for WHITE and both sub-accumulators for BLACK
+        // Incrementally update BLACK (kb + psq fused)
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
-        {
-            next_acc.piece_square.add1sub1(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, WHITE, net);
             apply_add1sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], BLACK);
-        }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
-        {
-            next_acc.piece_square.add1sub2(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE, net);
             apply_add1sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1], BLACK);
-        }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
-        {
-            next_acc.piece_square.add2sub2(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, WHITE, net);
             apply_add2sub2(
                 prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1], BLACK);
-        }
     }
     else if (next_acc.black_requires_recalculation)
     {
-        // King changed bucket for black — recalculate king-bucketed from table
+        // King changed bucket for black — recalculate from table (sets kb + psq for BLACK)
         table.recalculate(next_acc, next_acc.board, BLACK, next_acc.board.get_king_sq(BLACK));
 
-        // Incrementally update psqt for BLACK and both sub-accumulators for WHITE
+        // Incrementally update WHITE (kb + psq fused)
         if (next_acc.n_adds == 1 && next_acc.n_subs == 1)
-        {
-            next_acc.piece_square.add1sub1(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece }, BLACK, net);
             apply_add1sub1(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], WHITE);
-        }
         else if (next_acc.n_adds == 1 && next_acc.n_subs == 2)
-        {
-            next_acc.piece_square.add1sub2(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK, net);
             apply_add1sub2(prev_acc, next_acc, next_acc.adds[0], next_acc.subs[0], next_acc.subs[1], WHITE);
-        }
         else if (next_acc.n_adds == 2 && next_acc.n_subs == 2)
-        {
-            next_acc.piece_square.add2sub2(prev_acc.piece_square, { next_acc.adds[0].piece_sq, next_acc.adds[0].piece },
-                { next_acc.adds[1].piece_sq, next_acc.adds[1].piece },
-                { next_acc.subs[0].piece_sq, next_acc.subs[0].piece },
-                { next_acc.subs[1].piece_sq, next_acc.subs[1].piece }, BLACK, net);
             apply_add2sub2(
                 prev_acc, next_acc, next_acc.adds[0], next_acc.adds[1], next_acc.subs[0], next_acc.subs[1], WHITE);
-        }
     }
     else
     {
@@ -534,7 +509,6 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
         {
             // null move
             next_acc.king_bucket.side = prev_acc.king_bucket.side;
-            next_acc.piece_square.side = prev_acc.piece_square.side;
         }
     }
 
@@ -556,13 +530,9 @@ void combine_accumulators(const BoardState& board, const Accumulator& acc, std::
 {
     auto stm = board.stm;
 
-    // Start with bias + king-bucketed values
+    // king_bucket.side stores bias + king-bucketed + piece-square combined
     out_stm = acc.king_bucket.side[stm];
     out_nstm = acc.king_bucket.side[!stm];
-
-    // Add piece-square values
-    NN::add1(out_stm, acc.piece_square.side[stm]);
-    NN::add1(out_nstm, acc.piece_square.side[!stm]);
 
     // Add incrementally updated threat features
     NN::add1(out_stm, acc.threats.side[stm]);
