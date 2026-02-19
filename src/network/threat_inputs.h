@@ -161,9 +161,7 @@ inline constexpr size_t TOTAL_THREAT_FEATURES = THREAT_TABLE.total_threat_featur
 
 // Feature layout in the weight matrix:
 //   [0, 768 * KING_BUCKET_COUNT)                           : king-bucketed piece-square
-//   [768 * KING_BUCKET_COUNT, 768 * KING_BUCKET_COUNT+768) : unbucketed piece-square
 //   [768 * KING_BUCKET_COUNT + 768, ...)                   : threat features
 inline constexpr size_t KING_BUCKET_INPUT_COUNT = 768; // 12 pieces * 64 squares
-inline constexpr size_t PSQT_INPUT_COUNT = 768; // 12 pieces * 64 squares (unbucketed)
 
 }

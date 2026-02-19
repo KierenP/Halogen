@@ -36,12 +36,11 @@ constexpr size_t KING_BUCKET_COUNT = []()
 }();
 
 // Total number of inputs into the feature transformer:
-//   king-bucketed piece-square + unbucketed piece-square + threat features
-constexpr size_t TOTAL_FT_INPUTS = INPUT_SIZE * KING_BUCKET_COUNT + NN::PSQT_INPUT_COUNT + NN::TOTAL_THREAT_FEATURES;
+//   king-bucketed piece-square + threat features
+constexpr size_t TOTAL_FT_INPUTS = INPUT_SIZE * KING_BUCKET_COUNT + NN::TOTAL_THREAT_FEATURES;
 
 // Offsets into the weight matrix for each input type
-constexpr size_t PSQT_OFFSET = INPUT_SIZE * KING_BUCKET_COUNT;
-constexpr size_t THREAT_OFFSET = PSQT_OFFSET + NN::PSQT_INPUT_COUNT;
+constexpr size_t THREAT_OFFSET = INPUT_SIZE * KING_BUCKET_COUNT;
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
