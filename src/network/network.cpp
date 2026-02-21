@@ -208,6 +208,8 @@ void Network::store_lazy_updates(
     acc.acc_is_valid = false;
     acc.white_requires_recalculation = false;
     acc.black_requires_recalculation = false;
+    acc.white_threats_requires_recalculation = false;
+    acc.black_threats_requires_recalculation = false;
     acc.adds = {};
     acc.n_adds = 0;
     acc.subs = {};
@@ -226,6 +228,18 @@ void Network::store_lazy_updates(
 
     if (from_piece == get_piece(KING, stm))
     {
+        if ((enum_to<File>(from_sq) <= FILE_D) ^ (enum_to<File>(to_sq) <= FILE_D))
+        {
+            if (stm == WHITE)
+            {
+                acc.white_threats_requires_recalculation = true;
+            }
+            else
+            {
+                acc.black_threats_requires_recalculation = true;
+            }
+        }
+
         if (KingBucketPieceSquareAccumulator::get_king_bucket(from_sq, stm)
                 != KingBucketPieceSquareAccumulator::get_king_bucket(to_sq, stm)
             || ((enum_to<File>(from_sq) <= FILE_D) ^ (enum_to<File>(to_sq) <= FILE_D)))
@@ -332,6 +346,7 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     }
 
     assert(!(next_acc.white_requires_recalculation && next_acc.black_requires_recalculation));
+    assert(!(next_acc.white_threats_requires_recalculation && next_acc.black_threats_requires_recalculation));
 
     if (next_acc.white_requires_recalculation)
     {
@@ -381,7 +396,20 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     }
 
     // Apply threat deltas (works for all cases including null move where there are 0 deltas)
-    next_acc.threats.apply_deltas(prev_acc.threats, net);
+    if (next_acc.white_threats_requires_recalculation)
+    {
+        next_acc.threats.compute(next_acc.board, net, WHITE);
+        next_acc.threats.apply_deltas(prev_acc.threats, net, BLACK);
+    }
+    else if (next_acc.black_threats_requires_recalculation)
+    {
+        next_acc.threats.compute(next_acc.board, net, BLACK);
+        next_acc.threats.apply_deltas(prev_acc.threats, net, WHITE);
+    }
+    else
+    {
+        next_acc.threats.apply_deltas(prev_acc.threats, net);
+    }
 
     next_acc.acc_is_valid = true;
 }
