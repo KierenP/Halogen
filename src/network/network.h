@@ -44,6 +44,8 @@ struct Accumulator
     bool acc_is_valid = false;
     bool white_requires_recalculation = false;
     bool black_requires_recalculation = false;
+    bool white_threats_requires_recalculation = false;
+    bool black_threats_requires_recalculation = false;
     std::array<InputPair, 2> adds = {};
     size_t n_adds = 0;
     std::array<InputPair, 2> subs = {};
