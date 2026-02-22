@@ -26,12 +26,6 @@ struct ThreatDelta
     Square vic_sq;
 };
 
-struct ThreatIndices
-{
-    uint32_t white_idx;
-    uint32_t black_idx;
-};
-
 // Threat input accumulator. Stores threat feature contributions per side (WHITE/BLACK perspective).
 // Incrementally updated via threat deltas computed in store_lazy_updates.
 struct ThreatAccumulator
