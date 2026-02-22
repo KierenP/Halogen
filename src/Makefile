@@ -32,6 +32,7 @@ SRCS := \
     movegen/movegen.cpp \
     network/network.cpp \
     network/accumulator/king_bucket.cpp \
+    network/accumulator/threat.cpp \
     numa/numa.cpp \
     search/cuckoo.cpp \
     search/data.cpp \

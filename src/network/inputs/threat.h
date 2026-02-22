@@ -200,4 +200,25 @@ constexpr uint32_t get_threat_index(int atk_idx, int atk_sq, int vic_idx, int vi
     return attacker_base + victim_offset + square_rank;
 }
 
+template <Side perspective>
+constexpr uint32_t get_threat_index(Piece atk_piece, Square atk_sq, Piece vic_piece, Square vic_sq, Square king_sq)
+{
+    constexpr int v_flip = perspective == WHITE ? 0 : 56;
+    const int h_flip = enum_to<File>(king_sq) <= FILE_D ? 0 : 7;
+
+    const auto atk_color = enum_to<Side>(atk_piece);
+    const auto vic_color = enum_to<Side>(vic_piece);
+    const auto atk_pt = enum_to<PieceType>(atk_piece);
+    const auto vic_pt = enum_to<PieceType>(vic_piece);
+
+    const int atk_side = (atk_color == perspective) ? 0 : 1;
+    const int vic_side = (vic_color == perspective) ? 0 : 1;
+    const int atk_idx = atk_pt * 2 + atk_side;
+    const int vic_idx = vic_pt * 2 + vic_side;
+    const uint32_t feat = get_threat_index(atk_idx, atk_sq ^ h_flip ^ v_flip, vic_idx, vic_sq ^ h_flip ^ v_flip);
+
+    assert(feat != INVALID_THREAT);
+    return feat;
+}
+
 } // namespace NN::Threats
