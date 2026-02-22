@@ -16,21 +16,16 @@
 namespace NN::Threats
 {
 
-// A single threat, stored as the original attacker->victim description.
+// A single threat, stored as the original attacker->victim description. w_king and b_king are same for all
+// ThreatDeltas, so they are stored in the accumulator
 struct ThreatDelta
 {
-    PieceType atk_pt;
-    Side atk_color;
+    Piece atk_pt;
     Square atk_sq;
-    PieceType vic_pt;
-    Side vic_color;
+    Piece vic_pt;
     Square vic_sq;
-
-    Square w_king;
-    Square b_king;
 };
 
-// Pre-computed indices into ft_threat_weight for both perspectives.
 struct ThreatIndices
 {
     uint32_t white_idx;
@@ -58,6 +53,8 @@ struct ThreatAccumulator
     bool acc_is_valid = false;
 
     // Threat deltas: features to add and subtract from the previous accumulator
+    Square w_king;
+    Square b_king;
     std::array<ThreatDelta, MAX_THREAT_DELTAS> threat_adds = {};
     size_t n_threat_adds = 0;
     std::array<ThreatDelta, MAX_THREAT_DELTAS> threat_subs = {};
@@ -135,16 +132,12 @@ struct ThreatAccumulator
         PieceType pt = enum_to<PieceType>(piece_on_sq);
         Side color = enum_to<Side>(piece_on_sq);
 
-        Square w_king = board.get_king_sq(WHITE);
-        Square b_king = board.get_king_sq(BLACK);
-
         uint64_t targets = get_threat_targets(pt, color, sq, occ, pawns, knights, bishops, rooks, queens, kings);
         while (targets)
         {
             Square vic_sq = lsbpop(targets);
             Piece vic_piece = board.get_square_piece(vic_sq);
-            cb(ThreatDelta {
-                pt, color, sq, enum_to<PieceType>(vic_piece), enum_to<Side>(vic_piece), vic_sq, w_king, b_king });
+            cb(ThreatDelta { piece_on_sq, sq, vic_piece, vic_sq });
         }
     }
 
@@ -155,10 +148,6 @@ struct ThreatAccumulator
     {
         Piece piece_on_sq = board.get_square_piece(sq);
         PieceType vic_pt = enum_to<PieceType>(piece_on_sq);
-        Side vic_color = enum_to<Side>(piece_on_sq);
-
-        Square w_king = board.get_king_sq(WHITE);
-        Square b_king = board.get_king_sq(BLACK);
 
         // Pawns attacking this square
         if (is_valid_victim_for(PAWN, vic_pt))
@@ -167,73 +156,98 @@ struct ThreatAccumulator
             while (w_pawn_attackers)
             {
                 Square atk_sq = lsbpop(w_pawn_attackers);
-                cb(ThreatDelta { PAWN, WHITE, atk_sq, vic_pt, vic_color, sq, w_king, b_king });
+                cb(ThreatDelta { WHITE_PAWN, atk_sq, piece_on_sq, sq });
             }
             uint64_t b_pawn_attackers = PawnAttacks[WHITE][sq] & board.get_pieces_bb(BLACK_PAWN) & ~exclude_mask;
             while (b_pawn_attackers)
             {
                 Square atk_sq = lsbpop(b_pawn_attackers);
-                cb(ThreatDelta { PAWN, BLACK, atk_sq, vic_pt, vic_color, sq, w_king, b_king });
+                cb(ThreatDelta { BLACK_PAWN, atk_sq, piece_on_sq, sq });
             }
         }
 
         // Knights
         if (is_valid_victim_for(KNIGHT, vic_pt))
         {
-            uint64_t attackers = KnightAttacks[sq] & board.get_pieces_bb(KNIGHT) & ~exclude_mask;
-            while (attackers)
+            uint64_t w_attackers = KnightAttacks[sq] & board.get_pieces_bb(WHITE_KNIGHT) & ~exclude_mask;
+            while (w_attackers)
             {
-                Square atk_sq = lsbpop(attackers);
-                cb(ThreatDelta { KNIGHT, enum_to<Side>(board.get_square_piece(atk_sq)), atk_sq, vic_pt, vic_color, sq,
-                    w_king, b_king });
+                Square atk_sq = lsbpop(w_attackers);
+                cb(ThreatDelta { WHITE_KNIGHT, atk_sq, piece_on_sq, sq });
+            }
+            uint64_t b_attackers = KnightAttacks[sq] & board.get_pieces_bb(BLACK_KNIGHT) & ~exclude_mask;
+            while (b_attackers)
+            {
+                Square atk_sq = lsbpop(b_attackers);
+                cb(ThreatDelta { BLACK_KNIGHT, atk_sq, piece_on_sq, sq });
             }
         }
 
         // Bishops
         if (is_valid_victim_for(BISHOP, vic_pt))
         {
-            uint64_t attackers = attack_bb<BISHOP>(sq, occ) & board.get_pieces_bb(BISHOP) & ~exclude_mask;
-            while (attackers)
+            uint64_t w_attackers = attack_bb<BISHOP>(sq, occ) & board.get_pieces_bb(WHITE_BISHOP) & ~exclude_mask;
+            while (w_attackers)
             {
-                Square atk_sq = lsbpop(attackers);
-                cb(ThreatDelta { BISHOP, enum_to<Side>(board.get_square_piece(atk_sq)), atk_sq, vic_pt, vic_color, sq,
-                    w_king, b_king });
+                Square atk_sq = lsbpop(w_attackers);
+                cb(ThreatDelta { WHITE_BISHOP, atk_sq, piece_on_sq, sq });
+            }
+            uint64_t b_attackers = attack_bb<BISHOP>(sq, occ) & board.get_pieces_bb(BLACK_BISHOP) & ~exclude_mask;
+            while (b_attackers)
+            {
+                Square atk_sq = lsbpop(b_attackers);
+                cb(ThreatDelta { BLACK_BISHOP, atk_sq, piece_on_sq, sq });
             }
         }
 
         // Rooks
         if (is_valid_victim_for(ROOK, vic_pt))
         {
-            uint64_t attackers = attack_bb<ROOK>(sq, occ) & board.get_pieces_bb(ROOK) & ~exclude_mask;
-            while (attackers)
+            uint64_t w_attackers = attack_bb<ROOK>(sq, occ) & board.get_pieces_bb(WHITE_ROOK) & ~exclude_mask;
+            while (w_attackers)
             {
-                Square atk_sq = lsbpop(attackers);
-                cb(ThreatDelta { ROOK, enum_to<Side>(board.get_square_piece(atk_sq)), atk_sq, vic_pt, vic_color, sq,
-                    w_king, b_king });
+                Square atk_sq = lsbpop(w_attackers);
+                cb(ThreatDelta { WHITE_ROOK, atk_sq, piece_on_sq, sq });
+            }
+            uint64_t b_attackers = attack_bb<ROOK>(sq, occ) & board.get_pieces_bb(BLACK_ROOK) & ~exclude_mask;
+            while (b_attackers)
+            {
+                Square atk_sq = lsbpop(b_attackers);
+                cb(ThreatDelta { BLACK_ROOK, atk_sq, piece_on_sq, sq });
             }
         }
 
         // Queens
         if (is_valid_victim_for(QUEEN, vic_pt))
         {
-            uint64_t attackers = attack_bb<QUEEN>(sq, occ) & board.get_pieces_bb(QUEEN) & ~exclude_mask;
-            while (attackers)
+            uint64_t w_attackers = attack_bb<QUEEN>(sq, occ) & board.get_pieces_bb(WHITE_QUEEN) & ~exclude_mask;
+            while (w_attackers)
             {
-                Square atk_sq = lsbpop(attackers);
-                cb(ThreatDelta { QUEEN, enum_to<Side>(board.get_square_piece(atk_sq)), atk_sq, vic_pt, vic_color, sq,
-                    w_king, b_king });
+                Square atk_sq = lsbpop(w_attackers);
+                cb(ThreatDelta { WHITE_QUEEN, atk_sq, piece_on_sq, sq });
+            }
+            uint64_t b_attackers = attack_bb<QUEEN>(sq, occ) & board.get_pieces_bb(BLACK_QUEEN) & ~exclude_mask;
+            while (b_attackers)
+            {
+                Square atk_sq = lsbpop(b_attackers);
+                cb(ThreatDelta { BLACK_QUEEN, atk_sq, piece_on_sq, sq });
             }
         }
 
         // Kings
         if (is_valid_victim_for(KING, vic_pt))
         {
-            uint64_t attackers = KingAttacks[sq] & board.get_pieces_bb(KING) & ~exclude_mask;
-            while (attackers)
+            uint64_t w_attackers = KingAttacks[sq] & board.get_pieces_bb(WHITE_KING) & ~exclude_mask;
+            while (w_attackers)
             {
-                Square atk_sq = lsbpop(attackers);
-                cb(ThreatDelta { KING, enum_to<Side>(board.get_square_piece(atk_sq)), atk_sq, vic_pt, vic_color, sq,
-                    w_king, b_king });
+                Square atk_sq = lsbpop(w_attackers);
+                cb(ThreatDelta { WHITE_KING, atk_sq, piece_on_sq, sq });
+            }
+            uint64_t b_attackers = KingAttacks[sq] & board.get_pieces_bb(BLACK_KING) & ~exclude_mask;
+            while (b_attackers)
+            {
+                Square atk_sq = lsbpop(b_attackers);
+                cb(ThreatDelta { BLACK_KING, atk_sq, piece_on_sq, sq });
             }
         }
     }
@@ -252,9 +266,6 @@ struct ThreatAccumulator
         uint64_t bishops = diagonal_attackers & board.get_pieces_bb(BISHOP);
         uint64_t queens_diag = diagonal_attackers & board.get_pieces_bb(QUEEN);
 
-        Square w_king = board.get_king_sq(WHITE);
-        Square b_king = board.get_king_sq(BLACK);
-
         while (bishops)
         {
             Square slider_sq = lsbpop(bishops);
@@ -271,8 +282,7 @@ struct ThreatAccumulator
                 Piece vic_piece = board.get_square_piece(vic_sq);
                 PieceType vic_pt = enum_to<PieceType>(vic_piece);
                 if (is_valid_victim_for(BISHOP, vic_pt))
-                    cb(ThreatDelta {
-                        BISHOP, slider_color, slider_sq, vic_pt, enum_to<Side>(vic_piece), vic_sq, w_king, b_king });
+                    cb(ThreatDelta { get_piece(BISHOP, slider_color), slider_sq, vic_piece, vic_sq });
             }
         }
 
@@ -291,8 +301,7 @@ struct ThreatAccumulator
                 Piece vic_piece = board.get_square_piece(vic_sq);
                 PieceType vic_pt = enum_to<PieceType>(vic_piece);
                 if (is_valid_victim_for(QUEEN, vic_pt))
-                    cb(ThreatDelta {
-                        QUEEN, slider_color, slider_sq, vic_pt, enum_to<Side>(vic_piece), vic_sq, w_king, b_king });
+                    cb(ThreatDelta { get_piece(QUEEN, slider_color), slider_sq, vic_piece, vic_sq });
             }
         }
 
@@ -316,8 +325,7 @@ struct ThreatAccumulator
                 Piece vic_piece = board.get_square_piece(vic_sq);
                 PieceType vic_pt = enum_to<PieceType>(vic_piece);
                 if (is_valid_victim_for(ROOK, vic_pt))
-                    cb(ThreatDelta {
-                        ROOK, slider_color, slider_sq, vic_pt, enum_to<Side>(vic_piece), vic_sq, w_king, b_king });
+                    cb(ThreatDelta { get_piece(ROOK, slider_color), slider_sq, vic_piece, vic_sq });
             }
         }
 
@@ -336,8 +344,7 @@ struct ThreatAccumulator
                 Piece vic_piece = board.get_square_piece(vic_sq);
                 PieceType vic_pt = enum_to<PieceType>(vic_piece);
                 if (is_valid_victim_for(QUEEN, vic_pt))
-                    cb(ThreatDelta {
-                        QUEEN, slider_color, slider_sq, vic_pt, enum_to<Side>(vic_piece), vic_sq, w_king, b_king });
+                    cb(ThreatDelta { get_piece(QUEEN, slider_color), slider_sq, vic_piece, vic_sq });
             }
         }
     }
@@ -367,6 +374,9 @@ struct ThreatAccumulator
         uint64_t all_changed_mask = sub_bb | add_bb;
         uint64_t newly_vacated_bb = sub_bb & ~add_bb;
         uint64_t newly_occupied_bb = add_bb & ~sub_bb;
+
+        w_king = post_board.get_king_sq(WHITE);
+        b_king = post_board.get_king_sq(BLACK);
 
         // --- Remove old threats involving sub squares ---
         for (auto sub_copy = sub_bb; sub_copy != EMPTY;)
@@ -466,8 +476,8 @@ struct ThreatAccumulator
         const auto queens = board.get_pieces_bb(QUEEN);
         const auto kings = board.get_pieces_bb(KING);
 
-        Square w_king = board.get_king_sq(WHITE);
-        Square b_king = board.get_king_sq(BLACK);
+        w_king = board.get_king_sq(WHITE);
+        b_king = board.get_king_sq(BLACK);
 
         for (int piece_idx = 0; piece_idx < N_PIECES; piece_idx++)
         {
@@ -514,8 +524,8 @@ struct ThreatAccumulator
         const auto queens = board.get_pieces_bb(QUEEN);
         const auto kings = board.get_pieces_bb(KING);
 
-        Square w_king = board.get_king_sq(WHITE);
-        Square b_king = board.get_king_sq(BLACK);
+        w_king = board.get_king_sq(WHITE);
+        b_king = board.get_king_sq(BLACK);
 
         for (int piece_idx = 0; piece_idx < N_PIECES; piece_idx++)
         {
@@ -561,18 +571,20 @@ struct ThreatAccumulator
 
             for (size_t i = 0; i < n_threat_subs; i++)
             {
-                auto idx = get_threat_indices(threat_subs[i].atk_pt, threat_subs[i].atk_color, threat_subs[i].atk_sq,
-                    threat_subs[i].vic_pt, threat_subs[i].vic_color, threat_subs[i].vic_sq, threat_subs[i].w_king,
-                    threat_subs[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
+                    enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
+                    enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
+                    threat_subs[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
                 NN::sub1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
             }
 
             for (size_t i = 0; i < n_threat_adds; i++)
             {
-                auto idx = get_threat_indices(threat_adds[i].atk_pt, threat_adds[i].atk_color, threat_adds[i].atk_sq,
-                    threat_adds[i].vic_pt, threat_adds[i].vic_color, threat_adds[i].vic_sq, threat_adds[i].w_king,
-                    threat_adds[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_adds[i].atk_pt),
+                    enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
+                    enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
+                    threat_adds[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
                 NN::add1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
             }
@@ -585,18 +597,20 @@ struct ThreatAccumulator
 
             for (size_t i = 0; i < n_threat_subs; i++)
             {
-                auto idx = get_threat_indices(threat_subs[i].atk_pt, threat_subs[i].atk_color, threat_subs[i].atk_sq,
-                    threat_subs[i].vic_pt, threat_subs[i].vic_color, threat_subs[i].vic_sq, threat_subs[i].w_king,
-                    threat_subs[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
+                    enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
+                    enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
+                    threat_subs[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
                 NN::sub1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
             }
 
             for (size_t i = 0; i < n_threat_adds; i++)
             {
-                auto idx = get_threat_indices(threat_adds[i].atk_pt, threat_adds[i].atk_color, threat_adds[i].atk_sq,
-                    threat_adds[i].vic_pt, threat_adds[i].vic_color, threat_adds[i].vic_sq, threat_adds[i].w_king,
-                    threat_adds[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_adds[i].atk_pt),
+                    enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
+                    enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
+                    threat_adds[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
                 NN::add1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
             }
@@ -607,9 +621,10 @@ struct ThreatAccumulator
 
             for (size_t i = 0; i < n_threat_subs; i++)
             {
-                auto idx = get_threat_indices(threat_subs[i].atk_pt, threat_subs[i].atk_color, threat_subs[i].atk_sq,
-                    threat_subs[i].vic_pt, threat_subs[i].vic_color, threat_subs[i].vic_sq, threat_subs[i].w_king,
-                    threat_subs[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
+                    enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
+                    enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
+                    threat_subs[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
                 __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
                 NN::sub1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
@@ -618,9 +633,10 @@ struct ThreatAccumulator
 
             for (size_t i = 0; i < n_threat_adds; i++)
             {
-                auto idx = get_threat_indices(threat_adds[i].atk_pt, threat_adds[i].atk_color, threat_adds[i].atk_sq,
-                    threat_adds[i].vic_pt, threat_adds[i].vic_color, threat_adds[i].vic_sq, threat_adds[i].w_king,
-                    threat_adds[i].b_king);
+                auto idx = get_threat_indices(enum_to<PieceType>(threat_adds[i].atk_pt),
+                    enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
+                    enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
+                    threat_adds[i].vic_sq, w_king, b_king);
                 __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
                 __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
                 NN::add1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
