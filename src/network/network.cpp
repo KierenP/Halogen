@@ -134,35 +134,16 @@ int calculate_output_bucket(int pieces)
     return (pieces - 2) / (32 / OUTPUT_BUCKETS);
 }
 
-// Combine the king-bucketed and piece-square sub-accumulators with the bias, then add threat features
-// to produce the final STM/NSTM accumulator values for inference.
-void combine_accumulators(const BoardState& board, const Accumulator& acc, std::array<int16_t, FT_SIZE>& out_stm,
-    std::array<int16_t, FT_SIZE>& out_nstm)
-{
-    auto stm = board.stm;
-
-    // king_bucket.side stores bias + king-bucketed + piece-square combined
-    out_stm = acc.king_bucket.side[stm];
-    out_nstm = acc.king_bucket.side[!stm];
-
-    // Add incrementally updated threat features
-    NN::add1(out_stm, acc.threats.side[stm]);
-    NN::add1(out_nstm, acc.threats.side[!stm]);
-}
-
 Score Network::eval(const BoardState& board, const Accumulator& acc)
 {
     auto output_bucket = calculate_output_bucket(std::popcount(board.get_pieces_bb()));
-
-    // Combine all sub-accumulators + threats into final STM/NSTM values
-    alignas(64) std::array<int16_t, FT_SIZE> combined_stm;
-    alignas(64) std::array<int16_t, FT_SIZE> combined_nstm;
-    combine_accumulators(board, acc, combined_stm, combined_nstm);
+    auto stm = board.stm;
 
     alignas(64) std::array<uint8_t, FT_SIZE> ft_activation;
     alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
     size_t sparse_nibbles_size = 0;
-    NN::Features::FT_activation(combined_stm, combined_nstm, ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
+    NN::Features::FT_activation(acc.king_bucket.side[stm], acc.king_bucket.side[!stm], acc.threats.side[stm],
+        acc.threats.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<float, L1_SIZE * 2> l1_activation;

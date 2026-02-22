@@ -45,8 +45,8 @@ void add1(std::array<int16_t, SIZE>& a, const std::array<int8_t, SIZE>& b)
     {
         auto a_vec1 = SIMD::load(&a[i]);
         auto a_vec2 = SIMD::load(&a[i + stride]);
-        a_vec1 = SIMD::add_i16(a_vec1, SIMD::cvt_i8_to_i16(&b[i]));
-        a_vec2 = SIMD::add_i16(a_vec2, SIMD::cvt_i8_to_i16(&b[i + stride]));
+        a_vec1 = SIMD::add_i16(a_vec1, SIMD::load_i8_to_i16(&b[i]));
+        a_vec2 = SIMD::add_i16(a_vec2, SIMD::load_i8_to_i16(&b[i + stride]));
         SIMD::store(&a[i], a_vec1);
         SIMD::store(&a[i + stride], a_vec2);
     }
@@ -92,8 +92,8 @@ void sub1(std::array<int16_t, SIZE>& a, const std::array<int8_t, SIZE>& b)
     {
         auto a_vec1 = SIMD::load(&a[i]);
         auto a_vec2 = SIMD::load(&a[i + stride]);
-        a_vec1 = SIMD::sub_i16(a_vec1, SIMD::cvt_i8_to_i16(&b[i]));
-        a_vec2 = SIMD::sub_i16(a_vec2, SIMD::cvt_i8_to_i16(&b[i + stride]));
+        a_vec1 = SIMD::sub_i16(a_vec1, SIMD::load_i8_to_i16(&b[i]));
+        a_vec2 = SIMD::sub_i16(a_vec2, SIMD::load_i8_to_i16(&b[i + stride]));
         SIMD::store(&a[i], a_vec1);
         SIMD::store(&a[i + stride], a_vec2);
     }
@@ -154,14 +154,14 @@ void add1sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, 
         auto b_vec2 = SIMD::load(&b[i + stride]);
         auto b_vec3 = SIMD::load(&b[i + stride * 2]);
         auto b_vec4 = SIMD::load(&b[i + stride * 3]);
-        b_vec1 = SIMD::add_i16(b_vec1, SIMD::cvt_i8_to_i16(&c[i]));
-        b_vec2 = SIMD::add_i16(b_vec2, SIMD::cvt_i8_to_i16(&c[i + stride]));
-        b_vec3 = SIMD::add_i16(b_vec3, SIMD::cvt_i8_to_i16(&c[i + stride * 2]));
-        b_vec4 = SIMD::add_i16(b_vec4, SIMD::cvt_i8_to_i16(&c[i + stride * 3]));
-        b_vec1 = SIMD::sub_i16(b_vec1, SIMD::cvt_i8_to_i16(&d[i]));
-        b_vec2 = SIMD::sub_i16(b_vec2, SIMD::cvt_i8_to_i16(&d[i + stride]));
-        b_vec3 = SIMD::sub_i16(b_vec3, SIMD::cvt_i8_to_i16(&d[i + stride * 2]));
-        b_vec4 = SIMD::sub_i16(b_vec4, SIMD::cvt_i8_to_i16(&d[i + stride * 3]));
+        b_vec1 = SIMD::add_i16(b_vec1, SIMD::load_i8_to_i16(&c[i]));
+        b_vec2 = SIMD::add_i16(b_vec2, SIMD::load_i8_to_i16(&c[i + stride]));
+        b_vec3 = SIMD::add_i16(b_vec3, SIMD::load_i8_to_i16(&c[i + stride * 2]));
+        b_vec4 = SIMD::add_i16(b_vec4, SIMD::load_i8_to_i16(&c[i + stride * 3]));
+        b_vec1 = SIMD::sub_i16(b_vec1, SIMD::load_i8_to_i16(&d[i]));
+        b_vec2 = SIMD::sub_i16(b_vec2, SIMD::load_i8_to_i16(&d[i + stride]));
+        b_vec3 = SIMD::sub_i16(b_vec3, SIMD::load_i8_to_i16(&d[i + stride * 2]));
+        b_vec4 = SIMD::sub_i16(b_vec4, SIMD::load_i8_to_i16(&d[i + stride * 3]));
         SIMD::store(&a[i], b_vec1);
         SIMD::store(&a[i + stride], b_vec2);
         SIMD::store(&a[i + stride * 2], b_vec3);
