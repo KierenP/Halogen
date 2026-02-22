@@ -11,22 +11,22 @@
 class SparseL1Shuffle
 {
 public:
-    void report_ft_activations(const std::array<uint8_t, FT_SIZE>& ft_activation)
+    void report_ft_activations(const std::array<uint8_t, NN::FT_SIZE>& ft_activation)
     {
         // We need to remember we do a pairwise mul (so each activation refers to a pair of ft neurons), we have a duel
         // perspective net (so each ft_activation array is really 2 observations for each ft neuron).
 
-        for (size_t i = 0; i < FT_SIZE; i++)
+        for (size_t i = 0; i < NN::FT_SIZE; i++)
         {
-            activation[i % (FT_SIZE / 2)].push_back(ft_activation[i] > 0);
+            activation[i % (NN::FT_SIZE / 2)].push_back(ft_activation[i] > 0);
         }
 
         activation_data_count += 2;
     }
 
     constexpr static size_t group_size = 4;
-    constexpr static size_t num_groups = (FT_SIZE / 2) / group_size;
-    static_assert(group_size * num_groups == (FT_SIZE / 2));
+    constexpr static size_t num_groups = (NN::FT_SIZE / 2) / group_size;
+    static_assert(group_size * num_groups == (NN::FT_SIZE / 2));
 
     using Group = std::array<int, group_size>;
     using Groups = std::array<Group, num_groups>;
@@ -157,7 +157,7 @@ private:
     }
 
     // faster to store std::vector<uint8_t> than std::vector<bool> for auto-vectorization
-    std::array<std::vector<uint8_t>, FT_SIZE / 2> activation = {};
+    std::array<std::vector<uint8_t>, NN::FT_SIZE / 2> activation = {};
     size_t activation_data_count = 0;
 };
 

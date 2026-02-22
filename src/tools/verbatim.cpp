@@ -2,6 +2,8 @@
 // binary
 
 #include "network/arch.hpp"
+#include "network/inputs/king_bucket.h"
+#include "network/inputs/threat.h"
 #include "network/simd/define.hpp"
 
 #include <algorithm>
@@ -21,8 +23,8 @@ namespace NN
 
 struct raw_network
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, PSQ_FT_INPUTS> ft_weight = {};
-    alignas(64) std::array<std::array<int8_t, FT_SIZE>, NN::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, KingBucket::TOTAL_KING_BUCKET_INPUTS> ft_weight = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE>, Threats::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
@@ -77,13 +79,13 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
         (*ft_bias_output)[i] = ft_bias[old_idx];
         (*ft_bias_output)[i + FT_SIZE / 2] = ft_bias[old_idx + FT_SIZE / 2];
 
-        for (size_t j = 0; j < PSQ_FT_INPUTS; j++)
+        for (size_t j = 0; j < KingBucket::TOTAL_KING_BUCKET_INPUTS; j++)
         {
             (*ft_weight_output)[j][i] = ft_weight[j][old_idx];
             (*ft_weight_output)[j][i + FT_SIZE / 2] = ft_weight[j][old_idx + FT_SIZE / 2];
         }
 
-        for (size_t j = 0; j < NN::TOTAL_THREAT_FEATURES; j++)
+        for (size_t j = 0; j < Threats::TOTAL_THREAT_FEATURES; j++)
         {
             (*ft_threat_weight_output)[j][i] = ft_threat_weight[j][old_idx];
             (*ft_threat_weight_output)[j][i + FT_SIZE / 2] = ft_threat_weight[j][old_idx + FT_SIZE / 2];
@@ -110,7 +112,7 @@ auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight, const 
 
 #if defined(USE_AVX2)
     // shuffle around ft weights to match packus interleaving
-    for (size_t i = 0; i < PSQ_FT_INPUTS; i++)
+    for (size_t i = 0; i < KingBucket::TOTAL_KING_BUCKET_INPUTS; i++)
     {
         for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
         {
@@ -139,7 +141,7 @@ auto adjust_threat_for_packus(const decltype(raw_network::ft_threat_weight)& ft_
 
 #if defined(USE_AVX2)
     // shuffle around threat weights to match packus interleaving (same neuron reordering)
-    for (size_t i = 0; i < NN::TOTAL_THREAT_FEATURES; i++)
+    for (size_t i = 0; i < Threats::TOTAL_THREAT_FEATURES; i++)
     {
         for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
         {

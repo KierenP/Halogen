@@ -1,7 +1,7 @@
 #pragma once
 
 #include "network/simd/define.hpp"
-#include "simd/intrinsics.hpp"
+#include "network/simd/intrinsics.hpp"
 
 #include <array>
 #include <cstddef>
