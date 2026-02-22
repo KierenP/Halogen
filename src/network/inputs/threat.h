@@ -4,11 +4,14 @@
 #include "bitboard/enum.h"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
 namespace NN::Threats
 {
+
+constexpr uint32_t INVALID_THREAT = UINT32_MAX;
 
 // ============================================================
 // Threat table construction
@@ -20,8 +23,6 @@ namespace NN::Threats
 //
 // The tables map each valid threat to a unique feature index. Invalid/duplicate threats map to
 // INVALID_THREAT.
-
-constexpr uint32_t INVALID_THREAT = UINT32_MAX;
 
 // Threat restrictions:
 // - Pawn only threatens pawns, knights, rooks (6 victims)
@@ -67,7 +68,7 @@ constexpr uint64_t piece_attacks_empty(PieceType pt, Side side, int sq)
     case KNIGHT:
         return KnightAttacks[sq];
     case BISHOP:
-        return BishopAttacks[sq]; // full rays on empty board
+        return BishopAttacks[sq];
     case ROOK:
         return RookAttacks[sq];
     case QUEEN:
@@ -79,32 +80,38 @@ constexpr uint64_t piece_attacks_empty(PieceType pt, Side side, int sq)
     }
 }
 
-// Precomputed threat lookup tables
+// ============================================================
+// Compact Threat Table
+// ============================================================
+
 struct ThreatTable
 {
-    // Direct lookup: [atk_idx][atk_sq][vic_idx][vic_sq] -> feature index
-    // atk_idx = piece_type * 2 + side, vic_idx = piece_type * 2 + side
-    uint32_t lookup[12][64][12][64];
+    // Base offset for each attacker piece+side on each square
+    uint32_t attacker_base[12][64];
 
-    // Total number of threat features (per perspective)
+    // Offset for victim piece+side within attacker-square bucket
+    uint32_t victim_base[12][64][12];
+
+    // Precomputed empty-board attack masks
+    uint64_t attack_mask[12][64];
+
     uint32_t total_threat_features;
 };
 
+// ============================================================
+// Build compact table (constexpr)
+// ============================================================
+
 constexpr ThreatTable build_threat_table()
 {
-    ThreatTable table = {};
-    // Initialize all to invalid
-    for (int a = 0; a < 12; a++)
-        for (int b = 0; b < 64; b++)
-            for (int c = 0; c < 12; c++)
-                for (int d = 0; d < 64; d++)
-                    table.lookup[a][b][c][d] = INVALID_THREAT;
+    ThreatTable table {};
 
     uint32_t current_offset = 0;
 
     for (int atk_pt = 0; atk_pt < 6; atk_pt++)
     {
         auto atk_piece = static_cast<PieceType>(atk_pt);
+
         for (int atk_side = 0; atk_side < 2; atk_side++)
         {
             int atk_idx = atk_pt * 2 + atk_side;
@@ -112,35 +119,58 @@ constexpr ThreatTable build_threat_table()
 
             for (int atk_sq = 0; atk_sq < 64; atk_sq++)
             {
-                // Pawns can't be on rank 0 or rank 7
+                // Pawns cannot exist on rank 0 or 7
                 if (atk_piece == PAWN && (atk_sq / 8 == 0 || atk_sq / 8 == 7))
-                    continue;
+                {
+                    table.attacker_base[atk_idx][atk_sq] = INVALID_THREAT;
+                    table.attack_mask[atk_idx][atk_sq] = 0;
 
-                uint64_t attack_bb = piece_attacks_empty(atk_piece, side, atk_sq);
-                if (attack_bb == 0)
+                    for (int v = 0; v < 12; v++)
+                        table.victim_base[atk_idx][atk_sq][v] = INVALID_THREAT;
+
                     continue;
+                }
+
+                uint64_t mask = piece_attacks_empty(atk_piece, side, atk_sq);
+
+                table.attack_mask[atk_idx][atk_sq] = mask;
+
+                if (mask == 0)
+                {
+                    table.attacker_base[atk_idx][atk_sq] = INVALID_THREAT;
+
+                    for (int v = 0; v < 12; v++)
+                        table.victim_base[atk_idx][atk_sq][v] = INVALID_THREAT;
+
+                    continue;
+                }
+
+                table.attacker_base[atk_idx][atk_sq] = current_offset;
+
+                uint32_t victim_running_offset = 0;
+                uint32_t attacks_per_victim = std::popcount(mask);
 
                 for (int vic_pt = 0; vic_pt < 6; vic_pt++)
                 {
                     auto vic_piece = static_cast<PieceType>(vic_pt);
+
                     for (int vic_side = 0; vic_side < 2; vic_side++)
                     {
                         int vic_idx = vic_pt * 2 + vic_side;
 
                         if (!can_threaten(atk_piece, vic_piece))
-                            continue;
-
-                        uint64_t bb = attack_bb;
-                        while (bb)
                         {
-                            int target_sq = std::countr_zero(bb);
-                            bb &= bb - 1;
-
-                            table.lookup[atk_idx][atk_sq][vic_idx][target_sq] = current_offset;
-                            current_offset++;
+                            table.victim_base[atk_idx][atk_sq][vic_idx] = INVALID_THREAT;
+                            continue;
                         }
+
+                        table.victim_base[atk_idx][atk_sq][vic_idx] = victim_running_offset;
+
+                        victim_running_offset += attacks_per_victim;
                     }
                 }
+
+                current_offset += victim_running_offset;
             }
         }
     }
@@ -149,10 +179,25 @@ constexpr ThreatTable build_threat_table()
     return table;
 }
 
-// Compile-time threat table
-inline constexpr ThreatTable THREAT_TABLE = build_threat_table();
+// ============================================================
+// Global constexpr instance
+// ============================================================
 
-// Total number of threat features
+inline constexpr ThreatTable THREAT_TABLE = build_threat_table();
 inline constexpr size_t TOTAL_THREAT_FEATURES = THREAT_TABLE.total_threat_features;
 
+// ============================================================
+// Runtime lookup
+// ============================================================
+
+constexpr uint32_t get_threat_index(int atk_idx, int atk_sq, int vic_idx, int vic_sq)
+{
+    uint32_t attacker_base = THREAT_TABLE.attacker_base[atk_idx][atk_sq];
+    uint32_t victim_offset = THREAT_TABLE.victim_base[atk_idx][atk_sq][vic_idx];
+    uint64_t mask = THREAT_TABLE.attack_mask[atk_idx][atk_sq];
+    uint64_t target_bit = 1ULL << vic_sq;
+    uint32_t square_rank = std::popcount(mask & (target_bit - 1));
+    return attacker_base + victim_offset + square_rank;
 }
+
+} // namespace NN::Threats

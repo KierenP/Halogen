@@ -72,14 +72,14 @@ struct ThreatAccumulator
         int w_vic_side = (vic_color == WHITE) ? 0 : 1;
         int w_atk_idx = atk_pt * 2 + w_atk_side;
         int w_vic_idx = vic_pt * 2 + w_vic_side;
-        uint32_t w_feat = THREAT_TABLE.lookup[w_atk_idx][atk_sq ^ w_flip][w_vic_idx][vic_sq ^ w_flip];
+        uint32_t w_feat = get_threat_index(w_atk_idx, atk_sq ^ w_flip, w_vic_idx, vic_sq ^ w_flip);
 
         // Black perspective: black is side 0, white is side 1, squares are flipped vertically
         int b_atk_side = (atk_color == BLACK) ? 0 : 1;
         int b_vic_side = (vic_color == BLACK) ? 0 : 1;
         int b_atk_idx = atk_pt * 2 + b_atk_side;
         int b_vic_idx = vic_pt * 2 + b_vic_side;
-        uint32_t b_feat = THREAT_TABLE.lookup[b_atk_idx][atk_sq ^ 56 ^ b_flip][b_vic_idx][vic_sq ^ 56 ^ b_flip];
+        uint32_t b_feat = get_threat_index(b_atk_idx, atk_sq ^ 56 ^ b_flip, b_vic_idx, vic_sq ^ 56 ^ b_flip);
 
         assert(w_feat != INVALID_THREAT);
         assert(b_feat != INVALID_THREAT);
