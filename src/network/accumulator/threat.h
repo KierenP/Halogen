@@ -563,20 +563,24 @@ struct ThreatAccumulator
     {
         // ~3% speedup from prefetching
 
+        std::array<uint32_t, MAX_THREAT_DELTAS> w_add_delta_indicies;
+        std::array<uint32_t, MAX_THREAT_DELTAS> w_sub_delta_indicies;
+        std::array<uint32_t, MAX_THREAT_DELTAS> b_add_delta_indicies;
+        std::array<uint32_t, MAX_THREAT_DELTAS> b_sub_delta_indicies;
+        size_t w_add_delta_indicies_size = 0;
+        size_t w_sub_delta_indicies_size = 0;
+        size_t b_add_delta_indicies_size = 0;
+        size_t b_sub_delta_indicies_size = 0;
+
         if (white_threats_requires_recalculation)
         {
-            recalculate_side_from_scratch(board, net, WHITE);
-
-            side[BLACK] = prev.side[BLACK];
-
             for (size_t i = 0; i < n_threat_subs; i++)
             {
                 auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
                     enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
                     enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
                     threat_subs[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
-                NN::sub1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
+                b_sub_delta_indicies[b_sub_delta_indicies_size++] = idx.black_idx;
             }
 
             for (size_t i = 0; i < n_threat_adds; i++)
@@ -585,24 +589,18 @@ struct ThreatAccumulator
                     enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
                     enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
                     threat_adds[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
-                NN::add1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
+                b_add_delta_indicies[b_add_delta_indicies_size++] = idx.black_idx;
             }
         }
         else if (black_threats_requires_recalculation)
         {
-            recalculate_side_from_scratch(board, net, BLACK);
-
-            side[WHITE] = prev.side[WHITE];
-
             for (size_t i = 0; i < n_threat_subs; i++)
             {
                 auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
                     enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
                     enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
                     threat_subs[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
-                NN::sub1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
+                w_sub_delta_indicies[w_sub_delta_indicies_size++] = idx.white_idx;
             }
 
             for (size_t i = 0; i < n_threat_adds; i++)
@@ -611,24 +609,19 @@ struct ThreatAccumulator
                     enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
                     enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
                     threat_adds[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
-                NN::add1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
+                w_add_delta_indicies[w_add_delta_indicies_size++] = idx.white_idx;
             }
         }
         else
         {
-            side = prev.side;
-
             for (size_t i = 0; i < n_threat_subs; i++)
             {
                 auto idx = get_threat_indices(enum_to<PieceType>(threat_subs[i].atk_pt),
                     enum_to<Side>(threat_subs[i].atk_pt), threat_subs[i].atk_sq,
                     enum_to<PieceType>(threat_subs[i].vic_pt), enum_to<Side>(threat_subs[i].vic_pt),
                     threat_subs[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
-                __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
-                NN::sub1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
-                NN::sub1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
+                w_sub_delta_indicies[w_sub_delta_indicies_size++] = idx.white_idx;
+                b_sub_delta_indicies[b_sub_delta_indicies_size++] = idx.black_idx;
             }
 
             for (size_t i = 0; i < n_threat_adds; i++)
@@ -637,11 +630,71 @@ struct ThreatAccumulator
                     enum_to<Side>(threat_adds[i].atk_pt), threat_adds[i].atk_sq,
                     enum_to<PieceType>(threat_adds[i].vic_pt), enum_to<Side>(threat_adds[i].vic_pt),
                     threat_adds[i].vic_sq, w_king, b_king);
-                __builtin_prefetch(&net.ft_threat_weight[idx.white_idx]);
-                __builtin_prefetch(&net.ft_threat_weight[idx.black_idx]);
-                NN::add1(side[WHITE], net.ft_threat_weight[idx.white_idx]);
-                NN::add1(side[BLACK], net.ft_threat_weight[idx.black_idx]);
+                w_add_delta_indicies[w_add_delta_indicies_size++] = idx.white_idx;
+                b_add_delta_indicies[b_add_delta_indicies_size++] = idx.black_idx;
             }
+        }
+
+        if (white_threats_requires_recalculation)
+        {
+            recalculate_side_from_scratch(board, net, WHITE);
+            side[BLACK] = prev.side[BLACK];
+            assert(w_sub_delta_indicies_size == 0 && w_add_delta_indicies_size == 0);
+        }
+        else if (black_threats_requires_recalculation)
+        {
+            recalculate_side_from_scratch(board, net, BLACK);
+            side[WHITE] = prev.side[WHITE];
+            assert(b_sub_delta_indicies_size == 0 && b_add_delta_indicies_size == 0);
+        }
+        else
+        {
+            side = prev.side;
+        }
+
+        size_t w_add_idx = 0;
+        size_t w_sub_idx = 0;
+        size_t b_add_idx = 0;
+        size_t b_sub_idx = 0;
+
+        while (w_sub_idx < w_sub_delta_indicies_size && w_add_idx < w_add_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[w_add_delta_indicies[w_add_idx]]);
+            __builtin_prefetch(&net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx]]);
+            NN::add1sub1(side[WHITE], side[WHITE], net.ft_threat_weight[w_add_delta_indicies[w_add_idx++]],
+                net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx++]]);
+        }
+
+        while (w_sub_idx < w_sub_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx]]);
+            NN::sub1(side[WHITE], net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx++]]);
+        }
+
+        while (w_add_idx < w_add_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[w_add_delta_indicies[w_add_idx]]);
+            NN::add1(side[WHITE], net.ft_threat_weight[w_add_delta_indicies[w_add_idx++]]);
+        }
+
+        while (b_sub_idx < b_sub_delta_indicies_size && b_add_idx < b_add_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[b_add_delta_indicies[b_add_idx]]);
+            __builtin_prefetch(&net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx]]);
+            NN::add1sub1(side[BLACK], side[BLACK], net.ft_threat_weight[b_add_delta_indicies[b_add_idx++]],
+                net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx++]]);
+        }
+
+        while (b_sub_idx < b_sub_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx]]);
+            NN::sub1(side[BLACK], net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx++]]);
+        }
+
+        while (b_add_idx < b_add_delta_indicies_size)
+        {
+            __builtin_prefetch(&net.ft_threat_weight[b_add_delta_indicies[b_add_idx]]);
+            NN::add1(side[BLACK], net.ft_threat_weight[b_add_delta_indicies[b_add_idx++]]);
         }
 
         acc_is_valid = true;

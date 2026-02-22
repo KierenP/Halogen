@@ -141,6 +141,41 @@ void add1sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, 
 }
 
 template <size_t SIZE>
+void add1sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, const std::array<int8_t, SIZE>& c,
+    const std::array<int8_t, SIZE>& d)
+{
+#if defined(SIMD_ENABLED)
+    // Manually unrolled and interleaved x4
+    constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
+    static_assert(SIZE % (stride * 4) == 0);
+    for (size_t i = 0; i < SIZE; i += stride * 4)
+    {
+        auto b_vec1 = SIMD::load(&b[i]);
+        auto b_vec2 = SIMD::load(&b[i + stride]);
+        auto b_vec3 = SIMD::load(&b[i + stride * 2]);
+        auto b_vec4 = SIMD::load(&b[i + stride * 3]);
+        b_vec1 = SIMD::add_i16(b_vec1, SIMD::cvt_i8_to_i16(&c[i]));
+        b_vec2 = SIMD::add_i16(b_vec2, SIMD::cvt_i8_to_i16(&c[i + stride]));
+        b_vec3 = SIMD::add_i16(b_vec3, SIMD::cvt_i8_to_i16(&c[i + stride * 2]));
+        b_vec4 = SIMD::add_i16(b_vec4, SIMD::cvt_i8_to_i16(&c[i + stride * 3]));
+        b_vec1 = SIMD::sub_i16(b_vec1, SIMD::cvt_i8_to_i16(&d[i]));
+        b_vec2 = SIMD::sub_i16(b_vec2, SIMD::cvt_i8_to_i16(&d[i + stride]));
+        b_vec3 = SIMD::sub_i16(b_vec3, SIMD::cvt_i8_to_i16(&d[i + stride * 2]));
+        b_vec4 = SIMD::sub_i16(b_vec4, SIMD::cvt_i8_to_i16(&d[i + stride * 3]));
+        SIMD::store(&a[i], b_vec1);
+        SIMD::store(&a[i + stride], b_vec2);
+        SIMD::store(&a[i + stride * 2], b_vec3);
+        SIMD::store(&a[i + stride * 3], b_vec4);
+    }
+#else
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        a[i] = b[i] + c[i] - d[i];
+    }
+#endif
+}
+
+template <size_t SIZE>
 void add1sub2(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, const std::array<int16_t, SIZE>& c,
     const std::array<int16_t, SIZE>& d, const std::array<int16_t, SIZE>& e)
 {
