@@ -1,4 +1,5 @@
 #include "threat.h"
+#include "chessboard/board_state.h"
 
 namespace NN::Threats
 {
@@ -68,205 +69,188 @@ void collect_threats_to(const BoardState& board, Square sq, uint64_t occ, uint64
 {
     Piece piece_on_sq = board.get_square_piece(sq);
     PieceType vic_pt = enum_to<PieceType>(piece_on_sq);
+    const uint64_t not_excluded = ~exclude_mask;
 
-    // Pawns attacking this square
+    // ============================================================
+    // Helper: emit direct attackers
+    // ============================================================
+
+    auto emit_direct = [&]<Piece piece>(uint64_t attackers)
+    {
+        attackers &= not_excluded;
+        while (attackers)
+        {
+            Square from = lsbpop(attackers);
+            cb(ThreatDelta { piece, from, piece_on_sq, sq });
+        }
+    };
+
+    // --- Pawns
     if (is_valid_victim_for(PAWN, vic_pt))
     {
-        uint64_t w_pawn_attackers = PawnAttacks[BLACK][sq] & board.get_pieces_bb(WHITE_PAWN) & ~exclude_mask;
-        while (w_pawn_attackers)
-        {
-            Square atk_sq = lsbpop(w_pawn_attackers);
-            cb(ThreatDelta { WHITE_PAWN, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_pawn_attackers = PawnAttacks[WHITE][sq] & board.get_pieces_bb(BLACK_PAWN) & ~exclude_mask;
-        while (b_pawn_attackers)
-        {
-            Square atk_sq = lsbpop(b_pawn_attackers);
-            cb(ThreatDelta { BLACK_PAWN, atk_sq, piece_on_sq, sq });
-        }
+        emit_direct.template operator()<WHITE_PAWN>(PawnAttacks[BLACK][sq] & board.get_pieces_bb(WHITE_PAWN));
+        emit_direct.template operator()<BLACK_PAWN>(PawnAttacks[WHITE][sq] & board.get_pieces_bb(BLACK_PAWN));
     }
 
-    // Knights
+    // --- Knights
     if (is_valid_victim_for(KNIGHT, vic_pt))
     {
-        uint64_t w_attackers = KnightAttacks[sq] & board.get_pieces_bb(WHITE_KNIGHT) & ~exclude_mask;
-        while (w_attackers)
-        {
-            Square atk_sq = lsbpop(w_attackers);
-            cb(ThreatDelta { WHITE_KNIGHT, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_attackers = KnightAttacks[sq] & board.get_pieces_bb(BLACK_KNIGHT) & ~exclude_mask;
-        while (b_attackers)
-        {
-            Square atk_sq = lsbpop(b_attackers);
-            cb(ThreatDelta { BLACK_KNIGHT, atk_sq, piece_on_sq, sq });
-        }
+        const uint64_t knight_attacks = KnightAttacks[sq];
+        emit_direct.template operator()<WHITE_KNIGHT>(knight_attacks & board.get_pieces_bb(WHITE_KNIGHT));
+        emit_direct.template operator()<BLACK_KNIGHT>(knight_attacks & board.get_pieces_bb(BLACK_KNIGHT));
     }
 
-    // Bishops
-    if (is_valid_victim_for(BISHOP, vic_pt))
-    {
-        uint64_t w_attackers = attack_bb<BISHOP>(sq, occ) & board.get_pieces_bb(WHITE_BISHOP) & ~exclude_mask;
-        while (w_attackers)
-        {
-            Square atk_sq = lsbpop(w_attackers);
-            cb(ThreatDelta { WHITE_BISHOP, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_attackers = attack_bb<BISHOP>(sq, occ) & board.get_pieces_bb(BLACK_BISHOP) & ~exclude_mask;
-        while (b_attackers)
-        {
-            Square atk_sq = lsbpop(b_attackers);
-            cb(ThreatDelta { BLACK_BISHOP, atk_sq, piece_on_sq, sq });
-        }
-    }
-
-    // Rooks
-    if (is_valid_victim_for(ROOK, vic_pt))
-    {
-        uint64_t w_attackers = attack_bb<ROOK>(sq, occ) & board.get_pieces_bb(WHITE_ROOK) & ~exclude_mask;
-        while (w_attackers)
-        {
-            Square atk_sq = lsbpop(w_attackers);
-            cb(ThreatDelta { WHITE_ROOK, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_attackers = attack_bb<ROOK>(sq, occ) & board.get_pieces_bb(BLACK_ROOK) & ~exclude_mask;
-        while (b_attackers)
-        {
-            Square atk_sq = lsbpop(b_attackers);
-            cb(ThreatDelta { BLACK_ROOK, atk_sq, piece_on_sq, sq });
-        }
-    }
-
-    // Queens
-    if (is_valid_victim_for(QUEEN, vic_pt))
-    {
-        uint64_t w_attackers = attack_bb<QUEEN>(sq, occ) & board.get_pieces_bb(WHITE_QUEEN) & ~exclude_mask;
-        while (w_attackers)
-        {
-            Square atk_sq = lsbpop(w_attackers);
-            cb(ThreatDelta { WHITE_QUEEN, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_attackers = attack_bb<QUEEN>(sq, occ) & board.get_pieces_bb(BLACK_QUEEN) & ~exclude_mask;
-        while (b_attackers)
-        {
-            Square atk_sq = lsbpop(b_attackers);
-            cb(ThreatDelta { BLACK_QUEEN, atk_sq, piece_on_sq, sq });
-        }
-    }
-
-    // Kings
+    // --- Kings
     if (is_valid_victim_for(KING, vic_pt))
     {
-        uint64_t w_attackers = KingAttacks[sq] & board.get_pieces_bb(WHITE_KING) & ~exclude_mask;
-        while (w_attackers)
-        {
-            Square atk_sq = lsbpop(w_attackers);
-            cb(ThreatDelta { WHITE_KING, atk_sq, piece_on_sq, sq });
-        }
-        uint64_t b_attackers = KingAttacks[sq] & board.get_pieces_bb(BLACK_KING) & ~exclude_mask;
-        while (b_attackers)
-        {
-            Square atk_sq = lsbpop(b_attackers);
-            cb(ThreatDelta { BLACK_KING, atk_sq, piece_on_sq, sq });
-        }
+        const uint64_t king_attacks = KingAttacks[sq];
+        emit_direct.template operator()<WHITE_KING>(king_attacks & board.get_pieces_bb(WHITE_KING));
+        emit_direct.template operator()<BLACK_KING>(king_attacks & board.get_pieces_bb(BLACK_KING));
+    }
+
+    // --- Sliding direct attacks (compute once)
+    const uint64_t bishop_attacks = attack_bb<BISHOP>(sq, occ);
+    const uint64_t rook_attacks = attack_bb<ROOK>(sq, occ);
+
+    if (is_valid_victim_for(BISHOP, vic_pt))
+    {
+        emit_direct.template operator()<WHITE_BISHOP>(bishop_attacks & board.get_pieces_bb(WHITE_BISHOP));
+        emit_direct.template operator()<BLACK_BISHOP>(bishop_attacks & board.get_pieces_bb(BLACK_BISHOP));
+    }
+
+    if (is_valid_victim_for(ROOK, vic_pt))
+    {
+        emit_direct.template operator()<WHITE_ROOK>(rook_attacks & board.get_pieces_bb(WHITE_ROOK));
+        emit_direct.template operator()<BLACK_ROOK>(rook_attacks & board.get_pieces_bb(BLACK_ROOK));
+    }
+
+    if (is_valid_victim_for(QUEEN, vic_pt))
+    {
+        const uint64_t queen_attacks = bishop_attacks | rook_attacks;
+        emit_direct.template operator()<WHITE_QUEEN>(queen_attacks & board.get_pieces_bb(WHITE_QUEEN));
+        emit_direct.template operator()<BLACK_QUEEN>(queen_attacks & board.get_pieces_bb(BLACK_QUEEN));
     }
 }
 
-// Collect threats from sliding pieces that pass through a given square.
-// These are threats between a slider and a victim where the ray passes through `through_sq`.
-//
-// For discoveries: slider_occ should have through_sq removed, victim_occ is the new occupancy.
-// For blocks: slider_occ should have through_sq removed, victim_occ is the old occupancy.
-template <typename Callback>
-void collect_xray_threats_through(const BoardState& board, Square through_sq, uint64_t slider_occ, uint64_t victim_occ,
-    uint64_t exclude_mask, Callback&& cb)
+// for an added piece,
+//  add_board == post_board,
+//  sub_board == prev_board,
+//  add_cb adds threats to ThreatAccumulator,
+//  sub_cb subs threats to ThreatAccumulator
+// for a removed piece,
+//  add_board == prev_board,
+//  sub_board == post_board,
+//  add_cb subs threats to ThreatAccumulator,
+//  sub_cb adds threats to ThreatAccumulator
+template <typename AddCB, typename SubCB>
+void collect_threats_to_plus_xray(const BoardState& add_board, const BoardState& sub_board, Square sq, uint64_t add_occ,
+    uint64_t sub_occ, uint64_t exclude_mask, AddCB&& add_cb, SubCB&& sub_cb)
 {
-    // Diagonal sliders (bishops and queens on diagonals)
-    uint64_t diagonal_attackers = attack_bb<BISHOP>(through_sq, slider_occ) & ~exclude_mask;
-    uint64_t bishops = diagonal_attackers & board.get_pieces_bb(BISHOP);
-    uint64_t queens_diag = diagonal_attackers & board.get_pieces_bb(QUEEN);
+    const Piece victim = add_board.get_square_piece(sq);
+    const PieceType vic_pt = enum_to<PieceType>(victim);
+    const uint64_t not_excluded = ~exclude_mask;
 
-    while (bishops)
+    // ============================================================
+    // Helper: emit direct attackers
+    // ============================================================
+
+    auto emit_direct = [&]<Piece piece>(uint64_t attackers)
     {
-        Square slider_sq = lsbpop(bishops);
-        Side slider_color = enum_to<Side>(board.get_square_piece(slider_sq));
-
-        // Find squares reachable without blocker but not with blocker
-        uint64_t attacks_open = attack_bb<BISHOP>(slider_sq, victim_occ);
-        uint64_t attacks_blocked = attack_bb<BISHOP>(slider_sq, victim_occ | SquareBB[through_sq]);
-        uint64_t beyond = (attacks_open & ~attacks_blocked) & victim_occ & ~exclude_mask;
-
-        if (beyond)
+        attackers &= not_excluded;
+        while (attackers)
         {
-            Square vic_sq = lsbpop(beyond);
-            Piece vic_piece = board.get_square_piece(vic_sq);
-            PieceType vic_pt = enum_to<PieceType>(vic_piece);
-            if (is_valid_victim_for(BISHOP, vic_pt))
-                cb(ThreatDelta { get_piece(BISHOP, slider_color), slider_sq, vic_piece, vic_sq });
+            Square from = lsbpop(attackers);
+            add_cb(ThreatDelta { piece, from, victim, sq });
         }
+    };
+
+    // ============================================================
+    // 1. Direct threats
+    // ============================================================
+
+    // --- Pawns
+    if (is_valid_victim_for(PAWN, vic_pt))
+    {
+        emit_direct.template operator()<WHITE_PAWN>(PawnAttacks[BLACK][sq] & add_board.get_pieces_bb(WHITE_PAWN));
+        emit_direct.template operator()<BLACK_PAWN>(PawnAttacks[WHITE][sq] & add_board.get_pieces_bb(BLACK_PAWN));
     }
 
-    while (queens_diag)
+    // --- Knights
+    if (is_valid_victim_for(KNIGHT, vic_pt))
     {
-        Square slider_sq = lsbpop(queens_diag);
-        Side slider_color = enum_to<Side>(board.get_square_piece(slider_sq));
-
-        uint64_t attacks_open = attack_bb<BISHOP>(slider_sq, victim_occ);
-        uint64_t attacks_blocked = attack_bb<BISHOP>(slider_sq, victim_occ | SquareBB[through_sq]);
-        uint64_t beyond = (attacks_open & ~attacks_blocked) & victim_occ & ~exclude_mask;
-
-        while (beyond)
-        {
-            Square vic_sq = lsbpop(beyond);
-            Piece vic_piece = board.get_square_piece(vic_sq);
-            PieceType vic_pt = enum_to<PieceType>(vic_piece);
-            if (is_valid_victim_for(QUEEN, vic_pt))
-                cb(ThreatDelta { get_piece(QUEEN, slider_color), slider_sq, vic_piece, vic_sq });
-        }
+        const uint64_t knight_attacks = KnightAttacks[sq];
+        emit_direct.template operator()<WHITE_KNIGHT>(knight_attacks & add_board.get_pieces_bb(WHITE_KNIGHT));
+        emit_direct.template operator()<BLACK_KNIGHT>(knight_attacks & add_board.get_pieces_bb(BLACK_KNIGHT));
     }
 
-    // Orthogonal sliders (rooks and queens on ranks/files)
-    uint64_t orthogonal_attackers = attack_bb<ROOK>(through_sq, slider_occ) & ~exclude_mask;
-    uint64_t rooks = orthogonal_attackers & board.get_pieces_bb(ROOK);
-    uint64_t queens_orth = orthogonal_attackers & board.get_pieces_bb(QUEEN);
-
-    while (rooks)
+    // --- Kings
+    if (is_valid_victim_for(KING, vic_pt))
     {
-        Square slider_sq = lsbpop(rooks);
-        Side slider_color = enum_to<Side>(board.get_square_piece(slider_sq));
-
-        uint64_t attacks_open = attack_bb<ROOK>(slider_sq, victim_occ);
-        uint64_t attacks_blocked = attack_bb<ROOK>(slider_sq, victim_occ | SquareBB[through_sq]);
-        uint64_t beyond = (attacks_open & ~attacks_blocked) & victim_occ & ~exclude_mask;
-
-        while (beyond)
-        {
-            Square vic_sq = lsbpop(beyond);
-            Piece vic_piece = board.get_square_piece(vic_sq);
-            PieceType vic_pt = enum_to<PieceType>(vic_piece);
-            if (is_valid_victim_for(ROOK, vic_pt))
-                cb(ThreatDelta { get_piece(ROOK, slider_color), slider_sq, vic_piece, vic_sq });
-        }
+        const uint64_t king_attacks = KingAttacks[sq];
+        emit_direct.template operator()<WHITE_KING>(king_attacks & add_board.get_pieces_bb(WHITE_KING));
+        emit_direct.template operator()<BLACK_KING>(king_attacks & add_board.get_pieces_bb(BLACK_KING));
     }
 
-    while (queens_orth)
+    // --- Sliding direct attacks (compute once)
+    const uint64_t bishop_attacks = attack_bb<BISHOP>(sq, add_occ);
+    const uint64_t rook_attacks = attack_bb<ROOK>(sq, add_occ);
+
+    if (is_valid_victim_for(BISHOP, vic_pt))
     {
-        Square slider_sq = lsbpop(queens_orth);
-        Side slider_color = enum_to<Side>(board.get_square_piece(slider_sq));
-
-        uint64_t attacks_open = attack_bb<ROOK>(slider_sq, victim_occ);
-        uint64_t attacks_blocked = attack_bb<ROOK>(slider_sq, victim_occ | SquareBB[through_sq]);
-        uint64_t beyond = (attacks_open & ~attacks_blocked) & victim_occ & ~exclude_mask;
-
-        while (beyond)
-        {
-            Square vic_sq = lsbpop(beyond);
-            Piece vic_piece = board.get_square_piece(vic_sq);
-            PieceType vic_pt = enum_to<PieceType>(vic_piece);
-            if (is_valid_victim_for(QUEEN, vic_pt))
-                cb(ThreatDelta { get_piece(QUEEN, slider_color), slider_sq, vic_piece, vic_sq });
-        }
+        emit_direct.template operator()<WHITE_BISHOP>(bishop_attacks & add_board.get_pieces_bb(WHITE_BISHOP));
+        emit_direct.template operator()<BLACK_BISHOP>(bishop_attacks & add_board.get_pieces_bb(BLACK_BISHOP));
     }
+
+    if (is_valid_victim_for(ROOK, vic_pt))
+    {
+        emit_direct.template operator()<WHITE_ROOK>(rook_attacks & add_board.get_pieces_bb(WHITE_ROOK));
+        emit_direct.template operator()<BLACK_ROOK>(rook_attacks & add_board.get_pieces_bb(BLACK_ROOK));
+    }
+
+    if (is_valid_victim_for(QUEEN, vic_pt))
+    {
+        const uint64_t queen_attacks = bishop_attacks | rook_attacks;
+        emit_direct.template operator()<WHITE_QUEEN>(queen_attacks & add_board.get_pieces_bb(WHITE_QUEEN));
+        emit_direct.template operator()<BLACK_QUEEN>(queen_attacks & add_board.get_pieces_bb(BLACK_QUEEN));
+    }
+
+    // ============================================================
+    // 2. Unified X-Ray Sliders
+    // ============================================================
+
+    auto collect_xray = [&]<PieceType attack_tag, PieceType pt>(uint64_t candidate_sliders)
+    {
+        while (candidate_sliders)
+        {
+            Square slider_sq = lsbpop(candidate_sliders);
+            Piece slider_piece = sub_board.get_square_piece(slider_sq);
+            Side slider_side = enum_to<Side>(slider_piece);
+
+            uint64_t attacks_open = attack_bb<attack_tag>(slider_sq, sub_occ);
+            uint64_t attacks_blocked = attack_bb<attack_tag>(slider_sq, sub_occ | SquareBB[sq]);
+            uint64_t beyond = (attacks_open & ~attacks_blocked) & sub_occ & not_excluded;
+
+            while (beyond)
+            {
+                Square victim_sq = lsbpop(beyond);
+                Piece xray_victim = sub_board.get_square_piece(victim_sq);
+                PieceType xray_vpt = enum_to<PieceType>(xray_victim);
+
+                if (is_valid_victim_for(pt, xray_vpt))
+                {
+                    sub_cb(ThreatDelta { get_piece(pt, slider_side), slider_sq, xray_victim, victim_sq });
+                }
+            }
+        }
+    };
+
+    // Diagonal geometry -> bishop movement
+    collect_xray.template operator()<BISHOP, BISHOP>(bishop_attacks & sub_board.get_pieces_bb(BISHOP) & not_excluded);
+    collect_xray.template operator()<BISHOP, QUEEN>(bishop_attacks & sub_board.get_pieces_bb(QUEEN) & not_excluded);
+
+    // Orthogonal geometry -> rook movement
+    collect_xray.template operator()<ROOK, ROOK>(rook_attacks & sub_board.get_pieces_bb(ROOK) & not_excluded);
+    collect_xray.template operator()<ROOK, QUEEN>(rook_attacks & sub_board.get_pieces_bb(QUEEN) & not_excluded);
 }
 
 // Compute threat deltas for a move.
@@ -299,9 +283,9 @@ void ThreatAccumulator::store_lazy_updates(
     b_king = post_board.get_king_sq(BLACK);
 
     // --- Remove old threats involving sub squares ---
-    for (auto sub_copy = sub_bb; sub_copy != EMPTY;)
+    for (auto copy = sub_bb & ~newly_vacated_bb; copy != EMPTY;)
     {
-        Square sq = lsbpop(sub_copy);
+        Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
         collect_threats_from(prev_board, sq, old_occ,
@@ -321,9 +305,9 @@ void ThreatAccumulator::store_lazy_updates(
     }
 
     // --- Add new threats involving add squares ---
-    for (auto add_copy = add_bb; add_copy != EMPTY;)
+    for (auto copy = add_bb & ~newly_occupied_bb; copy != EMPTY;)
     {
-        Square sq = lsbpop(add_copy);
+        Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
         collect_threats_from(post_board, sq, new_occ,
@@ -342,20 +326,26 @@ void ThreatAccumulator::store_lazy_updates(
             });
     }
 
-    // --- X-ray: discovered attacks through vacated squares ---
-    while (newly_vacated_bb)
+    for (auto copy = sub_bb & newly_vacated_bb; copy != EMPTY;)
     {
-        Square sq = lsbpop(newly_vacated_bb);
+        Square sq = lsbpop(copy);
 
-        // slider_occ: old occupancy with only THIS vacated square removed.
-        // This ensures only sliders that were actually blocked by THIS square are found.
-        // When multiple squares are vacated (e.g. en passant), each vacated square only
-        // gets credit for discoveries where it was the nearest blocker to the slider.
-        uint64_t slider_occ = old_occ & ~SquareBB[sq];
+        // Threats FROM this piece as attacker
+        collect_threats_from(prev_board, sq, old_occ,
+            [&](ThreatDelta td)
+            {
+                assert(n_threat_subs < MAX_THREAT_DELTAS);
+                threat_subs[n_threat_subs++] = td;
+            });
 
-        // victim_occ: real new occupancy, so we see the full discovery reach
-        // (all vacated squares empty, all newly occupied squares present).
-        collect_xray_threats_through(post_board, sq, slider_occ, new_occ, all_changed_mask,
+        // Remove threats to this piece, add discovered xray threats through this piece
+        collect_threats_to_plus_xray(
+            prev_board, post_board, sq, old_occ, new_occ, all_changed_mask,
+            [&](ThreatDelta td)
+            {
+                assert(n_threat_subs < MAX_THREAT_DELTAS);
+                threat_subs[n_threat_subs++] = td;
+            },
             [&](ThreatDelta td)
             {
                 assert(n_threat_adds < MAX_THREAT_DELTAS);
@@ -363,17 +353,27 @@ void ThreatAccumulator::store_lazy_updates(
             });
     }
 
-    // --- X-ray: blocked attacks through newly occupied squares ---
-    while (newly_occupied_bb)
+    // --- Add new threats involving add squares ---
+    for (auto copy = add_bb & newly_occupied_bb; copy != EMPTY;)
     {
-        Square sq = lsbpop(newly_occupied_bb);
+        Square sq = lsbpop(copy);
 
-        // slider_occ: new occupancy with only THIS newly-occupied square removed.
-        // This ensures only sliders that are now blocked by THIS square are found.
-        uint64_t slider_occ = new_occ & ~SquareBB[sq];
+        // Threats FROM this piece as attacker
+        collect_threats_from(post_board, sq, new_occ,
+            [&](ThreatDelta td)
+            {
+                assert(n_threat_adds < MAX_THREAT_DELTAS);
+                threat_adds[n_threat_adds++] = td;
+            });
 
-        // victim_occ: old occupancy, so we see what reach the slider had before blocking.
-        collect_xray_threats_through(prev_board, sq, slider_occ, old_occ, all_changed_mask,
+        // Add threats to this piece, remove xray threats that are now blocked by this piece
+        collect_threats_to_plus_xray(
+            post_board, prev_board, sq, new_occ, old_occ, all_changed_mask,
+            [&](ThreatDelta td)
+            {
+                assert(n_threat_adds < MAX_THREAT_DELTAS);
+                threat_adds[n_threat_adds++] = td;
+            },
             [&](ThreatDelta td)
             {
                 assert(n_threat_subs < MAX_THREAT_DELTAS);
