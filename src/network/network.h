@@ -4,6 +4,8 @@
 #include "network/accumulator/threat.h"
 #include "search/score.h"
 
+#include <cstdint>
+
 class BoardState;
 class Move;
 enum Side : int8_t;
