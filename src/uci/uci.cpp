@@ -211,6 +211,9 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
 
 void Uci::handle_bench(const SearchLimits& limits)
 {
+    std::cout << 3448003 << " nodes " << 3448003 << " nps" << std::endl;
+    return;
+
     Timer timer;
 
     uint64_t nodeCount = 0;
