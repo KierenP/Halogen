@@ -91,22 +91,20 @@ void Network::store_lazy_updates(
     acc.threats.white_threats_requires_recalculation = false;
     acc.threats.black_threats_requires_recalculation = false;
 
-    auto from_sq = move.from();
-    auto to_sq = move.to();
+    // don't use move.from() and move.to() because castle moves are encoded as KxR
     auto stm = prev_move_board.stm;
-    auto from_piece = prev_move_board.get_square_piece(move.from());
-    if (from_piece == get_piece(KING, stm))
+    auto old_king_sq = prev_move_board.get_king_sq(stm);
+    auto new_king_sq = post_move_board.get_king_sq(stm);
+
+    if ((enum_to<File>(old_king_sq) <= FILE_D) ^ (enum_to<File>(new_king_sq) <= FILE_D))
     {
-        if ((enum_to<File>(from_sq) <= FILE_D) ^ (enum_to<File>(to_sq) <= FILE_D))
+        if (stm == WHITE)
         {
-            if (stm == WHITE)
-            {
-                acc.threats.white_threats_requires_recalculation = true;
-            }
-            else
-            {
-                acc.threats.black_threats_requires_recalculation = true;
-            }
+            acc.threats.white_threats_requires_recalculation = true;
+        }
+        else
+        {
+            acc.threats.black_threats_requires_recalculation = true;
         }
     }
 

@@ -138,22 +138,23 @@ void KingBucketAccumulator::store_lazy_updates(
     auto w_king = post_move_board.get_king_sq(WHITE);
     auto b_king = post_move_board.get_king_sq(BLACK);
 
-    if (from_piece == get_piece(KING, stm))
-    {
-        if (KingBucket::get_king_bucket(from_sq, stm) != KingBucket::get_king_bucket(to_sq, stm)
-            || ((enum_to<File>(from_sq) <= FILE_D) ^ (enum_to<File>(to_sq) <= FILE_D)))
-        {
-            if (stm == WHITE)
-            {
-                white_requires_recalculation = true;
-            }
-            else
-            {
-                black_requires_recalculation = true;
-            }
+    // don't use move.from() and move.to() because castle moves are encoded as KxR
+    auto old_king_sq = prev_move_board.get_king_sq(stm);
+    auto new_king_sq = post_move_board.get_king_sq(stm);
 
-            board = post_move_board;
+    if (KingBucket::get_king_bucket(old_king_sq, stm) != KingBucket::get_king_bucket(new_king_sq, stm)
+        || ((enum_to<File>(old_king_sq) <= FILE_D) ^ (enum_to<File>(new_king_sq) <= FILE_D)))
+    {
+        if (stm == WHITE)
+        {
+            white_requires_recalculation = true;
         }
+        else
+        {
+            black_requires_recalculation = true;
+        }
+
+        board = post_move_board;
     }
 
     if (move.is_castle())
