@@ -87,7 +87,7 @@ BASE_FLAGS += $(EXTRA_CXXFLAGS)
 # Optimization levels
 OPT_NONE := -O0 -Werror
 OPT_SANITIZE := -O1 -fno-omit-frame-pointer
-OPT_RELEASE := -O3 -DNDEBUG
+OPT_RELEASE := -O3
 
 #----------------------------------------------------------------------------------------------------------------------
 # Linker Flags
