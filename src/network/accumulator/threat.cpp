@@ -379,7 +379,7 @@ void ThreatAccumulator::store_lazy_updates(
 
         // Add threats to this piece, remove xray threats that are now blocked by this piece
         collect_threats_to_plus_xray(
-            post_board, prev_board, sq, new_occ, old_occ, all_changed_mask,
+            post_board, prev_board, sq, old_occ, new_occ, all_changed_mask,
             [&](ThreatDelta td)
             {
                 assert(n_threat_adds < MAX_THREAT_DELTAS);
