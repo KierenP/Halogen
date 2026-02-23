@@ -1,17 +1,12 @@
 #pragma once
 
-#include "bitboard/enum.h"
-#include "chessboard/board_state.h"
 #include "network/accumulator/king_bucket.h"
 #include "network/accumulator/threat.h"
-#include "network/arch.hpp"
 #include "search/score.h"
 
-#include <array>
-#include <cstddef>
-#include <cstdint>
-
+class BoardState;
 class Move;
+enum Side : int8_t;
 
 namespace NN
 {

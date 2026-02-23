@@ -1,28 +1,22 @@
 #include "network.h"
 
 #include "bitboard/define.h"
+#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
-#include "movegen/movegen.h"
 #include "network/accumulator/king_bucket.h"
 #include "network/accumulator/threat.h"
 #include "network/arch.hpp"
 #include "network/inference.hpp"
-#include "network/simd/accumulator.hpp"
 #include "third-party/incbin/incbin.h"
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
-#include <initializer_list>
 #include <iostream>
-
-#if defined(USE_SSE4)
-// IWYU is confused and thinks we need this
-#include <immintrin.h>
-#endif
 
 namespace NN
 {

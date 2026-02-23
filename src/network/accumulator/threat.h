@@ -1,17 +1,13 @@
 #pragma once
 
-#include "bitboard/define.h"
 #include "bitboard/enum.h"
-#include "chessboard/board_state.h"
-#include "movegen/movegen.h"
 #include "network/arch.hpp"
-#include "network/inputs/threat.h"
-#include "network/simd/accumulator.hpp"
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
+
+class BoardState;
 
 namespace NN::Threats
 {

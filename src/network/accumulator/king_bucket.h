@@ -4,15 +4,17 @@
 #include "chessboard/board_state.h"
 #include "network/arch.hpp"
 #include "network/inputs/king_bucket.h"
-#include "network/simd/accumulator.hpp"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+
+class Move;
 
 namespace NN::KingBucket
 {
 
-class AccumulatorTable;
+struct AccumulatorTable;
 
 // Accumulator for king-bucketed piece-square inputs.
 // The 'side' array stores: bias + king-bucketed weights combined.

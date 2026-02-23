@@ -1,5 +1,13 @@
 #include "king_bucket.h"
 
+#include "bitboard/define.h"
+#include "movegen/move.h"
+#include "network/simd/accumulator.hpp"
+
+#include <cassert>
+#include <immintrin.h>
+#include <initializer_list>
+
 namespace NN::KingBucket
 {
 

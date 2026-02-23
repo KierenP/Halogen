@@ -1,5 +1,13 @@
 #include "threat.h"
+
+#include "bitboard/define.h"
 #include "chessboard/board_state.h"
+#include "movegen/movegen.h"
+#include "network/inputs/threat.h"
+#include "network/simd/accumulator.hpp"
+
+#include <cassert>
+#include <immintrin.h>
 
 namespace NN::Threats
 {
