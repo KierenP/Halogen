@@ -5,8 +5,11 @@
 #include "network/simd/accumulator.hpp"
 
 #include <cassert>
-#include <immintrin.h>
 #include <initializer_list>
+
+#if defined(USE_SSE4)
+#include <immintrin.h>
+#endif
 
 namespace NN::KingBucket
 {

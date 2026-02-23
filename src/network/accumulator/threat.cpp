@@ -7,7 +7,10 @@
 #include "network/simd/accumulator.hpp"
 
 #include <cassert>
+
+#if defined(USE_SSE4)
 #include <immintrin.h>
+#endif
 
 namespace NN::Threats
 {
