@@ -146,16 +146,20 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t a = std::clamp(stm[i], int16_t(0), FT_SCALE);
-        int16_t b = std::clamp(stm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
+        int16_t a = stm_king_square[i] + stm_threat[i];
+        int16_t b = stm_king_square[i + FT_SIZE / 2] + stm_threat[i + FT_SIZE / 2];
+        a = std::clamp(a, int16_t(0), FT_SCALE);
+        b = std::clamp(b, int16_t(0), FT_SCALE);
         uint8_t mul = (a * (b << 7)) >> 16;
         output[i] = mul;
     }
 
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t a = std::clamp(nstm[i], int16_t(0), FT_SCALE);
-        int16_t b = std::clamp(nstm[i + FT_SIZE / 2], int16_t(0), FT_SCALE);
+        int16_t a = nstm_king_square[i] + nstm_threat[i];
+        int16_t b = nstm_king_square[i + FT_SIZE / 2] + nstm_threat[i + FT_SIZE / 2];
+        a = std::clamp(a, int16_t(0), FT_SCALE);
+        b = std::clamp(b, int16_t(0), FT_SCALE);
         uint8_t mul = (a * (b << 7)) >> 16;
         output[i + FT_SIZE / 2] = mul;
     }

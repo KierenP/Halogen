@@ -405,7 +405,7 @@ auto Uci::options_handler()
         tuneable_int(PieceMoveCorrHistory::correction_max, 32, 128),
         tuneable_int(PieceMoveCorrHistory::scale, 64, 256),
 
-        tuneable_float(SCALE_FACTOR, 80, 320),
+        tuneable_float(NN::SCALE_FACTOR, 80, 320),
 
         tuneable_float(smp_voting_depth, 0.0, 10.0),
         tuneable_float(smp_voting_score, 0.0, 200.0),
