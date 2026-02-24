@@ -1,85 +1,36 @@
 #pragma once
 
-#include "bitboard/enum.h"
-#include "chessboard/board_state.h"
-#include "network/arch.hpp"
+#include "network/accumulator/king_bucket.h"
+#include "network/accumulator/threat.h"
 #include "search/score.h"
 
-#include <array>
 #include <cstdint>
-#include <cstring>
 
+class BoardState;
 class Move;
+enum Side : int8_t;
 
 namespace NN
 {
 
-// represents a single input on one accumulator side
-struct Input
-{
-    Square king_sq;
-    Square piece_sq;
-    Piece piece;
-};
-
-// represents a pair of inputs (one on each accumulator side)
-struct InputPair
-{
-    Square w_king;
-    Square b_king;
-    Square piece_sq;
-    Piece piece;
-};
-
-// stored the accumulated first layer values for each side
+// The main accumulator, composed of independently-updatable sub-accumulators for each input type.
+// king_bucket stores bias + king-bucketed; threats is updated separately.
 struct Accumulator
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, N_SIDES> side = {};
+    KingBucket::KingBucketAccumulator king_bucket;
+    Threats::ThreatAccumulator threats;
 
     bool operator==(const Accumulator& rhs) const
     {
-        return side == rhs.side;
+        return king_bucket == rhs.king_bucket && threats == rhs.threats;
     }
-
-    void add_input(const InputPair& input);
-    void add_input(const Input& input, Side side);
-
-    void sub_input(const InputPair& input);
-    void sub_input(const Input& input, Side side);
 
     void recalculate(const BoardState& board);
     void recalculate(const BoardState& board, Side side);
 
-    // data for lazy updates
     bool acc_is_valid = false;
-    bool white_requires_recalculation = false;
-    bool black_requires_recalculation = false;
-    std::array<InputPair, 2> adds = {};
-    size_t n_adds = 0;
-    std::array<InputPair, 2> subs = {};
-    size_t n_subs = 0;
-    BoardState board;
 };
 
-// An accumulator, along with the bitboards that resulted in the white/black accumulated values. Note that the board
-// cached in each side might be different, so white_bb != black_bb
-struct AccumulatorTableEntry
-{
-    Accumulator acc;
-    std::array<uint64_t, N_PIECES> white_bb = {};
-    std::array<uint64_t, N_PIECES> black_bb = {};
-};
-
-// A cache of accumulators for each king bucket. When we want to recalculate the accumulator, we use this as a base
-// rather than initializing from scratch
-struct AccumulatorTable
-{
-    std::array<AccumulatorTableEntry, KING_BUCKET_COUNT * 2> king_bucket = {};
-
-    void recalculate(Accumulator& acc, const BoardState& board, Side side, Square king_sq);
-};
-
-// TODO: this class can mostly disappear and be replaced with stand alone functions
 class Network
 {
 public:
@@ -101,7 +52,7 @@ public:
     void apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc);
 
 private:
-    AccumulatorTable table;
+    KingBucket::AccumulatorTable table;
 };
 
 }

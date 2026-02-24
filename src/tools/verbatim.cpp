@@ -2,6 +2,8 @@
 // binary
 
 #include "network/arch.hpp"
+#include "network/inputs/king_bucket.h"
+#include "network/inputs/threat.h"
 #include "network/simd/define.hpp"
 
 #include <algorithm>
@@ -21,7 +23,8 @@ namespace NN
 
 struct raw_network
 {
-    alignas(64) std::array<std::array<int16_t, FT_SIZE>, INPUT_SIZE * KING_BUCKET_COUNT> ft_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, KingBucket::TOTAL_KING_BUCKET_INPUTS> ft_weight = {};
+    alignas(64) std::array<std::array<int8_t, FT_SIZE>, Threats::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
@@ -32,52 +35,33 @@ struct raw_network
 };
 
 auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
-    const decltype(raw_network::ft_bias)& ft_bias, const decltype(raw_network::l1_weight)& l1_weight)
+    const decltype(raw_network::ft_threat_weight)& ft_threat_weight, const decltype(raw_network::ft_bias)& ft_bias,
+    const decltype(raw_network::l1_weight)& l1_weight)
 {
     auto ft_weight_output = std::make_unique<decltype(raw_network::ft_weight)>();
+    auto ft_threat_weight_output = std::make_unique<decltype(raw_network::ft_threat_weight)>();
     auto ft_bias_output = std::make_unique<decltype(raw_network::ft_bias)>();
     auto l1_weight_output = std::make_unique<decltype(raw_network::l1_weight)>();
 
 #ifdef NETWORK_SHUFFLE
     *ft_weight_output = ft_weight;
+    *ft_threat_weight_output = ft_threat_weight;
     *ft_bias_output = ft_bias;
     *l1_weight_output = l1_weight;
 #else
     // clang-format off
-    constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = { 389, 379, 146, 153, 508, 150, 54, 703, 243, 543, 454,
-        527, 147, 417, 118, 676, 764, 253, 579, 749, 300, 445, 597, 745, 11, 407, 529, 72, 67, 151, 293, 722, 519, 767,
-        653, 137, 22, 116, 689, 394, 733, 762, 386, 199, 181, 535, 680, 635, 79, 322, 260, 390, 83, 610, 467, 391, 681,
-        598, 659, 335, 524, 741, 474, 206, 113, 42, 358, 399, 470, 564, 403, 10, 712, 575, 486, 464, 164, 9, 60, 204,
-        615, 679, 221, 382, 515, 698, 400, 376, 52, 499, 599, 479, 437, 721, 35, 451, 697, 104, 292, 263, 477, 469, 632,
-        38, 320, 364, 102, 2, 701, 475, 119, 738, 512, 143, 485, 374, 0, 7, 746, 472, 183, 739, 106, 638, 196, 30, 723,
-        101, 50, 419, 550, 62, 336, 484, 291, 353, 360, 652, 606, 422, 289, 420, 408, 85, 244, 463, 217, 155, 246, 497,
-        304, 498, 290, 753, 209, 455, 589, 591, 743, 629, 518, 157, 17, 708, 189, 707, 45, 227, 563, 571, 553, 637, 145,
-        326, 348, 211, 547, 365, 14, 663, 177, 274, 27, 337, 585, 490, 577, 63, 448, 148, 395, 347, 332, 371, 755, 5,
-        660, 163, 440, 142, 341, 192, 89, 355, 271, 482, 276, 720, 760, 75, 570, 275, 468, 296, 214, 728, 315, 727, 259,
-        219, 491, 65, 18, 46, 636, 446, 208, 224, 705, 590, 207, 700, 247, 239, 742, 232, 186, 121, 450, 48, 648, 127,
-        554, 683, 357, 37, 165, 33, 250, 93, 298, 587, 333, 695, 86, 185, 313, 675, 258, 252, 97, 302, 262, 109, 569,
-        582, 507, 534, 557, 565, 345, 184, 226, 684, 261, 294, 36, 108, 112, 103, 622, 287, 58, 600, 91, 278, 725, 120,
-        572, 759, 129, 562, 373, 665, 283, 179, 47, 641, 581, 299, 539, 125, 236, 426, 494, 558, 425, 435, 43, 643, 461,
-        80, 349, 318, 68, 281, 612, 231, 623, 545, 397, 160, 644, 323, 378, 677, 694, 580, 29, 41, 757, 131, 132, 284,
-        61, 511, 233, 107, 130, 115, 31, 53, 328, 245, 714, 751, 200, 367, 176, 69, 670, 409, 352, 516, 286, 267, 691,
-        384, 344, 359, 16, 737, 254, 662, 175, 149, 717, 366, 266, 555, 672, 191, 541, 645, 449, 380, 633, 70, 257, 325,
-        218, 387, 372, 81, 159, 523, 711, 504, 190, 430, 436, 556, 168, 327, 110, 503, 405, 198, 398, 628, 77, 28, 401,
-        161, 576, 480, 201, 100, 613, 631, 488, 59, 433, 412, 255, 212, 235, 732, 413, 593, 229, 122, 607, 388, 424,
-        346, 249, 500, 416, 604, 194, 747, 601, 288, 56, 307, 321, 166, 538, 193, 66, 140, 690, 319, 124, 329, 256, 133,
-        173, 105, 421, 441, 431, 656, 458, 51, 678, 609, 12, 696, 215, 15, 573, 203, 57, 154, 310, 95, 342, 657, 734,
-        339, 713, 605, 510, 92, 178, 144, 729, 270, 560, 4, 238, 752, 661, 114, 427, 496, 309, 521, 618, 625, 620, 495,
-        172, 377, 94, 237, 453, 650, 452, 78, 334, 763, 241, 210, 223, 614, 654, 530, 754, 551, 216, 174, 578, 350, 117,
-        414, 506, 141, 64, 128, 314, 509, 134, 32, 370, 96, 456, 715, 297, 205, 152, 533, 428, 3, 476, 111, 383, 520,
-        744, 473, 123, 228, 673, 549, 49, 513, 282, 340, 501, 338, 381, 649, 548, 483, 21, 268, 536, 438, 84, 434, 39,
-        316, 306, 55, 699, 489, 459, 269, 317, 546, 492, 87, 156, 273, 26, 443, 331, 505, 99, 439, 356, 8, 411, 248,
-        514, 423, 88, 532, 444, 586, 531, 710, 740, 343, 596, 447, 362, 442, 704, 471, 567, 180, 761, 396, 220, 594,
-        706, 272, 542, 574, 481, 385, 222, 23, 354, 135, 595, 525, 540, 182, 603, 552, 392, 393, 559, 517, 402, 592,
-        330, 766, 19, 82, 478, 240, 305, 225, 295, 630, 90, 234, 602, 40, 74, 303, 167, 429, 195, 71, 324, 301, 682,
-        537, 138, 756, 626, 583, 642, 188, 242, 735, 566, 502, 280, 658, 265, 667, 351, 617, 73, 158, 611, 230, 719, 44,
-        651, 418, 616, 758, 197, 493, 646, 162, 668, 627, 20, 718, 526, 213, 687, 522, 765, 34, 693, 621, 126, 171, 640,
-        1, 279, 170, 702, 169, 584, 432, 688, 363, 666, 686, 312, 369, 619, 25, 76, 709, 671, 308, 251, 139, 544, 457,
-        24, 674, 361, 724, 466, 13, 634, 561, 136, 368, 264, 685, 460, 608, 568, 716, 730, 726, 187, 98, 692, 639, 465,
-        624, 736, 487, 202, 664, 750, 528, 647, 6, 462, 406, 669, 748, 375, 588, 404, 415, 731, 277, 311, 410, 655, 285,
+    constexpr std::array<size_t, FT_SIZE / 2> shuffle_order = {
+        76, 87, 230, 166, 86, 194, 244, 71, 57, 224, 13, 120, 210, 178, 245, 30, 108, 53, 127, 172, 114, 106, 47,
+        186, 26, 246, 107, 31, 10, 97, 170, 251, 105, 220, 158, 54, 153, 35, 20, 181, 250, 12, 238, 72, 17, 139,
+        202, 132, 48, 91, 150, 51, 185, 165, 133, 8, 167, 22, 169, 212, 112, 200, 103, 204, 180, 63, 229, 155, 227,
+        243, 21, 223, 102, 249, 14, 232, 160, 205, 90, 183, 234, 131, 195, 122, 149, 163, 164, 190, 188, 45, 226,
+        24, 125, 77, 89, 111, 19, 147, 171, 39, 44, 192, 98, 84, 140, 15, 241, 27, 58, 60, 217, 100, 85, 93, 81,
+        219, 136, 117, 56, 49, 80, 162, 199, 197, 118, 252, 115, 141, 253, 198, 177, 36, 34, 161, 211, 55, 222, 152,
+        126, 96, 95, 208, 151, 101, 123, 73, 144, 33, 216, 255, 9, 79, 159, 29, 52, 65, 75, 145, 154, 157, 203, 121,
+        64, 119, 69, 67, 135, 38, 213, 66, 174, 134, 32, 82, 209, 113, 156, 62, 70, 94, 25, 59, 50, 37, 242, 109,
+        11, 173, 4, 1, 7, 187, 248, 42, 104, 110, 142, 2, 168, 175, 128, 179, 116, 74, 5, 68, 231, 207, 3, 18, 214,
+        16, 221, 138, 143, 92, 235, 254, 201, 43, 196, 182, 239, 83, 40, 146, 129, 137, 28, 78, 206, 124, 225, 233,
+        228, 6, 237, 189, 41, 236, 88, 99, 240, 193, 184, 23, 148, 46, 61, 247, 218, 130, 176, 215, 191, 0,
     };
     // clang-format on
 
@@ -95,10 +79,16 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
         (*ft_bias_output)[i] = ft_bias[old_idx];
         (*ft_bias_output)[i + FT_SIZE / 2] = ft_bias[old_idx + FT_SIZE / 2];
 
-        for (size_t j = 0; j < INPUT_SIZE * KING_BUCKET_COUNT; j++)
+        for (size_t j = 0; j < KingBucket::TOTAL_KING_BUCKET_INPUTS; j++)
         {
             (*ft_weight_output)[j][i] = ft_weight[j][old_idx];
             (*ft_weight_output)[j][i + FT_SIZE / 2] = ft_weight[j][old_idx + FT_SIZE / 2];
+        }
+
+        for (size_t j = 0; j < Threats::TOTAL_THREAT_FEATURES; j++)
+        {
+            (*ft_threat_weight_output)[j][i] = ft_threat_weight[j][old_idx];
+            (*ft_threat_weight_output)[j][i + FT_SIZE / 2] = ft_threat_weight[j][old_idx + FT_SIZE / 2];
         }
 
         for (size_t j = 0; j < OUTPUT_BUCKETS; j++)
@@ -111,37 +101,67 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
         }
     }
 #endif
-    return std::make_tuple(std::move(ft_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
+    return std::make_tuple(std::move(ft_weight_output), std::move(ft_threat_weight_output), std::move(ft_bias_output),
+        std::move(l1_weight_output));
 }
 
-auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight, const decltype(raw_network::ft_bias)& ft_bias)
+auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight,
+    const decltype(raw_network::ft_threat_weight)& ft_threat_weight, const decltype(raw_network::ft_bias)& ft_bias)
 {
-    auto permuted_weight = std::make_unique<decltype(raw_network::ft_weight)>();
+    auto permuted_ft_weight = std::make_unique<decltype(raw_network::ft_weight)>();
+    auto permuted_threat_weight = std::make_unique<decltype(raw_network::ft_threat_weight)>();
     auto permuted_bias = std::make_unique<decltype(raw_network::ft_bias)>();
 
 #if defined(USE_AVX2)
-    // shuffle around ft weights to match packus interleaving
-    for (size_t i = 0; i < INPUT_SIZE * KING_BUCKET_COUNT; i++)
+#if defined(USE_AVX512)
+    constexpr std::array<size_t, 8> mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
+#else
+    constexpr std::array<size_t, 4> mapping = { 0, 2, 1, 3 };
+#endif
+
+    // Permute FT weight
+    for (size_t i = 0; i < ft_weight.size(); i++)
     {
         for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
         {
-#if defined(USE_AVX512)
-            constexpr std::array mapping = { 0, 4, 1, 5, 2, 6, 3, 7 };
-#else
-            constexpr std::array mapping = { 0, 2, 1, 3 };
-#endif
             for (size_t x = 0; x < SIMD::vec_size; x++)
             {
-                (*permuted_weight)[i][j + mapping[x / 8] * 8 + x % 8] = ft_weight[i][j + x];
-                (*permuted_bias)[j + mapping[x / 8] * 8 + x % 8] = ft_bias[j + x];
+                size_t target_idx = j + mapping[x / 8] * 8 + x % 8;
+                (*permuted_ft_weight)[i][target_idx] = ft_weight[i][j + x];
             }
         }
     }
+
+    // Permute threat weight
+    for (size_t i = 0; i < ft_threat_weight.size(); i++)
+    {
+        for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
+        {
+            for (size_t x = 0; x < SIMD::vec_size; x++)
+            {
+                size_t target_idx = j + mapping[x / 8] * 8 + x % 8;
+                (*permuted_threat_weight)[i][target_idx] = ft_threat_weight[i][j + x];
+            }
+        }
+    }
+
+    // Permute bias
+    for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
+    {
+        for (size_t x = 0; x < SIMD::vec_size; x++)
+        {
+            size_t target_idx = j + mapping[x / 8] * 8 + x % 8;
+            (*permuted_bias)[target_idx] = ft_bias[j + x];
+        }
+    }
+
 #else
-    (*permuted_weight) = ft_weight;
+    (*permuted_ft_weight) = ft_weight;
+    (*permuted_threat_weight) = ft_threat_weight;
     (*permuted_bias) = ft_bias;
 #endif
-    return std::make_tuple(std::move(permuted_weight), std::move(permuted_bias));
+
+    return std::make_tuple(std::move(permuted_ft_weight), std::move(permuted_threat_weight), std::move(permuted_bias));
 }
 
 auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
@@ -264,10 +284,12 @@ int main(int argc, char* argv[])
     std::ifstream in(argv[1], std::ios::binary);
     in.read(reinterpret_cast<char*>(raw_net.get()), sizeof(raw_network));
 
-    auto [ft_weight, ft_bias, l1_weight] = shuffle_ft_neurons(raw_net->ft_weight, raw_net->ft_bias, raw_net->l1_weight);
-    auto [ft_weight2, ft_bias2] = adjust_for_packus(*ft_weight, *ft_bias);
+    auto [ft_weight, ft_threat_weight, ft_bias, l1_weight]
+        = shuffle_ft_neurons(raw_net->ft_weight, raw_net->ft_threat_weight, raw_net->ft_bias, raw_net->l1_weight);
+    auto [ft_weight2, ft_threat_weight2, ft_bias2] = adjust_for_packus(*ft_weight, *ft_threat_weight, *ft_bias);
     auto final_net = std::make_unique<network>();
     final_net->ft_weight = *ft_weight2;
+    final_net->ft_threat_weight = *ft_threat_weight2;
     final_net->ft_bias = *ft_bias2;
     final_net->l1_weight = *cast_l1_weight_int8(*interleave_for_l1_sparsity(*l1_weight));
     final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net->l1_bias));
