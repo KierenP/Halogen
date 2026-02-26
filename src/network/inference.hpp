@@ -98,8 +98,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         SIMD::deposit_nonzero_4xu8_block_indices_x2(
             stm_u8_1, stm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
-    size_t remainder_start = (FT_SIZE / 2) - ((FT_SIZE / 2) % (stride * 4));
-    for (size_t i = remainder_start; i + stride * 2 <= FT_SIZE / 2; i += stride * 2)
+    for (size_t i = (FT_SIZE / 2) - ((FT_SIZE / 2) % (stride * 4)); i + stride * 2 <= FT_SIZE / 2; i += stride * 2)
     {
         auto stm_king_piece1 = SIMD::load(&stm_king_square[i]);
         auto stm_king_piece2 = SIMD::load(&stm_king_square[i + stride]);
@@ -168,7 +167,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         SIMD::deposit_nonzero_4xu8_block_indices_x2(
             nstm_u8_1, nstm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
-    for (size_t i = remainder_start; i + stride <= FT_SIZE / 2; i += stride)
+    for (size_t i = (FT_SIZE / 2) - ((FT_SIZE / 2) % (stride * 4)); i + stride * 2 <= FT_SIZE / 2; i += stride * 2)
     {
         auto nstm_king_piece1 = SIMD::load(&nstm_king_square[i]);
         auto nstm_king_piece2 = SIMD::load(&nstm_king_square[i + stride]);
@@ -189,7 +188,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         nstm_vec1 = SIMD::mulhi_i16(nstm_vec1, nstm_vec3);
         nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec4);
         auto nstm_u8 = SIMD::pack_i16_to_u8(nstm_vec1, nstm_vec2);
-        SIMD::store(&output[i], nstm_u8);
+        SIMD::store(&output[i + FT_SIZE / 2], nstm_u8);
         SIMD::deposit_nonzero_4xu8_block_indices(nstm_u8, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
 #else
