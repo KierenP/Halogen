@@ -23,7 +23,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
 #if defined(SIMD_ENABLED)
     // manually unrolled and interleaved x2, 13 max registers in use
     constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
-    static_assert((FT_SIZE / 2) % (stride * 4) == 0);
+    static_assert((FT_SIZE / 2) % (stride * 2) == 0);
     const auto zero = SIMD::setzero<SIMD::veci16>();
     const auto one = SIMD::set_i16(FT_SCALE);
 #if defined(USE_AVX512_VNNI) || defined(USE_NEON)
@@ -36,7 +36,7 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
 #else
     constexpr size_t lshift = 7;
 #endif
-    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
+    for (size_t i = 0; i + stride * 4 <= FT_SIZE / 2; i += stride * 4)
     {
         // Idea from Alexandria, we want to calculate the screlu using int16 without overflowing. In order to
         // achieve this we use mulhi_epi16 to calculate a temporary int32 product, before extracting the high 16
@@ -98,7 +98,32 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         SIMD::deposit_nonzero_4xu8_block_indices_x2(
             stm_u8_1, stm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
-    for (size_t i = 0; i < FT_SIZE / 2; i += stride * 4)
+    size_t remainder_start = (FT_SIZE / 2) - ((FT_SIZE / 2) % (stride * 4));
+    for (size_t i = remainder_start; i + stride * 2 <= FT_SIZE / 2; i += stride * 2)
+    {
+        auto stm_king_piece1 = SIMD::load(&stm_king_square[i]);
+        auto stm_king_piece2 = SIMD::load(&stm_king_square[i + stride]);
+        auto stm_vec1 = SIMD::add_i16(stm_king_piece1, SIMD::load(&stm_threat[i]));
+        auto stm_vec2 = SIMD::add_i16(stm_king_piece2, SIMD::load(&stm_threat[i + stride]));
+        stm_vec1 = SIMD::min_i16(one, stm_vec1);
+        stm_vec2 = SIMD::min_i16(one, stm_vec2);
+        stm_vec1 = SIMD::max_i16(zero, stm_vec1);
+        stm_vec2 = SIMD::max_i16(zero, stm_vec2);
+        stm_vec1 = SIMD::lshift_i16<lshift>(stm_vec1);
+        stm_vec2 = SIMD::lshift_i16<lshift>(stm_vec2);
+        auto stm_king_piece3 = SIMD::load(&stm_king_square[i + FT_SIZE / 2]);
+        auto stm_king_piece4 = SIMD::load(&stm_king_square[i + FT_SIZE / 2 + stride]);
+        auto stm_vec3 = SIMD::add_i16(stm_king_piece3, SIMD::load(&stm_threat[i + FT_SIZE / 2]));
+        auto stm_vec4 = SIMD::add_i16(stm_king_piece4, SIMD::load(&stm_threat[i + FT_SIZE / 2 + stride]));
+        stm_vec3 = SIMD::min_i16(one, stm_vec3);
+        stm_vec4 = SIMD::min_i16(one, stm_vec4);
+        stm_vec1 = SIMD::mulhi_i16(stm_vec1, stm_vec3);
+        stm_vec2 = SIMD::mulhi_i16(stm_vec2, stm_vec4);
+        auto stm_u8 = SIMD::pack_i16_to_u8(stm_vec1, stm_vec2);
+        SIMD::store(&output[i], stm_u8);
+        SIMD::deposit_nonzero_4xu8_block_indices(stm_u8, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
+    }
+    for (size_t i = 0; i + stride * 4 <= FT_SIZE / 2; i += stride * 4)
     {
         auto nstm_king_piece1 = SIMD::load(&nstm_king_square[i]);
         auto nstm_king_piece2 = SIMD::load(&nstm_king_square[i + stride]);
@@ -142,6 +167,30 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         SIMD::store(&output[i + FT_SIZE / 2 + stride * 2], nstm_u8_3);
         SIMD::deposit_nonzero_4xu8_block_indices_x2(
             nstm_u8_1, nstm_u8_3, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
+    }
+    for (size_t i = remainder_start; i + stride <= FT_SIZE / 2; i += stride)
+    {
+        auto nstm_king_piece1 = SIMD::load(&nstm_king_square[i]);
+        auto nstm_king_piece2 = SIMD::load(&nstm_king_square[i + stride]);
+        auto nstm_vec1 = SIMD::add_i16(nstm_king_piece1, SIMD::load(&nstm_threat[i]));
+        auto nstm_vec2 = SIMD::add_i16(nstm_king_piece2, SIMD::load(&nstm_threat[i + stride]));
+        nstm_vec1 = SIMD::min_i16(one, nstm_vec1);
+        nstm_vec2 = SIMD::min_i16(one, nstm_vec2);
+        nstm_vec1 = SIMD::max_i16(zero, nstm_vec1);
+        nstm_vec2 = SIMD::max_i16(zero, nstm_vec2);
+        nstm_vec1 = SIMD::lshift_i16<lshift>(nstm_vec1);
+        nstm_vec2 = SIMD::lshift_i16<lshift>(nstm_vec2);
+        auto nstm_king_piece3 = SIMD::load(&nstm_king_square[i + FT_SIZE / 2]);
+        auto nstm_king_piece4 = SIMD::load(&nstm_king_square[i + FT_SIZE / 2 + stride]);
+        auto nstm_vec3 = SIMD::add_i16(nstm_king_piece3, SIMD::load(&nstm_threat[i + FT_SIZE / 2]));
+        auto nstm_vec4 = SIMD::add_i16(nstm_king_piece4, SIMD::load(&nstm_threat[i + FT_SIZE / 2 + stride]));
+        nstm_vec3 = SIMD::min_i16(one, nstm_vec3);
+        nstm_vec4 = SIMD::min_i16(one, nstm_vec4);
+        nstm_vec1 = SIMD::mulhi_i16(nstm_vec1, nstm_vec3);
+        nstm_vec2 = SIMD::mulhi_i16(nstm_vec2, nstm_vec4);
+        auto nstm_u8 = SIMD::pack_i16_to_u8(nstm_vec1, nstm_vec2);
+        SIMD::store(&output[i], nstm_u8);
+        SIMD::deposit_nonzero_4xu8_block_indices(nstm_u8, sparse_nibble_offset, sparse_nibbles, sparse_nibbles_size);
     }
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)

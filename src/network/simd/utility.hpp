@@ -142,6 +142,27 @@ inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, veci16& offs
     sparse_block_indices_size += std::popcount(mask);
     offset = SIMD::add_i16(offset, SIMD::set_i16(32));
 }
+inline void deposit_nonzero_4xu8_block_indices(
+    vecu8 a, veci16& offset, std::array<int16_t, FT_SIZE / 4>& sparse_block_indices, size_t& sparse_block_indices_size)
+{
+    alignas(64) static constexpr std::array<int16_t, 32> index_table = []
+    {
+        std::array<int16_t, 32> cache {};
+        for (int16_t i = 0; i < 16; ++i)
+        {
+            cache[i] = i;
+        }
+        return cache;
+    }();
+
+    auto mask = SIMD::cmpgt_i32_mask(a);
+    auto indicies = SIMD::load(index_table.data());
+    indicies = SIMD::add_i16(indicies, offset);
+    assert(sparse_block_indices_size + std::popcount(mask) <= sparse_block_indices.size());
+    _mm512_mask_compressstoreu_epi16(&sparse_block_indices[sparse_block_indices_size], mask, indicies);
+    sparse_block_indices_size += std::popcount(mask);
+    offset = SIMD::add_i16(offset, SIMD::set_i16(16));
+}
 #elif defined(USE_NEON)
 inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, veci16& offset,
     std::array<int16_t, FT_SIZE / 4>& sparse_block_indices, size_t& sparse_block_indices_size)
@@ -156,6 +177,18 @@ inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, veci16& offs
     vst1q_s16(&sparse_block_indices[sparse_block_indices_size], indicies);
     sparse_block_indices_size += entry.count;
     offset = SIMD::add_i16(offset, SIMD::set_i16(8));
+}
+inline void deposit_nonzero_4xu8_block_indices(
+    vecu8 a, veci16& offset, std::array<int16_t, FT_SIZE / 4>& sparse_block_indices, size_t& sparse_block_indices_size)
+{
+    auto mask = SIMD::cmpgt_i32_mask(a);
+    const auto& entry = sparse_affine_table.entry[mask];
+    auto indicies = vld1q_s16(entry.indicies.data());
+    indicies = SIMD::add_i16(indicies, offset);
+    assert(sparse_block_indices_size + entry.count <= sparse_block_indices.size());
+    vst1q_s16(&sparse_block_indices[sparse_block_indices_size], indicies);
+    sparse_block_indices_size += entry.count;
+    offset = SIMD::add_i16(offset, SIMD::set_i16(4));
 }
 #elif defined(SIMD_ENABLED)
 inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, __m128i& offset,
@@ -182,6 +215,31 @@ inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, __m128i& off
         _mm_storeu_si128(sparse_block_indices_end, indicies);
         sparse_block_indices_size += entry.count;
         offset = _mm_add_epi16(offset, _mm_set1_epi16(8));
+    }
+}
+inline void deposit_nonzero_4xu8_block_indices(
+    vecu8 a, __m128i& offset, std::array<int16_t, FT_SIZE / 4>& sparse_block_indices, size_t& sparse_block_indices_size)
+{
+    auto mask = SIMD::cmpgt_i32_mask(a);
+#if defined(USE_AVX512)
+    uint16_t umask = mask;
+#elif defined(USE_AVX2)
+    uint8_t umask = mask;
+#else
+    uint8_t umask = mask;
+#endif
+    // 1 byte for SSE, 1 for AVX2, 2 for AVX512
+    for (size_t j = 0; j < sizeof(umask); j++)
+    {
+        uint8_t bytemask = (umask >> (8 * j)) & 0xFF;
+        const auto& entry = sparse_affine_table.entry[bytemask];
+        auto indicies = _mm_load_si128(reinterpret_cast<const __m128i*>(entry.indicies.data()));
+        indicies = _mm_add_epi16(indicies, offset);
+        assert(sparse_block_indices_size + entry.count <= sparse_block_indices.size());
+        auto* sparse_block_indices_end = reinterpret_cast<__m128i*>(&sparse_block_indices[sparse_block_indices_size]);
+        _mm_storeu_si128(sparse_block_indices_end, indicies);
+        sparse_block_indices_size += entry.count;
+        offset = _mm_add_epi16(offset, _mm_set1_epi16(4));
     }
 }
 #endif
