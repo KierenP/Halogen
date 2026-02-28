@@ -15,7 +15,7 @@ namespace NN
 
 constexpr size_t INPUT_SIZE = 12 * 64;
 constexpr size_t FT_SIZE = 640;
-constexpr size_t L1_SIZE = 16;
+constexpr size_t L1_SIZE = 32;
 constexpr size_t L2_SIZE = 32;
 
 constexpr size_t OUTPUT_BUCKETS = 8;
