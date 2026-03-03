@@ -239,7 +239,11 @@ inline void deposit_nonzero_4xu8_block_indices(
         auto* sparse_block_indices_end = reinterpret_cast<__m128i*>(&sparse_block_indices[sparse_block_indices_size]);
         _mm_storeu_si128(sparse_block_indices_end, indicies);
         sparse_block_indices_size += entry.count;
+#if defined(USE_AVX512) || defined(USE_AVX2)
+        offset = _mm_add_epi16(offset, _mm_set1_epi16(8));
+#else
         offset = _mm_add_epi16(offset, _mm_set1_epi16(4));
+#endif
     }
 }
 #endif
