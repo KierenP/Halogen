@@ -2,6 +2,7 @@
 
 #include "bitboard/enum.h"
 #include "network/inputs/king_bucket.h"
+#include "network/inputs/piece_count.h"
 #include "network/inputs/threat.h"
 #include "spsa/tuneable.h"
 
@@ -26,15 +27,17 @@ constexpr size_t OUTPUT_BUCKETS = 8;
 
 // Feature layout in the weight matrix:
 //   [0, 768 * KING_BUCKET_COUNT)                           : king-bucketed piece-square
-//   [768 * KING_BUCKET_COUNT + 768, ...)                   : threat features
+//   [768 * KING_BUCKET_COUNT + 768, +threats)              : threat features
+//   [threat_base + threats, +30)                           : piece-count threshold features
 
 // Total number of inputs into the feature transformer:
-//   king-bucketed piece-square + threat features
-constexpr size_t TOTAL_FT_INPUTS = KingBucket::TOTAL_KING_BUCKET_INPUTS + Threats::TOTAL_THREAT_FEATURES;
+//   king-bucketed piece-square + threat features + piece-count features
+constexpr size_t TOTAL_FT_INPUTS
+    = KingBucket::TOTAL_KING_BUCKET_INPUTS + Threats::TOTAL_THREAT_FEATURES + PieceCount::PIECE_COUNT_TOTAL;
 
 // These quantization factors are selected to fit within certain bounds to avoid overflow while being as large as
 // possible. In particular, we must avoid the following:
-//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) = 16665
+//  - accumulator (int16_t) overflow: round(255 * 1.98) * (32 + 1) + 15 * 255 = 20490 (king-bucket + piece-count)
 //  - l1 activation overflow (int16_t): (127 * round(64 * 1.98)) * 2 = 32258
 
 constexpr int16_t FT_SCALE = 255;
@@ -45,6 +48,7 @@ struct network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, KingBucket::TOTAL_KING_BUCKET_INPUTS> ft_weight = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE>, Threats::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, PieceCount::PIECE_COUNT_TOTAL> ft_piece_count_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE * L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int32_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};

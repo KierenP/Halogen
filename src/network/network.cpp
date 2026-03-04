@@ -5,6 +5,7 @@
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "network/accumulator/king_bucket.h"
+#include "network/accumulator/piece_count.h"
 #include "network/accumulator/threat.h"
 #include "network/arch.hpp"
 #include "network/inference.hpp"
@@ -41,9 +42,11 @@ void Accumulator::recalculate(const BoardState& board_)
 {
     king_bucket.recalculate_from_scratch(board_, net);
     threats.recalculate_from_scratch(board_, net);
+    piece_count.recalculate_from_scratch(board_, net);
 
     assert(king_bucket.acc_is_valid);
     assert(threats.acc_is_valid);
+    assert(piece_count.acc_is_valid);
 
     acc_is_valid = true;
 }
@@ -59,10 +62,12 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
     Accumulator expected = {};
     expected.king_bucket.recalculate_from_scratch(board, net);
     expected.threats.recalculate_from_scratch(board, net);
+    expected.piece_count.recalculate_from_scratch(board, net);
     expected.acc_is_valid = true;
 
     assert(acc.king_bucket == expected.king_bucket);
     assert(acc.threats == expected.threats);
+    assert(acc.piece_count == expected.piece_count);
 
     return expected == acc;
 }
@@ -102,6 +107,8 @@ void Network::store_lazy_updates(
     }
 
     acc.threats.store_lazy_updates(prev_move_board, post_move_board, sub_bb, add_bb);
+
+    acc.piece_count.store_lazy_updates(prev_move_board, post_move_board, move);
 }
 
 void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc)
@@ -113,9 +120,11 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
 
     next_acc.king_bucket.apply_lazy_updates(prev_acc.king_bucket, table, net);
     next_acc.threats.apply_lazy_updates(prev_acc.threats, next_acc.king_bucket.board, net); // is board correct here??
+    next_acc.piece_count.apply_lazy_updates(prev_acc.piece_count, net);
 
     assert(next_acc.king_bucket.acc_is_valid);
     assert(next_acc.threats.acc_is_valid);
+    assert(next_acc.piece_count.acc_is_valid);
 
     next_acc.acc_is_valid = true;
 }
@@ -134,7 +143,8 @@ Score Network::eval(const BoardState& board, const Accumulator& acc)
     alignas(64) std::array<int16_t, FT_SIZE / 4> sparse_ft_nibbles;
     size_t sparse_nibbles_size = 0;
     NN::Features::FT_activation(acc.king_bucket.side[stm], acc.king_bucket.side[!stm], acc.threats.side[stm],
-        acc.threats.side[!stm], ft_activation, sparse_ft_nibbles, sparse_nibbles_size);
+        acc.threats.side[!stm], acc.piece_count.side[stm], acc.piece_count.side[!stm], ft_activation, sparse_ft_nibbles,
+        sparse_nibbles_size);
     assert(std::all_of(ft_activation.begin(), ft_activation.end(), [](auto x) { return x <= 127; }));
 
     alignas(64) std::array<float, L1_SIZE * 2> l1_activation;

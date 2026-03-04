@@ -17,7 +17,8 @@ namespace NN::Features
 
 void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
     const std::array<int16_t, FT_SIZE>& nstm_king_square, const std::array<int16_t, FT_SIZE>& stm_threat,
-    const std::array<int16_t, FT_SIZE>& nstm_threat, std::array<uint8_t, FT_SIZE>& output,
+    const std::array<int16_t, FT_SIZE>& nstm_threat, const std::array<int16_t, FT_SIZE>& stm_piece_count,
+    const std::array<int16_t, FT_SIZE>& nstm_piece_count, std::array<uint8_t, FT_SIZE>& output,
     [[maybe_unused]] std::array<int16_t, FT_SIZE / 4>& sparse_nibbles, [[maybe_unused]] size_t& sparse_nibbles_size)
 {
 #if defined(SIMD_ENABLED)
@@ -59,6 +60,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto stm_vec2 = SIMD::add_i16(stm_king_piece2, SIMD::load(&stm_threat[i + stride]));
         auto stm_vec3 = SIMD::add_i16(stm_king_piece3, SIMD::load(&stm_threat[i + stride * 2]));
         auto stm_vec4 = SIMD::add_i16(stm_king_piece4, SIMD::load(&stm_threat[i + stride * 3]));
+        stm_vec1 = SIMD::add_i16(stm_vec1, SIMD::load(&stm_piece_count[i]));
+        stm_vec2 = SIMD::add_i16(stm_vec2, SIMD::load(&stm_piece_count[i + stride]));
+        stm_vec3 = SIMD::add_i16(stm_vec3, SIMD::load(&stm_piece_count[i + stride * 2]));
+        stm_vec4 = SIMD::add_i16(stm_vec4, SIMD::load(&stm_piece_count[i + stride * 3]));
         stm_vec1 = SIMD::min_i16(one, stm_vec1);
         stm_vec2 = SIMD::min_i16(one, stm_vec2);
         stm_vec3 = SIMD::min_i16(one, stm_vec3);
@@ -79,6 +84,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto stm_vec6 = SIMD::add_i16(stm_king_piece6, SIMD::load(&stm_threat[i + FT_SIZE / 2 + stride]));
         auto stm_vec7 = SIMD::add_i16(stm_king_piece7, SIMD::load(&stm_threat[i + FT_SIZE / 2 + stride * 2]));
         auto stm_vec8 = SIMD::add_i16(stm_king_piece8, SIMD::load(&stm_threat[i + FT_SIZE / 2 + stride * 3]));
+        stm_vec5 = SIMD::add_i16(stm_vec5, SIMD::load(&stm_piece_count[i + FT_SIZE / 2]));
+        stm_vec6 = SIMD::add_i16(stm_vec6, SIMD::load(&stm_piece_count[i + FT_SIZE / 2 + stride]));
+        stm_vec7 = SIMD::add_i16(stm_vec7, SIMD::load(&stm_piece_count[i + FT_SIZE / 2 + stride * 2]));
+        stm_vec8 = SIMD::add_i16(stm_vec8, SIMD::load(&stm_piece_count[i + FT_SIZE / 2 + stride * 3]));
         stm_vec5 = SIMD::min_i16(one, stm_vec5);
         stm_vec6 = SIMD::min_i16(one, stm_vec6);
         stm_vec7 = SIMD::min_i16(one, stm_vec7);
@@ -104,6 +113,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto stm_king_piece2 = SIMD::load(&stm_king_square[i + stride]);
         auto stm_vec1 = SIMD::add_i16(stm_king_piece1, SIMD::load(&stm_threat[i]));
         auto stm_vec2 = SIMD::add_i16(stm_king_piece2, SIMD::load(&stm_threat[i + stride]));
+        stm_vec1 = SIMD::add_i16(stm_vec1, SIMD::load(&stm_piece_count[i]));
+        stm_vec2 = SIMD::add_i16(stm_vec2, SIMD::load(&stm_piece_count[i + stride]));
         stm_vec1 = SIMD::min_i16(one, stm_vec1);
         stm_vec2 = SIMD::min_i16(one, stm_vec2);
         stm_vec1 = SIMD::max_i16(zero, stm_vec1);
@@ -114,6 +125,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto stm_king_piece4 = SIMD::load(&stm_king_square[i + FT_SIZE / 2 + stride]);
         auto stm_vec3 = SIMD::add_i16(stm_king_piece3, SIMD::load(&stm_threat[i + FT_SIZE / 2]));
         auto stm_vec4 = SIMD::add_i16(stm_king_piece4, SIMD::load(&stm_threat[i + FT_SIZE / 2 + stride]));
+        stm_vec3 = SIMD::add_i16(stm_vec3, SIMD::load(&stm_piece_count[i + FT_SIZE / 2]));
+        stm_vec4 = SIMD::add_i16(stm_vec4, SIMD::load(&stm_piece_count[i + FT_SIZE / 2 + stride]));
         stm_vec3 = SIMD::min_i16(one, stm_vec3);
         stm_vec4 = SIMD::min_i16(one, stm_vec4);
         stm_vec1 = SIMD::mulhi_i16(stm_vec1, stm_vec3);
@@ -132,6 +145,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto nstm_vec2 = SIMD::add_i16(nstm_king_piece2, SIMD::load(&nstm_threat[i + stride]));
         auto nstm_vec3 = SIMD::add_i16(nstm_king_piece3, SIMD::load(&nstm_threat[i + stride * 2]));
         auto nstm_vec4 = SIMD::add_i16(nstm_king_piece4, SIMD::load(&nstm_threat[i + stride * 3]));
+        nstm_vec1 = SIMD::add_i16(nstm_vec1, SIMD::load(&nstm_piece_count[i]));
+        nstm_vec2 = SIMD::add_i16(nstm_vec2, SIMD::load(&nstm_piece_count[i + stride]));
+        nstm_vec3 = SIMD::add_i16(nstm_vec3, SIMD::load(&nstm_piece_count[i + stride * 2]));
+        nstm_vec4 = SIMD::add_i16(nstm_vec4, SIMD::load(&nstm_piece_count[i + stride * 3]));
         nstm_vec1 = SIMD::min_i16(one, nstm_vec1);
         nstm_vec2 = SIMD::min_i16(one, nstm_vec2);
         nstm_vec3 = SIMD::min_i16(one, nstm_vec3);
@@ -152,6 +169,10 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto nstm_vec6 = SIMD::add_i16(nstm_king_piece6, SIMD::load(&nstm_threat[i + FT_SIZE / 2 + stride]));
         auto nstm_vec7 = SIMD::add_i16(nstm_king_piece7, SIMD::load(&nstm_threat[i + FT_SIZE / 2 + stride * 2]));
         auto nstm_vec8 = SIMD::add_i16(nstm_king_piece8, SIMD::load(&nstm_threat[i + FT_SIZE / 2 + stride * 3]));
+        nstm_vec5 = SIMD::add_i16(nstm_vec5, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2]));
+        nstm_vec6 = SIMD::add_i16(nstm_vec6, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2 + stride]));
+        nstm_vec7 = SIMD::add_i16(nstm_vec7, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2 + stride * 2]));
+        nstm_vec8 = SIMD::add_i16(nstm_vec8, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2 + stride * 3]));
         nstm_vec5 = SIMD::min_i16(one, nstm_vec5);
         nstm_vec6 = SIMD::min_i16(one, nstm_vec6);
         nstm_vec7 = SIMD::min_i16(one, nstm_vec7);
@@ -173,6 +194,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto nstm_king_piece2 = SIMD::load(&nstm_king_square[i + stride]);
         auto nstm_vec1 = SIMD::add_i16(nstm_king_piece1, SIMD::load(&nstm_threat[i]));
         auto nstm_vec2 = SIMD::add_i16(nstm_king_piece2, SIMD::load(&nstm_threat[i + stride]));
+        nstm_vec1 = SIMD::add_i16(nstm_vec1, SIMD::load(&nstm_piece_count[i]));
+        nstm_vec2 = SIMD::add_i16(nstm_vec2, SIMD::load(&nstm_piece_count[i + stride]));
         nstm_vec1 = SIMD::min_i16(one, nstm_vec1);
         nstm_vec2 = SIMD::min_i16(one, nstm_vec2);
         nstm_vec1 = SIMD::max_i16(zero, nstm_vec1);
@@ -183,6 +206,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
         auto nstm_king_piece4 = SIMD::load(&nstm_king_square[i + FT_SIZE / 2 + stride]);
         auto nstm_vec3 = SIMD::add_i16(nstm_king_piece3, SIMD::load(&nstm_threat[i + FT_SIZE / 2]));
         auto nstm_vec4 = SIMD::add_i16(nstm_king_piece4, SIMD::load(&nstm_threat[i + FT_SIZE / 2 + stride]));
+        nstm_vec3 = SIMD::add_i16(nstm_vec3, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2]));
+        nstm_vec4 = SIMD::add_i16(nstm_vec4, SIMD::load(&nstm_piece_count[i + FT_SIZE / 2 + stride]));
         nstm_vec3 = SIMD::min_i16(one, nstm_vec3);
         nstm_vec4 = SIMD::min_i16(one, nstm_vec4);
         nstm_vec1 = SIMD::mulhi_i16(nstm_vec1, nstm_vec3);
@@ -194,8 +219,8 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
 #else
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t a = stm_king_square[i] + stm_threat[i];
-        int16_t b = stm_king_square[i + FT_SIZE / 2] + stm_threat[i + FT_SIZE / 2];
+        int16_t a = stm_king_square[i] + stm_threat[i] + stm_piece_count[i];
+        int16_t b = stm_king_square[i + FT_SIZE / 2] + stm_threat[i + FT_SIZE / 2] + stm_piece_count[i + FT_SIZE / 2];
         a = std::clamp(a, int16_t(0), FT_SCALE);
         b = std::clamp(b, int16_t(0), FT_SCALE);
         uint8_t mul = (a * (b << 7)) >> 16;
@@ -204,8 +229,9 @@ void FT_activation(const std::array<int16_t, FT_SIZE>& stm_king_square,
 
     for (size_t i = 0; i < FT_SIZE / 2; i++)
     {
-        int16_t a = nstm_king_square[i] + nstm_threat[i];
-        int16_t b = nstm_king_square[i + FT_SIZE / 2] + nstm_threat[i + FT_SIZE / 2];
+        int16_t a = nstm_king_square[i] + nstm_threat[i] + nstm_piece_count[i];
+        int16_t b
+            = nstm_king_square[i + FT_SIZE / 2] + nstm_threat[i + FT_SIZE / 2] + nstm_piece_count[i + FT_SIZE / 2];
         a = std::clamp(a, int16_t(0), FT_SCALE);
         b = std::clamp(b, int16_t(0), FT_SCALE);
         uint8_t mul = (a * (b << 7)) >> 16;

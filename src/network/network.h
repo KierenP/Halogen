@@ -1,6 +1,7 @@
 #pragma once
 
 #include "network/accumulator/king_bucket.h"
+#include "network/accumulator/piece_count.h"
 #include "network/accumulator/threat.h"
 #include "search/score.h"
 
@@ -19,10 +20,11 @@ struct Accumulator
 {
     KingBucket::KingBucketAccumulator king_bucket;
     Threats::ThreatAccumulator threats;
+    PieceCount::PieceCountAccumulator piece_count;
 
     bool operator==(const Accumulator& rhs) const
     {
-        return king_bucket == rhs.king_bucket && threats == rhs.threats;
+        return king_bucket == rhs.king_bucket && threats == rhs.threats && piece_count == rhs.piece_count;
     }
 
     void recalculate(const BoardState& board);

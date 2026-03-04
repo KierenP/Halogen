@@ -3,6 +3,7 @@
 
 #include "network/arch.hpp"
 #include "network/inputs/king_bucket.h"
+#include "network/inputs/piece_count.h"
 #include "network/inputs/threat.h"
 #include "network/simd/define.hpp"
 
@@ -25,6 +26,7 @@ struct raw_network
 {
     alignas(64) std::array<std::array<int16_t, FT_SIZE>, KingBucket::TOTAL_KING_BUCKET_INPUTS> ft_weight = {};
     alignas(64) std::array<std::array<int8_t, FT_SIZE>, Threats::TOTAL_THREAT_FEATURES> ft_threat_weight = {};
+    alignas(64) std::array<std::array<int16_t, FT_SIZE>, PieceCount::PIECE_COUNT_TOTAL> ft_piece_count_weight = {};
     alignas(64) std::array<int16_t, FT_SIZE> ft_bias = {};
     alignas(64) std::array<std::array<std::array<int16_t, FT_SIZE>, L1_SIZE>, OUTPUT_BUCKETS> l1_weight = {};
     alignas(64) std::array<std::array<int16_t, L1_SIZE>, OUTPUT_BUCKETS> l1_bias = {};
@@ -35,17 +37,20 @@ struct raw_network
 };
 
 auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
-    const decltype(raw_network::ft_threat_weight)& ft_threat_weight, const decltype(raw_network::ft_bias)& ft_bias,
-    const decltype(raw_network::l1_weight)& l1_weight)
+    const decltype(raw_network::ft_threat_weight)& ft_threat_weight,
+    const decltype(raw_network::ft_piece_count_weight)& ft_piece_count_weight,
+    const decltype(raw_network::ft_bias)& ft_bias, const decltype(raw_network::l1_weight)& l1_weight)
 {
     auto ft_weight_output = std::make_unique<decltype(raw_network::ft_weight)>();
     auto ft_threat_weight_output = std::make_unique<decltype(raw_network::ft_threat_weight)>();
+    auto ft_piece_count_weight_output = std::make_unique<decltype(raw_network::ft_piece_count_weight)>();
     auto ft_bias_output = std::make_unique<decltype(raw_network::ft_bias)>();
     auto l1_weight_output = std::make_unique<decltype(raw_network::l1_weight)>();
 
 #ifdef NETWORK_SHUFFLE
     *ft_weight_output = ft_weight;
     *ft_threat_weight_output = ft_threat_weight;
+    *ft_piece_count_weight_output = ft_piece_count_weight;
     *ft_bias_output = ft_bias;
     *l1_weight_output = l1_weight;
 #else
@@ -94,6 +99,12 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
             (*ft_threat_weight_output)[j][i + FT_SIZE / 2] = ft_threat_weight[j][old_idx + FT_SIZE / 2];
         }
 
+        for (size_t j = 0; j < PieceCount::PIECE_COUNT_TOTAL; j++)
+        {
+            (*ft_piece_count_weight_output)[j][i] = ft_piece_count_weight[j][old_idx];
+            (*ft_piece_count_weight_output)[j][i + FT_SIZE / 2] = ft_piece_count_weight[j][old_idx + FT_SIZE / 2];
+        }
+
         for (size_t j = 0; j < OUTPUT_BUCKETS; j++)
         {
             for (size_t k = 0; k < L1_SIZE; k++)
@@ -104,15 +115,18 @@ auto shuffle_ft_neurons(const decltype(raw_network::ft_weight)& ft_weight,
         }
     }
 #endif
-    return std::make_tuple(std::move(ft_weight_output), std::move(ft_threat_weight_output), std::move(ft_bias_output),
-        std::move(l1_weight_output));
+    return std::make_tuple(std::move(ft_weight_output), std::move(ft_threat_weight_output),
+        std::move(ft_piece_count_weight_output), std::move(ft_bias_output), std::move(l1_weight_output));
 }
 
 auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight,
-    const decltype(raw_network::ft_threat_weight)& ft_threat_weight, const decltype(raw_network::ft_bias)& ft_bias)
+    const decltype(raw_network::ft_threat_weight)& ft_threat_weight,
+    const decltype(raw_network::ft_piece_count_weight)& ft_piece_count_weight,
+    const decltype(raw_network::ft_bias)& ft_bias)
 {
     auto permuted_ft_weight = std::make_unique<decltype(raw_network::ft_weight)>();
     auto permuted_threat_weight = std::make_unique<decltype(raw_network::ft_threat_weight)>();
+    auto permuted_piece_count_weight = std::make_unique<decltype(raw_network::ft_piece_count_weight)>();
     auto permuted_bias = std::make_unique<decltype(raw_network::ft_bias)>();
 
 #if defined(USE_AVX2)
@@ -148,6 +162,19 @@ auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight,
         }
     }
 
+    // Permute piece-count weight
+    for (size_t i = 0; i < ft_piece_count_weight.size(); i++)
+    {
+        for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
+        {
+            for (size_t x = 0; x < SIMD::vec_size; x++)
+            {
+                size_t target_idx = j + mapping[x / 8] * 8 + x % 8;
+                (*permuted_piece_count_weight)[i][target_idx] = ft_piece_count_weight[i][j + x];
+            }
+        }
+    }
+
     // Permute bias
     for (size_t j = 0; j < FT_SIZE; j += SIMD::vec_size)
     {
@@ -161,10 +188,12 @@ auto adjust_for_packus(const decltype(raw_network::ft_weight)& ft_weight,
 #else
     (*permuted_ft_weight) = ft_weight;
     (*permuted_threat_weight) = ft_threat_weight;
+    (*permuted_piece_count_weight) = ft_piece_count_weight;
     (*permuted_bias) = ft_bias;
 #endif
 
-    return std::make_tuple(std::move(permuted_ft_weight), std::move(permuted_threat_weight), std::move(permuted_bias));
+    return std::make_tuple(std::move(permuted_ft_weight), std::move(permuted_threat_weight),
+        std::move(permuted_piece_count_weight), std::move(permuted_bias));
 }
 
 auto rescale_l1_bias(const decltype(raw_network::l1_bias)& input)
@@ -287,12 +316,15 @@ int main(int argc, char* argv[])
     std::ifstream in(argv[1], std::ios::binary);
     in.read(reinterpret_cast<char*>(raw_net.get()), sizeof(raw_network));
 
-    auto [ft_weight, ft_threat_weight, ft_bias, l1_weight]
-        = shuffle_ft_neurons(raw_net->ft_weight, raw_net->ft_threat_weight, raw_net->ft_bias, raw_net->l1_weight);
-    auto [ft_weight2, ft_threat_weight2, ft_bias2] = adjust_for_packus(*ft_weight, *ft_threat_weight, *ft_bias);
+    auto [ft_weight, ft_threat_weight, ft_piece_count_weight, ft_bias, l1_weight]
+        = shuffle_ft_neurons(raw_net->ft_weight, raw_net->ft_threat_weight, raw_net->ft_piece_count_weight,
+            raw_net->ft_bias, raw_net->l1_weight);
+    auto [ft_weight2, ft_threat_weight2, ft_piece_count_weight2, ft_bias2]
+        = adjust_for_packus(*ft_weight, *ft_threat_weight, *ft_piece_count_weight, *ft_bias);
     auto final_net = std::make_unique<network>();
     final_net->ft_weight = *ft_weight2;
     final_net->ft_threat_weight = *ft_threat_weight2;
+    final_net->ft_piece_count_weight = *ft_piece_count_weight2;
     final_net->ft_bias = *ft_bias2;
     final_net->l1_weight = *cast_l1_weight_int8(*interleave_for_l1_sparsity(*l1_weight));
     final_net->l1_bias = *cast_l1_bias_int32(*rescale_l1_bias(raw_net->l1_bias));
