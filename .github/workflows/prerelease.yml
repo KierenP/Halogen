@@ -116,14 +116,13 @@ jobs:
             runner_arch: arm64
             platform: linux-arm64
           
-          # TODO: disabled due to msys2 install timeouts
           # Windows ARM64 builds
-          #- os: windows-11-arm
-          #  arch: neon
-          #  target: pgo
-          #  runner_arch: arm64
-          #  platform: windows-arm64
-          #  extension: .exe
+          - os: windows-11-arm
+            arch: neon
+            target: pgo
+            runner_arch: arm64
+            platform: windows-arm64
+            extension: .exe
 
     runs-on: ${{ matrix.os }}
 
