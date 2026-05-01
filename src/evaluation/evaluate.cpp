@@ -44,18 +44,8 @@ Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
 
 bool insufficient_material(const BoardState& board)
 {
-    if ((board.get_pieces_bb(WHITE_PAWN)) != 0)
-        return false;
-    if ((board.get_pieces_bb(WHITE_ROOK)) != 0)
-        return false;
-    if ((board.get_pieces_bb(WHITE_QUEEN)) != 0)
-        return false;
-
-    if ((board.get_pieces_bb(BLACK_PAWN)) != 0)
-        return false;
-    if ((board.get_pieces_bb(BLACK_ROOK)) != 0)
-        return false;
-    if ((board.get_pieces_bb(BLACK_QUEEN)) != 0)
+    // Any pawn, rook, or queen means material is sufficient
+    if (board.get_pieces_bb(PAWN) | board.get_pieces_bb(ROOK) | board.get_pieces_bb(QUEEN))
         return false;
 
     /*
@@ -64,23 +54,20 @@ bool insufficient_material(const BoardState& board)
         side with any series of legal moves, the position is an immediate draw if:
             1: both sides have a bare king
             2: one side has a king and a minor piece against a bare king
-            Not covered: both sides have a king and a bishop, the bishops being the same color
+            3: both sides have a king and a bishop, the bishops being the same color
     */
 
-    // We know the board must contain just knights, bishops and kings
-    int WhiteBishops = std::popcount(board.get_pieces_bb(WHITE_BISHOP));
-    int BlackBishops = std::popcount(board.get_pieces_bb(BLACK_BISHOP));
-    int WhiteKnights = std::popcount(board.get_pieces_bb(WHITE_KNIGHT));
-    int BlackKnights = std::popcount(board.get_pieces_bb(BLACK_KNIGHT));
-    int WhiteMinor = WhiteBishops + WhiteKnights;
-    int BlackMinor = BlackBishops + BlackKnights;
+    // Only kings, knights, and bishops remain
+    const uint64_t all_bishops = board.get_pieces_bb(BISHOP);
+    const uint64_t all_knights = board.get_pieces_bb(KNIGHT);
+    const int total_minor = std::popcount(all_bishops | all_knights);
 
-    if (WhiteMinor == 0 && BlackMinor == 0)
-        return true; // 1
-    if (WhiteMinor == 1 && BlackMinor == 0)
-        return true; // 2
-    if (WhiteMinor == 0 && BlackMinor == 1)
-        return true; // 2
+    if (total_minor <= 1)
+        return true; // 1, 2
+
+    // KBvKB with same-colored bishops is a dead draw
+    if (total_minor == 2 && all_knights == 0)
+        return (all_bishops & LIGHT_SQUARES) == 0 || (all_bishops & DARK_SQUARES) == 0; // 3
 
     return false;
 }

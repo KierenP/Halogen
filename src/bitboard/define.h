@@ -28,6 +28,8 @@ constexpr Square flip_square_horizontal(Square sq)
 
 constexpr uint64_t EMPTY = 0;
 constexpr uint64_t UNIVERSE = 0xffffffffffffffff;
+constexpr uint64_t LIGHT_SQUARES = 0x55AA55AA55AA55AAULL;
+constexpr uint64_t DARK_SQUARES = ~LIGHT_SQUARES;
 
 namespace Detail // so these don't polute the global scope
 {
