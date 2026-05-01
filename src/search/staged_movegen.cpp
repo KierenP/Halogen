@@ -211,6 +211,9 @@ void StagedMoveGenerator::skip_quiets()
 
 void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
 {
+    const Move prev_our_move = (ss - 2)->move;
+    const bool has_prev = (prev_our_move != Move::Uninitialized);
+
     for (size_t i = 0; i < moves.size(); i++)
     {
         // Hash move
@@ -222,7 +225,15 @@ void StagedMoveGenerator::score_quiet_moves(BasicMoveList& moves)
         // Quiet
         else
         {
-            quietMoves.emplace_back(moves[i], local.get_quiet_order_history(ss, moves[i]));
+            int score = local.get_quiet_order_history(ss, moves[i]);
+
+            // Anti-shuffling: penalise moves that reverse our previous move
+            if (has_prev && moves[i].from() == prev_our_move.to() && moves[i].to() == prev_our_move.from())
+            {
+                score -= anti_shuffle_penalty;
+            }
+
+            quietMoves.emplace_back(moves[i], score);
         }
     }
 }

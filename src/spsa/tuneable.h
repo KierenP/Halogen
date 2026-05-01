@@ -139,6 +139,8 @@ TUNEABLE_CONSTANT auto tt_replace_age = Fraction<64>::from_raw(248);
 TUNEABLE_CONSTANT int good_loud_see = 73;
 TUNEABLE_CONSTANT int good_loud_see_hist = 51;
 
+TUNEABLE_CONSTANT int anti_shuffle_penalty = 10000;
+
 TUNEABLE_CONSTANT int qsearch_lmp = 2;
 TUNEABLE_CONSTANT int qsearch_see_hist = 162;
 
