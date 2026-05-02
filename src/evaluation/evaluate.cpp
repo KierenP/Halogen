@@ -1,5 +1,6 @@
 #include "evaluation/evaluate.h"
 
+#include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "network/network.h"
@@ -10,6 +11,7 @@
 #include <array>
 #include <bit>
 #include <cassert>
+#include <cstdint>
 
 Score evaluate(const BoardState& board, NN::Accumulator* acc, NN::Network& net)
 {
