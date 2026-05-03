@@ -320,7 +320,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
 }
 
 void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
-    const std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>& l2_weight, std::array<float, L2_SIZE>& output)
+    const std::array<std::array<float, L2_SIZE>, L1_SIZE * 2>& l2_weight, const std::array<float, L2_SIZE>& l2_bias,
+    std::array<float, L2_SIZE>& output)
 {
 #if defined(SIMD_ENABLED)
     constexpr auto stride = SIMD::vec_size / sizeof(float);
@@ -329,7 +330,7 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        l2_reg[i / stride] = SIMD::load(&output[i]);
+        l2_reg[i / stride] = SIMD::load(&l2_bias[i]);
     }
 
     // We would normally calculate a vector-matrix product by calculating the dot product of each row. In this case, the
@@ -356,6 +357,10 @@ void L2_activation(const std::array<float, L1_SIZE * 2>& l1_activation,
     }
 
 #else
+    for (size_t j = 0; j < L2_SIZE; j++)
+    {
+        output[j] = l2_bias[j];
+    }
     for (size_t i = 0; i < L1_SIZE * 2; i++)
     {
         for (size_t j = 0; j < L2_SIZE; j++)
