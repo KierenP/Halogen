@@ -253,8 +253,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     {
         const auto nibble_idx_a = sparse_nibbles[i];
         const auto nibble_idx_b = sparse_nibbles[i + 1];
-        assert(0 <= nibble_idx_a && nibble_idx_a <= (int)FT_SIZE / 4);
-        assert(0 <= nibble_idx_b && nibble_idx_b <= (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_a && nibble_idx_a < (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_b && nibble_idx_b < (int)FT_SIZE / 4);
         const auto ft_vec_a
             = SIMD::set_u8_from_u32(*(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx_a));
         const auto ft_vec_b
@@ -270,7 +270,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     if (i < sparse_nibbles_size)
     {
         const auto nibble_idx = sparse_nibbles[i];
-        assert(0 <= nibble_idx && nibble_idx <= (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx && nibble_idx < (int)FT_SIZE / 4);
         const auto ft_vec
             = SIMD::set_u8_from_u32(*(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx));
         for (size_t j = 0; j < L1_SIZE; j += stride)
