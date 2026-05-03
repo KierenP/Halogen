@@ -347,12 +347,10 @@ inline uint16_t cmpgt_i32_mask(const vecu8& a)
 #elif defined(USE_NEON)
     uint32x4_t a_u32 = vreinterpretq_u32_u8(a);
     uint32x4_t cmp = vcgtq_u32(a_u32, vdupq_n_u32(0));
-    uint32_t mask = 0;
-    mask |= (vgetq_lane_u32(cmp, 0) & 1) << 0;
-    mask |= (vgetq_lane_u32(cmp, 1) & 1) << 1;
-    mask |= (vgetq_lane_u32(cmp, 2) & 1) << 2;
-    mask |= (vgetq_lane_u32(cmp, 3) & 1) << 3;
-    return mask;
+    static const uint32x4_t weights = { 1u, 2u, 4u, 8u };
+    uint32x4_t bits = vshrq_n_u32(cmp, 31);
+    bits = vmulq_u32(bits, weights);
+    return vaddvq_u32(bits);
 #endif
 }
 
