@@ -545,8 +545,14 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
 
     ss->singular_exclusion = Move::Uninitialized;
 
+    const auto is_tactical = tt_move.is_capture() || tt_move.is_promotion();
+
     // If the TT move is singular, we extend the search by one or more plies depending on how singular it appears
-    if (se_score < sbeta - se_triple && !pv_node)
+    if (se_score < sbeta - se_triple && !pv_node && !is_tactical)
+    {
+        extensions += 3;
+    }
+    else if (se_score < sbeta - 60 && !pv_node && is_tactical)
     {
         extensions += 3;
     }
