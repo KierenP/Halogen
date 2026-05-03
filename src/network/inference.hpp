@@ -290,16 +290,16 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     const auto one = SIMD::set_f32(1.f);
     const auto one_reciprocal = SIMD::set_f32(1.f / (127.f * L1_SCALE)); // 127 to match FT_activation adjustment
 
-    for (size_t i = 0; i < L1_SIZE; i += stride)
+    for (size_t k = 0; k < L1_SIZE; k += stride)
     {
-        auto crelu = SIMD::i32_to_f32(output_reg[i / stride]);
+        auto crelu = SIMD::i32_to_f32(output_reg[k / stride]);
         crelu = SIMD::mul_f32(crelu, one_reciprocal);
         auto screlu = SIMD::mul_f32(crelu, crelu);
         crelu = SIMD::max_f32(zero, crelu);
         crelu = SIMD::min_f32(one, crelu);
         screlu = SIMD::min_f32(one, screlu);
-        SIMD::store(&output[i], crelu);
-        SIMD::store(&output[i + L1_SIZE], screlu);
+        SIMD::store(&output[k], crelu);
+        SIMD::store(&output[k + L1_SIZE], screlu);
     }
 #else
     for (size_t i = 0; i < L1_SIZE; i++)
