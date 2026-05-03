@@ -236,9 +236,100 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     constexpr auto stride = SIMD::vec_size / sizeof(int32_t);
     static_assert(L1_SIZE % stride == 0);
 
-    // Two independent accumulator chains to break the dpbusd latency dependency.
-    // dpbusd has 3-5 cycle latency: with a single chain each outer iteration must wait
-    // for the previous one to complete. Two independent chains let the CPU overlap them.
+    const auto ft_ptr = reinterpret_cast<const uint32_t*>(ft_activation.data());
+
+#if defined(USE_AVX512)
+    // dpbusd has 3-5 cycle latency, so we need enough independent accumulator chains
+    // to keep the pipeline full. With AVX512, stride=16 fills L1_SIZE in one j-iteration,
+    // so each chain contributes exactly 1 dpbusd per outer loop iteration. Four chains
+    // give 4 independent dpbusd in flight, which is enough to cover the latency.
+    SIMD::veci32 acc_a[L1_SIZE / stride];
+    SIMD::veci32 acc_b[L1_SIZE / stride];
+    SIMD::veci32 acc_c[L1_SIZE / stride];
+    SIMD::veci32 acc_d[L1_SIZE / stride];
+
+    for (size_t j = 0; j < L1_SIZE; j += stride)
+    {
+        acc_a[j / stride] = SIMD::load(&l1_bias[j]);
+        acc_b[j / stride] = SIMD::setzero<SIMD::veci32>();
+        acc_c[j / stride] = SIMD::setzero<SIMD::veci32>();
+        acc_d[j / stride] = SIMD::setzero<SIMD::veci32>();
+    }
+
+    size_t i = 0;
+    for (; i + 3 < sparse_nibbles_size; i += 4)
+    {
+        const auto nibble_idx_a = sparse_nibbles[i];
+        const auto nibble_idx_b = sparse_nibbles[i + 1];
+        const auto nibble_idx_c = sparse_nibbles[i + 2];
+        const auto nibble_idx_d = sparse_nibbles[i + 3];
+        assert(0 <= nibble_idx_a && nibble_idx_a < (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_b && nibble_idx_b < (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_c && nibble_idx_c < (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_d && nibble_idx_d < (int)FT_SIZE / 4);
+        const auto ft_vec_a = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_a]);
+        const auto ft_vec_b = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_b]);
+        const auto ft_vec_c = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_c]);
+        const auto ft_vec_d = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_d]);
+        for (size_t j = 0; j < L1_SIZE; j += stride)
+        {
+            acc_a[j / stride] = SIMD::dpbusd_i32(
+                acc_a[j / stride], ft_vec_a, SIMD::load(&l1_weight[nibble_idx_a * (4 * L1_SIZE) + j * 4]));
+            acc_b[j / stride] = SIMD::dpbusd_i32(
+                acc_b[j / stride], ft_vec_b, SIMD::load(&l1_weight[nibble_idx_b * (4 * L1_SIZE) + j * 4]));
+            acc_c[j / stride] = SIMD::dpbusd_i32(
+                acc_c[j / stride], ft_vec_c, SIMD::load(&l1_weight[nibble_idx_c * (4 * L1_SIZE) + j * 4]));
+            acc_d[j / stride] = SIMD::dpbusd_i32(
+                acc_d[j / stride], ft_vec_d, SIMD::load(&l1_weight[nibble_idx_d * (4 * L1_SIZE) + j * 4]));
+        }
+    }
+
+    // Fold c and d into a and b before handling 0-3 remaining nibbles with the 2-way loop.
+    for (size_t j = 0; j < L1_SIZE; j += stride)
+    {
+        acc_a[j / stride] = SIMD::add_i32(acc_a[j / stride], acc_c[j / stride]);
+        acc_b[j / stride] = SIMD::add_i32(acc_b[j / stride], acc_d[j / stride]);
+    }
+
+    for (; i + 1 < sparse_nibbles_size; i += 2)
+    {
+        const auto nibble_idx_a = sparse_nibbles[i];
+        const auto nibble_idx_b = sparse_nibbles[i + 1];
+        assert(0 <= nibble_idx_a && nibble_idx_a < (int)FT_SIZE / 4);
+        assert(0 <= nibble_idx_b && nibble_idx_b < (int)FT_SIZE / 4);
+        const auto ft_vec_a = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_a]);
+        const auto ft_vec_b = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_b]);
+        for (size_t j = 0; j < L1_SIZE; j += stride)
+        {
+            acc_a[j / stride] = SIMD::dpbusd_i32(
+                acc_a[j / stride], ft_vec_a, SIMD::load(&l1_weight[nibble_idx_a * (4 * L1_SIZE) + j * 4]));
+            acc_b[j / stride] = SIMD::dpbusd_i32(
+                acc_b[j / stride], ft_vec_b, SIMD::load(&l1_weight[nibble_idx_b * (4 * L1_SIZE) + j * 4]));
+        }
+    }
+    if (i < sparse_nibbles_size)
+    {
+        const auto nibble_idx = sparse_nibbles[i];
+        assert(0 <= nibble_idx && nibble_idx < (int)FT_SIZE / 4);
+        const auto ft_vec = SIMD::set_u8_from_u32(ft_ptr[nibble_idx]);
+        for (size_t j = 0; j < L1_SIZE; j += stride)
+        {
+            acc_a[j / stride] = SIMD::dpbusd_i32(
+                acc_a[j / stride], ft_vec, SIMD::load(&l1_weight[nibble_idx * (4 * L1_SIZE) + j * 4]));
+        }
+    }
+
+    SIMD::veci32 output_reg[L1_SIZE / stride];
+    for (size_t j = 0; j < L1_SIZE; j += stride)
+    {
+        output_reg[j / stride] = SIMD::add_i32(acc_a[j / stride], acc_b[j / stride]);
+    }
+
+#else
+    // dpbusd has 3-5 cycle latency, so we need enough independent accumulator chains
+    // to keep the pipeline full. With AVX2/NEON (stride=8), L1_SIZE requires 2 j-iterations
+    // per chain, giving 4 independent dpbusd in flight per pair of outer iterations —
+    // sufficient to cover the latency. SSE4 (stride=4) provides even more per chain.
     SIMD::veci32 acc_a[L1_SIZE / stride];
     SIMD::veci32 acc_b[L1_SIZE / stride];
 
@@ -255,10 +346,8 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
         const auto nibble_idx_b = sparse_nibbles[i + 1];
         assert(0 <= nibble_idx_a && nibble_idx_a < (int)FT_SIZE / 4);
         assert(0 <= nibble_idx_b && nibble_idx_b < (int)FT_SIZE / 4);
-        const auto ft_vec_a
-            = SIMD::set_u8_from_u32(*(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx_a));
-        const auto ft_vec_b
-            = SIMD::set_u8_from_u32(*(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx_b));
+        const auto ft_vec_a = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_a]);
+        const auto ft_vec_b = SIMD::set_u8_from_u32(ft_ptr[nibble_idx_b]);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
             acc_a[j / stride] = SIMD::dpbusd_i32(
@@ -271,8 +360,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     {
         const auto nibble_idx = sparse_nibbles[i];
         assert(0 <= nibble_idx && nibble_idx < (int)FT_SIZE / 4);
-        const auto ft_vec
-            = SIMD::set_u8_from_u32(*(reinterpret_cast<const uint32_t*>(ft_activation.data()) + nibble_idx));
+        const auto ft_vec = SIMD::set_u8_from_u32(ft_ptr[nibble_idx]);
         for (size_t j = 0; j < L1_SIZE; j += stride)
         {
             acc_a[j / stride] = SIMD::dpbusd_i32(
@@ -285,6 +373,7 @@ void L1_activation(const std::array<uint8_t, FT_SIZE>& ft_activation,
     {
         output_reg[j / stride] = SIMD::add_i32(acc_a[j / stride], acc_b[j / stride]);
     }
+#endif
 
     const auto zero = SIMD::setzero<SIMD::vecf32>();
     const auto one = SIMD::set_f32(1.f);
