@@ -335,6 +335,10 @@ inline vecu8 pack_i16_to_u8(const veci16& a, const veci16& b)
 #endif
 }
 
+#if defined(USE_NEON)
+static const uint32x4_t cmpgt_i32_bits = { 1u, 2u, 4u, 8u };
+#endif
+
 inline uint16_t cmpgt_i32_mask(const vecu8& a)
 {
 #if defined(USE_AVX512)
@@ -347,12 +351,7 @@ inline uint16_t cmpgt_i32_mask(const vecu8& a)
 #elif defined(USE_NEON)
     uint32x4_t a_u32 = vreinterpretq_u32_u8(a);
     uint32x4_t cmp = vcgtq_u32(a_u32, vdupq_n_u32(0));
-    uint32_t mask = 0;
-    mask |= (vgetq_lane_u32(cmp, 0) & 1) << 0;
-    mask |= (vgetq_lane_u32(cmp, 1) & 1) << 1;
-    mask |= (vgetq_lane_u32(cmp, 2) & 1) << 2;
-    mask |= (vgetq_lane_u32(cmp, 3) & 1) << 3;
-    return mask;
+    return vaddvq_u32(vandq_u32(cmp, cmpgt_i32_bits));
 #endif
 }
 
