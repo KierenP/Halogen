@@ -382,11 +382,6 @@ void L3_activation(
 
     for (size_t i = 0; i < L2_SIZE; i += stride)
     {
-        results[i / stride] = SIMD::setzero<SIMD::vecf32>();
-    }
-
-    for (size_t i = 0; i < L2_SIZE; i += stride)
-    {
         auto vec = SIMD::load(&l2_activation[i]);
         results[i / stride] = SIMD::mul_f32(vec, SIMD::load(&l3_weight[i]));
     }
