@@ -562,9 +562,9 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     // Multi-Cut: In this case, we have proven that at least one other move appears to fail high, along with
     // the TT move having a LOWER_BOUND score of significantly above beta. In this case, we can assume the node
     // will fail high and we return a soft bound. Avoid returning false mate scores.
-    else if (sbeta >= beta && !sbeta.is_decisive())
+    else if (se_score >= beta && !se_score.is_decisive())
     {
-        return sbeta;
+        return se_score;
     }
 
     // Negative extensions: if the TT move is not singular, but also doesn't appear good enough to multi-cut, we
