@@ -556,7 +556,7 @@ std::optional<Score> singular_extensions(GameState& position, SearchStackState* 
     {
         extensions += 2;
     }
-    else if (se_score < sbeta - 10 && !is_tactical)
+    else if (se_score < sbeta - 5 && !is_tactical)
     {
         extensions += 2;
     }
