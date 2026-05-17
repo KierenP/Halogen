@@ -77,6 +77,5 @@ public:
 
 private:
     SearchSharedState shared_state;
-    GameState position_ = GameState::starting_position();
     std::vector<std::unique_ptr<SearchThread>> search_threads;
 };

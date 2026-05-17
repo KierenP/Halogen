@@ -138,7 +138,6 @@ SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size
 
 void SearchThreadPool::set_position(const GameState& position)
 {
-    position_ = position;
     std::latch latch(search_threads.size());
     for (auto& thread : search_threads)
     {
@@ -161,7 +160,6 @@ void SearchThreadPool::reset_new_search()
 void SearchThreadPool::reset_new_game()
 {
     shared_state.reset_new_game();
-    position_ = GameState::starting_position();
     std::latch latch(search_threads.size());
     for (auto& thread : search_threads)
     {
@@ -235,11 +233,11 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared_state.get_multi_pv_setting();
     BasicMoveList moves;
-    legal_moves(position_.board(), moves);
+    legal_moves(shared_state.search_local_states_[0]->position.board(), moves);
     multi_pv = std::min<int>(multi_pv, moves.size());
 
     // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(position_);
+    auto probe = Syzygy::probe_dtz_root(shared_state.search_local_states_[0]->position);
     BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
