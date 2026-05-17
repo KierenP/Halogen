@@ -25,17 +25,20 @@ class SearchThread
 {
 public:
     SearchThread(int thread_id, SearchSharedState& shared_state);
+    ~SearchThread();
+
+    SearchThread(const SearchThread&) = delete;
+    SearchThread& operator=(const SearchThread&) = delete;
+    SearchThread(SearchThread&&) = delete;
+    SearchThread& operator=(SearchThread&&) = delete;
 
     void thread_loop();
-    void terminate();
 
     void set_position(std::latch& latch, const GameState& position);
     void reset_new_search(std::latch& latch);
     void reset_new_game(std::latch& latch);
     void start_searching(std::latch& latch, const BasicMoveList& root_move_whitelist);
     void update_previous_search_score(std::latch& latch, Score previous_search_score);
-
-    const SearchLocalState& get_local_state();
 
 private:
     std::mutex mutex;
@@ -48,18 +51,14 @@ private:
     const int thread_id_;
     SearchSharedState& shared_state;
     unique_ptr_huge_page<SearchLocalState> local_state;
+    std::latch ready;
+    std::thread native_thread;
 };
 
 class SearchThreadPool
 {
 public:
     SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size_t multi_pv = 1, size_t hash_size_mb = 32);
-    ~SearchThreadPool();
-
-    SearchThreadPool(const SearchThreadPool&) = delete;
-    SearchThreadPool& operator=(const SearchThreadPool&) = delete;
-    SearchThreadPool(SearchThreadPool&&) = delete;
-    SearchThreadPool& operator=(SearchThreadPool&&) = delete;
 
     void reset_new_search();
     void reset_new_game();
@@ -77,10 +76,7 @@ public:
     const SearchSharedState& get_shared_state();
 
 private:
-    void create_thread();
-
-    std::vector<std::thread> native_threads;
-    std::vector<SearchThread*> search_threads;
     SearchSharedState shared_state;
     GameState position_ = GameState::starting_position();
+    std::vector<std::unique_ptr<SearchThread>> search_threads;
 };

@@ -14,7 +14,6 @@
 #include "utility/static_vector.h"
 
 #include <algorithm>
-#include <future>
 #include <memory>
 #include <optional>
 #include <thread>
@@ -23,8 +22,30 @@
 SearchThread::SearchThread(int thread_id, SearchSharedState& shared_state_)
     : thread_id_(thread_id)
     , shared_state(shared_state_)
-    , local_state(make_unique_huge_page<SearchLocalState>(thread_id, shared_state.get_shared_hist(thread_id)))
+    , ready(1)
+    , native_thread(
+          [this]()
+          {
+              bind_thread(thread_id_);
+              local_state
+                  = make_unique_huge_page<SearchLocalState>(thread_id_, shared_state.get_shared_hist(thread_id_));
+              shared_state.search_local_states_[thread_id_] = local_state.get();
+              ready.count_down();
+              thread_loop();
+          })
 {
+    ready.wait();
+}
+
+SearchThread::~SearchThread()
+{
+    // Due to the race of signaling the condition variable and destroying it, notify under the lock
+    {
+        std::lock_guard lock(mutex);
+        tasks.emplace([this]() { stop = true; });
+        cv.notify_one();
+    }
+    native_thread.join();
 }
 
 void SearchThread::thread_loop()
@@ -55,14 +76,6 @@ void SearchThread::enqueue_task(std::function<void()> func)
     cv.notify_one();
 }
 
-void SearchThread::terminate()
-{
-    // due to the race of signaling the condition variable and destroying it we don't use enqueue_task here
-    std::lock_guard lock(mutex);
-    tasks.emplace([this]() { stop = true; });
-    cv.notify_one();
-}
-
 void SearchThread::set_position(std::latch& latch, const GameState& position)
 {
     enqueue_task(
@@ -89,6 +102,7 @@ void SearchThread::reset_new_game(std::latch& latch)
         [this, &latch]()
         {
             local_state = make_unique_huge_page<SearchLocalState>(thread_id_, shared_state.get_shared_hist(thread_id_));
+            shared_state.search_local_states_[thread_id_] = local_state.get();
             latch.count_down();
         });
 }
@@ -114,11 +128,6 @@ void SearchThread::update_previous_search_score(std::latch& latch, Score previou
         });
 }
 
-const SearchLocalState& SearchThread::get_local_state()
-{
-    return *local_state;
-}
-
 SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size_t multi_pv, size_t hash_size_mb)
     : shared_state(uci)
 {
@@ -127,24 +136,11 @@ SearchThreadPool::SearchThreadPool(UCI::UciOutput& uci, size_t num_threads, size
     set_hash(hash_size_mb);
 }
 
-SearchThreadPool::~SearchThreadPool()
-{
-    for (auto& thread : search_threads)
-    {
-        thread->terminate();
-    }
-
-    for (auto& thread : native_threads)
-    {
-        thread.join();
-    }
-}
-
 void SearchThreadPool::set_position(const GameState& position)
 {
     position_ = position;
     std::latch latch(search_threads.size());
-    for (auto* thread : search_threads)
+    for (auto& thread : search_threads)
     {
         thread->set_position(latch, position);
     }
@@ -155,7 +151,7 @@ void SearchThreadPool::reset_new_search()
 {
     shared_state.reset_new_search();
     std::latch latch(search_threads.size());
-    for (auto* thread : search_threads)
+    for (auto& thread : search_threads)
     {
         thread->reset_new_search(latch);
     }
@@ -167,7 +163,7 @@ void SearchThreadPool::reset_new_game()
     shared_state.reset_new_game();
     position_ = GameState::starting_position();
     std::latch latch(search_threads.size());
-    for (auto* thread : search_threads)
+    for (auto& thread : search_threads)
     {
         thread->reset_new_game(latch);
     }
@@ -194,24 +190,15 @@ void SearchThreadPool::set_threads(size_t threads)
     shared_state.set_threads(threads);
     if (threads < search_threads.size())
     {
-        for (size_t i = threads; i < search_threads.size(); ++i)
-        {
-            search_threads[i]->terminate();
-        }
-
-        for (size_t i = threads; i < native_threads.size(); ++i)
-        {
-            native_threads[i].join();
-        }
-
         search_threads.resize(threads);
-        native_threads.resize(threads);
+        shared_state.search_local_states_.resize(threads);
     }
     else if (threads > search_threads.size())
     {
+        shared_state.search_local_states_.resize(threads);
         for (size_t i = search_threads.size(); i < threads; ++i)
         {
-            create_thread();
+            search_threads.push_back(std::make_unique<SearchThread>(search_threads.size(), shared_state));
         }
     }
 }
@@ -219,7 +206,7 @@ void SearchThreadPool::set_threads(size_t threads)
 void SearchThreadPool::set_previous_search_score(Score previous_search_score)
 {
     std::latch latch(search_threads.size());
-    for (auto* thread : search_threads)
+    for (auto& thread : search_threads)
     {
         thread->update_previous_search_score(latch, previous_search_score);
     }
@@ -229,24 +216,6 @@ void SearchThreadPool::set_previous_search_score(Score previous_search_score)
 const SearchSharedState& SearchThreadPool::get_shared_state()
 {
     return shared_state;
-}
-
-void SearchThreadPool::create_thread()
-{
-    std::promise<SearchThread*> promise;
-    auto future = promise.get_future();
-
-    std::thread native_thread(
-        [this, &promise]() mutable
-        {
-            bind_thread(search_threads.size());
-            auto thread = std::make_unique<SearchThread>(search_threads.size(), shared_state);
-            promise.set_value(thread.get());
-            thread->thread_loop();
-        });
-
-    native_threads.push_back(std::move(native_thread));
-    search_threads.push_back(future.get());
 }
 
 void SearchThreadPool::stop_search()
@@ -262,13 +231,6 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
 
     reset_new_search();
     shared_state.limits = limits;
-
-    // TODO: a bit ugly
-    shared_state.search_local_states_.clear();
-    for (auto* thread : search_threads)
-    {
-        shared_state.search_local_states_.push_back(&thread->get_local_state());
-    }
 
     // Limit the MultiPV setting to be at most the number of legal moves
     auto multi_pv = shared_state.get_multi_pv_setting();
@@ -295,13 +257,12 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
         multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
     }
 
-    // TODO: this isn't great. We are resizing the thread results vector for no reason
     auto old_multi_pv = shared_state.get_multi_pv_setting();
     shared_state.set_multi_pv(multi_pv);
     shared_state.stop_searching = false;
 
     std::latch latch(search_threads.size());
-    for (auto* thread : search_threads)
+    for (auto& thread : search_threads)
     {
         thread->start_searching(latch, root_move_whitelist);
     }
