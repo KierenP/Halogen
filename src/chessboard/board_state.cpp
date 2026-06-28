@@ -2,6 +2,7 @@
 
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
+#include "board_state.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
 #include "search/zobrist.h"
@@ -829,4 +830,18 @@ void BoardState::update_pinned()
     check_for_pins(AntiDiagonalBB[enum_to<AntiDiagonal>(king)] & bishops_and_queens);
     check_for_pins(RankBB[enum_to<Rank>(king)] & rooks_and_queens);
     check_for_pins(FileBB[enum_to<File>(king)] & rooks_and_queens);
+}
+
+void BoardState::recalculate()
+{
+    recalculate_side_bb();
+
+    key = Zobrist::key(*this);
+    pawn_key = Zobrist::pawn_key(*this);
+    non_pawn_key[WHITE] = Zobrist::non_pawn_key(*this, WHITE);
+    non_pawn_key[BLACK] = Zobrist::non_pawn_key(*this, BLACK);
+
+    update_lesser_threats();
+    update_checkers();
+    update_pinned();
 }

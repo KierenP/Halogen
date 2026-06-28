@@ -5,6 +5,7 @@
 #include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "datagen/datagen.h"
+#include "datagen/fix_datagen.h"
 #include "misc/benchmark.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
@@ -584,6 +585,12 @@ void Uci::process_input(std::string_view command)
             Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } };
     };
 
+    struct file_io_ctx
+    {
+        std::string_view input_path;
+        std::string_view output_path;
+    };
+
     auto uci_processor = Sequence {
     OneOf {
         Consume { "uci", Invoke { [this]{ handle_uci(); } } },
@@ -625,7 +632,12 @@ void Uci::process_input(std::string_view command)
             Repeat { OneOf {
                 Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } },
                 Consume { "duration", NextToken { ToInt { [](auto value, auto& ctx){ ctx.duration = value * 1s;} } } } } },
-            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } } },
+            Invoke { [this](auto& ctx) { handle_datagen(ctx); } } } } },
+        Consume { "fix_datagen", WithContext { file_io_ctx{}, Sequence {
+            Repeat { OneOf {
+                Consume { "input", NextToken { [](auto value, auto& ctx){ ctx.input_path = value; } } },
+                Consume { "output", NextToken { [](auto value, auto& ctx){ ctx.output_path = value; } } } } },
+            Invoke { [this](auto& ctx) { fix_datagen(ctx.input_path, ctx.output_path); } } } } } },
     EndCommand{}
     };
     // clang-format on
