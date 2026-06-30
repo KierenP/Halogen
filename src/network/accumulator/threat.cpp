@@ -437,8 +437,6 @@ void ThreatAccumulator::recalculate_side_from_scratch(const BoardState& board, c
 void ThreatAccumulator::apply_lazy_updates(
     const ThreatAccumulator& prev, const BoardState& board, const NN::network& net)
 {
-    // ~3% speedup from prefetching
-
     std::array<uint32_t, MAX_THREAT_DELTAS> w_add_delta_indicies;
     std::array<uint32_t, MAX_THREAT_DELTAS> w_sub_delta_indicies;
     std::array<uint32_t, MAX_THREAT_DELTAS> b_add_delta_indicies;
@@ -503,66 +501,45 @@ void ThreatAccumulator::apply_lazy_updates(
         }
     }
 
+    // Gather weight pointers, prefetch them, then fold into a single fused add/sub operation
+    auto apply_side = [&net](std::array<int16_t, FT_SIZE>& out, const std::array<int16_t, FT_SIZE>& in,
+                          const uint32_t* add_indicies, size_t n_add, const uint32_t* sub_indicies, size_t n_sub)
+    {
+        std::array<const int8_t*, MAX_THREAT_DELTAS> add_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> sub_ptrs;
+        for (size_t i = 0; i < n_add; i++)
+        {
+            add_ptrs[i] = net.ft_threat_weight[add_indicies[i]].data();
+            __builtin_prefetch(add_ptrs[i]);
+        }
+        for (size_t i = 0; i < n_sub; i++)
+        {
+            sub_ptrs[i] = net.ft_threat_weight[sub_indicies[i]].data();
+            __builtin_prefetch(sub_ptrs[i]);
+        }
+        NN::add_n_sub_n(out, in, add_ptrs.data(), n_add, sub_ptrs.data(), n_sub);
+    };
+
     if (white_threats_requires_recalculation)
     {
         recalculate_side_from_scratch(board, net, WHITE);
-        side[BLACK] = prev.side[BLACK];
         assert(w_sub_delta_indicies_size == 0 && w_add_delta_indicies_size == 0);
+        apply_side(side[BLACK], prev.side[BLACK], b_add_delta_indicies.data(), b_add_delta_indicies_size,
+            b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
     }
     else if (black_threats_requires_recalculation)
     {
         recalculate_side_from_scratch(board, net, BLACK);
-        side[WHITE] = prev.side[WHITE];
         assert(b_sub_delta_indicies_size == 0 && b_add_delta_indicies_size == 0);
+        apply_side(side[WHITE], prev.side[WHITE], w_add_delta_indicies.data(), w_add_delta_indicies_size,
+            w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
     }
     else
     {
-        side = prev.side;
-    }
-
-    size_t w_add_idx = 0;
-    size_t w_sub_idx = 0;
-    size_t b_add_idx = 0;
-    size_t b_sub_idx = 0;
-
-    while (w_sub_idx < w_sub_delta_indicies_size && w_add_idx < w_add_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[w_add_delta_indicies[w_add_idx]]);
-        __builtin_prefetch(&net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx]]);
-        NN::add1sub1(side[WHITE], side[WHITE], net.ft_threat_weight[w_add_delta_indicies[w_add_idx++]],
-            net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx++]]);
-    }
-
-    while (w_sub_idx < w_sub_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx]]);
-        NN::sub1(side[WHITE], net.ft_threat_weight[w_sub_delta_indicies[w_sub_idx++]]);
-    }
-
-    while (w_add_idx < w_add_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[w_add_delta_indicies[w_add_idx]]);
-        NN::add1(side[WHITE], net.ft_threat_weight[w_add_delta_indicies[w_add_idx++]]);
-    }
-
-    while (b_sub_idx < b_sub_delta_indicies_size && b_add_idx < b_add_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[b_add_delta_indicies[b_add_idx]]);
-        __builtin_prefetch(&net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx]]);
-        NN::add1sub1(side[BLACK], side[BLACK], net.ft_threat_weight[b_add_delta_indicies[b_add_idx++]],
-            net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx++]]);
-    }
-
-    while (b_sub_idx < b_sub_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx]]);
-        NN::sub1(side[BLACK], net.ft_threat_weight[b_sub_delta_indicies[b_sub_idx++]]);
-    }
-
-    while (b_add_idx < b_add_delta_indicies_size)
-    {
-        __builtin_prefetch(&net.ft_threat_weight[b_add_delta_indicies[b_add_idx]]);
-        NN::add1(side[BLACK], net.ft_threat_weight[b_add_delta_indicies[b_add_idx++]]);
+        apply_side(side[WHITE], prev.side[WHITE], w_add_delta_indicies.data(), w_add_delta_indicies_size,
+            w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
+        apply_side(side[BLACK], prev.side[BLACK], b_add_delta_indicies.data(), b_add_delta_indicies_size,
+            b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
     }
 
     acc_is_valid = true;

@@ -176,6 +176,58 @@ void add1sub1(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, 
 }
 
 template <size_t SIZE>
+void add_n_sub_n(std::array<int16_t, SIZE>& out, const std::array<int16_t, SIZE>& in, const int8_t* const* adds,
+    size_t n_add, const int8_t* const* subs, size_t n_sub)
+{
+#if defined(SIMD_ENABLED)
+    // Manually unrolled and interleaved x4
+    constexpr auto stride = SIMD::vec_size / sizeof(int16_t);
+    static_assert(SIZE % (stride * 4) == 0);
+    for (size_t i = 0; i < SIZE; i += stride * 4)
+    {
+        auto acc1 = SIMD::load(&in[i]);
+        auto acc2 = SIMD::load(&in[i + stride]);
+        auto acc3 = SIMD::load(&in[i + stride * 2]);
+        auto acc4 = SIMD::load(&in[i + stride * 3]);
+        for (size_t j = 0; j < n_add; j++)
+        {
+            const int8_t* w = adds[j];
+            acc1 = SIMD::add_i16(acc1, SIMD::load_i8_to_i16(&w[i]));
+            acc2 = SIMD::add_i16(acc2, SIMD::load_i8_to_i16(&w[i + stride]));
+            acc3 = SIMD::add_i16(acc3, SIMD::load_i8_to_i16(&w[i + stride * 2]));
+            acc4 = SIMD::add_i16(acc4, SIMD::load_i8_to_i16(&w[i + stride * 3]));
+        }
+        for (size_t j = 0; j < n_sub; j++)
+        {
+            const int8_t* w = subs[j];
+            acc1 = SIMD::sub_i16(acc1, SIMD::load_i8_to_i16(&w[i]));
+            acc2 = SIMD::sub_i16(acc2, SIMD::load_i8_to_i16(&w[i + stride]));
+            acc3 = SIMD::sub_i16(acc3, SIMD::load_i8_to_i16(&w[i + stride * 2]));
+            acc4 = SIMD::sub_i16(acc4, SIMD::load_i8_to_i16(&w[i + stride * 3]));
+        }
+        SIMD::store(&out[i], acc1);
+        SIMD::store(&out[i + stride], acc2);
+        SIMD::store(&out[i + stride * 2], acc3);
+        SIMD::store(&out[i + stride * 3], acc4);
+    }
+#else
+    for (size_t i = 0; i < SIZE; i++)
+    {
+        int16_t v = in[i];
+        for (size_t j = 0; j < n_add; j++)
+        {
+            v += static_cast<int16_t>(adds[j][i]);
+        }
+        for (size_t j = 0; j < n_sub; j++)
+        {
+            v -= static_cast<int16_t>(subs[j][i]);
+        }
+        out[i] = v;
+    }
+#endif
+}
+
+template <size_t SIZE>
 void add1sub2(std::array<int16_t, SIZE>& a, const std::array<int16_t, SIZE>& b, const std::array<int16_t, SIZE>& c,
     const std::array<int16_t, SIZE>& d, const std::array<int16_t, SIZE>& e)
 {
