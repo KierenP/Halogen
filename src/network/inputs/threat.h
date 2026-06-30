@@ -5,6 +5,7 @@
 
 #include <array>
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 
@@ -18,11 +19,11 @@ constexpr uint32_t INVALID_THREAT = UINT32_MAX;
 // ============================================================
 //
 // Threat inputs are (attacker_piece, attacker_sq, victim_piece, victim_sq) features that encode
-// which pieces are attacking which. Deduplication removes symmetric threats to reduce the total
-// count. See threat_inputs.md for full specification.
+// which pieces are attacking which. Threats are not deduplicated: an attacker->victim threat and
+// the symmetric victim->attacker threat (when both are legal) occupy distinct feature indices.
 //
-// The tables map each valid threat to a unique feature index. Invalid/duplicate threats map to
-// INVALID_THREAT.
+// The tables map each valid threat to a unique feature index. Threats that can never occur (e.g. a
+// pawn on rank 0/7, or an attacker/victim pair forbidden by can_threaten) map to INVALID_THREAT.
 
 // Threat restrictions:
 // - Pawn only threatens pawns, knights, rooks (6 victims)
@@ -197,6 +198,11 @@ constexpr uint32_t get_threat_index(int atk_idx, int atk_sq, int vic_idx, int vi
     uint64_t mask = THREAT_TABLE.attack_mask[atk_idx][atk_sq];
     uint64_t target_bit = 1ULL << vic_sq;
     uint32_t square_rank = std::popcount(mask & (target_bit - 1));
+
+    assert(attacker_base != INVALID_THREAT);
+    assert(victim_offset != INVALID_THREAT);
+    assert((target_bit & mask) != 0);
+
     return attacker_base + victim_offset + square_rank;
 }
 
@@ -215,10 +221,7 @@ constexpr uint32_t get_threat_index(Piece atk_piece, Square atk_sq, Piece vic_pi
     const int vic_side = (vic_color == perspective) ? 0 : 1;
     const int atk_idx = atk_pt * 2 + atk_side;
     const int vic_idx = vic_pt * 2 + vic_side;
-    const uint32_t feat = get_threat_index(atk_idx, atk_sq ^ h_flip ^ v_flip, vic_idx, vic_sq ^ h_flip ^ v_flip);
-
-    assert(feat != INVALID_THREAT);
-    return feat;
+    return get_threat_index(atk_idx, atk_sq ^ h_flip ^ v_flip, vic_idx, vic_sq ^ h_flip ^ v_flip);
 }
 
 } // namespace NN::Threats
