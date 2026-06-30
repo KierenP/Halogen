@@ -16,9 +16,9 @@ namespace NN::Threats
 // ThreatDeltas, so they are stored in the accumulator
 struct ThreatDelta
 {
-    Piece atk_pt;
+    Piece atk_piece;
     Square atk_sq;
-    Piece vic_pt;
+    Piece vic_piece;
     Square vic_sq;
 };
 

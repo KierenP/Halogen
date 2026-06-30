@@ -14,6 +14,7 @@
 #include <array>
 #include <bit>
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 
@@ -112,7 +113,13 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     }
 
     next_acc.king_bucket.apply_lazy_updates(prev_acc.king_bucket, table, net);
-    next_acc.threats.apply_lazy_updates(prev_acc.threats, next_acc.king_bucket.board, net); // is board correct here??
+
+    // The threat accumulator only reads `board` when a side needs a full recalculation, which happens
+    // exactly when the king crosses the FILE_D mirror. That same crossing always forces a king-bucket
+    // recalculation too (see KingBucketAccumulator::store_lazy_updates), which is the only path that
+    // populates king_bucket.board with post_move_board. So whenever threats actually use this board it
+    // holds the correct post-move position; otherwise it is unused.
+    next_acc.threats.apply_lazy_updates(prev_acc.threats, next_acc.king_bucket.board, net);
 
     assert(next_acc.king_bucket.acc_is_valid);
     assert(next_acc.threats.acc_is_valid);

@@ -4,11 +4,8 @@
 #include "network/accumulator/threat.h"
 #include "search/score.h"
 
-#include <cstdint>
-
 class BoardState;
 class Move;
-enum Side : int8_t;
 
 namespace NN
 {
@@ -26,7 +23,6 @@ struct Accumulator
     }
 
     void recalculate(const BoardState& board);
-    void recalculate(const BoardState& board, Side side);
 
     bool acc_is_valid = false;
 };

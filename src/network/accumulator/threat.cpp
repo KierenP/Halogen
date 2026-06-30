@@ -20,39 +20,9 @@ bool ThreatAccumulator::operator==(const ThreatAccumulator& rhs) const
     return side == rhs.side;
 }
 
-// Get the attack bitboard for a piece type on a square with given occupancy,
-// masked to only include valid victim piece types for that attacker.
-uint64_t get_threat_targets(PieceType atk_pt, Side atk_color, Square atk_sq, uint64_t occ, uint64_t pawns,
-    uint64_t knights, uint64_t bishops, uint64_t rooks, [[maybe_unused]] uint64_t queens, uint64_t kings)
-{
-    switch (atk_pt)
-    {
-    case PAWN:
-        return PawnAttacks[atk_color][atk_sq] & (pawns | knights | rooks);
-    case KNIGHT:
-        return KnightAttacks[atk_sq] & occ;
-    case BISHOP:
-        return attack_bb<BISHOP>(atk_sq, occ) & (pawns | knights | bishops | rooks | kings);
-    case ROOK:
-        return attack_bb<ROOK>(atk_sq, occ) & (pawns | knights | bishops | rooks | kings);
-    case QUEEN:
-        return attack_bb<QUEEN>(atk_sq, occ) & occ;
-    case KING:
-        return KingAttacks[atk_sq] & (pawns | knights | bishops | rooks);
-    default:
-        return 0;
-    }
-}
-
-// Check if atk_pt can threaten vic_pt (used when iterating potential attackers to a square)
-bool is_valid_victim_for(PieceType atk_pt, PieceType vic_pt)
-{
-    return can_threaten(atk_pt, vic_pt);
-}
-
-// Collect all threats where the piece on `sq` is the ATTACKER.
-template <typename Callback>
-void collect_threats_from(const BoardState& board, Square sq, uint64_t occ, Callback&& cb)
+// Get the attack bitboard for a piece type on a square, masked to only include valid victim piece
+// types for that attacker (see can_threaten).
+uint64_t get_threat_targets(PieceType atk_pt, Side atk_color, Square atk_sq, const BoardState& board)
 {
     const auto pawns = board.get_pieces_bb(PAWN);
     const auto knights = board.get_pieces_bb(KNIGHT);
@@ -60,12 +30,38 @@ void collect_threats_from(const BoardState& board, Square sq, uint64_t occ, Call
     const auto rooks = board.get_pieces_bb(ROOK);
     const auto queens = board.get_pieces_bb(QUEEN);
     const auto kings = board.get_pieces_bb(KING);
+    const auto occ = pawns | knights | bishops | rooks | queens | kings;
+    switch (atk_pt)
+    {
+    case PAWN:
+        // pawns threaten pawns, knights, rooks
+        return PawnAttacks[atk_color][atk_sq] & (pawns | knights | rooks);
+    case KNIGHT:
+        return KnightAttacks[atk_sq] & occ;
+    case BISHOP:
+        // bishops/rooks threaten everything except queens
+        return attack_bb<BISHOP>(atk_sq, occ) & (occ & ~queens);
+    case ROOK:
+        return attack_bb<ROOK>(atk_sq, occ) & (occ & ~queens);
+    case QUEEN:
+        return attack_bb<QUEEN>(atk_sq, occ) & occ;
+    case KING:
+        // kings threaten everything except queens and kings
+        return KingAttacks[atk_sq] & (occ & ~queens & ~kings);
+    default:
+        return 0;
+    }
+}
 
+// Collect all threats where the piece on `sq` is the ATTACKER.
+template <typename Callback>
+void collect_threats_from(const BoardState& board, Square sq, Callback&& cb)
+{
     Piece piece_on_sq = board.get_square_piece(sq);
     PieceType pt = enum_to<PieceType>(piece_on_sq);
     Side color = enum_to<Side>(piece_on_sq);
 
-    uint64_t targets = get_threat_targets(pt, color, sq, occ, pawns, knights, bishops, rooks, queens, kings);
+    uint64_t targets = get_threat_targets(pt, color, sq, board);
     while (targets)
     {
         Square vic_sq = lsbpop(targets);
@@ -97,14 +93,14 @@ void collect_threats_to(const BoardState& board, Square sq, uint64_t occ, uint64
     };
 
     // --- Pawns
-    if (is_valid_victim_for(PAWN, vic_pt))
+    if (can_threaten(PAWN, vic_pt))
     {
         emit_direct.template operator()<WHITE_PAWN>(PawnAttacks[BLACK][sq] & board.get_pieces_bb(WHITE_PAWN));
         emit_direct.template operator()<BLACK_PAWN>(PawnAttacks[WHITE][sq] & board.get_pieces_bb(BLACK_PAWN));
     }
 
     // --- Knights
-    if (is_valid_victim_for(KNIGHT, vic_pt))
+    if (can_threaten(KNIGHT, vic_pt))
     {
         const uint64_t knight_attacks = KnightAttacks[sq];
         emit_direct.template operator()<WHITE_KNIGHT>(knight_attacks & board.get_pieces_bb(WHITE_KNIGHT));
@@ -112,7 +108,7 @@ void collect_threats_to(const BoardState& board, Square sq, uint64_t occ, uint64
     }
 
     // --- Kings
-    if (is_valid_victim_for(KING, vic_pt))
+    if (can_threaten(KING, vic_pt))
     {
         const uint64_t king_attacks = KingAttacks[sq];
         emit_direct.template operator()<WHITE_KING>(king_attacks & board.get_pieces_bb(WHITE_KING));
@@ -123,19 +119,19 @@ void collect_threats_to(const BoardState& board, Square sq, uint64_t occ, uint64
     const uint64_t bishop_attacks = attack_bb<BISHOP>(sq, occ);
     const uint64_t rook_attacks = attack_bb<ROOK>(sq, occ);
 
-    if (is_valid_victim_for(BISHOP, vic_pt))
+    if (can_threaten(BISHOP, vic_pt))
     {
         emit_direct.template operator()<WHITE_BISHOP>(bishop_attacks & board.get_pieces_bb(WHITE_BISHOP));
         emit_direct.template operator()<BLACK_BISHOP>(bishop_attacks & board.get_pieces_bb(BLACK_BISHOP));
     }
 
-    if (is_valid_victim_for(ROOK, vic_pt))
+    if (can_threaten(ROOK, vic_pt))
     {
         emit_direct.template operator()<WHITE_ROOK>(rook_attacks & board.get_pieces_bb(WHITE_ROOK));
         emit_direct.template operator()<BLACK_ROOK>(rook_attacks & board.get_pieces_bb(BLACK_ROOK));
     }
 
-    if (is_valid_victim_for(QUEEN, vic_pt))
+    if (can_threaten(QUEEN, vic_pt))
     {
         const uint64_t queen_attacks = bishop_attacks | rook_attacks;
         emit_direct.template operator()<WHITE_QUEEN>(queen_attacks & board.get_pieces_bb(WHITE_QUEEN));
@@ -180,14 +176,14 @@ void collect_threats_to_plus_xray(const BoardState& add_board, const BoardState&
     // ============================================================
 
     // --- Pawns
-    if (is_valid_victim_for(PAWN, vic_pt))
+    if (can_threaten(PAWN, vic_pt))
     {
         emit_direct.template operator()<WHITE_PAWN>(PawnAttacks[BLACK][sq] & add_board.get_pieces_bb(WHITE_PAWN));
         emit_direct.template operator()<BLACK_PAWN>(PawnAttacks[WHITE][sq] & add_board.get_pieces_bb(BLACK_PAWN));
     }
 
     // --- Knights
-    if (is_valid_victim_for(KNIGHT, vic_pt))
+    if (can_threaten(KNIGHT, vic_pt))
     {
         const uint64_t knight_attacks = KnightAttacks[sq];
         emit_direct.template operator()<WHITE_KNIGHT>(knight_attacks & add_board.get_pieces_bb(WHITE_KNIGHT));
@@ -195,7 +191,7 @@ void collect_threats_to_plus_xray(const BoardState& add_board, const BoardState&
     }
 
     // --- Kings
-    if (is_valid_victim_for(KING, vic_pt))
+    if (can_threaten(KING, vic_pt))
     {
         const uint64_t king_attacks = KingAttacks[sq];
         emit_direct.template operator()<WHITE_KING>(king_attacks & add_board.get_pieces_bb(WHITE_KING));
@@ -206,19 +202,19 @@ void collect_threats_to_plus_xray(const BoardState& add_board, const BoardState&
     const uint64_t bishop_attacks = attack_bb<BISHOP>(sq, add_occ);
     const uint64_t rook_attacks = attack_bb<ROOK>(sq, add_occ);
 
-    if (is_valid_victim_for(BISHOP, vic_pt))
+    if (can_threaten(BISHOP, vic_pt))
     {
         emit_direct.template operator()<WHITE_BISHOP>(bishop_attacks & add_board.get_pieces_bb(WHITE_BISHOP));
         emit_direct.template operator()<BLACK_BISHOP>(bishop_attacks & add_board.get_pieces_bb(BLACK_BISHOP));
     }
 
-    if (is_valid_victim_for(ROOK, vic_pt))
+    if (can_threaten(ROOK, vic_pt))
     {
         emit_direct.template operator()<WHITE_ROOK>(rook_attacks & add_board.get_pieces_bb(WHITE_ROOK));
         emit_direct.template operator()<BLACK_ROOK>(rook_attacks & add_board.get_pieces_bb(BLACK_ROOK));
     }
 
-    if (is_valid_victim_for(QUEEN, vic_pt))
+    if (can_threaten(QUEEN, vic_pt))
     {
         const uint64_t queen_attacks = bishop_attacks | rook_attacks;
         emit_direct.template operator()<WHITE_QUEEN>(queen_attacks & add_board.get_pieces_bb(WHITE_QUEEN));
@@ -247,7 +243,7 @@ void collect_threats_to_plus_xray(const BoardState& add_board, const BoardState&
                 Piece xray_victim = sub_board.get_square_piece(victim_sq);
                 PieceType xray_vpt = enum_to<PieceType>(xray_victim);
 
-                if (is_valid_victim_for(pt, xray_vpt))
+                if (can_threaten(pt, xray_vpt))
                 {
                     sub_cb(ThreatDelta { get_piece(pt, slider_side), slider_sq, xray_victim, victim_sq });
                 }
@@ -299,7 +295,7 @@ void ThreatAccumulator::store_lazy_updates(
         Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
-        collect_threats_from(prev_board, sq, old_occ,
+        collect_threats_from(prev_board, sq,
             [&](ThreatDelta td)
             {
                 assert(n_threat_subs < MAX_THREAT_DELTAS);
@@ -321,7 +317,7 @@ void ThreatAccumulator::store_lazy_updates(
         Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
-        collect_threats_from(post_board, sq, new_occ,
+        collect_threats_from(post_board, sq,
             [&](ThreatDelta td)
             {
                 assert(n_threat_adds < MAX_THREAT_DELTAS);
@@ -342,7 +338,7 @@ void ThreatAccumulator::store_lazy_updates(
         Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
-        collect_threats_from(prev_board, sq, old_occ,
+        collect_threats_from(prev_board, sq,
             [&](ThreatDelta td)
             {
                 assert(n_threat_subs < MAX_THREAT_DELTAS);
@@ -370,7 +366,7 @@ void ThreatAccumulator::store_lazy_updates(
         Square sq = lsbpop(copy);
 
         // Threats FROM this piece as attacker
-        collect_threats_from(post_board, sq, new_occ,
+        collect_threats_from(post_board, sq,
             [&](ThreatDelta td)
             {
                 assert(n_threat_adds < MAX_THREAT_DELTAS);
@@ -397,63 +393,14 @@ void ThreatAccumulator::store_lazy_updates(
 void ThreatAccumulator::recalculate_from_scratch(const BoardState& board, const NN::network& net)
 {
     *this = {};
-
-    uint64_t occ = board.get_pieces_bb();
-
-    const auto pawns = board.get_pieces_bb(PAWN);
-    const auto knights = board.get_pieces_bb(KNIGHT);
-    const auto bishops = board.get_pieces_bb(BISHOP);
-    const auto rooks = board.get_pieces_bb(ROOK);
-    const auto queens = board.get_pieces_bb(QUEEN);
-    const auto kings = board.get_pieces_bb(KING);
-
-    w_king = board.get_king_sq(WHITE);
-    b_king = board.get_king_sq(BLACK);
-
-    for (int piece_idx = 0; piece_idx < N_PIECES; piece_idx++)
-    {
-        Piece atk_piece = static_cast<Piece>(piece_idx);
-        PieceType atk_pt = enum_to<PieceType>(atk_piece);
-        Side atk_color = enum_to<Side>(atk_piece);
-
-        uint64_t atk_bb = board.get_pieces_bb(atk_piece);
-        while (atk_bb)
-        {
-            Square atk_sq = lsbpop(atk_bb);
-
-            uint64_t attacked
-                = get_threat_targets(atk_pt, atk_color, atk_sq, occ, pawns, knights, bishops, rooks, queens, kings);
-
-            while (attacked)
-            {
-                Square vic_sq = lsbpop(attacked);
-                Piece vic_piece = board.get_square_piece(vic_sq);
-
-                auto white_idx = get_threat_index<WHITE>(atk_piece, atk_sq, vic_piece, vic_sq, w_king);
-                auto black_idx = get_threat_index<BLACK>(atk_piece, atk_sq, vic_piece, vic_sq, b_king);
-
-                NN::add1(side[WHITE], net.ft_threat_weight[white_idx]);
-                NN::add1(side[BLACK], net.ft_threat_weight[black_idx]);
-            }
-        }
-    }
-
-    acc_is_valid = true;
+    recalculate_side_from_scratch(board, net, WHITE);
+    recalculate_side_from_scratch(board, net, BLACK);
 }
 
 void ThreatAccumulator::recalculate_side_from_scratch(const BoardState& board, const NN::network& net, Side perspective)
 {
     side[perspective] = {};
 
-    uint64_t occ = board.get_pieces_bb();
-
-    const auto pawns = board.get_pieces_bb(PAWN);
-    const auto knights = board.get_pieces_bb(KNIGHT);
-    const auto bishops = board.get_pieces_bb(BISHOP);
-    const auto rooks = board.get_pieces_bb(ROOK);
-    const auto queens = board.get_pieces_bb(QUEEN);
-    const auto kings = board.get_pieces_bb(KING);
-
     w_king = board.get_king_sq(WHITE);
     b_king = board.get_king_sq(BLACK);
 
@@ -468,8 +415,7 @@ void ThreatAccumulator::recalculate_side_from_scratch(const BoardState& board, c
         {
             Square atk_sq = lsbpop(atk_bb);
 
-            uint64_t attacked
-                = get_threat_targets(atk_pt, atk_color, atk_sq, occ, pawns, knights, bishops, rooks, queens, kings);
+            uint64_t attacked = get_threat_targets(atk_pt, atk_color, atk_sq, board);
 
             while (attacked)
             {
@@ -506,15 +452,15 @@ void ThreatAccumulator::apply_lazy_updates(
     {
         for (size_t i = 0; i < n_threat_subs; i++)
         {
-            auto idx = get_threat_index<BLACK>(
-                threat_subs[i].atk_pt, threat_subs[i].atk_sq, threat_subs[i].vic_pt, threat_subs[i].vic_sq, b_king);
+            auto idx = get_threat_index<BLACK>(threat_subs[i].atk_piece, threat_subs[i].atk_sq,
+                threat_subs[i].vic_piece, threat_subs[i].vic_sq, b_king);
             b_sub_delta_indicies[b_sub_delta_indicies_size++] = idx;
         }
 
         for (size_t i = 0; i < n_threat_adds; i++)
         {
-            auto idx = get_threat_index<BLACK>(
-                threat_adds[i].atk_pt, threat_adds[i].atk_sq, threat_adds[i].vic_pt, threat_adds[i].vic_sq, b_king);
+            auto idx = get_threat_index<BLACK>(threat_adds[i].atk_piece, threat_adds[i].atk_sq,
+                threat_adds[i].vic_piece, threat_adds[i].vic_sq, b_king);
             b_add_delta_indicies[b_add_delta_indicies_size++] = idx;
         }
     }
@@ -522,15 +468,15 @@ void ThreatAccumulator::apply_lazy_updates(
     {
         for (size_t i = 0; i < n_threat_subs; i++)
         {
-            auto idx = get_threat_index<WHITE>(
-                threat_subs[i].atk_pt, threat_subs[i].atk_sq, threat_subs[i].vic_pt, threat_subs[i].vic_sq, w_king);
+            auto idx = get_threat_index<WHITE>(threat_subs[i].atk_piece, threat_subs[i].atk_sq,
+                threat_subs[i].vic_piece, threat_subs[i].vic_sq, w_king);
             w_sub_delta_indicies[w_sub_delta_indicies_size++] = idx;
         }
 
         for (size_t i = 0; i < n_threat_adds; i++)
         {
-            auto idx = get_threat_index<WHITE>(
-                threat_adds[i].atk_pt, threat_adds[i].atk_sq, threat_adds[i].vic_pt, threat_adds[i].vic_sq, w_king);
+            auto idx = get_threat_index<WHITE>(threat_adds[i].atk_piece, threat_adds[i].atk_sq,
+                threat_adds[i].vic_piece, threat_adds[i].vic_sq, w_king);
             w_add_delta_indicies[w_add_delta_indicies_size++] = idx;
         }
     }
@@ -538,20 +484,20 @@ void ThreatAccumulator::apply_lazy_updates(
     {
         for (size_t i = 0; i < n_threat_subs; i++)
         {
-            auto w_idx = get_threat_index<WHITE>(
-                threat_subs[i].atk_pt, threat_subs[i].atk_sq, threat_subs[i].vic_pt, threat_subs[i].vic_sq, w_king);
-            auto b_idx = get_threat_index<BLACK>(
-                threat_subs[i].atk_pt, threat_subs[i].atk_sq, threat_subs[i].vic_pt, threat_subs[i].vic_sq, b_king);
+            auto w_idx = get_threat_index<WHITE>(threat_subs[i].atk_piece, threat_subs[i].atk_sq,
+                threat_subs[i].vic_piece, threat_subs[i].vic_sq, w_king);
+            auto b_idx = get_threat_index<BLACK>(threat_subs[i].atk_piece, threat_subs[i].atk_sq,
+                threat_subs[i].vic_piece, threat_subs[i].vic_sq, b_king);
             w_sub_delta_indicies[w_sub_delta_indicies_size++] = w_idx;
             b_sub_delta_indicies[b_sub_delta_indicies_size++] = b_idx;
         }
 
         for (size_t i = 0; i < n_threat_adds; i++)
         {
-            auto w_idx = get_threat_index<WHITE>(
-                threat_adds[i].atk_pt, threat_adds[i].atk_sq, threat_adds[i].vic_pt, threat_adds[i].vic_sq, w_king);
-            auto b_idx = get_threat_index<BLACK>(
-                threat_adds[i].atk_pt, threat_adds[i].atk_sq, threat_adds[i].vic_pt, threat_adds[i].vic_sq, b_king);
+            auto w_idx = get_threat_index<WHITE>(threat_adds[i].atk_piece, threat_adds[i].atk_sq,
+                threat_adds[i].vic_piece, threat_adds[i].vic_sq, w_king);
+            auto b_idx = get_threat_index<BLACK>(threat_adds[i].atk_piece, threat_adds[i].atk_sq,
+                threat_adds[i].vic_piece, threat_adds[i].vic_sq, b_king);
             w_add_delta_indicies[w_add_delta_indicies_size++] = w_idx;
             b_add_delta_indicies[b_add_delta_indicies_size++] = b_idx;
         }
