@@ -1028,7 +1028,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                        .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
             position.apply_move(move);
             shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
-            local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
+            local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
 
             // verify the move looks good before doing a probcut search (idea from Ethereal)
             auto value = -qsearch<SearchType::ZW>(
@@ -1146,7 +1146,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         position.apply_move(move);
         shared.transposition_table.prefetch(
             Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
-        local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
+        local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
 
         // Step 19: Late move reductions
         int r = late_move_reduction<pv_node>(depth, seen_moves, history, cut_node, improving, is_loud_move);
@@ -1364,7 +1364,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
                                            .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
         shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
-        local.net.store_lazy_updates(position.prev_board(), position.board(), *(acc + 1), move);
+        local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
         auto search_score = -qsearch<search_type>(position, ss + 1, acc + 1, local, shared, -beta, -alpha);
         position.revert_move();
 

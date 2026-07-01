@@ -1,11 +1,11 @@
 #pragma once
 
+#include "movegen/move.h"
 #include "network/accumulator/king_bucket.h"
 #include "network/accumulator/threat.h"
 #include "search/score.h"
 
 class BoardState;
-class Move;
 
 namespace NN
 {
@@ -16,6 +16,11 @@ struct Accumulator
 {
     KingBucket::KingBucketAccumulator king_bucket;
     Threats::ThreatAccumulator threats;
+
+    // lazy updates
+    const BoardState* prev_move_board = nullptr;
+    const BoardState* post_move_board = nullptr;
+    Move move = {};
 
     bool operator==(const Accumulator& rhs) const
     {
@@ -42,7 +47,7 @@ public:
     // does a full from scratch recalculation
     static Score slow_eval(const BoardState& board);
 
-    void store_lazy_updates(
+    void mark_lazy_update(
         const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move);
 
     void apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_acc);

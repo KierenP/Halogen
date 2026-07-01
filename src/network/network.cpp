@@ -68,10 +68,20 @@ bool Network::verify(const BoardState& board, const Accumulator& acc)
     return expected == acc;
 }
 
-void Network::store_lazy_updates(
+void Network::mark_lazy_update(
     const BoardState& prev_move_board, const BoardState& post_move_board, Accumulator& acc, Move move)
 {
     acc.acc_is_valid = false;
+    acc.prev_move_board = &prev_move_board;
+    acc.post_move_board = &post_move_board;
+    acc.move = move;
+}
+
+static void compute_lazy_updates(Accumulator& acc)
+{
+    const BoardState& prev_move_board = *acc.prev_move_board;
+    const BoardState& post_move_board = *acc.post_move_board;
+    const Move move = acc.move;
 
     acc.king_bucket.store_lazy_updates(prev_move_board, post_move_board, move);
 
@@ -111,6 +121,8 @@ void Network::apply_lazy_updates(const Accumulator& prev_acc, Accumulator& next_
     {
         return;
     }
+
+    compute_lazy_updates(next_acc);
 
     next_acc.king_bucket.apply_lazy_updates(prev_acc.king_bucket, table, net);
 
