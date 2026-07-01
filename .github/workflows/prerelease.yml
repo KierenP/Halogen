@@ -245,8 +245,8 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
-      name: Verify (Windows)
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
+      name: Verify (Windows x64)
       shell: pwsh
       run: |
         cd bin
@@ -261,6 +261,19 @@ jobs:
         } else {
           Write-Host "Got correct bench $actual_bench"
         }
+
+    # ARM64 has no Git for Windows on the pwsh PATH; run in the msys2 shell where git and the binary both work.
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
+      name: Verify (Windows ARM64)
+      shell: msys2 {0}
+      run: |
+        commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+        actual_bench=$(./Halogen-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.extension }} bench | tail -1 | grep -o "^[0-9]*")
+        if [[ "$actual_bench" != "$commit_bench" ]]; then
+          echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1
+        else
+          echo "Got correct bench $actual_bench"
+        fi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
