@@ -185,6 +185,7 @@ jobs:
       uses: msys2/setup-msys2@v2.22.0
       with:
         msystem: CLANGARM64
+        update: true
         install: mingw-w64-clang-aarch64-clang make git
 
     - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
