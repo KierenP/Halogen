@@ -116,19 +116,18 @@ jobs:
             runner_arch: arm64
             platform: linux-arm64
           
-          # TODO: disabled due to msys2 install timeouts
           # Windows ARM64 builds
-          #- os: windows-11-arm
-          #  arch: neon
-          #  target: pgo
-          #  runner_arch: arm64
-          #  platform: windows-arm64
-          #  extension: .exe
+          - os: windows-11-arm
+            arch: neon
+            target: pgo
+            runner_arch: arm64
+            platform: windows-arm64
+            extension: .exe
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4.1.1
+    - uses: actions/checkout@v5
       # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
       # This ensures we can extract the expected bench from the commit message.
       with:
@@ -182,9 +181,10 @@ jobs:
 
     - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
       name: Setup msys2 for Windows ARM64
-      uses: msys2/setup-msys2@v2.22.0
+      uses: msys2/setup-msys2@v2.32.0
       with:
         msystem: CLANGARM64
+        update: true
         install: mingw-w64-clang-aarch64-clang make git
 
     - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64'
@@ -245,8 +245,8 @@ jobs:
           echo "Got correct bench $actual_bench"
         fi
 
-    - if: runner.os == 'Windows' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
-      name: Verify (Windows)
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-x86_64' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
+      name: Verify (Windows x64)
       shell: pwsh
       run: |
         cd bin
@@ -262,6 +262,19 @@ jobs:
           Write-Host "Got correct bench $actual_bench"
         }
 
+    # ARM64 has no Git for Windows on the pwsh PATH; run in the msys2 shell where git and the binary both work.
+    - if: runner.os == 'Windows' && matrix.platform == 'windows-arm64' && matrix.arch != 'avx512vnni' && matrix.arch != 'avx512' && matrix.arch != 'sse4'
+      name: Verify (Windows ARM64)
+      shell: msys2 {0}
+      run: |
+        commit_bench=$(git show --summary | grep -o "Bench: [0-9]*" | awk '{ print $NF }')
+        actual_bench=$(./Halogen-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.extension }} bench | tail -1 | grep -o "^[0-9]*")
+        if [[ "$actual_bench" != "$commit_bench" ]]; then
+          echo "Incorrect bench, got '$actual_bench' expected '$commit_bench'" && exit 1
+        else
+          echo "Got correct bench $actual_bench"
+        fi
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -276,7 +289,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Extract Version Identifier
       run: |
@@ -288,7 +301,8 @@ jobs:
       with:
         path: ${{ github.workspace }}/artifacts
 
-    - uses: "marvinpinto/action-automatic-releases@latest"
+    # was @latest; upstream repo is archived/unmaintained, so pin the commit it resolved to for reproducibility
+    - uses: "marvinpinto/action-automatic-releases@d68defdd11f9dcc7f52f35c1b7c236ee7513bcc1"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
