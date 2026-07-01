@@ -11,7 +11,7 @@ BINARY_DIR := ../bin
 
 # Network configuration
 ifndef EVALFILE
-    NET_HASH := 22f80ada
+    NET_HASH := df9e042a
     EVALFILE := $(BUILD_DIR)/$(NET_HASH).nn
     NO_EVALFILE_SET = true
 endif
