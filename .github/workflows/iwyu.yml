@@ -14,12 +14,12 @@ jobs:
         shell: bash
     steps:
       - name: Checkout Halogen
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v5
         with:
           path: Halogen
 
       - name: Checkout include-what-you-use
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v5
         with:
           repository: include-what-you-use/include-what-you-use
           ref: clang_20

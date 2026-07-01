@@ -16,7 +16,7 @@ jobs:
         os: [macos-15, macos-15-intel]
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 

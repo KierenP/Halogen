@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout Halogen repo 
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v5
         with:
           path: Halogen
 
@@ -28,7 +28,7 @@ jobs:
         run: make ${{ matrix.target }} EXE=../bin/Halogen -j
 
       - name: Checkout fast-chess repo
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v5
         with:
           repository: Disservin/fast-chess
           path: fast-chess

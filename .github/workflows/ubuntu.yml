@@ -25,7 +25,7 @@ jobs:
           - { os: ubuntu-22.04-arm, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
 
     steps:
-      - uses: actions/checkout@v4.1.1
+      - uses: actions/checkout@v5
         # we need to make sure we checkout the head commit, rather than the merge commit the github actions pipeline generates for us.
         # This ensures we can extract the expected bench from the commit message.
         with:
