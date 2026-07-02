@@ -501,45 +501,51 @@ void ThreatAccumulator::apply_lazy_updates(
         }
     }
 
-    // Gather weight pointers, prefetch them, then fold into a single fused add/sub operation
-    auto apply_side = [&net](std::array<int16_t, FT_SIZE>& out, const std::array<int16_t, FT_SIZE>& in,
-                          const uint32_t* add_indicies, size_t n_add, const uint32_t* sub_indicies, size_t n_sub)
+    auto gather = [&net](std::array<const int8_t*, MAX_THREAT_DELTAS>& ptrs, const uint32_t* indicies, size_t n)
     {
-        std::array<const int8_t*, MAX_THREAT_DELTAS> add_ptrs;
-        std::array<const int8_t*, MAX_THREAT_DELTAS> sub_ptrs;
-        for (size_t i = 0; i < n_add; i++)
+        for (size_t i = 0; i < n; i++)
         {
-            add_ptrs[i] = net.ft_threat_weight[add_indicies[i]].data();
-            __builtin_prefetch(add_ptrs[i]);
+            ptrs[i] = net.ft_threat_weight[indicies[i]].data();
+            __builtin_prefetch(ptrs[i]);
         }
-        for (size_t i = 0; i < n_sub; i++)
-        {
-            sub_ptrs[i] = net.ft_threat_weight[sub_indicies[i]].data();
-            __builtin_prefetch(sub_ptrs[i]);
-        }
-        NN::add_n_sub_n(out, in, add_ptrs.data(), n_add, sub_ptrs.data(), n_sub);
     };
 
     if (white_threats_requires_recalculation)
     {
         recalculate_side_from_scratch(board, net, WHITE);
         assert(w_sub_delta_indicies_size == 0 && w_add_delta_indicies_size == 0);
-        apply_side(side[BLACK], prev.side[BLACK], b_add_delta_indicies.data(), b_add_delta_indicies_size,
-            b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
+        std::array<const int8_t*, MAX_THREAT_DELTAS> b_add_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> b_sub_ptrs;
+        gather(b_add_ptrs, b_add_delta_indicies.data(), b_add_delta_indicies_size);
+        gather(b_sub_ptrs, b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
+        NN::add_n_sub_n(side[BLACK], prev.side[BLACK], b_add_ptrs.data(), b_add_delta_indicies_size, b_sub_ptrs.data(),
+            b_sub_delta_indicies_size);
     }
     else if (black_threats_requires_recalculation)
     {
         recalculate_side_from_scratch(board, net, BLACK);
         assert(b_sub_delta_indicies_size == 0 && b_add_delta_indicies_size == 0);
-        apply_side(side[WHITE], prev.side[WHITE], w_add_delta_indicies.data(), w_add_delta_indicies_size,
-            w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
+        std::array<const int8_t*, MAX_THREAT_DELTAS> w_add_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> w_sub_ptrs;
+        gather(w_add_ptrs, w_add_delta_indicies.data(), w_add_delta_indicies_size);
+        gather(w_sub_ptrs, w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
+        NN::add_n_sub_n(side[WHITE], prev.side[WHITE], w_add_ptrs.data(), w_add_delta_indicies_size, w_sub_ptrs.data(),
+            w_sub_delta_indicies_size);
     }
     else
     {
-        apply_side(side[WHITE], prev.side[WHITE], w_add_delta_indicies.data(), w_add_delta_indicies_size,
-            w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
-        apply_side(side[BLACK], prev.side[BLACK], b_add_delta_indicies.data(), b_add_delta_indicies_size,
-            b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
+        std::array<const int8_t*, MAX_THREAT_DELTAS> w_add_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> w_sub_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> b_add_ptrs;
+        std::array<const int8_t*, MAX_THREAT_DELTAS> b_sub_ptrs;
+        gather(w_add_ptrs, w_add_delta_indicies.data(), w_add_delta_indicies_size);
+        gather(w_sub_ptrs, w_sub_delta_indicies.data(), w_sub_delta_indicies_size);
+        gather(b_add_ptrs, b_add_delta_indicies.data(), b_add_delta_indicies_size);
+        gather(b_sub_ptrs, b_sub_delta_indicies.data(), b_sub_delta_indicies_size);
+        NN::add_n_sub_n(side[WHITE], prev.side[WHITE], w_add_ptrs.data(), w_add_delta_indicies_size, w_sub_ptrs.data(),
+            w_sub_delta_indicies_size);
+        NN::add_n_sub_n(side[BLACK], prev.side[BLACK], b_add_ptrs.data(), b_add_delta_indicies_size, b_sub_ptrs.data(),
+            b_sub_delta_indicies_size);
     }
 
     acc_is_valid = true;
