@@ -5,6 +5,7 @@
 #include "bitboard/define.h"
 
 enum PieceType : int8_t;
+enum Side : int8_t;
 enum Square : int8_t;
 
 class BoardState;
@@ -19,6 +20,7 @@ void quiet_moves(const BoardState& board, T& moves);
 
 bool is_legal(const BoardState& board, const Move& move);
 bool ep_is_legal(const BoardState& board, const Move& move);
+bool ep_is_legal(const BoardState& board, const Move& move, Side capturer);
 
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceType pieceType>

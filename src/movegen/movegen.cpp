@@ -1059,7 +1059,12 @@ bool move_puts_self_in_check(const BoardState& board, const Move& move)
 
 bool ep_is_legal(const BoardState& board, const Move& move)
 {
-    if (board.stm == WHITE)
+    return ep_is_legal(board, move, board.stm);
+}
+
+bool ep_is_legal(const BoardState& board, const Move& move, Side capturer)
+{
+    if (capturer == WHITE)
     {
         return ep_is_legal<WHITE>(board, move);
     }

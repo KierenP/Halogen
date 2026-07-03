@@ -1019,6 +1019,7 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 continue;
             }
 
+            shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key_after(position.board(), move));
             ss->move = move;
             ss->moved_piece = position.board().get_square_piece(move.from());
             ss->cont_hist_subtable
@@ -1027,7 +1028,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
                 = &local.shared_hist->cont_corr_hist
                        .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
             position.apply_move(move);
-            shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
             local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
 
             // verify the move looks good before doing a probcut search (idea from Ethereal)
@@ -1137,6 +1137,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
             }
         }
 
+        // Precalculate the next Zobrist key to prefetch TT entry as early as possible
+        shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key_after(position.board(), move));
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
@@ -1144,8 +1146,6 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         ss->cont_corr_hist_subtable = &local.shared_hist->cont_corr_hist
                                            .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
-        shared.transposition_table.prefetch(
-            Zobrist::get_fifty_move_adj_key(position.board())); // load the transposition into l1 cache. ~5% speedup
         local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
 
         // Step 19: Late move reductions
@@ -1356,6 +1356,7 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
 
         seen_moves++;
 
+        shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key_after(position.board(), move));
         ss->move = move;
         ss->moved_piece = position.board().get_square_piece(move.from());
         ss->cont_hist_subtable
@@ -1363,7 +1364,6 @@ Score qsearch(GameState& position, SearchStackState* ss, NN::Accumulator* acc, S
         ss->cont_corr_hist_subtable = &local.shared_hist->cont_corr_hist
                                            .table[position.board().stm][enum_to<PieceType>(ss->moved_piece)][move.to()];
         position.apply_move(move);
-        shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
         local.net.mark_lazy_update(position.prev_board(), position.board(), *(acc + 1), move);
         auto search_score = -qsearch<search_type>(position, ss + 1, acc + 1, local, shared, -beta, -alpha);
         position.revert_move();

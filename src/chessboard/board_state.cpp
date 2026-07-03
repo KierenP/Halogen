@@ -314,6 +314,10 @@ void BoardState::apply_move(Move move)
 {
     // std::cout << *this << std::endl;
 
+#ifndef NDEBUG
+    const auto expected_key_after = Zobrist::get_fifty_move_adj_key_after(*this, move);
+#endif
+
     key ^= Zobrist::stm();
 
     // undo the previous ep square
@@ -644,6 +648,7 @@ void BoardState::apply_move(Move move)
     assert(pawn_key == Zobrist::pawn_key(*this));
     assert(non_pawn_key[WHITE] == Zobrist::non_pawn_key(*this, WHITE));
     assert(non_pawn_key[BLACK] == Zobrist::non_pawn_key(*this, BLACK));
+    assert(expected_key_after == Zobrist::get_fifty_move_adj_key(*this));
     update_lesser_threats();
     update_checkers();
     update_pinned();
