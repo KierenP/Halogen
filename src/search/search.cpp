@@ -497,6 +497,7 @@ std::optional<Score> null_move_pruning(GameState& position, SearchStackState* ss
     ss->cont_hist_subtable = nullptr;
     ss->cont_corr_hist_subtable = nullptr;
     position.apply_null_move();
+    shared.transposition_table.prefetch(Zobrist::get_fifty_move_adj_key(position.board()));
     auto null_move_score
         = -search<SearchType::ZW>(position, ss + 1, acc, local, shared, depth - reduction - 1, -beta, -beta + 1, false);
     position.revert_null_move();
