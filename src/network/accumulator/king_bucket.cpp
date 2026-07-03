@@ -133,11 +133,9 @@ void KingBucketAccumulator::store_lazy_updates(
     acc_is_valid = false;
     white_requires_recalculation = false;
     black_requires_recalculation = false;
-    adds = {};
-    n_adds = 0;
-    subs = {};
-    n_subs = 0;
-    board = {};
+    // n_adds/n_subs and the adds/subs entries they index are fully written by the branches below on
+    // every path, and `board` is read only on a recalculation (where it is set to post_move_board), so
+    // none of them need clearing here.
 
     auto stm = prev_move_board.stm;
     auto from_sq = move.from();
