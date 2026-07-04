@@ -315,7 +315,6 @@ inline veci16 mulhi_i16(const veci16& a, const veci16& b)
 #elif defined(USE_SSE4)
     return _mm_mulhi_epi16(a, b);
 #elif defined(USE_NEON)
-    // TODO: consider using vmulq_s16 + vqrshrun_n_s16 to combine with packus
     return vqdmulhq_s16(a, b);
 #endif
 }
