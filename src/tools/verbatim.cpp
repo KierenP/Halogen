@@ -4,7 +4,7 @@
 #include "network/arch.hpp"
 #include "network/inputs/king_bucket.h"
 #include "network/inputs/threat.h"
-#include "network/simd/define.hpp"
+#include "simd/define.hpp"
 
 #include <algorithm>
 #include <array>
