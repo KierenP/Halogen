@@ -7,6 +7,7 @@
 #include "search/data.h"
 #include "search/score.h"
 #include "search/static_exchange_evaluation.h"
+#include "simd/define.hpp"
 #include "spsa/tuneable.h"
 
 #include "simd/intrinsics.hpp"
