@@ -10,7 +10,13 @@
 #include "spsa/tuneable.h"
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
+#include <cstdint>
+
+#if defined(USE_AVX2)
+#include <immintrin.h>
+#endif
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
@@ -32,12 +38,76 @@ StagedMoveGenerator StagedMoveGenerator::probcut(const GameState& position, cons
     return gen;
 }
 
+// Equivalent to std::max_element: returns an iterator to the first element with the maximum score. The scan loop in
+// selection_sort dominates move ordering cost, so on x86 we vectorize it: pass 1 finds the maximum score, pass 2 finds
+// the first element equal to it. Ties resolve to the first occurrence, so the result is identical to std::max_element.
+ExtendedMoveList::iterator first_max_element(ExtendedMoveList::iterator begin, ExtendedMoveList::iterator end)
+{
+#if defined(USE_AVX2)
+    static_assert(sizeof(ExtendedMove) == 8);
+    static_assert(offsetof(ExtendedMove, score) == 4);
+
+    const auto n = static_cast<size_t>(end - begin);
+
+    if (n < 8)
+    {
+        return std::max_element(begin, end);
+    }
+
+    // each 32 byte load covers 4 ExtendedMove entries, with the scores in the odd dword positions. Blending INT32_MIN
+    // over the even (move + padding) dwords lets us take a vertical max over whole loads.
+    const __m256i int32_min = _mm256_set1_epi32(INT32_MIN);
+    __m256i vmax = int32_min;
+    size_t i = 0;
+
+    for (; i + 4 <= n; i += 4)
+    {
+        const __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&*(begin + i)));
+        vmax = _mm256_max_epi32(vmax, _mm256_blend_epi32(int32_min, v, 0b10101010));
+    }
+
+    const __m128i fold128 = _mm_max_epi32(_mm256_castsi256_si128(vmax), _mm256_extracti128_si256(vmax, 1));
+    const __m128i fold64 = _mm_max_epi32(fold128, _mm_shuffle_epi32(fold128, _MM_SHUFFLE(1, 0, 3, 2)));
+    const __m128i fold32 = _mm_max_epi32(fold64, _mm_shuffle_epi32(fold64, _MM_SHUFFLE(2, 3, 0, 1)));
+    int32_t max_score = _mm_cvtsi128_si32(fold32);
+
+    for (auto it = begin + i; it != end; ++it)
+    {
+        max_score = std::max(max_score, it->score);
+    }
+
+    const __m256i vmax_score = _mm256_set1_epi32(max_score);
+
+    for (i = 0; i + 4 <= n; i += 4)
+    {
+        const __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&*(begin + i)));
+        // one mask bit per dword, with the score matches in the odd bit positions
+        const int mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(v, vmax_score))) & 0b10101010;
+
+        if (mask != 0)
+        {
+            return begin + i + (std::countr_zero(static_cast<unsigned>(mask)) >> 1);
+        }
+    }
+
+    for (auto it = begin + i;; ++it)
+    {
+        if (it->score == max_score)
+        {
+            return it;
+        }
+    }
+#else
+    return std::max_element(begin, end);
+#endif
+}
+
 void selection_sort(
     ExtendedMoveList::iterator begin, ExtendedMoveList::iterator sort_end, ExtendedMoveList::iterator end)
 {
     for (auto it = begin; it != sort_end; ++it)
     {
-        std::iter_swap(it, std::max_element(it, end));
+        std::iter_swap(it, first_max_element(it, end));
     }
 }
 
