@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace NN::SIMD
+namespace SIMD
 {
 
 #if defined(USE_AVX512)

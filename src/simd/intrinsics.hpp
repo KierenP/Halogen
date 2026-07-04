@@ -1,6 +1,6 @@
 #pragma once
 
-#include "network/simd/define.hpp"
+#include "simd/define.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -8,7 +8,7 @@
 
 #if defined SIMD_ENABLED
 
-namespace NN::SIMD
+namespace SIMD
 {
 
 template <class>
