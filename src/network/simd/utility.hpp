@@ -62,7 +62,7 @@ struct SparseAffineTable
     std::array<SparseAffineEntry, 256> entry;
 };
 
-const SparseAffineTable sparse_affine_table;
+inline const SparseAffineTable sparse_affine_table;
 
 #if defined(USE_AVX512_VNNI)
 inline void deposit_nonzero_4xu8_block_indices_x2(vecu8 a, vecu8 b, veci16& offset,
