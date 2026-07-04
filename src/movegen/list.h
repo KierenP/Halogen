@@ -4,15 +4,18 @@
 #include "movegen/move.h"
 #include "utility/static_vector.h"
 
+#include <algorithm>
 #include <cstdint>
 
-// For move ordering we need to bundle the 'score' with the move objects
+// For move ordering we need to bundle the 'score' with the move objects. The score is stored as an int16_t so the
+// whole struct packs into 4 bytes; scores are clamped to that range, which only reorders moves in the extreme
+// high-history tail.
 struct ExtendedMove
 {
     ExtendedMove() = default;
     constexpr ExtendedMove(const Move _move, int _score)
         : move(_move)
-        , score(_score)
+        , score(static_cast<int16_t>(std::clamp(_score, int { INT16_MIN }, int { INT16_MAX })))
     {
     }
 
@@ -27,8 +30,10 @@ struct ExtendedMove
     };
 
     Move move;
-    int score;
+    int16_t score;
 };
+
+static_assert(sizeof(ExtendedMove) == 4);
 
 using ExtendedMoveList = StaticVector<ExtendedMove, MAX_LEGAL_MOVES>;
 using BasicMoveList = StaticVector<Move, MAX_LEGAL_MOVES>;
