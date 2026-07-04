@@ -55,6 +55,46 @@ inline vec_type_t<T> load(const T* ptr)
 }
 
 template <typename T>
+inline vec_type_t<T> loadu(const T* ptr)
+{
+    if constexpr (std::is_integral_v<T>)
+    {
+#if defined(USE_AVX512)
+        return _mm512_loadu_si512(ptr);
+#elif defined(USE_AVX2)
+        return _mm256_loadu_si256(reinterpret_cast<const __m256i*>(ptr));
+#elif defined(USE_SSE4)
+        return _mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr));
+#elif defined(USE_NEON)
+        if constexpr (std::is_same_v<T, int8_t>)
+            return vld1q_s8(ptr);
+        else if constexpr (std::is_same_v<T, uint8_t>)
+            return vld1q_u8(ptr);
+        else if constexpr (std::is_same_v<T, int16_t>)
+            return vld1q_s16(ptr);
+        else if constexpr (std::is_same_v<T, int32_t>)
+            return vld1q_s32(ptr);
+#endif
+    }
+    else if constexpr (std::is_same_v<T, float>)
+    {
+#if defined(USE_AVX512)
+        return _mm512_loadu_ps(ptr);
+#elif defined(USE_AVX2)
+        return _mm256_loadu_ps(ptr);
+#elif defined(USE_SSE4)
+        return _mm_loadu_ps(ptr);
+#elif defined(USE_NEON)
+        return vld1q_f32(ptr);
+#endif
+    }
+    else
+    {
+        static_assert(dependent_false<T>, "Unsupported type for SIMD::loadu");
+    }
+}
+
+template <typename T>
 inline void store(T* ptr, const vec_type_t<T>& v)
 {
     if constexpr (std::is_integral_v<T>)
@@ -351,6 +391,34 @@ inline uint16_t cmpgt_i32_mask(const vecu8& a)
     uint32x4_t a_u32 = vreinterpretq_u32_u8(a);
     uint32x4_t cmp = vcgtq_u32(a_u32, vdupq_n_u32(0));
     return vaddvq_u32(vandq_u32(cmp, cmpgt_i32_bits));
+#endif
+}
+
+// One bit per i32 lane, set where a == b.
+inline uint16_t cmpeq_i32_mask(const veci32& a, const veci32& b)
+{
+#if defined(USE_AVX512)
+    return _mm512_cmpeq_epi32_mask(a, b);
+#elif defined(USE_AVX2)
+    return _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpeq_epi32(a, b)));
+#elif defined(USE_SSE4)
+    return _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(a, b)));
+#elif defined(USE_NEON)
+    return vaddvq_u32(vandq_u32(vceqq_s32(a, b), cmpgt_i32_bits));
+#endif
+}
+
+// Per i32 lane, select b where mask has its bits set, else a. mask lanes must be all-ones or all-zero.
+inline veci32 blendv_i32(const veci32& a, const veci32& b, const veci32& mask)
+{
+#if defined(USE_AVX512)
+    return _mm512_ternarylogic_epi32(mask, b, a, 0xCA);
+#elif defined(USE_AVX2)
+    return _mm256_blendv_epi8(a, b, mask);
+#elif defined(USE_SSE4)
+    return _mm_blendv_epi8(a, b, mask);
+#elif defined(USE_NEON)
+    return vbslq_s32(vreinterpretq_u32_s32(mask), b, a);
 #endif
 }
 

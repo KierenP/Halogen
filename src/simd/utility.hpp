@@ -35,6 +35,14 @@ inline float hsum_f32(__m128 x)
     __m128 sum32 = _mm_add_ps(sum64, hi32);
     return _mm_cvtss_f32(sum32);
 }
+inline int32_t hmax_i32(__m128i x)
+{
+    auto hi64 = _mm_shuffle_epi32(x, _MM_SHUFFLE(1, 0, 3, 2));
+    auto max64 = _mm_max_epi32(x, hi64);
+    auto hi32 = _mm_shuffle_epi32(max64, _MM_SHUFFLE(2, 3, 0, 1));
+    auto max32 = _mm_max_epi32(max64, hi32);
+    return _mm_cvtsi128_si32(max32);
+}
 #endif
 
 #if defined(USE_AVX2)
@@ -42,6 +50,11 @@ inline int32_t hsum_i32(__m256i v)
 {
     auto sum128 = _mm_add_epi32(_mm256_castsi256_si128(v), _mm256_extracti128_si256(v, 1));
     return hsum_i32(sum128);
+}
+inline int32_t hmax_i32(__m256i v)
+{
+    auto max128 = _mm_max_epi32(_mm256_castsi256_si128(v), _mm256_extracti128_si256(v, 1));
+    return hmax_i32(max128);
 }
 inline float hsum_f32(__m256 v)
 {
@@ -55,6 +68,11 @@ inline int32_t hsum_i32(__m512i v)
 {
     __m256i sum256 = _mm256_add_epi32(_mm512_castsi512_si256(v), _mm512_extracti64x4_epi64(v, 1));
     return hsum_i32(sum256);
+}
+inline int32_t hmax_i32(__m512i v)
+{
+    __m256i max256 = _mm256_max_epi32(_mm512_castsi512_si256(v), _mm512_extracti64x4_epi64(v, 1));
+    return hmax_i32(max256);
 }
 
 inline float hsum_f32(__m512 v)
@@ -72,6 +90,10 @@ inline float hsum_f32(float32x4_t v)
     float32x2_t lo64 = vget_low_f32(v);
     float32x2_t sum64 = vadd_f32(lo64, hi64);
     return vget_lane_f32(sum64, 0) + vget_lane_f32(sum64, 1);
+}
+inline int32_t hmax_i32(int32x4_t v)
+{
+    return vmaxvq_s32(v);
 }
 #endif
 

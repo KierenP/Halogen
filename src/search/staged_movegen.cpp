@@ -9,8 +9,14 @@
 #include "search/static_exchange_evaluation.h"
 #include "spsa/tuneable.h"
 
+#include "simd/intrinsics.hpp"
+#include "simd/utility.hpp"
+
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <cstddef>
+#include <cstdint>
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
@@ -32,12 +38,86 @@ StagedMoveGenerator StagedMoveGenerator::probcut(const GameState& position, cons
     return gen;
 }
 
+// Equivalent to std::max_element: returns an iterator to the first element with the maximum score. The scan loop in
+// selection_sort dominates move ordering cost, so we vectorize it: pass 1 finds the maximum score, pass 2 finds the
+// first element equal to it. Ties resolve to the first occurrence, so the result is identical to std::max_element.
+#if defined(SIMD_ENABLED)
+ExtendedMoveList::iterator first_max_element(ExtendedMoveList::iterator begin, ExtendedMoveList::iterator end)
+{
+    static_assert(sizeof(ExtendedMove) == 8);
+    static_assert(offsetof(ExtendedMove, score) == 4);
+
+    constexpr size_t lanes = SIMD::vec_size / sizeof(int32_t); // int32 lanes per vector
+    constexpr size_t entries = SIMD::vec_size / sizeof(ExtendedMove); // ExtendedMove entries per vector
+    constexpr uint32_t score_lane_mask = 0xAAAAAAAAu >> (32 - lanes); // odd int32 lanes hold the scores
+
+    const auto n = static_cast<size_t>(end - begin);
+    if (n < entries)
+    {
+        return std::max_element(begin, end);
+    }
+
+    // Each vector load covers `entries` ExtendedMoves; scores sit in the odd int32 lanes. Blending INT32_MIN over the
+    // even (move + padding) lanes stops them ever winning a max, so we can reduce over whole loads.
+    alignas(64) static constexpr auto score_lanes = []
+    {
+        std::array<int32_t, lanes> p {};
+        for (size_t i = 0; i < lanes; i++)
+        {
+            p[i] = (i % 2 == 1) ? -1 : 0;
+        }
+        return p;
+    }();
+
+    const auto floor = SIMD::set_i32(INT32_MIN);
+    const auto score_mask = SIMD::load(score_lanes.data());
+
+    auto vmax = floor;
+    size_t i = 0;
+    for (; i + entries <= n; i += entries)
+    {
+        const auto v = SIMD::loadu(reinterpret_cast<const int32_t*>(&*(begin + i)));
+        vmax = SIMD::max_i32(vmax, SIMD::blendv_i32(floor, v, score_mask));
+    }
+
+    int32_t max_score = SIMD::hmax_i32(vmax);
+    for (auto it = begin + i; it != end; ++it)
+    {
+        max_score = std::max(max_score, it->score);
+    }
+
+    const auto target = SIMD::set_i32(max_score);
+    for (i = 0; i + entries <= n; i += entries)
+    {
+        const auto v = SIMD::loadu(reinterpret_cast<const int32_t*>(&*(begin + i)));
+        const uint32_t mask = SIMD::cmpeq_i32_mask(v, target) & score_lane_mask;
+        if (mask != 0)
+        {
+            return begin + i + (std::countr_zero(mask) >> 1);
+        }
+    }
+
+    for (auto it = begin + i;; ++it)
+    {
+        if (it->score == max_score)
+        {
+            return it;
+        }
+    }
+}
+#else
+ExtendedMoveList::iterator first_max_element(ExtendedMoveList::iterator begin, ExtendedMoveList::iterator end)
+{
+    return std::max_element(begin, end);
+}
+#endif
+
 void selection_sort(
     ExtendedMoveList::iterator begin, ExtendedMoveList::iterator sort_end, ExtendedMoveList::iterator end)
 {
     for (auto it = begin; it != sort_end; ++it)
     {
-        std::iter_swap(it, std::max_element(it, end));
+        std::iter_swap(it, first_max_element(it, end));
     }
 }
 
