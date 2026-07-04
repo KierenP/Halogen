@@ -3,6 +3,8 @@
 #include "bitboard/define.h"
 #include "bitboard/enum.h"
 #include "chessboard/board_state.h"
+#include "movegen/move.h"
+#include "movegen/movegen.h"
 #include "utility/splitmix64.h"
 
 #include <array>
@@ -163,6 +165,145 @@ uint64_t get_fifty_move_adj_key(const BoardState& board)
 {
     assert(0 <= board.fifty_move_count && board.fifty_move_count <= 100);
     return board.key ^ fifty_move_hash[board.fifty_move_count];
+}
+
+// This must mirror the incremental key updates in BoardState::apply_move and BoardState::update_castle_rights, and is
+// verified against them by an assert at the end of apply_move.
+uint64_t get_fifty_move_adj_key_after(const BoardState& board, Move move)
+{
+    uint64_t key = board.key ^ stm();
+
+    // undo the previous ep square
+    if (board.en_passant <= SQ_H8)
+    {
+        key ^= en_passant(enum_to<File>(board.en_passant));
+    }
+
+    // castle rights: check for the king or rook moving, or a rook being captured
+    uint64_t castle_squares = board.castle_squares;
+
+    if (move.from() == board.get_king_sq(WHITE))
+    {
+        uint64_t white_castle = castle_squares & RankBB[RANK_1];
+
+        while (white_castle)
+        {
+            key ^= castle(lsbpop(white_castle));
+        }
+
+        castle_squares &= ~(RankBB[RANK_1]);
+    }
+
+    if (move.from() == board.get_king_sq(BLACK))
+    {
+        uint64_t black_castle = castle_squares & RankBB[RANK_8];
+
+        while (black_castle)
+        {
+            key ^= castle(lsbpop(black_castle));
+        }
+
+        castle_squares &= ~(RankBB[RANK_8]);
+    }
+
+    if (SquareBB[move.to()] & castle_squares)
+    {
+        key ^= castle(move.to());
+    }
+
+    if (SquareBB[move.from()] & castle_squares)
+    {
+        key ^= castle(move.from());
+    }
+
+    switch (move.flag())
+    {
+    case QUIET:
+    {
+        const auto piece = board.get_square_piece(move.from());
+        key ^= piece_square(piece, move.from());
+        key ^= piece_square(piece, move.to());
+        break;
+    }
+    case PAWN_DOUBLE_MOVE:
+    {
+        const auto piece = get_piece(PAWN, board.stm);
+        key ^= piece_square(piece, move.from());
+        key ^= piece_square(piece, move.to());
+
+        // the new ep square only enters the key if the opponent has a legal ep capture
+        Square ep_sq = static_cast<Square>((move.to() + move.from()) / 2);
+        uint64_t potential_attackers = PawnAttacks[board.stm][ep_sq] & board.get_pieces_bb(PAWN, !board.stm);
+
+        while (potential_attackers)
+        {
+            if (ep_is_legal(board, Move(lsbpop(potential_attackers), ep_sq, EN_PASSANT), !board.stm))
+            {
+                key ^= en_passant(enum_to<File>(ep_sq));
+                break;
+            }
+        }
+
+        break;
+    }
+    case A_SIDE_CASTLE:
+    {
+        Square king_end = board.stm == WHITE ? SQ_C1 : SQ_C8;
+        Square rook_end = board.stm == WHITE ? SQ_D1 : SQ_D8;
+        key ^= piece_square(get_piece(KING, board.stm), move.from());
+        key ^= piece_square(get_piece(KING, board.stm), king_end);
+        key ^= piece_square(get_piece(ROOK, board.stm), move.to());
+        key ^= piece_square(get_piece(ROOK, board.stm), rook_end);
+        break;
+    }
+    case H_SIDE_CASTLE:
+    {
+        Square king_end = board.stm == WHITE ? SQ_G1 : SQ_G8;
+        Square rook_end = board.stm == WHITE ? SQ_F1 : SQ_F8;
+        key ^= piece_square(get_piece(KING, board.stm), move.from());
+        key ^= piece_square(get_piece(KING, board.stm), king_end);
+        key ^= piece_square(get_piece(ROOK, board.stm), move.to());
+        key ^= piece_square(get_piece(ROOK, board.stm), rook_end);
+        break;
+    }
+    case CAPTURE:
+    {
+        const auto piece = board.get_square_piece(move.from());
+        key ^= piece_square(piece, move.from());
+        key ^= piece_square(piece, move.to());
+        key ^= piece_square(board.get_square_piece(move.to()), move.to());
+        break;
+    }
+    case EN_PASSANT:
+    {
+        const auto ep_cap_sq = get_square(enum_to<File>(move.to()), enum_to<Rank>(move.from()));
+        const auto piece = get_piece(PAWN, board.stm);
+        key ^= piece_square(get_piece(PAWN, !board.stm), ep_cap_sq);
+        key ^= piece_square(piece, move.from());
+        key ^= piece_square(piece, move.to());
+        break;
+    }
+    default:
+    {
+        assert(move.is_promotion());
+        static_assert(BISHOP_PROMOTION - KNIGHT_PROMOTION == BISHOP - KNIGHT);
+        static_assert(QUEEN_PROMOTION_CAPTURE - KNIGHT_PROMOTION_CAPTURE == QUEEN - KNIGHT);
+        const auto promo_type = static_cast<PieceType>(KNIGHT + ((move.flag() - KNIGHT_PROMOTION) & 3));
+        key ^= piece_square(get_piece(PAWN, board.stm), move.from());
+        key ^= piece_square(get_piece(promo_type, board.stm), move.to());
+        if (move.is_capture())
+        {
+            key ^= piece_square(board.get_square_piece(move.to()), move.to());
+        }
+        break;
+    }
+    }
+
+    const bool resets_fifty_move
+        = move.is_capture() || move.is_promotion() || board.get_square_piece(move.from()) == get_piece(PAWN, board.stm);
+    const auto new_fifty_move = resets_fifty_move ? 0 : board.fifty_move_count + 1;
+    assert(0 <= new_fifty_move && new_fifty_move <= 100);
+    return key ^ fifty_move_hash[new_fifty_move];
 }
 
 } // namespace Zobrist
