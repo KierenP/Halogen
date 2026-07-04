@@ -9,8 +9,12 @@
 #include "search/static_exchange_evaluation.h"
 #include "spsa/tuneable.h"
 
+#include "simd/define.hpp"
+
 #include <algorithm>
+#include <bit>
 #include <cstddef>
+#include <cstdint>
 
 StagedMoveGenerator::StagedMoveGenerator(
     const GameState& Position, const SearchStackState* SS, SearchLocalState& Local, Move tt_move, bool good_loud_only_)
@@ -32,12 +36,80 @@ StagedMoveGenerator StagedMoveGenerator::probcut(const GameState& position, cons
     return gen;
 }
 
+// Equivalent to std::max_element: returns an iterator to the first element with the maximum score. The scan loop in
+// selection_sort dominates move ordering cost, so we vectorize it: pass 1 finds the maximum score, pass 2 finds the
+// first element equal to it. Ties resolve to the first occurrence, so the result is identical to std::max_element.
+//
+// Each 128-bit vector holds four ExtendedMoves; the int16 score sits in the odd int16 lane of each pair. We use SSE4
+// directly rather than the widest available vector: the move lists are short enough that a 128-bit window is the best
+// fit, and the same code runs on every x86 build.
+#if defined(USE_SSE4)
+ExtendedMoveList::iterator first_max_element(ExtendedMoveList::iterator begin, ExtendedMoveList::iterator end)
+{
+    static_assert(sizeof(ExtendedMove) == 4);
+    static_assert(offsetof(ExtendedMove, score) == 2);
+
+    constexpr size_t entries = sizeof(__m128i) / sizeof(ExtendedMove); // ExtendedMove entries per vector
+
+    const auto n = static_cast<size_t>(end - begin);
+    if (n < entries)
+    {
+        return std::max_element(begin, end);
+    }
+
+    const auto floor = _mm_set1_epi16(INT16_MIN);
+    // -1 (keep) over the odd score lanes, 0 (replace with floor) over the even move lanes.
+    const auto score_mask = _mm_set_epi16(-1, 0, -1, 0, -1, 0, -1, 0);
+
+    auto vmax = floor;
+    size_t i = 0;
+    for (; i + entries <= n; i += entries)
+    {
+        const auto v = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&*(begin + i)));
+        vmax = _mm_max_epi16(vmax, _mm_blendv_epi8(floor, v, score_mask));
+    }
+
+    auto r = _mm_max_epi16(vmax, _mm_shuffle_epi32(vmax, _MM_SHUFFLE(1, 0, 3, 2)));
+    r = _mm_max_epi16(r, _mm_shuffle_epi32(r, _MM_SHUFFLE(2, 3, 0, 1)));
+    r = _mm_max_epi16(r, _mm_shufflelo_epi16(r, _MM_SHUFFLE(2, 3, 0, 1)));
+    int16_t max_score = static_cast<int16_t>(_mm_extract_epi16(r, 0));
+    for (auto it = begin + i; it != end; ++it)
+    {
+        max_score = std::max(max_score, it->score);
+    }
+
+    const auto target = _mm_set1_epi16(max_score);
+    for (i = 0; i + entries <= n; i += entries)
+    {
+        const auto v = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&*(begin + i)));
+        const unsigned mask = _mm_movemask_epi8(_mm_and_si128(_mm_cmpeq_epi16(v, target), score_mask));
+        if (mask != 0)
+        {
+            return begin + i + (std::countr_zero(mask) >> 2);
+        }
+    }
+
+    for (auto it = begin + i;; ++it)
+    {
+        if (it->score == max_score)
+        {
+            return it;
+        }
+    }
+}
+#else
+ExtendedMoveList::iterator first_max_element(ExtendedMoveList::iterator begin, ExtendedMoveList::iterator end)
+{
+    return std::max_element(begin, end);
+}
+#endif
+
 void selection_sort(
     ExtendedMoveList::iterator begin, ExtendedMoveList::iterator sort_end, ExtendedMoveList::iterator end)
 {
     for (auto it = begin; it != sort_end; ++it)
     {
-        std::iter_swap(it, std::max_element(it, end));
+        std::iter_swap(it, first_max_element(it, end));
     }
 }
 
