@@ -112,7 +112,7 @@ public:
     OutputLevel output_level = OutputLevel::Default;
 
     void print_search_info(const SearchInfoData& data, bool final = false, bool format_960 = false);
-    void print_bestmove(bool chess960, Move move);
+    void print_bestmove(bool chess960, std::optional<Move> move);
     void print_error(const std::string& error_str);
 };
 

@@ -737,19 +737,23 @@ void UciOutput::print_search_info(const SearchInfoData& data, bool final, bool f
     std::cout << std::endl;
 }
 
-void UciOutput::print_bestmove(bool chess960, Move move)
+void UciOutput::print_bestmove(bool chess960, std::optional<Move> move)
 {
     if (output_level > OutputLevel::None)
     {
         std::lock_guard io { output_mutex };
 
-        if (chess960)
+        if (!move.has_value())
         {
-            std::cout << "bestmove " << format_chess960 { move } << std::endl;
+            std::cout << "bestmove (none)" << std::endl;
+        }
+        else if (chess960)
+        {
+            std::cout << "bestmove " << format_chess960 { *move } << std::endl;
         }
         else
         {
-            std::cout << "bestmove " << move << std::endl;
+            std::cout << "bestmove " << *move << std::endl;
         }
     }
 }
