@@ -1,5 +1,7 @@
 #include "thread.h"
 
+#include "bitboard/enum.h"
+#include "chessboard/board_state.h"
 #include "chessboard/game_state.h"
 #include "evaluation/evaluate.h"
 #include "movegen/list.h"
