@@ -209,15 +209,33 @@ uint64_t PerftDivide(int depth, GameState& position, bool check_legality)
     return nodeCount;
 }
 
+auto Uci::position_command_handler()
+{
+    // clang-format off
+    return OneOf {
+        Consume { "fen", Sequence {
+            TokensUntil {"moves", [this](auto fen){ return handle_position_fen(fen); } },
+            Repeat { NextToken { [this](auto move){ handle_moves(move); } } } } },
+        Consume { "startpos", Sequence {
+            Invoke { [this] { handle_position_startpos(); } },
+            OneOf {
+                Consume { "moves", Repeat { NextToken { [this](auto move){ handle_moves(move); } } } },
+                EndCommand{} } } } };
+    // clang-format on
+}
+
 void Uci::handle_bench(const SearchLimits& limits)
 {
     Timer timer;
 
     uint64_t nodeCount = 0;
+    auto parse_position = position_command_handler();
 
     for (size_t i = 0; i < benchMarkPositions.size(); i++)
     {
-        if (!position.init_from_fen(benchMarkPositions[i]))
+        std::string command = std::string("fen ") + benchMarkPositions[i];
+        std::string_view command_view = command;
+        if (!parse_position(command_view))
         {
             std::lock_guard io { output_mutex };
             std::cout << "BAD FEN!" << std::endl;
@@ -589,15 +607,7 @@ void Uci::process_input(std::string_view command)
         Consume { "uci", Invoke { [this]{ handle_uci(); } } },
         Consume { "ucinewgame", Invoke { [this]{ handle_ucinewgame(); } } },
         Consume { "isready", Invoke { [this]{ handle_isready(); } } },
-        Consume { "position", OneOf {
-            Consume { "fen", Sequence {
-                TokensUntil {"moves", [this](auto fen){ return handle_position_fen(fen); } },
-                Repeat { NextToken { [this](auto move){ handle_moves(move); } } } } },
-            Consume { "startpos", Sequence {
-                Invoke { [this] { handle_position_startpos(); } },
-                OneOf {
-                    Consume { "moves", Repeat { NextToken { [this](auto move){ handle_moves(move); } } } },
-                    EndCommand{} } } } } },
+        Consume { "position", position_command_handler() },
         Consume { "go", Sequence {
             WithContext { go_ctx{}, Sequence {
                 search_limits_handler_factory(),

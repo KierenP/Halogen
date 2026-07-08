@@ -103,6 +103,7 @@ private:
     bool finished_startup = false;
 
     auto options_handler();
+    auto position_command_handler();
 };
 
 // A handler that gets passed to the search for it to print info including bestmove
