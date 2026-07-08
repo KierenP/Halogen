@@ -3,7 +3,6 @@
 #include "uci/validate_callback.h"
 
 #include <charconv>
-#include <string>
 #include <string_view>
 #include <utility>
 
@@ -78,8 +77,14 @@ struct ToFloat
     template <typename... Ctx>
     bool operator()(std::string_view& token, Ctx&&... ctx)
     {
-        // from_chars(float) only supported in GCC 11+
-        float result = std::stof(std::string(token));
+        float result {};
+        auto [ptr, _] = std::from_chars(token.data(), token.end(), result);
+
+        if (ptr != token.end())
+        {
+            return false;
+        }
+
         return invoke_with_optional_validation(callback_, result, std::forward<Ctx>(ctx)...);
     }
 
