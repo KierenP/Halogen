@@ -1,6 +1,7 @@
 #include "thread.h"
 
 #include "chessboard/game_state.h"
+#include "evaluation/evaluate.h"
 #include "movegen/list.h"
 #include "movegen/move.h"
 #include "movegen/movegen.h"
@@ -275,6 +276,23 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
     BasicMoveList moves;
     legal_moves(position_.board(), moves);
     multi_pv = std::min<int>(multi_pv, moves.size());
+
+    // Detect a root position that is already terminal, so there is nothing to search: either the
+    // side to move has no legal moves (checkmate / stalemate), or the position is an immediate
+    // draw by repetition, the fifty-move rule, or insufficient material.
+    const auto& board = position_.board();
+    const bool no_legal_moves = moves.empty();
+    const bool immediate_draw
+        = position_.is_repetition(0) || board.fifty_move_count >= 100 || insufficient_material(board);
+    if (no_legal_moves || immediate_draw)
+    {
+        const auto score = (no_legal_moves && board.checkers) ? Score::mated_in(0) : Score::draw();
+        const auto search_result = shared_state.build_search_info(0, 0, score, 1, {}, SearchResultType::EXACT);
+        shared_state.uci_handler.print_search_info(search_result, true, shared_state.chess_960);
+        shared_state.uci_handler.print_bestmove(shared_state.chess_960, std::nullopt);
+        set_previous_search_score(score);
+        return search_result;
+    }
 
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position_);
