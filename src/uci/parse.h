@@ -3,6 +3,7 @@
 #include "uci/validate_callback.h"
 
 #include <charconv>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -98,8 +99,17 @@ struct ToFloat
     template <typename... Ctx>
     bool operator()(std::string_view token, Ctx&... ctx) const
     {
-        // from_chars(float) only supported in GCC 11+
-        float result = std::stof(std::string(token));
+        // Not std::stof (throws -> std::terminate under -fno-exceptions) nor std::from_chars (float
+        // needs libc++ 20, too new a floor given macOS ships libc++). strtof is portable and non-throwing.
+        std::string str(token);
+        char* end = nullptr;
+        const float result = std::strtof(str.c_str(), &end);
+
+        if (str.empty() || end != str.c_str() + str.size())
+        {
+            return false;
+        }
+
         return invoke_with_optional_validation(callback_, result, ctx...);
     }
 
