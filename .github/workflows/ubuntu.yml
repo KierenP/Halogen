@@ -21,6 +21,7 @@ jobs:
           # x86_64 builds
           - { os: ubuntu-22.04, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
           - { os: ubuntu-24.04, config: { compiler: clang++-16, packages: "clang-16 llvm-16", profdata: llvm-profdata-16 } }
+          - { os: ubuntu-24.04, config: { compiler: clang++-17, packages: "clang-17 llvm-17 libc++-17-dev libc++abi-17-dev", profdata: llvm-profdata-17, extra_flags: "-stdlib=libc++" } }
           # arm64 builds
           - { os: ubuntu-22.04-arm, config: { compiler: g++-11, packages: g++-11, profdata: NA } }
 
@@ -38,7 +39,7 @@ jobs:
 
       - name: Create build
         working-directory: src
-        run: make pgo CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXE=../bin/Halogen -j
+        run: make pgo CXX=${{ matrix.config.compiler }} LLVM_PROFDATA=${{ matrix.config.profdata }} EXTRA_CXXFLAGS="${{ matrix.config.extra_flags }}" EXTRA_LDFLAGS="${{ matrix.config.extra_flags }}" EXE=../bin/Halogen -j
 
       - name: Check bench matches commit message
         run: |
