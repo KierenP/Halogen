@@ -144,10 +144,10 @@ ifeq ($(ARCH),native)
     endif
 
     ifneq ($(findstring __ARM_NEON, $(SUPPORTED)),)
-        # Assume if we support NEON, we also support DOTPROD. There's a small range of ARMv8.0-8.1 CPUs without 
-        # DOTPROD, but they are rare. Use ARCH=neon if you need to disable DOTPROD.
         ARCH_DEFINES += -DUSE_NEON
-        ARCH_DEFINES += -DUSE_NEON_DOTPROD
+        ifneq ($(findstring __ARM_FEATURE_DOTPROD, $(SUPPORTED)),)
+            ARCH_DEFINES += -DUSE_NEON_DOTPROD
+        endif
     endif
 endif
 
