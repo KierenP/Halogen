@@ -284,16 +284,24 @@ bool should_abort_search(SearchLocalState& local, const SearchSharedState& share
         return true;
     }
 
-    uint64_t nodes = local.nodes;
-    if (shared.limits.nodes && nodes >= shared.limits.nodes)
+    if (shared.limits.nodes)
     {
-        local.aborting_search = true;
-        return true;
+        const auto threads = std::max(1, shared.get_threads_setting());
+        const uint64_t remainder = *shared.limits.nodes % threads;
+        const uint64_t thread_nodes_limit
+            = *shared.limits.nodes / threads + (static_cast<uint64_t>(local.thread_id) < remainder);
+        const uint64_t nodes = local.nodes;
+        if (nodes >= thread_nodes_limit)
+        {
+            local.aborting_search = true;
+            return true;
+        }
+
+        local.limit_check_counter = std::min<int64_t>(thread_nodes_limit - nodes - 1, 1024);
+        return false;
     }
 
-    // Reset the limit_check_counter to 1024, or 1/2 the remaining node limit if smaller
-    local.limit_check_counter
-        = shared.limits.nodes ? std::clamp<int64_t>((*shared.limits.nodes - nodes) / 2, 0, 1024) : 1024;
+    local.limit_check_counter = 1024;
     return false;
 }
 
