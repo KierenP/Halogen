@@ -113,14 +113,15 @@ jobs:
         uses: actions/cache@v4
         with:
            path: |
-              matetrack/3-4-5-wdl/
-              matetrack/3-4-5-dtz/
-           key: key-syzygy
+              syzygy/3-4-5-wdl/
+              syzygy/3-4-5-dtz/
+           key: syzygy-3-4-5
 
       - name: download syzygy 3-4-5 if needed
-        working-directory: matetrack
         if: steps.cache-syzygy.outputs.cache-hit != 'true'
         run: |
+          mkdir -p "$GITHUB_WORKSPACE/syzygy"
+          cd "$GITHUB_WORKSPACE/syzygy"
           wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-wdl/
           wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-dtz/
 
@@ -128,13 +129,21 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value $GITHUB_WORKSPACE/syzygy/3-4-5-wdl/:$GITHUB_WORKSPACE/syzygy/3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
           fi
           if grep -q "Assertion" out.log; then
             echo "ERROR: Assertion found"
+            exit 1
+          fi
+          if ! grep -q "Found [1-9][0-9]* WDL" out.log; then
+            echo "ERROR: no Syzygy tablebase files loaded (check SyzygyPath)"
+            exit 1
+          fi
+          if ! grep -qE "tbhits [1-9]" out.log; then
+            echo "ERROR: no tablebase probes occurred (tbhits stayed 0)"
             exit 1
           fi
 
@@ -142,13 +151,21 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value $GITHUB_WORKSPACE/syzygy/3-4-5-wdl/:$GITHUB_WORKSPACE/syzygy/3-4-5-dtz/" "position fen 3k4/8/8/3K4/8/8/5Q2/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
           fi
           if grep -q "Assertion" out.log; then
             echo "ERROR: Assertion found"
+            exit 1
+          fi
+          if ! grep -q "Found [1-9][0-9]* WDL" out.log; then
+            echo "ERROR: no Syzygy tablebase files loaded (check SyzygyPath)"
+            exit 1
+          fi
+          if ! grep -qE "tbhits [1-9]" out.log; then
+            echo "ERROR: no tablebase probes occurred (tbhits stayed 0)"
             exit 1
           fi
 
@@ -156,13 +173,21 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen 3kq3/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value $GITHUB_WORKSPACE/syzygy/3-4-5-wdl/:$GITHUB_WORKSPACE/syzygy/3-4-5-dtz/" "position fen 3kq3/8/8/3K4/8/8/5Q2/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
           fi
           if grep -q "Assertion" out.log; then
             echo "ERROR: Assertion found"
+            exit 1
+          fi
+          if ! grep -q "Found [1-9][0-9]* WDL" out.log; then
+            echo "ERROR: no Syzygy tablebase files loaded (check SyzygyPath)"
+            exit 1
+          fi
+          if ! grep -qE "tbhits [1-9]" out.log; then
+            echo "ERROR: no tablebase probes occurred (tbhits stayed 0)"
             exit 1
           fi
 
@@ -170,13 +195,21 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen K7/N7/k7/8/3p4/8/N7/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value $GITHUB_WORKSPACE/syzygy/3-4-5-wdl/:$GITHUB_WORKSPACE/syzygy/3-4-5-dtz/" "position fen K7/N7/k7/8/3p4/8/N7/8 w - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
           fi
           if grep -q "Assertion" out.log; then
             echo "ERROR: Assertion found"
+            exit 1
+          fi
+          if ! grep -q "Found [1-9][0-9]* WDL" out.log; then
+            echo "ERROR: no Syzygy tablebase files loaded (check SyzygyPath)"
+            exit 1
+          fi
+          if ! grep -qE "tbhits [1-9]" out.log; then
+            echo "ERROR: no tablebase probes occurred (tbhits stayed 0)"
             exit 1
           fi
 
@@ -184,12 +217,20 @@ jobs:
         working-directory: Halogen
         run: |
           export TSAN_OPTIONS="suppressions=../Halogen/src/test/tsan.supp"
-          ./bin/Halogen "setoption name SyzygyPath value 3-4-5-wdl/:3-4-5-dtz/" "position fen K7/2k5/8/1N6/3p4/3N4/8/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
+          ./bin/Halogen "setoption name SyzygyPath value $GITHUB_WORKSPACE/syzygy/3-4-5-wdl/:$GITHUB_WORKSPACE/syzygy/3-4-5-dtz/" "position fen K7/2k5/8/1N6/3p4/3N4/8/8 b - - 0 1" "setoption name MultiPV value 4" "go movetime 5000" 2>&1 | tee out.log
           if grep -q "ThreadSanitizer" out.log; then
             echo "ERROR: ThreadSanitizer found"
             exit 1
           fi
           if grep -q "Assertion" out.log; then
             echo "ERROR: Assertion found"
+            exit 1
+          fi
+          if ! grep -q "Found [1-9][0-9]* WDL" out.log; then
+            echo "ERROR: no Syzygy tablebase files loaded (check SyzygyPath)"
+            exit 1
+          fi
+          if ! grep -qE "tbhits [1-9]" out.log; then
+            echo "ERROR: no tablebase probes occurred (tbhits stayed 0)"
             exit 1
           fi
