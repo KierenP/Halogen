@@ -408,8 +408,6 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -433,8 +431,6 @@ void BoardState::apply_move(Move move)
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(KING, stm), king_end);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
         non_pawn_key[stm] ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_start);
-        // major_key ^= Zobrist::piece_square(get_piece(ROOK, stm), rook_end);
 
         break;
     }
@@ -533,7 +529,6 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
@@ -549,7 +544,6 @@ void BoardState::apply_move(Move move)
         key ^= Zobrist::piece_square(promo_piece, move.to());
         pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
         non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        // major_key ^= Zobrist::piece_square(promo_piece, move.to());
 
         break;
     }
