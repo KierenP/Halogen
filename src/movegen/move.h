@@ -32,6 +32,9 @@ enum MoveFlag : int8_t
     QUEEN_PROMOTION_CAPTURE
 };
 
+static_assert(BISHOP_PROMOTION - KNIGHT_PROMOTION == BISHOP - KNIGHT);
+static_assert(QUEEN_PROMOTION_CAPTURE - KNIGHT_PROMOTION_CAPTURE == QUEEN - KNIGHT);
+
 class Move
 {
 public:

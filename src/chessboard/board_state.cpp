@@ -233,45 +233,7 @@ uint64_t BoardState::get_empty_bb() const
 
 void BoardState::update_castle_rights(Move move)
 {
-    // check for the king or rook moving, or a rook being captured
-
-    if (move.from() == get_king_sq(WHITE))
-    {
-        // get castle squares on white side
-        uint64_t white_castle = castle_squares & RankBB[RANK_1];
-
-        while (white_castle)
-        {
-            key ^= Zobrist::castle(lsbpop(white_castle));
-        }
-
-        castle_squares &= ~(RankBB[RANK_1]);
-    }
-
-    if (move.from() == get_king_sq(BLACK))
-    {
-        // get castle squares on black side
-        uint64_t black_castle = castle_squares & RankBB[RANK_8];
-
-        while (black_castle)
-        {
-            key ^= Zobrist::castle(lsbpop(black_castle));
-        }
-
-        castle_squares &= ~(RankBB[RANK_8]);
-    }
-
-    if (SquareBB[move.to()] & castle_squares)
-    {
-        key ^= Zobrist::castle(move.to());
-        castle_squares &= ~SquareBB[move.to()];
-    }
-
-    if (SquareBB[move.from()] & castle_squares)
-    {
-        key ^= Zobrist::castle(move.from());
-        castle_squares &= ~SquareBB[move.from()];
-    }
+    key ^= Zobrist::update_castle_rights(castle_squares, get_king_sq(WHITE), get_king_sq(BLACK), move);
 }
 
 std::ostream& operator<<(std::ostream& os, const BoardState& b)
@@ -488,54 +450,12 @@ void BoardState::apply_move(Move move)
         break;
     }
     case KNIGHT_PROMOTION:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(KNIGHT, stm);
-
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-
-        break;
-    }
     case BISHOP_PROMOTION:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(BISHOP, stm);
-
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-
-        break;
-    }
     case ROOK_PROMOTION:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(ROOK, stm);
-
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-
-        break;
-    }
     case QUEEN_PROMOTION:
     {
         const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(QUEEN, stm);
+        const auto promo_piece = get_piece(static_cast<PieceType>(KNIGHT + (move.flag() - KNIGHT_PROMOTION)), stm);
 
         add_piece_sq(move.to(), promo_piece);
         remove_piece_sq(move.from(), pawn_piece);
@@ -548,66 +468,13 @@ void BoardState::apply_move(Move move)
         break;
     }
     case KNIGHT_PROMOTION_CAPTURE:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(KNIGHT, stm);
-        const auto cap_piece = get_square_piece(move.to());
-
-        remove_piece_sq(move.to(), cap_piece);
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        key ^= Zobrist::piece_square(cap_piece, move.to());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
-
-        break;
-    }
     case BISHOP_PROMOTION_CAPTURE:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(BISHOP, stm);
-        const auto cap_piece = get_square_piece(move.to());
-
-        remove_piece_sq(move.to(), cap_piece);
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        key ^= Zobrist::piece_square(cap_piece, move.to());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
-
-        break;
-    }
     case ROOK_PROMOTION_CAPTURE:
-    {
-        const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(ROOK, stm);
-        const auto cap_piece = get_square_piece(move.to());
-
-        remove_piece_sq(move.to(), cap_piece);
-        add_piece_sq(move.to(), promo_piece);
-        remove_piece_sq(move.from(), pawn_piece);
-
-        key ^= Zobrist::piece_square(pawn_piece, move.from());
-        key ^= Zobrist::piece_square(promo_piece, move.to());
-        pawn_key ^= Zobrist::piece_square(pawn_piece, move.from());
-        non_pawn_key[stm] ^= Zobrist::piece_square(promo_piece, move.to());
-        key ^= Zobrist::piece_square(cap_piece, move.to());
-        non_pawn_key[!stm] ^= Zobrist::piece_square(cap_piece, move.to());
-
-        break;
-    }
     case QUEEN_PROMOTION_CAPTURE:
     {
         const auto pawn_piece = get_piece(PAWN, stm);
-        const auto promo_piece = get_piece(QUEEN, stm);
+        const auto promo_piece
+            = get_piece(static_cast<PieceType>(KNIGHT + (move.flag() - KNIGHT_PROMOTION_CAPTURE)), stm);
         const auto cap_piece = get_square_piece(move.to());
 
         remove_piece_sq(move.to(), cap_piece);
