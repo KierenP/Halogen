@@ -56,8 +56,8 @@ bool ep_is_legal(const BoardState& board, const Move& move);
 // will tell you if the king WOULD be threatened on that square. Useful for finding defended / threatening pieces
 template <Side colour>
 bool is_square_threatened(const BoardState& board, Square square);
-// colour is of the attacked piece! So to get the black threats of a white piece pass colour = WHITE!
-template <Side colour>
+// pieces of side `attacker` attacking square
+template <Side attacker>
 uint64_t attacks_to_sq(const BoardState& board, Square square);
 template <Side STM>
 bool is_legal(const BoardState& board, const Move& move);
@@ -324,7 +324,7 @@ void capture_threat(const BoardState& board, T& moves)
 {
     const Square square = lsb(board.checkers);
 
-    const uint64_t potentialCaptures = attacks_to_sq<!STM>(board, square)
+    const uint64_t potentialCaptures = attacks_to_sq<STM>(board, square)
         & ~SquareBB[board.get_king_sq(STM)] // King captures handelled in GenerateKingMoves()
         & ~board.get_pieces_bb(PAWN, STM) // Pawn captures handelled elsewhere
         & ~board.pinned; // any pinned pieces cannot legally capture the threat
@@ -349,7 +349,7 @@ void block_threat(const BoardState& board, T& moves)
         // there
         const Square square = lsbpop(blockSquares);
         // blocking moves are legal iff the piece is not pinned
-        const uint64_t potentialBlockers = attacks_to_sq<!STM>(board, square) & ~board.get_pieces_bb(PAWN, STM)
+        const uint64_t potentialBlockers = attacks_to_sq<STM>(board, square) & ~board.get_pieces_bb(PAWN, STM)
             & ~board.get_pieces_bb(KING, STM) & ~board.pinned;
         append_legal_moves<STM, QUIET>(potentialBlockers, square, moves);
     }
@@ -802,23 +802,11 @@ bool is_square_threatened(const BoardState& board, Square square)
     return (board.lesser_threats[KING] | attack_bb<KING>(board.get_king_sq(!colour))) & SquareBB[square];
 }
 
-template <Side colour>
+// attacks_to_sq(board, square, occ) is defined below, after the attack_bb specializations.
+template <Side attacker>
 uint64_t attacks_to_sq(const BoardState& board, Square square)
 {
-    uint64_t threats = EMPTY;
-
-    const uint64_t queens = board.get_pieces_bb(QUEEN, !colour);
-    const uint64_t bishops = board.get_pieces_bb(BISHOP, !colour);
-    const uint64_t rooks = board.get_pieces_bb(ROOK, !colour);
-    const uint64_t occ = board.get_pieces_bb();
-
-    threats |= (attack_bb<KNIGHT>(square) & board.get_pieces_bb(KNIGHT, !colour));
-    threats |= (PawnAttacks[colour][square] & board.get_pieces_bb(PAWN, !colour));
-    threats |= (attack_bb<KING>(square) & board.get_pieces_bb(KING, !colour));
-    threats |= (attack_bb<BISHOP>(square, occ) & (bishops | queens));
-    threats |= (attack_bb<ROOK>(square, occ) & (rooks | queens));
-
-    return threats;
+    return attacks_to_sq(board, square, board.get_pieces_bb()) & board.get_pieces_bb(attacker);
 }
 
 bool is_legal(const BoardState& board, const Move& move)
@@ -1135,6 +1123,19 @@ template <>
 uint64_t attack_bb<KING>(Square sq, uint64_t)
 {
     return KingAttacks[sq];
+}
+
+uint64_t attacks_to_sq(const BoardState& board, Square square, uint64_t occ)
+{
+    const uint64_t pawns = (board.get_pieces_bb(PAWN, WHITE) & PawnAttacks[BLACK][square])
+        | (board.get_pieces_bb(PAWN, BLACK) & PawnAttacks[WHITE][square]);
+
+    const uint64_t bishops = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(BISHOP);
+    const uint64_t rooks = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(ROOK);
+
+    return pawns | (attack_bb<KNIGHT>(square) & board.get_pieces_bb(KNIGHT))
+        | (attack_bb<KING>(square) & board.get_pieces_bb(KING)) | (attack_bb<BISHOP>(square, occ) & bishops)
+        | (attack_bb<ROOK>(square, occ) & rooks);
 }
 
 // Explicit template instantiation

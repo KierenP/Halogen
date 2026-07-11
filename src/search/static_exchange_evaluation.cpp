@@ -11,20 +11,6 @@
 #include <array>
 #include <cstdint>
 
-// movegen::attacks_to_sq could be used here?
-uint64_t attackers_to_sq(const BoardState& board, Square sq, uint64_t occ)
-{
-    uint64_t pawn_mask = (board.get_pieces_bb(PAWN, WHITE) & PawnAttacks[BLACK][sq]);
-    pawn_mask |= (board.get_pieces_bb(PAWN, BLACK) & PawnAttacks[WHITE][sq]);
-
-    uint64_t bishops = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(BISHOP);
-    uint64_t rooks = board.get_pieces_bb(QUEEN) | board.get_pieces_bb(ROOK);
-
-    return (pawn_mask & board.get_pieces_bb(PAWN)) | (attack_bb<KNIGHT>(sq) & board.get_pieces_bb(KNIGHT))
-        | (attack_bb<KING>(sq) & board.get_pieces_bb(KING)) | (attack_bb<BISHOP>(sq, occ) & bishops)
-        | (attack_bb<ROOK>(sq, occ) & rooks);
-}
-
 uint64_t least_valuable_attacker(const BoardState& board, uint64_t attackers, Piece& capturing, Side side)
 {
     for (int i = 0; i < 6; i++)
@@ -106,7 +92,7 @@ bool see_ge(const BoardState& board, Move move, Score threshold)
     }
 
     occ ^= SquareBB[from];
-    uint64_t attack_def = attackers_to_sq(board, to, occ);
+    uint64_t attack_def = attacks_to_sq(board, to, occ);
     attack_def ^= SquareBB[from];
 
     while (true)

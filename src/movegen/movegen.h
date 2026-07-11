@@ -25,3 +25,6 @@ bool ep_is_legal(const BoardState& board, const Move& move, Side capturer);
 // Returns the attack bitboard for a piece of piecetype on square sq
 template <PieceType pieceType>
 uint64_t attack_bb(Square sq, uint64_t occupied = EMPTY);
+
+// All pieces of either colour attacking sq, given an explicit occupancy.
+uint64_t attacks_to_sq(const BoardState& board, Square sq, uint64_t occ);
