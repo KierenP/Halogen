@@ -167,22 +167,12 @@ uint64_t get_fifty_move_adj_key(const BoardState& board)
     return board.key ^ fifty_move_hash[board.fifty_move_count];
 }
 
-// This must mirror the incremental key updates in BoardState::apply_move and BoardState::update_castle_rights, and is
-// verified against them by an assert at the end of apply_move.
-uint64_t get_fifty_move_adj_key_after(const BoardState& board, Move move)
+// check for the king or rook moving, or a rook being captured
+uint64_t update_castle_rights(uint64_t& castle_squares, Square white_king, Square black_king, Move move)
 {
-    uint64_t key = board.key ^ stm();
+    uint64_t key = 0;
 
-    // undo the previous ep square
-    if (board.en_passant <= SQ_H8)
-    {
-        key ^= en_passant(enum_to<File>(board.en_passant));
-    }
-
-    // castle rights: check for the king or rook moving, or a rook being captured
-    uint64_t castle_squares = board.castle_squares;
-
-    if (move.from() == board.get_king_sq(WHITE))
+    if (move.from() == white_king)
     {
         uint64_t white_castle = castle_squares & RankBB[RANK_1];
 
@@ -194,7 +184,7 @@ uint64_t get_fifty_move_adj_key_after(const BoardState& board, Move move)
         castle_squares &= ~(RankBB[RANK_1]);
     }
 
-    if (move.from() == board.get_king_sq(BLACK))
+    if (move.from() == black_king)
     {
         uint64_t black_castle = castle_squares & RankBB[RANK_8];
 
@@ -209,12 +199,32 @@ uint64_t get_fifty_move_adj_key_after(const BoardState& board, Move move)
     if (SquareBB[move.to()] & castle_squares)
     {
         key ^= castle(move.to());
+        castle_squares &= ~SquareBB[move.to()];
     }
 
     if (SquareBB[move.from()] & castle_squares)
     {
         key ^= castle(move.from());
+        castle_squares &= ~SquareBB[move.from()];
     }
+
+    return key;
+}
+
+// This must mirror the incremental key updates in BoardState::apply_move and BoardState::update_castle_rights, and is
+// verified against them by an assert at the end of apply_move.
+uint64_t get_fifty_move_adj_key_after(const BoardState& board, Move move)
+{
+    uint64_t key = board.key ^ stm();
+
+    // undo the previous ep square
+    if (board.en_passant <= SQ_H8)
+    {
+        key ^= en_passant(enum_to<File>(board.en_passant));
+    }
+
+    uint64_t castle_squares = board.castle_squares;
+    key ^= update_castle_rights(castle_squares, board.get_king_sq(WHITE), board.get_king_sq(BLACK), move);
 
     switch (move.flag())
     {

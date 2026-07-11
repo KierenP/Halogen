@@ -74,7 +74,6 @@ struct PieceMoveHistory : HistoryTable<PieceMoveHistory>
 // equivalent 2 ply or 6 ply continuations
 struct ContinuationHistory
 {
-    static constexpr int cont_hist_depth = 2;
     PieceMoveHistory table[N_SIDES][N_PIECE_TYPES][N_SQUARES] = {};
 };
 

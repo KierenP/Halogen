@@ -20,6 +20,8 @@ uint64_t key(const BoardState& board);
 uint64_t pawn_key(const BoardState& board);
 uint64_t non_pawn_key(const BoardState& board, Side side);
 
+uint64_t update_castle_rights(uint64_t& castle_squares, Square white_king, Square black_king, Move move);
+
 uint64_t get_fifty_move_adj_key(const BoardState& board);
 
 // The fifty move adjusted key of the position that will result from playing 'move' on 'board', without applying the
