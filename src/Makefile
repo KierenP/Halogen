@@ -220,7 +220,8 @@ ifneq ($(shell command -v llvm-profdata >/dev/null 2>&1 && echo found),found)
 endif
 
 ifeq ($(COMPILER),gcc)
-    LTO_FLAGS := -flto=auto -flto-partition=one
+    # LOCAL TUNE-BRANCH HACK LTO disabled to dodge a MinGW GCC 16.1 bug on UCRT
+    LTO_FLAGS :=
     PGO_GEN := -fprofile-generate
     PGO_USE := -fprofile-use -fprofile-partial-training
     CXXFLAGS += -Wno-interference-size
