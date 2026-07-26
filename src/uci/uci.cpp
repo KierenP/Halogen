@@ -254,6 +254,8 @@ void Uci::handle_bench(const SearchLimits& limits)
 
 auto Uci::options_handler()
 {
+    using namespace std::chrono_literals;
+
 #define tuneable_int(name, min_, max_)                                                                                 \
     SpinOption                                                                                                         \
     {                                                                                                                  \
@@ -278,6 +280,8 @@ auto Uci::options_handler()
         SpinOption { "Hash", 32, 1, 262144, [this](auto value) { handle_setoption_hash(value); } },
         SpinOption { "Threads", 1, 1, 1024, [this](auto value) { handle_setoption_threads(value); } },
         SpinOption { "MultiPV", 1, 1, MAX_LEGAL_MOVES, [this](auto value) { handle_setoption_multipv(value); } },
+        SpinOption {
+            "Move Overhead", 100, 0, 5000, [this](auto value) { handle_setoption_move_overhead(value * 1ms); } },
         StringOption { "SyzygyPath", "<empty>", [this](auto value) { handle_setoption_syzygy_path(value); } },
         ComboOption {
             "OutputLevel", OutputLevel::Default, [this](auto value) { handle_setoption_output_level(value); } },
@@ -521,6 +525,11 @@ void Uci::handle_setoption_syzygy_path(std::string_view value)
 void Uci::handle_setoption_multipv(int value)
 {
     search_thread_pool.set_multi_pv(value);
+}
+
+void Uci::handle_setoption_move_overhead(std::chrono::milliseconds value)
+{
+    move_overhead = value;
 }
 
 void Uci::handle_setoption_chess960(bool value)
@@ -790,22 +799,17 @@ SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
     limits.nodes = ctx.nodes;
     limits.time = {};
 
-    using namespace std::chrono_literals;
-
-    // The amount of time we leave on the clock for safety
-    constexpr static auto BufferTime = 100ms;
-
     const auto& myTime = position.board().stm ? ctx.wtime : ctx.btime;
     const auto& myInc = position.board().stm ? ctx.winc : ctx.binc;
 
     if (ctx.movetime)
     {
-        auto hard_limit = *ctx.movetime - BufferTime;
+        auto hard_limit = *ctx.movetime - move_overhead;
         limits.time = SearchTimeManager(hard_limit, hard_limit);
     }
     else if (myTime)
     {
-        auto hard_limit = *myTime - BufferTime;
+        auto hard_limit = *myTime - move_overhead;
 
         if (ctx.movestogo)
         {
@@ -813,7 +817,7 @@ SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
 
             // We divide the available time by the number of movestogo (which can be zero) and then adjust
             // by 1.5x. This ensures we use more of the available time earlier.
-            auto soft_limit = (*myTime - BufferTime) / (*ctx.movestogo + 1) * repeating_tc / 64;
+            auto soft_limit = hard_limit / (*ctx.movestogo + 1) * repeating_tc / 64;
             limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else if (myInc)
@@ -823,14 +827,13 @@ SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
             // We start by using 1/30th of the remaining time plus the increment. As we move through the game we
             // use a higher proportion of the available time so that we get down to just using the increment
 
-            auto soft_limit
-                = (*myTime - BufferTime) * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
+            auto soft_limit = hard_limit * (blitz_tc_a + position.board().half_turn_count) / blitz_tc_b + *myInc;
             limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
         else
         {
             // Sudden death time control. We use 1/20th of the remaining time each turn
-            auto soft_limit = (*myTime - BufferTime) * sudden_death_tc / 1024;
+            auto soft_limit = hard_limit * sudden_death_tc / 1024;
             limits.time = SearchTimeManager(soft_limit, hard_limit);
         }
     }

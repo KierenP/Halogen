@@ -77,6 +77,7 @@ public:
     void handle_setoption_threads(int value);
     void handle_setoption_syzygy_path(std::string_view value);
     void handle_setoption_multipv(int value);
+    void handle_setoption_move_overhead(std::chrono::milliseconds value);
     void handle_setoption_chess960(bool value);
     void handle_setoption_output_level(OutputLevel level);
     void handle_stop();
@@ -99,6 +100,10 @@ private:
     UciOutput& output;
     std::thread main_search_thread;
     GameState position = GameState::starting_position();
+
+    // The amount of time we leave on the clock for safety
+    std::chrono::milliseconds move_overhead { 100 };
+
     bool quit = false;
     bool finished_startup = false;
 
