@@ -19,6 +19,10 @@ endif
 # Architecture configuration (can be overridden: make ARCH=avx2 debug)
 ARCH ?= native
 
+# verbatim permutes the FT weights into the layout the target's SIMD width expects, so its output is
+# arch-specific and lives under the per-arch build directory alongside the objects that embed it.
+VERBATIM_NET := $(BUILD_DIR)/$(ARCH)/verbatim.nn
+
 #----------------------------------------------------------------------------------------------------------------------
 # Source Files
 #----------------------------------------------------------------------------------------------------------------------
@@ -81,7 +85,7 @@ endif
 #----------------------------------------------------------------------------------------------------------------------
 
 WARN_FLAGS := -Wall -Wextra -Wshadow -Wno-missing-field-initializers -Wno-deprecated-declarations -Wno-ignored-attributes
-BASE_FLAGS := $(WARN_FLAGS) -pthread -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(BUILD_DIR)/verbatim.nn\" -ffp-contract=off
+BASE_FLAGS := $(WARN_FLAGS) -pthread -g -I. -std=c++20 -fno-exceptions -DEVALFILE=\"$(VERBATIM_NET)\" -ffp-contract=off
 BASE_FLAGS += $(EXTRA_CXXFLAGS)
 
 # Optimization levels
@@ -98,6 +102,9 @@ BASE_LDFLAGS += $(EXTRA_LDFLAGS)
 
 ifeq ($(DETECTED_OS),Windows)
     STATIC_LDFLAGS := -static
+    # MinGW appends .exe to an -o argument that has no extension, so spell it out for any output
+    # we want to reference as a file prerequisite.
+    HOST_EXE_SUFFIX := .exe
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -334,12 +341,31 @@ ifeq ($(MAKECMDGOALS),pgo-compile)
 endif
 
 #----------------------------------------------------------------------------------------------------------------------
+# Incremental Build Support
+#----------------------------------------------------------------------------------------------------------------------
+
+# Header dependencies, so editing a header rebuilds exactly the objects that include it. Skipped
+# for analyze, where CXX is include-what-you-use and no object files are produced at all.
+ifneq ($(BUILD_TYPE),analyze)
+    CXXFLAGS += -MMD -MP
+    DEPS := $(OBJS:.o=.d)
+endif
+
+# All build types share one object directory, so the flags an object was built with are recorded in
+# a stamp file that every object depends on. Switching build type, ARCH, compiler, network or
+# EXTRA_CXXFLAGS rewrites the stamp and rebuilds everything; repeating a build leaves it untouched.
+FLAGS_STAMP := $(BUILD_DIR)/$(ARCH)/flags.stamp
+FLAGS_FINGERPRINT := $(CXX) $(CXXFLAGS) $(LDFLAGS) $(VERBATIM_FLAGS) $(EVALFILE)
+$(shell mkdir -p $(dir $(FLAGS_STAMP)); test "$$(cat $(FLAGS_STAMP) 2>/dev/null)" = '$(FLAGS_FINGERPRINT)' \
+        || printf '%s' '$(FLAGS_FINGERPRINT)' > $(FLAGS_STAMP))
+
+#----------------------------------------------------------------------------------------------------------------------
 # Main Build Targets
 #----------------------------------------------------------------------------------------------------------------------
 
 .PHONY: debug release native sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament analyze
-debug release sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament: verbatim_binary binary
-analyze: verbatim_binary $(OBJS)
+debug release sanitize-address sanitize-undefined sanitize-thread tune shuffle tournament: binary
+analyze: $(OBJS)
 
 .PHONY: pgo pgo-instrumented pgo-compile
 pgo:
@@ -348,7 +374,7 @@ pgo:
 	$(PGO_MERGE)
 	$(MAKE) pgo-compile
 
-pgo-instrumented pgo-compile: verbatim_binary binary
+pgo-instrumented pgo-compile: binary
 
 #----------------------------------------------------------------------------------------------------------------------
 # Network File Management
@@ -365,29 +391,33 @@ endif
 # Verbatim Binary (Network Embedding)
 #----------------------------------------------------------------------------------------------------------------------
 
-.PHONY: verbatim_binary
-verbatim_binary: tools/verbatim.cpp $(EVALFILE) FORCE
-	@ mkdir -p $(BUILD_DIR)
-	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $(BUILD_DIR)/verbatim $(BASE_LDFLAGS)
+VERBATIM := $(BUILD_DIR)/$(ARCH)/verbatim$(HOST_EXE_SUFFIX)
 
-$(BUILD_DIR)/verbatim.nn: verbatim_binary FORCE
-	./$(BUILD_DIR)/verbatim $(EVALFILE) $(BUILD_DIR)/verbatim.nn
+$(VERBATIM): tools/verbatim.cpp $(FLAGS_STAMP)
+	@ mkdir -p $(dir $@)
+	$(CXX) $(VERBATIM_FLAGS) tools/verbatim.cpp -o $@ $(BASE_LDFLAGS)
+
+# The stamp carries EVALFILE, so pointing at a different net re-runs verbatim even when that net's
+# mtime is older than the last build.
+$(VERBATIM_NET): $(VERBATIM) $(EVALFILE) $(FLAGS_STAMP)
+	./$(VERBATIM) $(EVALFILE) $@
 
 #----------------------------------------------------------------------------------------------------------------------
 # Build Rules
 #----------------------------------------------------------------------------------------------------------------------
 
 .PHONY: binary
-binary: $(OBJS)
-	@ mkdir -p $(BINARY_DIR)
-	$(CXX) $(OBJS) -o $(EXE) $(LDFLAGS)
+binary: $(EXE)
 
-$(BUILD_DIR)/$(ARCH)/%.o: % $(BUILD_DIR)/verbatim.nn FORCE
+# analyze produces no binary and leaves EXE unset.
+ifneq ($(strip $(EXE)),)
+$(EXE): $(OBJS) $(FLAGS_STAMP)
+	@ mkdir -p $(dir $@)
+	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+endif
+
+$(BUILD_DIR)/$(ARCH)/%.o: % $(VERBATIM_NET) $(FLAGS_STAMP)
 	@ mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-#----------------------------------------------------------------------------------------------------------------------
-# Utility Targets
-#----------------------------------------------------------------------------------------------------------------------
-
-FORCE:
+-include $(DEPS)
