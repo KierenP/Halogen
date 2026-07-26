@@ -421,3 +421,16 @@ $(BUILD_DIR)/$(ARCH)/%.o: % $(VERBATIM_NET) $(FLAGS_STAMP)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 -include $(DEPS)
+
+#----------------------------------------------------------------------------------------------------------------------
+# Cleaning
+#----------------------------------------------------------------------------------------------------------------------
+
+.PHONY: clean fullclean
+# Drops every per-arch object directory and the built binaries, but keeps the downloaded network so
+# a rebuild does not need the network. fullclean removes that too.
+clean:
+	rm -rf $(BUILD_DIR)/*/ $(BINARY_DIR)
+
+fullclean:
+	rm -rf $(BUILD_DIR) $(BINARY_DIR)

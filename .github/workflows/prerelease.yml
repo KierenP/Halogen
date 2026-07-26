@@ -249,7 +249,6 @@ jobs:
       name: Verify (Windows x64)
       shell: pwsh
       run: |
-        cd bin
         $commit_bench_line = git show --summary | Select-String -Pattern 'Bench: \d+'
         $commit_bench = [regex]::Match($commit_bench_line.Line, 'Bench: (\d+)').Groups[1].Value
         $actual_output = & "${{ github.workspace }}\Halogen-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.extension }}" bench
