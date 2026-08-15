@@ -39,7 +39,7 @@ constexpr size_t TOTAL_FT_INPUTS = KingBucket::TOTAL_KING_BUCKET_INPUTS + Threat
 
 constexpr int16_t FT_SCALE = 255;
 constexpr int16_t L1_SCALE = 64;
-TUNEABLE_CONSTANT float SCALE_FACTOR = 192.5f;
+TUNEABLE_CONSTANT float SCALE_FACTOR = 185.5f;
 
 struct network
 {
