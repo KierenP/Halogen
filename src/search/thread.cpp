@@ -296,22 +296,35 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
         return search_result;
     }
 
+    auto root_move_whitelist = limits.search_moves;
+
     // Probe TB at root
     auto probe = Syzygy::probe_dtz_root(position_);
-    BasicMoveList root_move_whitelist;
     if (probe.has_value())
     {
-        // filter out the results which preserve the tbRank
-        for (const auto& [move, tb_rank] : probe->root_moves)
+        auto& tb_moves = probe->root_moves;
+        if (!root_move_whitelist.empty())
         {
-            if (tb_rank != probe->root_moves[0].tb_rank)
+            const auto excluded = std::ranges::remove_if(tb_moves, [&](const auto& tb_move)
+                { return std::ranges::find(root_move_whitelist, tb_move.move) == root_move_whitelist.end(); });
+            tb_moves.erase(excluded.begin(), excluded.end());
+        }
+
+        // filter out the results which preserve the tbRank
+        root_move_whitelist.clear();
+        for (const auto& [move, tb_rank] : tb_moves)
+        {
+            if (tb_rank != tb_moves[0].tb_rank)
             {
                 break;
             }
 
             root_move_whitelist.emplace_back(move);
         }
+    }
 
+    if (!root_move_whitelist.empty())
+    {
         multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
     }
 

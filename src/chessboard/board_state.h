@@ -59,6 +59,9 @@ public:
     // given a from/to square, infer which MoveFlag matches the current position (ignoring promotions)
     [[nodiscard]] MoveFlag infer_move_flag(Square from, Square to) const;
 
+    // parse a move in UCI notation, accepting castling as either e1g1 or king-takes-rook
+    [[nodiscard]] Move parse_move(std::string_view strmove) const;
+
     friend std::ostream& operator<<(std::ostream& os, const BoardState& b);
 
     uint64_t active_lesser_threats() const;

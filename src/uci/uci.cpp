@@ -28,8 +28,10 @@
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -589,7 +591,7 @@ void Uci::process_input(std::string_view command)
 
     // clang-format off
     auto search_limits_handler_factory = [](){ 
-        return Repeat { OneOf {
+        return OneOf {
             Consume { "infinite", Invoke { [](auto&){} } },
             Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
             Consume { "btime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.btime = value * 1ms; } } } },
@@ -599,7 +601,7 @@ void Uci::process_input(std::string_view command)
             Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
             Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
             Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-            Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } };
+            Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } };
     };
 
     auto uci_processor = Sequence {
@@ -610,7 +612,9 @@ void Uci::process_input(std::string_view command)
         Consume { "position", position_command_handler() },
         Consume { "go", Sequence {
             WithContext { go_ctx{}, Sequence {
-                search_limits_handler_factory(),
+                Repeat { OneOf {
+                    search_limits_handler_factory(),
+                    Consume { "searchmoves", [](auto rest, auto& ctx){ return parse_search_moves(rest, ctx); } } } },
                 Invoke { [this](auto& ctx) { handle_go(parse_search_limits(ctx)); } } } } } },
         Consume { "setoption", options_handler_model.build_handler() },
 
@@ -624,7 +628,7 @@ void Uci::process_input(std::string_view command)
         Consume { "bench", OneOf  {
             Sequence { EndCommand{}, Invoke { [this]{ handle_bench(SearchLimits{.depth = 14}); } } },
             WithContext { go_ctx{}, Sequence {
-                search_limits_handler_factory(),
+                Repeat { search_limits_handler_factory() },
                 Invoke { [this](auto& ctx) { handle_bench(parse_search_limits(ctx)); } } } } } },
         Consume { "print", Invoke { [this] { handle_print(); } } },
         Consume { "spsa", Invoke { [this] { handle_spsa(); } } },
@@ -782,6 +786,31 @@ void Uci::handle_shuffle_network()
 #endif
 }
 
+// Consumes the moves following 'searchmoves', stopping at the first token that isn't shaped like a move (e.g 'depth')
+std::optional<std::string_view> Uci::parse_search_moves(std::string_view command, go_ctx& ctx)
+{
+    auto parse_move = NextToken { [&](std::string_view token)
+        {
+            const auto is_file = [](char c) { return 'a' <= c && c <= 'h'; };
+            const auto is_rank = [](char c) { return '1' <= c && c <= '8'; };
+
+            if ((token.size() != 4 && token.size() != 5) || !is_file(token[0]) || !is_rank(token[1])
+                || !is_file(token[2]) || !is_rank(token[3]))
+            {
+                return false;
+            }
+
+            ctx.search_moves.emplace_back(token);
+            return true;
+        } };
+
+    while (auto rest = parse_move(command))
+    {
+        command = *rest;
+    }
+    return command;
+}
+
 SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
 {
     SearchLimits limits;
@@ -789,6 +818,15 @@ SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
     limits.depth = ctx.depth;
     limits.nodes = ctx.nodes;
     limits.time = {};
+
+    BasicMoveList legal;
+    legal_moves(position.board(), legal);
+    std::ranges::copy_if(legal, std::back_inserter(limits.search_moves),
+        [&](Move move)
+        {
+            return std::ranges::any_of(ctx.search_moves,
+                [&](const auto& search_move) { return position.board().parse_move(search_move) == move; });
+        });
 
     using namespace std::chrono_literals;
 
