@@ -57,6 +57,7 @@ public:
         std::optional<int> mate;
         std::optional<int> depth;
         std::optional<int> nodes;
+        std::optional<BasicMoveList> search_moves;
     };
 
     struct datagen_ctx
@@ -92,6 +93,7 @@ public:
 private:
     void join_search_thread();
     SearchLimits parse_search_limits(const go_ctx& ctx);
+    std::optional<std::string_view> parse_search_moves(std::string_view command, go_ctx& ctx);
 
     const std::string_view version_;
 

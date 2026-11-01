@@ -102,6 +102,13 @@ void SearchThread::start_searching(std::latch& latch, const BasicMoveList& root_
         [this, root_move_whitelist, &latch]()
         {
             local_state->root_move_whitelist = root_move_whitelist;
+            if (shared_state.limits.search_moves)
+            {
+                auto& moves = local_state->root_moves;
+                const auto excluded = std::remove_if(moves.begin(), moves.end(),
+                    [&](const RootMove& move) { return local_state->should_skip_root_move(move.move); });
+                moves.erase(excluded, moves.end());
+            }
             launch_worker_search(local_state->position, *local_state, shared_state);
             latch.count_down();
         });
@@ -259,6 +266,12 @@ void SearchThreadPool::stop_search()
 
 SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
 {
+    if (limits.search_moves && limits.search_moves->empty())
+    {
+        shared_state.uci_handler.print_bestmove(shared_state.chess_960, std::nullopt);
+        return {};
+    }
+
 #ifdef TUNE
     LMR_reduction = Initialise_LMR_reduction();
 #endif
@@ -297,8 +310,13 @@ SearchInfoData SearchThreadPool::launch_search(const SearchLimits& limits)
     }
 
     // Probe TB at root
-    auto probe = Syzygy::probe_dtz_root(position_);
+    auto probe = limits.search_moves ? std::nullopt : Syzygy::probe_dtz_root(position_);
     BasicMoveList root_move_whitelist;
+    if (limits.search_moves)
+    {
+        root_move_whitelist = *limits.search_moves;
+        multi_pv = std::min<int>(multi_pv, root_move_whitelist.size());
+    }
     if (probe.has_value())
     {
         // filter out the results which preserve the tbRank

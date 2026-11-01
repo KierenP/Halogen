@@ -588,7 +588,7 @@ void Uci::process_input(std::string_view command)
     using namespace std::chrono_literals;
 
     // clang-format off
-    auto search_limits_handler_factory = [](){ 
+    auto search_limits_handler_factory = [this](){
         return Repeat { OneOf {
             Consume { "infinite", Invoke { [](auto&){} } },
             Consume { "wtime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.wtime = value * 1ms; } } } },
@@ -599,7 +599,8 @@ void Uci::process_input(std::string_view command)
             Consume { "movetime", NextToken { ToInt { [](auto value, auto& ctx){ ctx.movetime = value * 1ms; } } } },
             Consume { "mate", NextToken { ToInt { [](auto value, auto& ctx){ ctx.mate = value; } } } },
             Consume { "depth", NextToken { ToInt { [](auto value, auto& ctx){ ctx.depth = value; } } } },
-            Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } } } };
+            Consume { "nodes", NextToken { ToInt { [](auto value, auto& ctx){ ctx.nodes = value; } } } },
+            Consume { "searchmoves", [this](auto command, auto& ctx){ return parse_search_moves(command, ctx); } } } };
     };
 
     auto uci_processor = Sequence {
@@ -782,12 +783,52 @@ void Uci::handle_shuffle_network()
 #endif
 }
 
+std::optional<std::string_view> Uci::parse_search_moves(std::string_view command, go_ctx& ctx)
+{
+    BasicMoveList legal;
+    legal_moves(position.board(), legal);
+    ctx.search_moves.emplace();
+
+    auto parse_move = NextToken { [&](std::string_view token)
+    {
+        for (Move move : legal)
+        {
+            std::ostringstream uci;
+            if (search_thread_pool.get_shared_state().chess_960)
+            {
+                uci << format_chess960 { move };
+            }
+            else
+            {
+                uci << move;
+            }
+            if (uci.str() != token)
+            {
+                continue;
+            }
+            if (std::find(ctx.search_moves->begin(), ctx.search_moves->end(), move) == ctx.search_moves->end())
+            {
+                ctx.search_moves->push_back(move);
+            }
+            return true;
+        }
+        return false;
+    } };
+
+    while (auto rest = parse_move(command))
+    {
+        command = *rest;
+    }
+    return command;
+}
+
 SearchLimits Uci::parse_search_limits(const go_ctx& ctx)
 {
     SearchLimits limits;
     limits.mate = ctx.mate;
     limits.depth = ctx.depth;
     limits.nodes = ctx.nodes;
+    limits.search_moves = ctx.search_moves;
     limits.time = {};
 
     using namespace std::chrono_literals;

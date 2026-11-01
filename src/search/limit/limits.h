@@ -1,5 +1,6 @@
 #pragma once
 
+#include "movegen/list.h"
 #include "search/limit/time.h"
 
 #include <cstdint>
@@ -12,4 +13,5 @@ public:
     std::optional<int> depth;
     std::optional<int> mate;
     std::optional<uint64_t> nodes;
+    std::optional<BasicMoveList> search_moves;
 };
