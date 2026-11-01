@@ -13,5 +13,6 @@ public:
     std::optional<int> depth;
     std::optional<int> mate;
     std::optional<uint64_t> nodes;
-    std::optional<BasicMoveList> search_moves;
+    // Legal moves to restrict the root to. Empty means search all moves
+    BasicMoveList search_moves;
 };

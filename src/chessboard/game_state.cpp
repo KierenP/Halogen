@@ -1,7 +1,6 @@
 #include "chessboard/game_state.h"
 
 #include "bitboard/define.h"
-#include "bitboard/enum.h"
 #include "chessboard/board_state.h"
 #include "movegen/move.h"
 #include "search/cuckoo.h"
@@ -9,7 +8,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -22,34 +20,7 @@ void GameState::apply_move(Move move)
 
 void GameState::apply_move(std::string_view strmove)
 {
-    Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
-    Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
-    MoveFlag flag = board().infer_move_flag(from, to);
-
-    // Promotion
-    if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
-    {
-        if (tolower(strmove[4]) == 'n')
-            flag = (flag == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
-        if (tolower(strmove[4]) == 'r')
-            flag = (flag == CAPTURE ? ROOK_PROMOTION_CAPTURE : ROOK_PROMOTION);
-        if (tolower(strmove[4]) == 'q')
-            flag = (flag == CAPTURE ? QUEEN_PROMOTION_CAPTURE : QUEEN_PROMOTION);
-        if (tolower(strmove[4]) == 'b')
-            flag = (flag == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
-    }
-
-    // Correction for castle moves (encode as KxR)
-    if (flag == A_SIDE_CASTLE)
-    {
-        to = lsb(board().castle_squares & RankBB[board().stm == WHITE ? RANK_1 : RANK_8]);
-    }
-    else if (flag == H_SIDE_CASTLE)
-    {
-        to = msb(board().castle_squares & RankBB[board().stm == WHITE ? RANK_1 : RANK_8]);
-    }
-
-    apply_move(Move(from, to, flag));
+    apply_move(board().parse_move(strmove));
 
     // trim all moves before a 50 move reset
     if (board().fifty_move_count == 0)

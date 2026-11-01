@@ -909,8 +909,8 @@ Score search(GameState& position, SearchStackState* ss, NN::Accumulator* acc, Se
         }
     }
 
-    // Step 7: Probe syzygy EGTB
-    if (ss->singular_exclusion == Move::Uninitialized)
+    // Step 7: Probe syzygy EGTB. Skip the root when searchmoves is set, as its result may rely on an excluded move
+    if (ss->singular_exclusion == Move::Uninitialized && !(root_node && !shared.limits.search_moves.empty()))
     {
         if (auto value = probe_egtb<root_node, pv_node>(
                 position, distance_from_root, shared, local, alpha, beta, min_score, max_score, depth))

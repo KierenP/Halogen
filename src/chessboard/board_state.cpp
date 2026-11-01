@@ -8,6 +8,7 @@
 
 #include <bit>
 #include <cassert>
+#include <cctype>
 #include <charconv>
 #include <cstddef>
 #include <iostream>
@@ -587,6 +588,38 @@ MoveFlag BoardState::infer_move_flag(Square from, Square to) const
     }
 
     return QUIET;
+}
+
+Move BoardState::parse_move(std::string_view strmove) const
+{
+    Square from = static_cast<Square>((strmove[0] - 97) + (strmove[1] - 49) * 8);
+    Square to = static_cast<Square>((strmove[2] - 97) + (strmove[3] - 49) * 8);
+    MoveFlag flag = infer_move_flag(from, to);
+
+    // Promotion
+    if (strmove.length() == 5) // promotion: c7c8q or d2d1n	etc.
+    {
+        if (tolower(strmove[4]) == 'n')
+            flag = (flag == CAPTURE ? KNIGHT_PROMOTION_CAPTURE : KNIGHT_PROMOTION);
+        if (tolower(strmove[4]) == 'r')
+            flag = (flag == CAPTURE ? ROOK_PROMOTION_CAPTURE : ROOK_PROMOTION);
+        if (tolower(strmove[4]) == 'q')
+            flag = (flag == CAPTURE ? QUEEN_PROMOTION_CAPTURE : QUEEN_PROMOTION);
+        if (tolower(strmove[4]) == 'b')
+            flag = (flag == CAPTURE ? BISHOP_PROMOTION_CAPTURE : BISHOP_PROMOTION);
+    }
+
+    // Correction for castle moves (encode as KxR)
+    if (flag == A_SIDE_CASTLE)
+    {
+        to = lsb(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+    }
+    else if (flag == H_SIDE_CASTLE)
+    {
+        to = msb(castle_squares & RankBB[stm == WHITE ? RANK_1 : RANK_8]);
+    }
+
+    return Move(from, to, flag);
 }
 
 uint64_t BoardState::active_lesser_threats() const
